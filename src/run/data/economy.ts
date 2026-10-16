@@ -21,7 +21,7 @@ export const ECONOMY = {
   eliteRewardChoices: 4,
   trainChoices: 3,
   /** 敵人數值隨層數成長：1 + layerScaling × (layer − 1) */
-  layerScaling: 0.08,
+  layerScaling: 0.05,
   /** 精英隊長的強化倍率 */
   captain: { hpMult: 2.5, damageMult: 1.4, radiusBonus: 0.1 },
 };

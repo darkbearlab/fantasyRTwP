@@ -15,7 +15,8 @@ npm install
 npm run dev                      # 開發伺服器（標題 → 路線圖 → 戰鬥／事件／休息 → 結算）
 npm run build                    # 型別檢查＋打包到 dist/
 npm test                         # 模擬層單元測試
-npm run autobattle -- --runs 200 # 無畫面自動對戰，輸出勝率與平均傷害
+npm run autobattle -- --runs 200 # 無畫面單場自動對戰，輸出勝率與平均傷害
+npm run autorun -- --runs 100    # 無畫面整趟自動遠征：通關率、抵達層數、陣亡、金幣、各類戰鬥時間、全滅層數
 ```
 
 `autobattle` 其他參數：`--seed 1`（起始種子）、`--zoc pin|disengage|off`、`--noscript`（英雄只用閒置行為，模擬「亂按」）。
@@ -56,6 +57,7 @@ src/sim/      純 TypeScript 模擬層（不 import Phaser／DOM，只吃 Comman
   data/         英雄、敵人、技能、地圖（arena01.json）
 src/game/     Phaser 畫面層：場景、渲染、輸入（輸入 → Command）
 src/config.ts 時間倍率、ZOC 模式、自動暫停、快捷鍵
-tools/        autobattle（無畫面自動對戰）、heroScript（腳本英雄 AI）、trace（除錯時間軸）
+src/run/      遠征模組（純 TypeScript）：RunState、路線圖生成、節點流程、強化、事件；data/ 放經濟、遭遇、強化、事件
+tools/        autobattle／autorun（無畫面單場／整趟）、heroScript（腳本英雄 AI）、runPolicy（自動遠征決策）、encounterStats、trace（除錯）
 tests/        Vitest（只測 sim）
 ```
