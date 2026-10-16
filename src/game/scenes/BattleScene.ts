@@ -16,7 +16,7 @@ import type { SkillDef } from '../../sim/data/types';
 import { OBJECT_DEPTH_BASE, UnitView } from '../render/unitView';
 import type { UnitVisual } from '../render/unitView';
 import { FlareView } from '../render/flareView';
-import { FLARE, FLARE_TILES, ensureFlareLoaded, getArt, useFlare } from '../render/art';
+import { DIR_NAMES, FLARE, FLARE_TILES, displayFacing, ensureFlareLoaded, flareDir, getArt, useFlare } from '../render/art';
 import type { ArtMode } from '../render/art';
 import {
   depthOf,
@@ -49,6 +49,8 @@ export class BattleScene extends Phaser.Scene {
   input2!: InputController;
   private views = new Map<number, UnitVisual>();
   private statusTexts = new Map<number, Phaser.GameObjects.Text>();
+  /** 方向對照的標籤（除錯） */
+  private facingTexts = new Map<number, Phaser.GameObjects.Text>();
   private fx!: Fx;
   private debugOverlay!: DebugOverlay;
   private zoneG!: Phaser.GameObjects.Graphics;
@@ -105,6 +107,7 @@ export class BattleScene extends Phaser.Scene {
     this.registry.set('session', this.session);
     this.views.clear();
     this.statusTexts.clear();
+    this.facingTexts.clear();
     this.worldObjects = [];
     this.blocks = [];
     this.resultShown = false;
@@ -649,6 +652,7 @@ export class BattleScene extends Phaser.Scene {
     this.drawTargeting();
     this.drawCoverHint();
     this.drawBoxSelect();
+    this.drawFacingDebug();
     this.debugOverlay.update(s, (id) => this.wpos(w.getUnit(id)!));
     this.dim.setVisible(s.paused && !w.result);
     this.input.setDefaultCursor(s.targeting ? 'crosshair' : 'default');
@@ -956,6 +960,35 @@ export class BattleScene extends Phaser.Scene {
     if (!ranged || !w.hasCover(caster.pos, target)) return;
     const p = this.headScreen(target);
     this.coverText.setPosition(p.x, p.y - 22).setVisible(true);
+  }
+
+  /** 方向對照（除錯）：地上畫實際面向（世界角度）的箭頭，旁邊標出換算後的 Flare 方向編號 */
+  private drawFacingDebug(): void {
+    const on = this.session.debug.facing;
+    for (const u of this.session.world.units) {
+      let t = this.facingTexts.get(u.id);
+      if (!on || u.dead || this.hiddenIds.has(u.id)) {
+        t?.setVisible(false);
+        continue;
+      }
+      const p = this.wpos(u);
+      const f = displayFacing(u.facing);
+      const tip = { x: p.x + Math.cos(f) * 1.3, y: p.y + Math.sin(f) * 1.3 };
+      const g = this.ghostG;
+      groundLine(g, p, tip, 3, 0xffe066, 0.95);
+      for (const side of [-1, 1]) {
+        const a = f + Math.PI + side * 0.45;
+        groundLine(g, tip, { x: tip.x + Math.cos(a) * 0.35, y: tip.y + Math.sin(a) * 0.35 }, 3, 0xffe066, 0.95);
+      }
+      if (!t) {
+        t = this.add.text(0, 0, '', { fontFamily: FONT, fontSize: '11px', color: '#ffe066', fontStyle: 'bold' }).setOrigin(0.5, 0).setDepth(1201);
+        t.setStroke('#000000', 3);
+        this.facingTexts.set(u.id, t);
+      }
+      const d = flareDir(f);
+      const sp = worldToScreen(p.x, p.y);
+      t.setText(`dir ${d}（${DIR_NAMES[d]}）`).setPosition(sp.x, sp.y + 10).setVisible(true);
+    }
   }
 
   private drawBoxSelect(): void {

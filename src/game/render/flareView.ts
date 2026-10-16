@@ -3,7 +3,7 @@ import { GAME_CONFIG } from '../../config';
 import { SKILLS } from '../../sim/data/skills';
 import type { Unit } from '../../sim/unit';
 import type { FlareAnimMeta } from './art';
-import { FLARE, flareDir, flareKey } from './art';
+import { FLARE, displayFacing, flareDir, flareKey } from './art';
 import { COLORS } from './palette';
 import { depthOf, groundCirclePoints, worldToScreen } from './projection';
 import type { Concealment, UnitVisual } from './unitView';
@@ -181,7 +181,7 @@ export class FlareView implements UnitVisual {
     this.y = p.y;
     this.container.setPosition(this.x, this.y);
     this.container.setDepth(u.dead ? DEAD_DEPTH : OBJECT_DEPTH_BASE + depthOf(this.wx, this.wy));
-    if (!u.dead) this.dir = flareDir(u.facing);
+    if (!u.dead) this.dir = flareDir(displayFacing(u.facing));
     const { anim, frame } = this.animFor(simTime);
     for (const l of this.layers) {
       const a = this.resolveAnim(l, anim);

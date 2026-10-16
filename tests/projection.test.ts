@@ -36,13 +36,14 @@ describe('Flare 8 方向換算', () => {
   it('世界面向經等角投影後換算成最接近的螢幕方向', async () => {
     const { flareDir } = await import('../src/game/render/art');
     setProjection('iso');
+    // Flare：0=西、1=西北、2=北、3=東北、4=東、5=東南、6=南、7=西南（螢幕方向）
     // 世界 +x 在螢幕上是右下（東南）、+y 是左下（西南）、(+x,+y) 是正下方（南）
-    expect(flareDir(0)).toBe(3);
-    expect(flareDir(Math.PI / 2)).toBe(1);
-    expect(flareDir(Math.PI / 4)).toBe(2);
-    expect(flareDir(Math.PI)).toBe(7);
-    expect(flareDir(-Math.PI / 2)).toBe(5);
-    expect(flareDir((-3 * Math.PI) / 4)).toBe(6);
+    expect(flareDir(0)).toBe(5);
+    expect(flareDir(Math.PI / 2)).toBe(7);
+    expect(flareDir(Math.PI / 4)).toBe(6);
+    expect(flareDir(Math.PI)).toBe(1);
+    expect(flareDir(-Math.PI / 2)).toBe(3);
+    expect(flareDir((-3 * Math.PI) / 4)).toBe(2);
     expect(flareDir(-Math.PI / 4)).toBe(4);
     expect(flareDir((3 * Math.PI) / 4)).toBe(0);
   });

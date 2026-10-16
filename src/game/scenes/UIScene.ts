@@ -14,8 +14,8 @@ import type { Personality } from '../../sim/data/types';
 const PERSONALITY_CYCLE: Personality[] = ['steadfast', 'aggressive', 'guerrilla'];
 import { hex } from '../render/palette';
 import { getProjection, setProjection } from '../render/projection';
-import { getArt, setArt } from '../render/art';
-import type { ArtMode } from '../render/art';
+import { DIR_SETTINGS, getArt, setArt } from '../render/art';
+import type { ArtMode, DirMode } from '../render/art';
 import type { ProjectionMode } from '../render/projection';
 import type { BattleSession, DebugFlags } from '../session';
 import type { BattleScene } from './BattleScene';
@@ -154,6 +154,7 @@ export class UIScene extends Phaser.Scene {
       ['allZoc', '所有控制區'],
       ['los', '視線檢查線'],
       ['slots', '攻擊站位'],
+      ['facing', '方向對照（面向箭頭＋Flare 方向）'],
     ];
     for (const [k, label] of flags) {
       p.appendChild(this.checkbox(label, () => this.cur().debug[k], (v) => (this.cur().debug[k] = v)));
@@ -196,6 +197,42 @@ export class UIScene extends Phaser.Scene {
     this.debugInputs.push({ sync: () => document.activeElement !== artSel && (artSel.value = getArt()) });
     artRow.appendChild(artSel);
     p.appendChild(artRow);
+
+    // 方向對照：換算方式與整體偏移，可以邊看邊調
+    const dirRow = el('div', 'row');
+    dirRow.appendChild(el('span', 'lbl', '方向換算'));
+    const dirSel = el('select');
+    for (const [v, t] of [
+      ['screen', '螢幕方向'],
+      ['map', '地圖方向（轉 45°）'],
+    ]) {
+      const o = el('option', '', t);
+      o.value = v;
+      dirSel.appendChild(o);
+    }
+    dirSel.addEventListener('change', () => {
+      DIR_SETTINGS.mode = dirSel.value as DirMode;
+      dirSel.blur();
+    });
+    const offSel = el('select');
+    for (let i = 0; i < 8; i++) {
+      const o = el('option', '', `偏移 ${i}`);
+      o.value = String(i);
+      offSel.appendChild(o);
+    }
+    offSel.addEventListener('change', () => {
+      DIR_SETTINGS.offset = Number(offSel.value);
+      offSel.blur();
+    });
+    this.debugInputs.push({
+      sync: () => {
+        if (document.activeElement !== dirSel) dirSel.value = DIR_SETTINGS.mode;
+        if (document.activeElement !== offSel) offSel.value = String(DIR_SETTINGS.offset);
+      },
+    });
+    dirRow.append(dirSel, offSel);
+    p.appendChild(dirRow);
+    p.appendChild(this.checkbox('轉向測試（每秒轉一個方向）', () => DIR_SETTINGS.spin, (v) => (DIR_SETTINGS.spin = v)));
 
     const speedRow = el('div', 'row');
     speedRow.appendChild(el('span', 'lbl', '時間倍率'));

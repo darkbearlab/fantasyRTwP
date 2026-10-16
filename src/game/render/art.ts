@@ -91,13 +91,38 @@ export function useFlare(scene: Phaser.Scene): boolean {
 }
 
 /**
- * 角色面向（世界角度）→ Flare 的 8 方向（螢幕方向）：
- * 0=西、1=西南、2=南（面向鏡頭）、3=東南、4=東、5=東北、6=北、7=西北。
+ * 方向換算設定（除錯面板「方向對照」可即時調整）：
+ * - screen：Flare 的 8 方向視為「螢幕方向」——世界面向先經等角投影，再取最接近的螢幕方向
+ * - map：Flare 的 8 方向視為「地圖方向」（等角地圖的格子軸）——直接用世界角度，與螢幕方向差 45 度
+ * - offset：最後再整體偏移幾格（0–7），方便對照素材
+ * - spin：轉向測試，所有角色的外觀每秒轉一個方向（只影響畫面）
  */
+export type DirMode = 'screen' | 'map';
+export const DIR_SETTINGS = { mode: 'screen' as DirMode, offset: 0, spin: false };
+
+/** Flare 的 8 方向（Alan 對照素材確認）：0=西、1=西北、2=北、3=東北、4=東、5=東南、6=南（面向鏡頭）、7=西南 */
+export const DIR_NAMES = ['西', '西北', '北', '東北', '東', '東南', '南', '西南'];
+
+/** 角色面向（世界角度）→ Flare 的 8 方向 */
 export function flareDir(facing: number): number {
-  const o = worldToScreen(0, 0);
-  const p = worldToScreen(Math.cos(facing), Math.sin(facing));
-  const a = Math.atan2(p.y - o.y, p.x - o.x); // 螢幕角度：0=東、π/2=南
-  const k = ((Math.round(a / (Math.PI / 4)) % 8) + 8) % 8; // 0=東、1=東南、2=南…
-  return (4 - k + 8) % 8;
+  let base: number;
+  // 角度 k（每 45° 一格，0=東、1=東南、2=南、3=西南、4=西、5=西北、6=北、7=東北）→ Flare 編號 = (k + 4) mod 8
+  let k: number;
+  if (DIR_SETTINGS.mode === 'map') {
+    // 地圖方向：直接用世界角度（東 = +x、南 = +y）
+    k = Math.round(facing / (Math.PI / 4));
+  } else {
+    const o = worldToScreen(0, 0);
+    const p = worldToScreen(Math.cos(facing), Math.sin(facing));
+    k = Math.round(Math.atan2(p.y - o.y, p.x - o.x) / (Math.PI / 4)); // 螢幕角度：0=東、π/2=南
+  }
+  k = ((k % 8) + 8) % 8;
+  base = (k + 4) % 8;
+  return (base + DIR_SETTINGS.offset + 8) % 8;
+}
+
+/** 轉向測試時顯示用的面向（世界角度）；平時就是單位的面向 */
+export function displayFacing(facing: number): number {
+  if (!DIR_SETTINGS.spin) return facing;
+  return Math.floor(performance.now() / 1000) * (Math.PI / 4);
 }
