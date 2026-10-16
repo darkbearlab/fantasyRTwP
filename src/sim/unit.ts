@@ -69,6 +69,8 @@ export class Unit {
   cooldowns: Record<string, number> = {};
   /** 技能目前可用次數（一般為 0 或 1；「二連」最多 2） */
   charges: Record<string, number> = {};
+  /** 這場戰鬥已不能再用的技能（一次性、被打斷就失去） */
+  spentSkills: string[] = [];
   /** 暫時的傷害增益（頭目戰吼等） */
   damageBuffMult = 1;
   damageBuffTime = 0;
@@ -123,7 +125,7 @@ export class Unit {
   }
 
   skillReady(skillId: string): boolean {
-    return (this.charges[skillId] ?? 1) > 0;
+    return (this.charges[skillId] ?? 1) > 0 && !this.spentSkills.includes(skillId);
   }
 
   /** 造成傷害的總倍率 */

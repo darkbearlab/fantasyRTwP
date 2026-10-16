@@ -66,6 +66,18 @@ export const SKILLS: Record<string, SkillDef> = {
     target: 'enemy', range: 0.3, windup: 0.4, recovery: 0.8, cooldown: 10, requiresLos: false,
     effect: { kind: 'strike', melee: true, mult: 1.2, knockback: 2 },
   },
+  // ── 頭目：戰爭領主 ──
+  sweep: {
+    id: 'sweep', name: '橫掃', description: '前方扇形範圍攻擊，準備 1.5 秒，可打斷',
+    target: 'ground', range: 3, windup: 1.5, recovery: 1.0, cooldown: 7, requiresLos: false, telegraph: true,
+    effect: { kind: 'cone', radius: 3.6, angle: 110, damage: [18, 26], friendlyFire: false },
+  },
+  warcry: {
+    id: 'warcry', name: '戰吼', description: '召喚 3 名蠻兵，全體敵人 10 秒內傷害 +20%；準備 2.0 秒，被打斷就不能再用',
+    target: 'self', range: 0, windup: 2.0, recovery: 1.0, cooldown: 999, requiresLos: false, telegraph: true,
+    oncePerBattle: true, lostOnInterrupt: true,
+    effect: { kind: 'warcry', summon: { enemy: 'brute', count: 3 }, damageBuff: 1.2, duration: 10 },
+  },
   // ── 敵方術士 ──
   hellfire: {
     id: 'hellfire', name: '獄火', description: '準備 2.5 秒後，半徑 2.5 m 範圍傷害 12–18',

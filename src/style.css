@@ -1137,3 +1137,17 @@ body {
 .warn-text {
   color: #ffb36b !important;
 }
+
+.btn-row.center {
+  justify-content: center;
+  align-items: center;
+}
+
+.quick-select {
+  background: #171a20;
+  color: #e6e9ef;
+  border: 1px solid #454c5a;
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-family: inherit;
+}

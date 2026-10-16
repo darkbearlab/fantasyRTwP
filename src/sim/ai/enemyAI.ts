@@ -25,7 +25,7 @@ export function enemyThink(world: World, u: Unit): void {
   if (heroes.length === 0) return;
 
   // 被牽制時：先處理牽制自己的英雄
-  const pinners = pinnersAt(world, u);
+  const pinners = u.def.ai === 'boss' ? [] : pinnersAt(world, u);
   if (pinners.length > 0) {
     attack(world, u, nearest(u, pinners));
     return;
@@ -66,6 +66,21 @@ export function enemyThink(world: World, u: Unit): void {
       }
       const visible = heroes.filter((h) => world.canSee(u, h));
       attack(world, u, nearest(u, visible.length > 0 ? visible : heroes));
+      return;
+    }
+    case 'boss': {
+      // 生命低於一半：戰吼（一場一次，被打斷就失去）
+      if (u.hp < u.maxHp * 0.5 && u.def.skills.includes('warcry') && u.skillReady('warcry')) {
+        world.issueOrder(u, { type: 'skill', skillId: 'warcry' });
+        return;
+      }
+      const t = nearest(u, heroes);
+      // 橫掃：附近有英雄就朝他掃
+      if (u.def.skills.includes('sweep') && u.skillReady('sweep') && dist(u.pos, t.pos) <= SKILLS.sweep.range + u.radius + 0.6) {
+        world.issueOrder(u, { type: 'skill', skillId: 'sweep', point: { x: t.pos.x, y: t.pos.y } });
+        return;
+      }
+      attack(world, u, t);
       return;
     }
     case 'brute':

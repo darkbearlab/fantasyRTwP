@@ -44,6 +44,8 @@ export interface WorldOptions {
   config?: Partial<SimConfig>;
   defs?: Record<string, UnitDef>;
   idleBehavior?: IdleBehavior;
+  /** 戰鬥中召喚的敵人定義（遠征會套上層數成長） */
+  enemyDefFor?: (enemyId: string) => UnitDef;
 }
 
 export type ProjectilePayload =
@@ -105,6 +107,8 @@ export class World implements ZocContext {
   /** 指定時所有英雄都用這個閒置行為（測試用）；否則依各英雄的性格 */
   idleBehavior: IdleBehavior | null;
 
+  readonly enemyDefFor: (enemyId: string) => UnitDef;
+  private nextUnitId = 1;
   private navGrids = new Map<number, NavGrid>();
   private queue: Command[] = [];
   private events: SimEvent[] = [];
@@ -116,16 +120,17 @@ export class World implements ZocContext {
     this.map = opts.map;
     this.config = { ...DEFAULT_SIM_CONFIG, ...(opts.config ?? {}) };
     this.rng = new Rng(opts.seed);
-    this.sight = NavGrid.fromMap(opts.map, NAV_CELL, 0);
+    // 視線格子只算會遮擋視線的障礙物（河水擋路不擋視線）
+    this.sight = new NavGrid(opts.map.width, opts.map.height, NAV_CELL, 0, opts.map.obstacles.filter((o) => o.blocksSight !== false));
+    this.enemyDefFor = opts.enemyDefFor ?? ((id) => ENEMIES[id]);
     this.idleBehavior = opts.idleBehavior ?? null;
     const defs = opts.defs ?? { ...HEROES, ...ENEMIES };
-    let id = 1;
     let heroSlot = 0;
     for (const s of opts.spawns) {
       const def = s.def ?? defs[s.defId];
       if (!def) throw new Error(`未知的單位定義：${s.defId}`);
       const slot = def.team === 'hero' ? (s.heroSlot ?? heroSlot++) : -1;
-      const u = new Unit(id++, def, s.pos, slot);
+      const u = new Unit(this.nextUnitId++, def, s.pos, slot);
       if (s.hp !== undefined) u.hp = Math.max(1, Math.min(def.maxHp, Math.round(s.hp)));
       if (s.personality) u.personality = s.personality;
       // 錯開敵人 AI 評估時間
@@ -683,6 +688,23 @@ export class World implements ZocContext {
     const ec = extraCost;
     const startCost = ec(grid.cellOf(u.pos).cx, grid.cellOf(u.pos).cy);
     return smoothPath(grid, u.pos, raw, (cx, cy) => ec(cx, cy) <= startCost);
+  }
+
+  /** 戰鬥中生成單位（援軍）；位置不可走時找最近的可走點 */
+  spawnUnit(def: UnitDef, pos: Vec, byId?: number): Unit {
+    const grid = this.navGrid(def.radius);
+    let p = pos;
+    if (!grid.isWalkable(p)) {
+      const c = grid.cellOf(p);
+      const n = grid.nearestWalkableCell(c.cx, c.cy);
+      if (n) p = grid.cellCenter(n.cx, n.cy);
+    }
+    const u = new Unit(this.nextUnitId++, def, p, -1);
+    u.aiTimer = 0;
+    this.units.push(u);
+    this.unitById.set(u.id, u);
+    this.emit({ type: 'spawn', unitId: u.id, byId });
+    return u;
   }
 
   // ───────────── 投射物 ─────────────
