@@ -22,6 +22,8 @@ const game = new Phaser.Game({
   height: HEIGHT,
   backgroundColor: '#15171b',
   disableContextMenu: true,
+  // 放大時保持像素化：貼圖用最近鄰取樣（不做雙線性模糊）、座標取整數
+  pixelArt: true,
   scale: { mode: Phaser.Scale.NONE },
   scene: [BootScene, TitleScene, PartySelectScene, MapScene, BattleScene, UIScene, ResultScene, EventScene, RestScene, RewardScene, RunEndScene],
 });

@@ -25,6 +25,9 @@ body {
   position: absolute;
   inset: 0;
   display: block;
+  /* 整個畫布以 CSS transform 縮放到視窗大小：放大時保持像素化，不要糊掉 */
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
 }
 
 #ui {
