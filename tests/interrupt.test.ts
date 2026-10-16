@@ -16,7 +16,7 @@ describe('打斷（SPEC §5.3）', () => {
     w.enqueue({ type: 'skill', unitId: caster.id, skillId: 'hellfire', point: { x: 3, y: 5 } });
     run(w, 5);
     expect(caster.state).toBe(UnitState.Windup);
-    strike(w, mage, caster, { melee: false, mult: 1, flatDamage: [8, 12], interrupts: true, accBonus: 1000 });
+    strike(w, mage, caster, { melee: false, damageType: 'spell', mult: 1, flatDamage: [8, 12], interrupts: true, accBonus: 1000 });
     expect(caster.action).toBeNull();
     expect(caster.stunTime).toBeCloseTo(INTERRUPT_STUN);
     expect(caster.cooldowns.hellfire ?? 0).toBe(0);
@@ -53,7 +53,7 @@ describe('打斷（SPEC §5.3）', () => {
       { defId: 'brute', pos: { x: 10, y: 5 } },
     ]);
     const [mage, brute] = w.units;
-    strike(w, mage, brute, { melee: false, mult: 1, interrupts: true, accBonus: 1000 });
+    strike(w, mage, brute, { melee: false, damageType: 'projectile', mult: 1, interrupts: true, accBonus: 1000 });
     expect(brute.stunTime).toBe(0);
   });
 });

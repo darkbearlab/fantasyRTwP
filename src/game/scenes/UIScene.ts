@@ -195,6 +195,22 @@ export class UIScene extends Phaser.Scene {
     ffRow.appendChild(ff);
     p.appendChild(ffRow);
 
+    const leashRow = el('div', 'row');
+    leashRow.appendChild(el('span', 'lbl', '駐守範圍'));
+    const leash = el('select');
+    for (const v of [0.5, 1, 1.5, 2, 3, 6]) {
+      const o = el('option', '', `${v} m`);
+      o.value = String(v);
+      leash.appendChild(o);
+    }
+    leash.addEventListener('change', () => {
+      this.cur().setSimConfig({ heroLeashRange: Number(leash.value) });
+      leash.blur();
+    });
+    this.debugInputs.push({ sync: () => document.activeElement !== leash && (leash.value = String(this.cur().simConfig.heroLeashRange)) });
+    leashRow.appendChild(leash);
+    p.appendChild(leashRow);
+
     p.appendChild(el('div', 'debug-sub', '自動暫停'));
     p.appendChild(this.checkbox('戰鬥開始', () => this.cur().autoPause.battleStart, (v) => (this.cur().autoPause.battleStart = v)));
     p.appendChild(this.checkbox('英雄生命低於 30%', () => this.cur().autoPause.heroLowHp, (v) => (this.cur().autoPause.heroLowHp = v)));
@@ -317,6 +333,7 @@ export class UIScene extends Phaser.Scene {
       let label = STATE_LABEL[u.state];
       if (u.action?.skillId && u.state === UnitState.Windup) label = `準備：${SKILLS[u.action.skillId].name}`;
       if (u.rooted && !u.dead) label += '・定身';
+      if (u.guardPoint && !u.dead && u.state === UnitState.Idle) label = '駐守中';
       c.state.textContent = label;
       const a = u.action;
       if (a && (a.phase === 'windup' || a.phase === 'recovery')) {

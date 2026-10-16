@@ -18,6 +18,8 @@ export interface SimConfig {
   friendlyFireMultiplier: number;
   /** 英雄閒置時自動普攻的距離（近戰用，公尺；SPEC §17-4） */
   heroIdleAggroRange: number;
+  /** 駐守點拴繩距離：閒置自動普攻不得讓英雄離開駐守點超過此距離（SPEC §10.4） */
+  heroLeashRange: number;
   /** 敵人察覺距離：任一英雄進入此距離就開始進攻 */
   enemyAggroRange: number;
   /** 戰鬥開始後幾秒，敵人無論如何都會開始進攻 */
@@ -30,6 +32,7 @@ export const DEFAULT_SIM_CONFIG: SimConfig = {
   zocRange: 1.0,
   friendlyFireMultiplier: 1.0,
   heroIdleAggroRange: 6,
+  heroLeashRange: 1.5,
   enemyAggroRange: 14,
   enemyAggroTime: 8,
 };

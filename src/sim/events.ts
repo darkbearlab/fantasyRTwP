@@ -1,10 +1,10 @@
 import type { Vec } from './math';
-import type { Team } from './data/types';
+import type { DamageType, Team } from './data/types';
 
 /** sim → 畫面層：每個節拍產生的事件 */
 export type SimEvent =
   | { type: 'actionStart'; unitId: number; skillId?: string; targetId?: number; point?: Vec }
-  | { type: 'hit'; sourceId: number; targetId: number; damage: number; crit: boolean; skillId?: string; freeAttack?: boolean }
+  | { type: 'hit'; sourceId: number; targetId: number; damage: number; crit: boolean; damageType: DamageType; skillId?: string; freeAttack?: boolean }
   | { type: 'miss'; sourceId: number; targetId: number; skillId?: string; freeAttack?: boolean }
   | { type: 'heal'; sourceId: number; targetId: number; amount: number }
   | { type: 'interrupt'; sourceId: number; targetId: number; skillId?: string; point?: Vec }

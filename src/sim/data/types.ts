@@ -4,6 +4,11 @@ export type Team = 'hero' | 'enemy';
 export type EnemyArchetype = 'brute' | 'skirmisher' | 'archer' | 'caster';
 /** 投射物外觀種類（畫面層據此決定顏色大小） */
 export type ProjectileKind = 'arrow' | 'bolt' | 'fireball' | 'missile' | 'frost';
+/**
+ * 傷害類型（SPEC §19.6）：切片 1 尚無抗性，但每筆傷害都帶類型，
+ * 之後的隨從系統會依此決定吸收權重與抗性。
+ */
+export type DamageType = 'melee' | 'projectile' | 'spell' | 'area';
 
 export interface UnitDef {
   id: string;
@@ -29,6 +34,8 @@ export interface UnitDef {
   /** 遠程普攻的投射物速度（m/s）；近戰省略 */
   projectileSpeed?: number;
   projectileKind?: ProjectileKind;
+  /** 普攻的傷害類型；省略時近戰為 melee、遠程為 projectile */
+  attackDamageType?: DamageType;
   /** 技能 id，依序對應快捷鍵 */
   skills: string[];
   ai?: EnemyArchetype;
@@ -44,6 +51,8 @@ export type SkillEffect =
       accBonus?: number;
       /** 指定固定傷害區間（取代普攻傷害） */
       flatDamage?: [number, number];
+      /** 省略時近戰為 melee、遠程為 projectile */
+      damageType?: DamageType;
       interrupts?: boolean;
       stun?: number;
       knockback?: number;

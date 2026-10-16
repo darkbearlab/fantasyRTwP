@@ -30,7 +30,7 @@ export const ENEMIES: Record<string, UnitDef> = {
     id: 'caster', name: '術士', letter: 'S', color: 0x8e1b3a, team: 'enemy', ai: 'caster',
     maxHp: 60, armor: 0, accuracy: 30, defense: 20, damage: [5, 9],
     range: 10, windup: 0.8, recovery: 1.2, attackSpeed: 1, moveSpeed: 2.8, radius: 0.4,
-    projectsZoc: false, projectileSpeed: 16, projectileKind: 'bolt',
+    projectsZoc: false, projectileSpeed: 16, projectileKind: 'bolt', attackDamageType: 'spell',
     skills: ['hellfire'],
   },
 };

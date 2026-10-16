@@ -4,7 +4,7 @@
 import { applyArmor, CRIT_MULT, rollDamage, rollHit } from './combat';
 import { DT, RANGE_TOLERANCE, secondsToTicks } from './constants';
 import { SKILLS } from './data/skills';
-import type { SkillDef } from './data/types';
+import type { DamageType, SkillDef, UnitDef } from './data/types';
 import { dist, norm, sub } from './math';
 import type { Unit } from './unit';
 import type { Projectile, World } from './world';
@@ -63,9 +63,9 @@ export function finishWindup(world: World, u: Unit): void {
         u.action = null;
         return;
       }
-      strike(world, u, t, { melee: true, mult: 1 });
+      strike(world, u, t, { melee: true, mult: 1, damageType: basicDamageType(u.def) });
     } else {
-      world.spawnProjectile(u, u.def.projectileKind ?? 'arrow', u.def.projectileSpeed ?? 20, { type: 'strike', melee: false, mult: 1 }, { unit: t });
+      world.spawnProjectile(u, u.def.projectileKind ?? 'arrow', u.def.projectileSpeed ?? 20, { type: 'strike', melee: false, mult: 1, damageType: basicDamageType(u.def) }, { unit: t });
     }
     if (!u.dead && u.action) enterRecovery(u, u.def.recovery);
     return;
@@ -102,13 +102,13 @@ function applySkillEffect(world: World, u: Unit, def: SkillDef, t: Unit | undefi
     case 'strike':
       if (!t || t.dead) return false;
       if (eff.melee) {
-        strike(world, u, t, { melee: true, mult: eff.mult, accBonus: eff.accBonus, flatDamage: eff.flatDamage, interrupts: eff.interrupts, stun: eff.stun, knockback: eff.knockback, skillId: def.id });
+        strike(world, u, t, { melee: true, damageType: eff.damageType ?? 'melee', mult: eff.mult, accBonus: eff.accBonus, flatDamage: eff.flatDamage, interrupts: eff.interrupts, stun: eff.stun, knockback: eff.knockback, skillId: def.id });
       } else {
         world.spawnProjectile(
           u,
           eff.projectileKind ?? 'arrow',
           eff.projectileSpeed ?? 24,
-          { type: 'strike', melee: false, mult: eff.mult, accBonus: eff.accBonus, flatDamage: eff.flatDamage, interrupts: eff.interrupts, stun: eff.stun, knockback: eff.knockback, skillId: def.id },
+          { type: 'strike', melee: false, damageType: eff.damageType ?? 'projectile', mult: eff.mult, accBonus: eff.accBonus, flatDamage: eff.flatDamage, interrupts: eff.interrupts, stun: eff.stun, knockback: eff.knockback, skillId: def.id },
           { unit: t },
         );
       }
@@ -180,7 +180,7 @@ export function tickDash(world: World, u: Unit): void {
       }
     }
     if (inRange()) {
-      strike(world, u, t, { melee: true, mult: 1, skillId: def.id });
+      strike(world, u, t, { melee: true, mult: 1, damageType: basicDamageType(u.def), skillId: def.id });
       if (u.dead || !u.action) return;
       enterRecovery(u, def.recovery);
       afterSkill(world, u, def, t);
@@ -198,8 +198,14 @@ export function tickDash(world: World, u: Unit): void {
   enterRecovery(u, def.recovery);
 }
 
+/** 普攻的傷害類型 */
+export function basicDamageType(def: UnitDef): DamageType {
+  return def.attackDamageType ?? (def.range < 1 ? 'melee' : 'projectile');
+}
+
 export interface StrikeParams {
   melee: boolean;
+  damageType: DamageType;
   mult: number;
   accBonus?: number;
   flatDamage?: [number, number];
@@ -231,19 +237,31 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): voi
   const crit = result === 'crit';
   const base = rollDamage(world.rng, p.flatDamage ?? src.def.damage, p.mult);
   const final = applyArmor(base * (crit ? CRIT_MULT : 1), target.armor);
-  dealDamage(world, src, target, final, crit, p.skillId, p.freeAttack);
+  applyDamage(world, target, final, p.damageType, src, { crit, skillId: p.skillId, freeAttack: p.freeAttack });
   if (target.dead) return;
   if (p.interrupts) interrupt(world, src, target);
   if (p.stun) applyStun(world, target, p.stun);
   if (p.knockback) knockback(world, src, target, p.knockback);
 }
 
-export function dealDamage(world: World, src: Unit, target: Unit, amount: number, crit: boolean, skillId?: string, freeAttack?: boolean): void {
+/**
+ * 傷害結算的唯一入口（SPEC §19.6）。之後的隨從系統會在這裡插入「小隊抽選」與抗性步驟；
+ * 範圍效果會對範圍內每個受體各自呼叫一次。
+ */
+export function applyDamage(
+  world: World,
+  target: Unit,
+  amount: number,
+  damageType: DamageType,
+  src: Unit,
+  opts: { crit?: boolean; skillId?: string; freeAttack?: boolean } = {},
+): void {
+  const { crit = false, skillId, freeAttack } = opts;
   const dealt = Math.min(amount, target.hp);
   target.hp -= amount;
   src.stats.damageDealt += dealt;
   target.stats.damageTaken += dealt;
-  world.emit({ type: 'hit', sourceId: src.id, targetId: target.id, damage: amount, crit, skillId, freeAttack });
+  world.emit({ type: 'hit', sourceId: src.id, targetId: target.id, damage: amount, crit, damageType, skillId, freeAttack });
   if (target.team === 'enemy') world.triggerAggro();
   if (target.hp <= 0) kill(world, target, src);
 }
@@ -317,7 +335,7 @@ export function explode(world: World, src: Unit, point: { x: number; y: number }
     const mult = ally ? world.config.friendlyFireMultiplier : 1;
     if (mult <= 0) continue;
     const dmg = rollDamage(world.rng, eff.damage, mult);
-    dealDamage(world, src, u, applyArmor(dmg, u.armor), false, def.id);
+    applyDamage(world, u, applyArmor(dmg, u.armor), 'area', src, { skillId: def.id });
     if (!u.dead && eff.interrupts) interrupt(world, src, u);
   }
 }
@@ -325,7 +343,7 @@ export function explode(world: World, src: Unit, point: { x: number; y: number }
 /** disengage 模式：離開控制區時被免費攻擊一次 */
 export function freeAttack(world: World, e: Unit, x: Unit): void {
   if (e.dead || x.dead || e.stunTime > 0) return;
-  strike(world, e, x, { melee: true, mult: 1, freeAttack: true });
+  strike(world, e, x, { melee: true, mult: 1, damageType: 'melee', freeAttack: true });
 }
 
 export function resolveProjectilePayload(world: World, src: Unit, p: Projectile, target: Unit | undefined): void {

@@ -4,7 +4,7 @@ import { DT, NAV_CELL, RANGE_TOLERANCE } from './constants';
 import { ENEMIES } from './data/enemies';
 import { HEROES } from './data/heroes';
 import { SKILLS } from './data/skills';
-import type { MapDef, ProjectileKind, SkillDef, Team, UnitDef } from './data/types';
+import type { DamageType, MapDef, ProjectileKind, SkillDef, Team, UnitDef } from './data/types';
 import type { SimEvent } from './events';
 import { canSeeCircle, canSeePoint } from './los';
 import type { Vec } from './math';
@@ -22,7 +22,7 @@ import type { ZocContext } from './zoc';
 import { disengagedFrom, edgeDistance, pinBlocker, zoneDistance } from './zoc';
 import { finishWindup, freeAttack, resolveProjectilePayload, startAction, tickDash } from './actions';
 import type { IdleBehavior } from './ai/idleBehavior';
-import { defaultIdleBehavior } from './ai/idleBehavior';
+import { defaultIdleBehavior, leashedApproachPoint, returnToGuard, withinLeash } from './ai/idleBehavior';
 import { enemyThink } from './ai/enemyAI';
 
 export interface UnitSpawn {
@@ -45,6 +45,7 @@ export type ProjectilePayload =
   | {
       type: 'strike';
       melee: false;
+      damageType: DamageType;
       mult: number;
       accBonus?: number;
       flatDamage?: [number, number];
@@ -214,14 +215,20 @@ export class World implements ZocContext {
       case 'move': {
         const units = this.liveUnits(cmd.unitIds);
         const points = this.formationPoints(units, cmd.point);
-        units.forEach((u, i) => this.issueOrder(u, { type: 'move', point: points[i] }));
+        units.forEach((u, i) => {
+          u.guardPoint = null;
+          this.issueOrder(u, { type: 'move', point: points[i], fromPlayer: true });
+        });
         break;
       }
       case 'attack': {
         const t = this.getUnit(cmd.targetId);
         if (!t || t.dead) return;
         for (const u of this.liveUnits(cmd.unitIds)) {
-          if (u.team !== t.team) this.issueOrder(u, { type: 'attack', targetId: t.id });
+          if (u.team !== t.team) {
+            u.guardPoint = null;
+            this.issueOrder(u, { type: 'attack', targetId: t.id });
+          }
         }
         break;
       }
@@ -229,7 +236,10 @@ export class World implements ZocContext {
         const t = this.getUnit(cmd.targetId);
         if (!t || t.dead) return;
         for (const u of this.liveUnits(cmd.unitIds)) {
-          if (u !== t && u.team === t.team) this.issueOrder(u, { type: 'follow', targetId: t.id });
+          if (u !== t && u.team === t.team) {
+            u.guardPoint = null;
+            this.issueOrder(u, { type: 'follow', targetId: t.id });
+          }
         }
         break;
       }
@@ -237,6 +247,7 @@ export class World implements ZocContext {
         const u = this.getUnit(cmd.unitId);
         if (!u || u.dead) return;
         if (!u.def.skills.includes(cmd.skillId) || !SKILLS[cmd.skillId]) return;
+        u.guardPoint = null;
         this.issueOrder(u, { type: 'skill', skillId: cmd.skillId, targetId: cmd.targetId, point: cmd.point });
         break;
       }
@@ -418,6 +429,7 @@ export class World implements ZocContext {
     switch (o.type) {
       case 'move': {
         const r = this.moveAlong(u, o.point);
+        if (r === 'arrived' && o.fromPlayer) u.guardPoint = { x: u.pos.x, y: u.pos.y };
         if (r === 'arrived' || r === 'nopath') this.setOrder(u, null);
         else if (r === 'pinned') this.stopPinned(u);
         break;
@@ -440,11 +452,18 @@ export class World implements ZocContext {
           this.setOrder(u, null);
           break;
         }
-        if (edgeDistance(u, t) <= u.def.range + RANGE_TOLERANCE && (u.isMelee || this.canSee(u, t))) {
+        const inRange = edgeDistance(u, t) <= u.def.range + RANGE_TOLERANCE && (u.isMelee || this.canSee(u, t));
+        const guard = o.leashed ? u.guardPoint : null;
+        if (guard && !inRange && !withinLeash(this, u, t, guard)) {
+          // 目標跑出駐守範圍：放棄，走回駐守點
+          this.setOrder(u, returnToGuard(u, guard));
+          break;
+        }
+        if (inRange) {
           startAction(this, u, { kind: 'attack', targetId: t.id });
           break;
         }
-        const r = this.approachUnit(u, t, u.isMelee);
+        const r = guard ? this.moveAlong(u, leashedApproachPoint(this, u, t, guard), { stopDist: 0.05 }) : this.approachUnit(u, t, u.isMelee);
         if (r === 'pinned') this.stopPinned(u);
         else if (r === 'nopath') this.setOrder(u, null);
         break;

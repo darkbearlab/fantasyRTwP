@@ -327,6 +327,19 @@ export class BattleScene extends Phaser.Scene {
         if ((u.team === 'hero' && selected.has(u.id)) || (u.team === 'enemy' && s.hoverUnitId === u.id)) zoc(u);
       }
     }
+    // 駐守點：小菱形；選取中的英雄另外畫出駐守範圍
+    for (const u of w.units) {
+      const gp = u.guardPoint;
+      if (u.dead || u.team !== 'hero' || !gp) continue;
+      const x = gp.x * PX;
+      const y = gp.y * PX;
+      g.lineStyle(1.5, u.def.color, 0.9);
+      g.strokePoints([new Phaser.Math.Vector2(x, y - 5), new Phaser.Math.Vector2(x + 5, y), new Phaser.Math.Vector2(x, y + 5), new Phaser.Math.Vector2(x - 5, y)], true);
+      if (selected.has(u.id)) {
+        g.lineStyle(1, u.def.color, 0.35);
+        g.strokeCircle(x, y, w.config.heroLeashRange * PX);
+      }
+    }
     // 準備中的地面範圍法術：敵方紅色預警圈、我方紫色
     for (const u of w.units) {
       const a = u.action;

@@ -20,7 +20,7 @@ export const HEROES: Record<string, UnitDef> = {
     id: 'mage', name: '法師', letter: 'M', color: 0x9b59d0, team: 'hero',
     maxHp: 60, armor: 0, accuracy: 30, defense: 20, damage: [6, 10],
     range: 10, windup: 0.6, recovery: 1.0, attackSpeed: 1, moveSpeed: 3.0, radius: 0.4,
-    projectsZoc: false, projectileSpeed: 18, projectileKind: 'bolt',
+    projectsZoc: false, projectileSpeed: 18, projectileKind: 'bolt', attackDamageType: 'spell',
     skills: ['fireball', 'iceBind', 'arcaneMissile'],
   },
   cleric: {

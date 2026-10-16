@@ -48,7 +48,7 @@ export const SKILLS: Record<string, SkillDef> = {
   arcaneMissile: {
     id: 'arcaneMissile', name: '奧術飛彈', description: '傷害 8–12，打斷',
     target: 'enemy', range: 10, windup: 0.2, recovery: 0.6, cooldown: 5, requiresLos: true,
-    effect: { kind: 'strike', melee: false, mult: 1, flatDamage: [8, 12], interrupts: true, projectileSpeed: 26, projectileKind: 'missile' },
+    effect: { kind: 'strike', melee: false, mult: 1, flatDamage: [8, 12], damageType: 'spell', interrupts: true, projectileSpeed: 26, projectileKind: 'missile' },
   },
   // ── 牧師 ──
   heal: {

@@ -12,8 +12,10 @@ export type Command =
 
 /** 單位層級的指令（單位目前在做的事） */
 export type Order =
-  | { type: 'move'; point: Vec }
-  | { type: 'attack'; targetId: number }
+  /** fromPlayer：玩家下達的移動，完成後設定駐守點（SPEC §10.4） */
+  | { type: 'move'; point: Vec; fromPlayer?: boolean }
+  /** leashed：閒置自動普攻，不得離開駐守點超過 heroLeashRange */
+  | { type: 'attack'; targetId: number; leashed?: boolean }
   | { type: 'follow'; targetId: number }
   | { type: 'skill'; skillId: string; targetId?: number; point?: Vec };
 
