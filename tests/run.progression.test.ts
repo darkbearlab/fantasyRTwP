@@ -4,8 +4,8 @@ import { ECONOMY } from '../src/run/data/economy';
 import { battleOutcomeFromWorld, createBattleFromRun, enemyDef } from '../src/run/battle';
 import { applyBattleResult, availableNodes, canRecruit, canRevive, chooseNode, chooseReward, restCamp, restRecruit, restRevive } from '../src/run/progression';
 import type { RunState } from '../src/run/runState';
-import { createRun, firstEmptySlot, serializeRun, deserializeRun } from '../src/run/runState';
-import { maxHpOf } from '../src/run/upgrades';
+import { createRun, currentLayer, firstEmptySlot, serializeRun, deserializeRun } from '../src/run/runState';
+import { lateJoinUpgradeCount, maxHpOf } from '../src/run/upgrades';
 import { playRun } from '../tools/runPolicy';
 
 /** 進入第一個戰鬥節點 */
@@ -120,7 +120,7 @@ describe('休息、復活與招募（SPEC_SLICE2 §4、§5、§11-3/4）', () =>
     expect(canRecruit(r)).toBe(false);
   });
 
-  it('招募填入第一個空欄位（陣亡者的欄位也算空位），新英雄滿血無強化', () => {
+  it('招募填入第一個空欄位（陣亡者的欄位也算空位），新英雄滿血、依層數獲得強化', () => {
     let r = withDead(createRun(2), 1, 300);
     r.party[3] = null;
     r = atRest(r);
@@ -129,8 +129,10 @@ describe('休息、復活與招募（SPEC_SLICE2 §4、§5、§11-3/4）', () =>
     const after = restRecruit(r, cls);
     expect(after.party[1]!.classId).toBe(cls);
     expect(after.party[1]!.dead).toBe(false);
-    expect(after.party[1]!.hp).toBe(HEROES[cls].maxHp);
-    expect(after.party[1]!.upgrades).toEqual([]);
+    // 越晚加入越強（SPEC_SLICE3 §1.3）：滿血，強化數量 = floor(層數 / 2)
+    expect(after.party[1]!.hp).toBe(maxHpOf(after.party[1]!));
+    expect(after.party[1]!.upgrades.length).toBe(lateJoinUpgradeCount(currentLayer(r)));
+    expect(HEROES[cls]).toBeDefined();
     expect(after.gold).toBe(200);
     // 招募不佔三選一，但每次休息只能招募一次
     expect(() => restCamp(after)).not.toThrow();

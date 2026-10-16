@@ -15,6 +15,12 @@ export const ECONOMY = {
   recruitCost: 100,
   /** 招募時抽幾名候選 */
   recruitCandidates: 2,
+  /** 組隊：玩家自選幾名，其餘隨機（SPEC_SLICE3 §1.2） */
+  partyPicks: 2,
+  /** 隊伍（組隊、招募）是否允許重複職業（SPEC_SLICE3 §9-3） */
+  allowDuplicateClasses: false,
+  /** 越晚加入越強：招募時獲得 floor(層數 / lateJoinLayersPerUpgrade) 個隨機強化（SPEC_SLICE3 §1.3、§9-4） */
+  lateJoinLayersPerUpgrade: 2,
   /** 紮營恢復最大生命的比例 */
   campHealRatio: 0.4,
   rewardChoices: 3,

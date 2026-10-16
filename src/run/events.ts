@@ -1,14 +1,15 @@
 /**
  * 事件解析與結果套用（SPEC_SLICE2 §6）。事件內容在 data/events.ts。
  */
-import { HERO_ORDER, HEROES } from '../sim/data/heroes';
+import { HEROES } from '../sim/data/heroes';
 import type { Rng } from '../sim/rng';
 import type { EventCondition, EventEffect, EventOption, HeroTarget } from './data/events';
 import { EVENTS } from './data/events';
 import { UPGRADES } from './data/upgrades';
 import type { RunState } from './runState';
-import { cloneRun, firstEmptySlot, livingHeroes, newHero } from './runState';
-import { grantUpgrade, maxHpOf } from './upgrades';
+import { cloneRun, firstEmptySlot, livingHeroes } from './runState';
+import { grantUpgrade, maxHpOf, recruitInto } from './upgrades';
+import { recruitPool } from './classes';
 import { rngFor } from './seed';
 
 export function conditionMet(run: RunState, c: EventCondition | undefined): boolean {
@@ -108,7 +109,7 @@ export function applyEffect(r: RunState, e: EventEffect, rng: Rng): string {
       const { slot, hero } = alive[rng.int(0, alive.length - 1)];
       const pool = Object.values(UPGRADES).filter((u) => u.scope === 'hero' && (!e.rare || u.rare));
       const up = pool[rng.int(0, pool.length - 1)];
-      const skills = HEROES[hero.classId].skills;
+      const skills = hero.skills;
       return grantUpgrade(r, up.id, slot, up.needsSkill ? skills[rng.int(0, skills.length - 1)] : undefined);
     }
     case 'recruit': {
@@ -117,9 +118,10 @@ export function applyEffect(r: RunState, e: EventEffect, rng: Rng): string {
         r.gold += 20;
         return '隊伍已滿，他留下 20 金幣離開了';
       }
-      const classId = e.classId ?? HERO_ORDER[rng.int(0, HERO_ORDER.length - 1)];
-      r.party[slot] = newHero(classId);
-      return `${HEROES[classId].name}加入了隊伍（欄位 ${slot + 1}）`;
+      const pool = recruitPool(r);
+      const classId = e.classId ?? pool[rng.int(0, pool.length - 1)];
+      const bonus = recruitInto(r, slot, classId, rng);
+      return `${HEROES[classId].name}加入了隊伍（欄位 ${slot + 1}）${bonus.length ? `，帶著「${bonus.join('、')}」` : ''}`;
     }
     case 'nextBattleBuff': {
       const b = (r.nextBattleBuff ??= {});

@@ -1151,3 +1151,138 @@ body {
   padding: 4px 6px;
   font-family: inherit;
 }
+
+/* 組隊畫面與職業卡（SPEC_SLICE3 §5） */
+.class-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.class-card {
+  background: #1e2229;
+  border: 2px solid #343a46;
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.class-card.clickable {
+  cursor: pointer;
+}
+
+.class-card.clickable:hover {
+  background: #252a33;
+}
+
+.class-card.selected {
+  background: #232a36;
+}
+
+.class-card.dim {
+  opacity: 0.45;
+}
+
+.class-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.class-name {
+  font-weight: bold;
+  font-size: 15px;
+}
+
+.class-line {
+  color: #8a93a3;
+  font-size: 12px;
+}
+
+.class-tag {
+  margin-left: auto;
+  font-size: 11px;
+  color: #f5d142;
+}
+
+.class-role {
+  color: #c8d0dc;
+}
+
+.class-sig {
+  color: #f0d8a8;
+}
+
+.class-desc {
+  color: #8a93a3;
+  font-size: 12px;
+}
+
+/* 休息節點分頁與技能欄 */
+.tabs {
+  display: flex;
+  gap: 6px;
+  border-bottom: 1px solid #2c313b;
+  padding-bottom: 6px;
+}
+
+.btn.tab.active {
+  background: #2a2f38;
+  border-color: #f5d142;
+  color: #f5d142;
+}
+
+.skill-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skill-row {
+  display: grid;
+  grid-template-columns: 150px repeat(3, 1fr);
+  gap: 8px;
+  align-items: start;
+  border-top: 1px solid #2c313b;
+  padding-top: 6px;
+}
+
+.skill-hero {
+  font-weight: bold;
+  padding-top: 4px;
+}
+
+.skill-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.skill-key {
+  font-size: 11px;
+  color: #8a93a3;
+}
+
+.skill-fixed {
+  padding: 4px 6px;
+  border: 1px solid #343a46;
+  border-radius: 4px;
+  color: #c8d0dc;
+}
+
+.skill-select {
+  background: #1e2229;
+  color: #e6e9ef;
+  border: 1px solid #4a5160;
+  border-radius: 4px;
+  padding: 3px 4px;
+  font: inherit;
+}
+
+.skill-desc {
+  font-size: 11px;
+  color: #8a93a3;
+}

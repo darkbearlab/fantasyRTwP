@@ -2,6 +2,7 @@
  * 遠征狀態 RunState（SPEC_SLICE2 §3.1）：純資料、可序列化成 JSON（之後做存檔用）。
  * 所有規則函式都是「舊狀態 → 新狀態」，不修改傳入的物件。
  */
+import { defaultLoadout } from '../sim/data/classes';
 import { HERO_ORDER, HEROES } from '../sim/data/heroes';
 import type { Personality } from '../sim/data/types';
 import { ECONOMY } from './data/economy';
@@ -16,6 +17,8 @@ export interface OwnedUpgrade {
 
 export interface HeroRecord {
   classId: string;
+  /** 目前裝備的 3 個技能：[專用, 共用, 共用]（SPEC_SLICE3 §1.1） */
+  skills: string[];
   hp: number;
   personality: Personality;
   upgrades: OwnedUpgrade[];
@@ -85,6 +88,7 @@ export function newHero(classId: string, personality?: Personality): HeroRecord 
   const def = HEROES[classId];
   return {
     classId,
+    skills: defaultLoadout(classId),
     hp: def.maxHp,
     personality: personality ?? def.personality ?? 'steadfast',
     upgrades: [],
@@ -96,8 +100,11 @@ export function newHero(classId: string, personality?: Personality): HeroRecord 
   };
 }
 
-export function createRun(seed: number, opts: { layers?: number } = {}): RunState {
-  const party: (HeroRecord | null)[] = HERO_ORDER.slice(0, ECONOMY.partySize).map((id) => newHero(id));
+/**
+ * 建立遠征。opts.party：隊伍職業（組隊畫面用 rollParty 產生）；省略時為四個 Archetype。
+ */
+export function createRun(seed: number, opts: { layers?: number; party?: string[] } = {}): RunState {
+  const party: (HeroRecord | null)[] = (opts.party ?? HERO_ORDER).slice(0, ECONOMY.partySize).map((id) => newHero(id));
   while (party.length < ECONOMY.partySize) party.push(null);
   return {
     version: 1,
@@ -126,6 +133,8 @@ export function serializeRun(r: RunState): string {
 export function deserializeRun(s: string): RunState {
   const r = JSON.parse(s) as RunState;
   if (r.version !== 1) throw new Error(`不支援的存檔版本：${r.version}`);
+  // 切片 2 的紀錄沒有技能欄
+  for (const h of r.party) if (h && !h.skills) h.skills = defaultLoadout(h.classId);
   return r;
 }
 

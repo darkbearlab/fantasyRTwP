@@ -4,9 +4,8 @@
  */
 import type Phaser from 'phaser';
 import type { RunState } from '../run/runState';
-import { createRun } from '../run/runState';
 
-const RUN_SCENES = ['Title', 'Map', 'Battle', 'UI', 'Result', 'Event', 'Rest', 'Reward', 'RunEnd'];
+const RUN_SCENES = ['Title', 'PartySelect', 'Map', 'Battle', 'UI', 'Result', 'Event', 'Rest', 'Reward', 'RunEnd'];
 
 export function getRun(scene: Phaser.Scene): RunState {
   return scene.registry.get('run') as RunState;
@@ -44,8 +43,9 @@ export function advance(scene: Phaser.Scene, run: RunState): void {
   gotoPhase(scene);
 }
 
+/** 開始遠征：先到組隊畫面（SPEC_SLICE3 §1.2） */
 export function startNewRun(scene: Phaser.Scene, seed: number): void {
-  advance(scene, createRun(seed));
+  switchTo(scene, 'PartySelect', { seed });
 }
 
 export function randomRunSeed(): number {

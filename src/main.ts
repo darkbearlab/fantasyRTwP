@@ -5,6 +5,7 @@ import { BootScene } from './game/scenes/BootScene';
 import { ResultScene } from './game/scenes/ResultScene';
 import { UIScene } from './game/scenes/UIScene';
 import { TitleScene } from './game/scenes/TitleScene';
+import { PartySelectScene } from './game/scenes/PartySelectScene';
 import { MapScene } from './game/scenes/MapScene';
 import { EventScene } from './game/scenes/EventScene';
 import { RestScene } from './game/scenes/RestScene';
@@ -22,7 +23,7 @@ const game = new Phaser.Game({
   backgroundColor: '#15171b',
   disableContextMenu: true,
   scale: { mode: Phaser.Scale.NONE },
-  scene: [BootScene, TitleScene, MapScene, BattleScene, UIScene, ResultScene, EventScene, RestScene, RewardScene, RunEndScene],
+  scene: [BootScene, TitleScene, PartySelectScene, MapScene, BattleScene, UIScene, ResultScene, EventScene, RestScene, RewardScene, RunEndScene],
 });
 
 /** 1280×720 基準解析度，整個舞台（畫布＋HUD）一起等比縮放 */

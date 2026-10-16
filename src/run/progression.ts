@@ -2,7 +2,7 @@
  * 遠征流程（SPEC_SLICE2 §3–§5、§8、§9）：選節點、戰鬥結算、獎勵、休息、復活、招募。
  * 每個函式都回傳新的 RunState，不修改傳入的物件。
  */
-import { HERO_ORDER, HEROES } from '../sim/data/heroes';
+import { HEROES } from '../sim/data/heroes';
 import { ECONOMY } from './data/economy';
 import { ENCOUNTERS } from './data/encounters';
 import { EVENTS } from './data/events';
@@ -10,9 +10,10 @@ import { UPGRADES } from './data/upgrades';
 import type { BattleOutcome } from './battle';
 import type { MapNode } from './mapGen';
 import type { HeroRecord, RunState } from './runState';
-import { cloneRun, firstEmptySlot, livingHeroes, newHero } from './runState';
+import { cloneRun, firstEmptySlot, livingHeroes } from './runState';
 import { pickN, rngFor } from './seed';
-import { grantUpgrade, maxHpOf, rollUpgrades } from './upgrades';
+import { grantUpgrade, maxHpOf, recruitInto, rollUpgrades } from './upgrades';
+import { recruitPool } from './classes';
 
 /** 下一步可以前往的節點 */
 export function availableNodes(run: RunState): MapNode[] {
@@ -59,7 +60,7 @@ export function chooseNode(run: RunState, nodeId: number): RunState {
         nodeId,
         used: false,
         recruited: false,
-        recruitCandidates: pickN(rng, HERO_ORDER, ECONOMY.recruitCandidates),
+        recruitCandidates: pickN(rng, recruitPool(r), ECONOMY.recruitCandidates),
         trainOptions: rollHeroUpgrades(r, nodeId),
       };
       break;
@@ -216,10 +217,10 @@ export function restRecruit(run: RunState, classId: string): RunState {
   if (!restPhase(run).recruitCandidates.includes(classId)) throw new Error('不是候選英雄');
   const r = cloneRun(run);
   const slot = firstEmptySlot(r);
-  r.party[slot] = newHero(classId);
+  const bonus = recruitInto(r, slot, classId, rngFor(r.seed, 'recruitBonus', restPhase(r).nodeId));
   r.gold -= ECONOMY.recruitCost;
   restPhase(r).recruited = true;
-  r.journal.push(`招募了${HEROES[classId].name}（欄位 ${slot + 1}）。`);
+  r.journal.push(`招募了${HEROES[classId].name}（欄位 ${slot + 1}）${bonus.length ? `，帶著「${bonus.join('、')}」` : ''}。`);
   return r;
 }
 
