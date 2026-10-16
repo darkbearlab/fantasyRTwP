@@ -1,36 +1,40 @@
 import Phaser from 'phaser';
-import { GAME_CONFIG } from '../../config';
 import { slotPositions } from '../../sim/nav/slots';
 import type { World } from '../../sim/world';
 import type { BattleSession } from '../session';
 import { bakeGraphics } from './bake';
+import { groundCircle, groundLine, groundRect, mapScreenBounds, worldToScreen } from './projection';
 
-const PX = GAME_CONFIG.pxPerMeter;
-
-/** 除錯面板的繪圖（SPEC §12.1）：導航格子、路徑、控制區、視線、攻擊站位 */
+/** 除錯面板的繪圖（SPEC §12.1）：導航格子、路徑、控制區、視線、攻擊站位（全部畫在地面平面上） */
 export class DebugOverlay {
   private gridG: Phaser.GameObjects.Image;
   private dyn: Phaser.GameObjects.Graphics;
 
   constructor(scene: Phaser.Scene, private world: World) {
     this.gridG = this.drawNavGrid(scene).setVisible(false);
-    this.dyn = scene.add.graphics().setDepth(30);
+    this.dyn = scene.add.graphics().setDepth(1500);
   }
 
   private drawNavGrid(scene: Phaser.Scene): Phaser.GameObjects.Image {
     const g = scene.add.graphics();
     const grid = this.world.navGrid(0.4);
-    const c = grid.cell * PX;
-    g.lineStyle(1, 0xffffff, 0.06);
-    for (let x = 0; x <= grid.cols; x++) g.lineBetween(x * c, 0, x * c, grid.rows * c);
-    for (let y = 0; y <= grid.rows; y++) g.lineBetween(0, y * c, grid.cols * c, y * c);
-    g.fillStyle(0xff3355, 0.22);
+    const c = grid.cell;
+    const b = mapScreenBounds(grid.cols * c, grid.rows * c);
+    g.translateCanvas(-b.x, -b.y);
+    for (let x = 0; x <= grid.cols; x++) groundLine(g, { x: x * c, y: 0 }, { x: x * c, y: grid.rows * c }, 1, 0xffffff, 0.06);
+    for (let y = 0; y <= grid.rows; y++) groundLine(g, { x: 0, y: y * c }, { x: grid.cols * c, y: y * c }, 1, 0xffffff, 0.06);
     for (let cy = 0; cy < grid.rows; cy++) {
-      for (let cx = 0; cx < grid.cols; cx++) if (grid.isBlockedCell(cx, cy)) g.fillRect(cx * c, cy * c, c, c);
+      for (let cx = 0; cx < grid.cols; cx++) if (grid.isBlockedCell(cx, cy)) groundRect(g, cx * c, cy * c, c, c, { fill: 0xff3355, fillAlpha: 0.22 });
     }
-    return bakeGraphics(scene, g, 'debug-navgrid', grid.cols * c, grid.rows * c, 2);
+    return bakeGraphics(scene, g, 'debug-navgrid', b.w + 2, b.h + 2, 4, b.x, b.y);
   }
 
+  destroy(): void {
+    this.gridG.destroy();
+    this.dyn.destroy();
+  }
+
+  /** posOf：單位腳下的世界座標（插值後） */
   update(session: BattleSession, posOf: (id: number) => { x: number; y: number }): void {
     const d = session.debug;
     const w = this.world;
@@ -41,15 +45,15 @@ export class DebugOverlay {
     if (d.paths) {
       for (const u of w.units) {
         if (u.dead || !u.path || u.pathIndex >= u.path.length) continue;
-        const p0 = posOf(u.id);
-        g.lineStyle(2, 0x00e5ff, 0.8);
-        g.beginPath();
-        g.moveTo(p0.x, p0.y);
-        for (let i = u.pathIndex; i < u.path.length; i++) g.lineTo(u.path[i].x * PX, u.path[i].y * PX);
-        g.strokePath();
+        let prev = posOf(u.id);
         for (let i = u.pathIndex; i < u.path.length; i++) {
+          groundLine(g, prev, u.path[i], 2, 0x00e5ff, 0.8);
+          prev = u.path[i];
+        }
+        for (let i = u.pathIndex; i < u.path.length; i++) {
+          const p = worldToScreen(u.path[i].x, u.path[i].y);
           g.fillStyle(0x00e5ff, 0.9);
-          g.fillCircle(u.path[i].x * PX, u.path[i].y * PX, 3);
+          g.fillCircle(p.x, p.y, 3);
         }
       }
     }
@@ -58,9 +62,7 @@ export class DebugOverlay {
       for (const u of w.units) {
         if (u.dead || !u.def.projectsZoc) continue;
         const p = posOf(u.id);
-        const r = (u.radius + w.config.zocRange) * PX;
-        g.lineStyle(1.5, u.team === 'hero' ? 0x5fa8ff : 0xff6b6b, 0.8);
-        g.strokeCircle(p.x, p.y, r);
+        groundCircle(g, p.x, p.y, u.radius + w.config.zocRange, { stroke: u.team === 'hero' ? 0x5fa8ff : 0xff6b6b, strokeAlpha: 0.8, width: 1.5 });
       }
     }
 
@@ -76,11 +78,7 @@ export class DebugOverlay {
         const ua = w.getUnit(a);
         const ub = w.getUnit(b);
         if (!ua || !ub || ua.dead || ub.dead || ua === ub) continue;
-        const ok = w.canSee(ua, ub);
-        const pa = posOf(a);
-        const pb = posOf(b);
-        g.lineStyle(1.5, ok ? 0x6dff8a : 0xff4040, 0.85);
-        g.lineBetween(pa.x, pa.y, pb.x, pb.y);
+        groundLine(g, posOf(a), posOf(b), 1.5, w.canSee(ua, ub) ? 0x6dff8a : 0xff4040, 0.85);
       }
     }
 
@@ -91,9 +89,7 @@ export class DebugOverlay {
         const pos = slotPositions(t.pos, t.radius, 0.4);
         pos.forEach((p, i) => {
           const claimed = slots[i] !== -1;
-          g.lineStyle(1, 0xffd166, 0.9);
-          if (claimed) g.fillStyle(0xffd166, 0.7).fillCircle(p.x * PX, p.y * PX, 4);
-          else g.strokeCircle(p.x * PX, p.y * PX, 4);
+          groundCircle(g, p.x, p.y, 0.12, claimed ? { fill: 0xffd166, fillAlpha: 0.7 } : { stroke: 0xffd166, strokeAlpha: 0.9, width: 1 });
         });
       }
     }

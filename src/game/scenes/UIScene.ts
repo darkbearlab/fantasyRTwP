@@ -13,6 +13,8 @@ import type { Personality } from '../../sim/data/types';
 /** 點擊性格標籤時的切換順序 */
 const PERSONALITY_CYCLE: Personality[] = ['steadfast', 'aggressive', 'guerrilla'];
 import { hex } from '../render/palette';
+import { getProjection, setProjection } from '../render/projection';
+import type { ProjectionMode } from '../render/projection';
 import type { BattleSession, DebugFlags } from '../session';
 import type { BattleScene } from './BattleScene';
 
@@ -154,6 +156,25 @@ export class UIScene extends Phaser.Scene {
     for (const [k, label] of flags) {
       p.appendChild(this.checkbox(label, () => this.cur().debug[k], (v) => (this.cur().debug[k] = v)));
     }
+
+    const projRow = el('div', 'row');
+    projRow.appendChild(el('span', 'lbl', '投影'));
+    const proj = el('select');
+    for (const [v, t] of [
+      ['iso', '等角（45 度）'],
+      ['topdown', '正俯視'],
+    ]) {
+      const o = el('option', '', t);
+      o.value = v;
+      proj.appendChild(o);
+    }
+    proj.addEventListener('change', () => {
+      setProjection(proj.value as ProjectionMode);
+      proj.blur();
+    });
+    this.debugInputs.push({ sync: () => document.activeElement !== proj && (proj.value = getProjection()) });
+    projRow.appendChild(proj);
+    p.appendChild(projRow);
 
     const speedRow = el('div', 'row');
     speedRow.appendChild(el('span', 'lbl', '時間倍率'));

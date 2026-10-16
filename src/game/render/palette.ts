@@ -61,3 +61,11 @@ export function darken(c: number, f: number): number {
 }
 
 export const hex = (c: number): string => '#' + c.toString(16).padStart(6, '0');
+
+/** 把 0xRRGGBB 變亮（f > 1） */
+export function lighten(c: number, f: number): number {
+  const r = Math.min(255, Math.floor(((c >> 16) & 0xff) * f));
+  const g = Math.min(255, Math.floor(((c >> 8) & 0xff) * f));
+  const b = Math.min(255, Math.floor((c & 0xff) * f));
+  return (r << 16) | (g << 8) | b;
+}
