@@ -358,10 +358,16 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): voi
   let defense = target.defense;
   let accuracy = src.accuracy + (p.accBonus ?? 0);
   let terrainMult = 1;
+  if (!p.melee && !p.arc) {
+    // 掩體：矮籬與「射入混戰」（路徑上有其他單位）取較高者
+    const origin = p.origin ?? src.pos;
+    const hedge = world.terrain.any && world.hasCover(origin, target) ? TERRAIN.hedgeCoverDefense : 0;
+    const body = world.hasBodyCover(origin, target, src.id) ? TERRAIN.bodyCoverDefense : 0;
+    defense += Math.max(hedge, body);
+  }
   if (world.terrain.any) {
     if (world.terrain.has(target.pos, T_SHALLOW)) defense += TERRAIN.shallowDefense;
     if (!p.melee) {
-      if (!p.arc && world.hasCover(p.origin ?? src.pos, target)) defense += TERRAIN.hedgeCoverDefense;
       const srcHigh = world.onHigh(src);
       if (!srcHigh && world.onHigh(target)) accuracy += TERRAIN.lowToHighAccuracy;
       if (srcHigh) terrainMult = TERRAIN.highDamageMult;

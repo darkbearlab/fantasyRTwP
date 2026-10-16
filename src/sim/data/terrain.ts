@@ -10,6 +10,10 @@ export const TERRAIN = {
   hedgeCoverDefense: 15,
   /** 矮籬掩體：目標（或攻擊者）與矮籬的距離門檻（公尺） */
   hedgeCoverRange: 1.5,
+  /** 射入混戰：遠程攻擊路徑上有其他單位（敵我皆算）時，目標的防禦加成（與矮籬掩體取較高者） */
+  bodyCoverDefense: 10,
+  /** 射入混戰：離射手這麼近（中心距離）的單位不算擋路（可以從身旁隊友旁邊射） */
+  bodyCoverShooterClearance: 1.0,
   /** 高地上的遠程單位：射程加成 */
   highRangeBonus: 2,
   /** 高地上的遠程單位：傷害倍率 */

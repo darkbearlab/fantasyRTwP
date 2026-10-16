@@ -5,7 +5,8 @@ import type { DamageType, Team } from './data/types';
 export type SimEvent =
   | { type: 'actionStart'; unitId: number; skillId?: string; targetId?: number; point?: Vec }
   | { type: 'hit'; sourceId: number; targetId: number; damage: number; crit: boolean; damageType: DamageType; skillId?: string; freeAttack?: boolean }
-  | { type: 'miss'; sourceId: number; targetId: number; skillId?: string; freeAttack?: boolean }
+  /** blocked：投射物在飛行途中撞到障礙物（point 為撞擊位置） */
+  | { type: 'miss'; sourceId: number; targetId: number; skillId?: string; freeAttack?: boolean; blocked?: boolean; point?: Vec }
   | { type: 'heal'; sourceId: number; targetId: number; amount: number }
   | { type: 'interrupt'; sourceId: number; targetId: number; skillId?: string; point?: Vec }
   | { type: 'death'; unitId: number; killerId?: number }

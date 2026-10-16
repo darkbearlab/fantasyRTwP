@@ -22,7 +22,7 @@ export const ENEMIES: Record<string, UnitDef> = {
   archer: {
     id: 'archer', name: '弓手', letter: 'A', color: 0xd35d6e, team: 'enemy', ai: 'archer',
     maxHp: 50, armor: 1, accuracy: 30, defense: 25, damage: [4, 7],
-    range: 10, windup: 0.7, recovery: 1.1, attackSpeed: 1, moveSpeed: 3.0, radius: 0.4,
+    range: 8, windup: 0.7, recovery: 1.1, attackSpeed: 1, moveSpeed: 3.0, radius: 0.4,
     projectsZoc: false, projectileSpeed: 22, projectileKind: 'arrow',
     skills: [],
   },
@@ -44,7 +44,7 @@ export const ENEMIES: Record<string, UnitDef> = {
   bomber: {
     id: 'bomber', name: '投彈手', letter: 'O', color: 0xc77a2e, team: 'enemy', ai: 'bomber',
     maxHp: 55, armor: 1, accuracy: 30, defense: 25, damage: [4, 7],
-    range: 9, windup: 0.9, recovery: 1.3, attackSpeed: 1, moveSpeed: 2.8, radius: 0.4,
+    range: 7, windup: 0.9, recovery: 1.3, attackSpeed: 1, moveSpeed: 2.8, radius: 0.4,
     projectsZoc: false, projectileSpeed: 12, projectileKind: 'flask', arcAttack: true,
     skills: ['bomb'],
   },

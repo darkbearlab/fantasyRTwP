@@ -116,7 +116,7 @@ export const SKILLS: Record<string, SkillDef> = {
   },
   bomb: {
     id: 'bomb', name: '投彈', description: '拋物線投擲（不需視線）：半徑 1.5 m 傷害 6–9',
-    target: 'ground', range: 9, windup: 1.0, recovery: 1.2, cooldown: 6, requiresLos: false,
+    target: 'ground', range: 7, windup: 1.0, recovery: 1.2, cooldown: 6, requiresLos: false,
     effect: { kind: 'aoe', radius: 1.5, damage: [6, 9], friendlyFire: false, projectileSpeed: 12, projectileKind: 'flask' },
   },
   // ── 頭目：戰爭領主 ──
