@@ -4,9 +4,9 @@ import type { SkillDef } from './types';
 export const SKILLS: Record<string, SkillDef> = {
   // ── 戰士 ──
   shieldBash: {
-    id: 'shieldBash', name: '盾擊', description: '近戰：傷害 ×0.8，打斷，暈眩 1 秒',
+    id: 'shieldBash', name: '盾擊', description: '近戰：傷害 ×0.8，打斷，暈眩 1 秒；可碎冰',
     target: 'enemy', range: 0.3, windup: 0.3, recovery: 0.8, cooldown: 8, requiresLos: false,
-    effect: { kind: 'strike', melee: true, mult: 0.8, interrupts: true, stun: 1.0 },
+    effect: { kind: 'strike', melee: true, mult: 0.8, interrupts: true, stun: 1.0, shatters: true },
   },
   guard: {
     id: 'guard', name: '守護', description: '6 秒內，友軍受到的近戰攻擊有 50% 改由戰士承受',
@@ -62,9 +62,51 @@ export const SKILLS: Record<string, SkillDef> = {
     effect: { kind: 'bless', radius: 6, duration: 10, accuracy: 15, defense: 10 },
   },
   holySmite: {
-    id: 'holySmite', name: '聖光震擊', description: '近戰：傷害 ×1.2，擊退 2 m',
+    id: 'holySmite', name: '聖光震擊', description: '近戰：傷害 ×1.2，擊退 2 m；撞牆暈眩、可碎冰',
     target: 'enemy', range: 0.3, windup: 0.4, recovery: 0.8, cooldown: 10, requiresLos: false,
-    effect: { kind: 'strike', melee: true, mult: 1.2, knockback: 2 },
+    effect: { kind: 'strike', melee: true, mult: 1.2, knockback: 2, shatters: true, wallStun: true },
+  },
+  // ── 共用池（切片 3 新增） ──
+  battleCry: {
+    id: 'battleCry', name: '戰吼', description: '自身周圍 6 m 友軍 8 秒內命中 +15',
+    target: 'self', range: 0, windup: 0.4, recovery: 0.6, cooldown: 18, requiresLos: false,
+    effect: { kind: 'bless', radius: 6, duration: 8, accuracy: 15, defense: 0 },
+  },
+  smokeBomb: {
+    id: 'smokeBomb', name: '煙霧彈', description: '2.5 秒內無視控制區、敵人看不到你（2 m 內除外，攻擊會解除）',
+    target: 'self', range: 0, windup: 0.1, recovery: 0.3, cooldown: 16, requiresLos: false,
+    effect: { kind: 'smoke', duration: 2.5 },
+  },
+  swamp: {
+    id: 'swamp', name: '沼澤', description: '半徑 2.5 m 區域 8 秒內敵人移動 ×0.5（減速，不算定身）',
+    target: 'ground', range: 10, windup: 0.8, recovery: 0.8, cooldown: 14, requiresLos: true,
+    effect: { kind: 'zone', radius: 2.5, duration: 8, moveMult: 0.5 },
+  },
+  healFlask: {
+    id: 'healFlask', name: '治療藥瓶', description: '拋物線投擲（不需視線）：半徑 2 m 友軍恢復 20 生命',
+    target: 'ground', range: 10, windup: 0.8, recovery: 0.8, cooldown: 12, requiresLos: false,
+    effect: { kind: 'aoeHeal', radius: 2, amount: 20, projectileSpeed: 14, projectileKind: 'flask' },
+  },
+  // ── 變體專用（切片 3） ──
+  whirlwind: {
+    id: 'whirlwind', name: '旋風斬', description: '打周圍 1.8 m 內所有敵人，傷害 ×0.9；可碎冰',
+    target: 'self', range: 0, windup: 0.5, recovery: 0.8, cooldown: 8, requiresLos: false,
+    effect: { kind: 'whirlwind', radius: 1.8, mult: 0.9, shatters: true },
+  },
+  backstab: {
+    id: 'backstab', name: '背刺', description: '近戰：從背後攻擊傷害 ×2.5（正面 ×1）；暈眩中的目標必定爆擊；可碎冰',
+    target: 'enemy', range: 0.3, windup: 0.3, recovery: 0.7, cooldown: 8, requiresLos: false,
+    effect: { kind: 'strike', melee: true, mult: 1, behindMult: 2.5, critVsStunned: true, shatters: true },
+  },
+  curse: {
+    id: 'curse', name: '衰弱詛咒', description: '8 秒內目標行動條慢 40%、受到傷害 +15%',
+    target: 'enemy', range: 10, windup: 0.6, recovery: 0.8, cooldown: 14, requiresLos: true,
+    effect: { kind: 'curse', duration: 8, actionSlow: 0.4, damageTakenPct: 0.15, projectileSpeed: 20, projectileKind: 'curse' },
+  },
+  firebomb: {
+    id: 'firebomb', name: '火焰瓶', description: '拋物線投擲（不需視線）：半徑 2 m 傷害 10–14，點燃草叢、使敵人燃燒',
+    target: 'ground', range: 10, windup: 0.8, recovery: 0.8, cooldown: 10, requiresLos: false,
+    effect: { kind: 'aoe', radius: 2, damage: [10, 14], friendlyFire: false, ignites: true, burns: true, projectileSpeed: 14, projectileKind: 'flask' },
   },
   // ── 頭目：戰爭領主 ──
   sweep: {

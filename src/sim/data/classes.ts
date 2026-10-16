@@ -25,10 +25,10 @@ export interface ClassDef {
 }
 
 export const LINES: Record<ClassLine, LineDef> = {
-  warrior: { id: 'warrior', name: '戰士系', pool: ['shieldBash', 'charge', 'guard'] },
-  ranger: { id: 'ranger', name: '遊俠系', pool: ['aimedShot', 'stunArrow', 'tumble'] },
-  mage: { id: 'mage', name: '法師系', pool: ['fireball', 'iceBind', 'arcaneMissile'] },
-  cleric: { id: 'cleric', name: '牧師系', pool: ['heal', 'bless', 'holySmite'] },
+  warrior: { id: 'warrior', name: '戰士系', pool: ['shieldBash', 'charge', 'guard', 'battleCry'] },
+  ranger: { id: 'ranger', name: '遊俠系', pool: ['aimedShot', 'stunArrow', 'tumble', 'smokeBomb'] },
+  mage: { id: 'mage', name: '法師系', pool: ['fireball', 'iceBind', 'arcaneMissile', 'swamp'] },
+  cleric: { id: 'cleric', name: '牧師系', pool: ['heal', 'bless', 'holySmite', 'healFlask'] },
 };
 
 export const CLASSES: Record<string, ClassDef> = {
@@ -36,10 +36,14 @@ export const CLASSES: Record<string, ClassDef> = {
   ranger: { id: 'ranger', line: 'ranger', role: '機動遠程', signature: 'tumble', defaultPool: ['aimedShot', 'stunArrow'] },
   mage: { id: 'mage', line: 'mage', role: '範圍爆發', signature: 'fireball', defaultPool: ['iceBind', 'arcaneMissile'] },
   cleric: { id: 'cleric', line: 'cleric', role: '治療輔助', signature: 'heal', defaultPool: ['bless', 'holySmite'] },
+  berserker: { id: 'berserker', line: 'warrior', role: '衝陣輸出：不產生控制區，生命越低傷害越高', signature: 'whirlwind', defaultPool: ['charge', 'shieldBash'], variant: true },
+  rogue: { id: 'rogue', line: 'ranger', role: '繞背刺殺（近戰）：不產生控制區，背後普攻 ×1.5', signature: 'backstab', defaultPool: ['smokeBomb', 'tumble'], variant: true },
+  hexer: { id: 'hexer', line: 'mage', role: '控場、削弱', signature: 'curse', defaultPool: ['iceBind', 'swamp'], variant: true },
+  alchemist: { id: 'alchemist', line: 'cleric', role: '投擲道具：普攻拋物線（不需視線、無視掩體）', signature: 'firebomb', defaultPool: ['healFlask', 'bless'], variant: true },
 };
 
 /** 組隊與招募可選的職業（顯示順序） */
-export const CLASS_ORDER = Object.keys(CLASSES);
+export const CLASS_ORDER = ['warrior', 'berserker', 'ranger', 'rogue', 'mage', 'hexer', 'cleric', 'alchemist'];
 
 /** 預設技能欄：[專用, 共用, 共用] */
 export function defaultLoadout(classId: string): string[] {

@@ -1286,3 +1286,23 @@ body {
   font-size: 11px;
   color: #8a93a3;
 }
+
+.party-chips {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.class-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 2px solid #343a46;
+  border-radius: 8px;
+  padding: 6px 8px;
+  background: #1e2229;
+}
+
+.class-chip .class-name {
+  font-size: 13px;
+}

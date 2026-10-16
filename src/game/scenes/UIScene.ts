@@ -6,6 +6,7 @@ import type { Unit } from '../../sim/unit';
 import { UnitState } from '../../sim/unit';
 import { beginSkill } from '../input/targeting';
 import { HEROES } from '../../sim/data/heroes';
+import { CLASSES, LINES } from '../../sim/data/classes';
 import { PERSONALITY_LABEL } from '../../sim/ai/idleBehavior';
 import type { Personality } from '../../sim/data/types';
 
@@ -310,7 +311,10 @@ export class UIScene extends Phaser.Scene {
       root.appendChild(qer);
       const info = el('div', 'info');
       const nameRow = el('div', 'name-row');
-      nameRow.append(el('span', 'name', u.def.name));
+      const nameEl = el('span', 'name', u.def.name);
+      const cls = CLASSES[u.def.id];
+      if (cls?.variant) nameEl.title = `${u.def.name}（${LINES[cls.line].name}）`;
+      nameRow.append(nameEl);
       const personality = el('span', 'personality');
       personality.title = '閒置性格（點擊切換）\n堅守：附近有敵人就自動普攻，不離開駐守點\n好戰：看到敵人就衝出去打，一路追擊\n游擊：敵人靠近就逃跑，要下指令才會接戰';
       noFocus(personality);

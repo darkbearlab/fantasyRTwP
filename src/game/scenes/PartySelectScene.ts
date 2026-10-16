@@ -3,7 +3,7 @@ import { ECONOMY } from '../../run/data/economy';
 import { rollParty } from '../../run/classes';
 import { createRun } from '../../run/runState';
 import { button, el } from '../ui/dom';
-import { classCard } from '../ui/classInfo';
+import { classCard, classChip } from '../ui/classInfo';
 import { advance, switchTo } from '../runFlow';
 import { DomScene } from './DomScene';
 
@@ -46,8 +46,8 @@ export class PartySelectScene extends DomScene {
     if (this.picks.length === need) {
       const party = rollParty(this.seed, this.picks);
       box.appendChild(el('div', 'step-title', '出發隊伍：'));
-      const row = el('div', 'class-grid');
-      party.forEach((id, i) => row.appendChild(classCard(id, { tag: i < need ? '自選' : '隨機', selected: true })));
+      const row = el('div', 'party-chips');
+      party.forEach((id, i) => row.appendChild(classChip(id, i < need ? '自選' : '隨機')));
       box.appendChild(row);
     }
     const btns = el('div', 'btn-row');
