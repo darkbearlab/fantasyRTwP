@@ -156,6 +156,50 @@ body {
   box-shadow: 0 0 0 1px #ffffff inset;
 }
 
+.hero-card {
+  position: relative;
+}
+
+.hero-card.primary {
+  border-color: #f5d142;
+  box-shadow: 0 0 0 1px #f5d142 inset, 0 0 12px rgba(245, 209, 66, 0.45);
+}
+
+.qer-tag {
+  position: absolute;
+  top: -11px;
+  right: 8px;
+  background: #f5d142;
+  color: #111;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 0 6px;
+  border-radius: 6px;
+  display: none;
+}
+
+.hero-card.primary .qer-tag {
+  display: block;
+}
+
+.portrait {
+  position: relative;
+}
+
+.slot-key {
+  position: absolute;
+  left: -4px;
+  top: -4px;
+  background: #111;
+  color: #e6e9ef;
+  border: 1px solid #555;
+  border-radius: 4px;
+  font-size: 10px;
+  line-height: 13px;
+  padding: 0 3px;
+  text-shadow: none;
+}
+
 .hero-card.dead {
   opacity: 0.45;
   filter: grayscale(1);

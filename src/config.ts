@@ -25,19 +25,26 @@ export const GAME_CONFIG = {
     enemyAoeWindup: false,
     heroDeath: true,
   } as AutoPauseConfig,
-  /** 英雄欄位 → 技能快捷鍵（KeyboardEvent.code）；SPEC §11.2 */
-  hotkeys: [
-    ['Digit1', 'Digit2', 'Digit3'],
-    ['KeyQ', 'KeyW', 'KeyE'],
-    ['KeyA', 'KeyS', 'KeyD'],
-    ['KeyZ', 'KeyX', 'KeyC'],
-  ],
-  hotkeyLabels: [
-    ['1', '2', '3'],
-    ['Q', 'W', 'E'],
-    ['A', 'S', 'D'],
-    ['Z', 'X', 'C'],
-  ],
+  /** 按鍵配置（KeyboardEvent.code）；SPEC_SLICE2 §1。之後可做改鍵 */
+  keys: {
+    cameraUp: ['KeyW', 'ArrowUp'],
+    cameraDown: ['KeyS', 'ArrowDown'],
+    cameraLeft: ['KeyA', 'ArrowLeft'],
+    cameraRight: ['KeyD', 'ArrowRight'],
+    /** 選取英雄欄位 1–4；連按兩下鏡頭移過去；Shift＋數字加選 */
+    selectSlot: ['Digit1', 'Digit2', 'Digit3', 'Digit4'],
+    /** 主要選取英雄的技能 1–3 */
+    skills: ['KeyQ', 'KeyE', 'KeyR'],
+    cycleHero: ['Tab'],
+    pause: ['Space'],
+    stop: ['KeyH'],
+    cancel: ['Escape'],
+    debug: ['Backquote'],
+  },
+  /** 技能鍵在 UI 上顯示的字 */
+  skillKeyLabels: ['Q', 'E', 'R'],
+  /** 數字鍵連按兩下的判定時間（毫秒） */
+  doubleTapMs: 350,
   /** 占位渲染比例：1 m = 32 px */
   pxPerMeter: 32,
   /** 每幀最多推進幾個節拍（避免切回分頁時暴衝） */

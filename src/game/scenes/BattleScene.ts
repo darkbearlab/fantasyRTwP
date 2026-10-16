@@ -64,7 +64,12 @@ export class BattleScene extends Phaser.Scene {
       .setVisible(false);
 
     this.setupCamera();
-    this.input2 = new InputController({ scene: this, session: () => this.session, unitAt: (p) => this.unitAt(p) });
+    this.input2 = new InputController({
+      scene: this,
+      session: () => this.session,
+      unitAt: (p) => this.unitAt(p),
+      centerOn: (id) => this.centerOnUnit(id),
+    });
 
     if (this.session.autoPause.battleStart) this.session.setPaused(true, '戰鬥開始');
     this.session.addLog(`戰鬥開始（種子 ${seed}）`, 'sys');
