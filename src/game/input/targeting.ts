@@ -16,7 +16,7 @@ export function beginSkill(session: BattleSession, slot: number, index: number, 
     return;
   }
   const cd = hero.cooldowns[def.id] ?? 0;
-  if (cd > 0) {
+  if (!hero.skillReady(def.id)) {
     session.showToast(`${hero.def.name}「${def.name}」冷卻中（${cd.toFixed(1)} 秒）`, now);
     return;
   }

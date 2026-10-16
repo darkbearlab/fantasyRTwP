@@ -57,7 +57,7 @@ export function enemyThink(world: World, u: Unit): void {
     }
     case 'caster': {
       const spell = u.def.skills.find((s) => SKILLS[s]?.effect.kind === 'aoe');
-      if (spell && (u.cooldowns[spell] ?? 0) <= 0) {
+      if (spell && u.skillReady(spell)) {
         const p = bestClusterPoint(u, heroes, SKILLS[spell]);
         if (p) {
           world.issueOrder(u, { type: 'skill', skillId: spell, point: p });

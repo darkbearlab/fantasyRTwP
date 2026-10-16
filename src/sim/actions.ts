@@ -72,7 +72,9 @@ export function finishWindup(world: World, u: Unit): void {
   }
 
   const def = SKILLS[a.skillId!];
-  u.cooldowns[def.id] = def.cooldown;
+  // 消耗一次使用；若沒有正在回復的冷卻就開始計算（冷卻從生效那一刻開始）
+  u.charges[def.id] = Math.max(0, (u.charges[def.id] ?? 1) - 1);
+  if ((u.cooldowns[def.id] ?? 0) <= 0) u.cooldowns[def.id] = u.skillCooldown(def.id, def.cooldown);
   const target = a.targetId !== undefined ? world.getUnit(a.targetId) : undefined;
   const dash = applySkillEffect(world, u, def, target, a.point);
   if (u.dead || !u.action) return;
@@ -235,7 +237,7 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): voi
     return;
   }
   const crit = result === 'crit';
-  const base = rollDamage(world.rng, p.flatDamage ?? src.def.damage, p.mult);
+  const base = rollDamage(world.rng, p.flatDamage ?? src.def.damage, p.mult * src.outgoingDamageMult);
   const final = applyArmor(base * (crit ? CRIT_MULT : 1), target.armor);
   applyDamage(world, target, final, p.damageType, src, { crit, skillId: p.skillId, freeAttack: p.freeAttack });
   if (target.dead) return;
@@ -287,7 +289,7 @@ export function interrupt(world: World, src: Unit, t: Unit): boolean {
   if (!t.action || t.action.phase !== 'windup') return false;
   const { skillId, point } = t.action;
   t.action = null;
-  t.stunTime = Math.max(t.stunTime, INTERRUPT_STUN);
+  if (!t.def.interruptStunImmune) t.stunTime = Math.max(t.stunTime, INTERRUPT_STUN);
   world.emit({ type: 'interrupt', sourceId: src.id, targetId: t.id, skillId, point });
   return true;
 }
@@ -332,7 +334,7 @@ export function explode(world: World, src: Unit, point: { x: number; y: number }
     if (dist(u.pos, point) > eff.radius + u.radius * 0.5) continue;
     const ally = u.team === src.team;
     if (ally && !eff.friendlyFire) continue;
-    const mult = ally ? world.config.friendlyFireMultiplier : 1;
+    const mult = (ally ? world.config.friendlyFireMultiplier : 1) * src.outgoingDamageMult;
     if (mult <= 0) continue;
     const dmg = rollDamage(world.rng, eff.damage, mult);
     applyDamage(world, u, applyArmor(dmg, u.armor), 'area', src, { skillId: def.id });

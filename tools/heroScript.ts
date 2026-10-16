@@ -26,7 +26,7 @@ export class HeroScript {
     const enemies = w.units.filter((u) => u.team === 'enemy' && !u.dead);
     if (enemies.length === 0) return;
     const send = (c: Command) => w.enqueue(c);
-    const ready = (u: Unit, s: string) => (u.cooldowns[s] ?? 0) <= 0 && u.state !== UnitState.Windup && !u.dead;
+    const ready = (u: Unit, s: string) => u.skillReady(s) && u.state !== UnitState.Windup && !u.dead;
     const telegraphing = enemies.find((e) => e.action?.phase === 'windup' && e.action.skillId && SKILLS[e.action.skillId].telegraph);
 
     for (const h of heroes) {

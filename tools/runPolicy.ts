@@ -1,0 +1,95 @@
+/**
+ * 無畫面整趟遠征（SPEC_SLICE2 §12）：戰鬥用腳本英雄 AI，選路／事件／休息／獎勵用簡單規則。
+ */
+import { TICK_RATE } from '../src/sim/constants';
+import { HEROES } from '../src/sim/data/heroes';
+import { UPGRADES } from '../src/run/data/upgrades';
+import { battleOutcomeFromWorld, createBattleFromRun } from '../src/run/battle';
+import { chooseEventOption, eventOptions } from '../src/run/events';
+import {
+  applyBattleResult,
+  availableNodes,
+  canRecruit,
+  canRevive,
+  chooseNode,
+  chooseReward,
+  leaveNode,
+  restCamp,
+  restRecruit,
+  restRevive,
+  restTrain,
+} from '../src/run/progression';
+import type { RunState } from '../src/run/runState';
+import { createRun, livingHeroes } from '../src/run/runState';
+import { maxHpOf } from '../src/run/upgrades';
+import { HeroScript } from './heroScript';
+
+const MAX_BATTLE_SECONDS = 300;
+
+function avgHpRatio(r: RunState): number {
+  const alive = livingHeroes(r);
+  if (alive.length === 0) return 0;
+  return alive.reduce((s, { hero }) => s + hero.hp / maxHpOf(hero), 0) / alive.length;
+}
+
+/** 推進一步（一個決策或一場戰鬥） */
+export function stepRun(r: RunState, scripted = true): RunState {
+  const p = r.phase;
+  switch (p.kind) {
+    case 'map': {
+      const nodes = availableNodes(r);
+      const dead = r.party.filter((h) => h?.dead).length;
+      const hp = avgHpRatio(r);
+      const score = (t: string) => {
+        if (t === 'rest') return (dead > 0 && r.gold >= 80) || hp < 0.6 ? 3 : 1;
+        if (t === 'elite') return hp > 0.75 ? 2 : -1;
+        if (t === 'event') return 1.5;
+        return 1;
+      };
+      const best = nodes.reduce((a, b) => (score(b.type) > score(a.type) ? b : a));
+      return chooseNode(r, best.id);
+    }
+    case 'battle': {
+      const world = createBattleFromRun(r);
+      const script = scripted ? new HeroScript(world) : null;
+      const maxTicks = MAX_BATTLE_SECONDS * TICK_RATE;
+      while (!world.result && world.tick < maxTicks) {
+        script?.update();
+        world.step();
+      }
+      return applyBattleResult(r, battleOutcomeFromWorld(world));
+    }
+    case 'reward': {
+      const id = p.options[0];
+      const up = UPGRADES[id];
+      if (up.scope === 'party') return chooseReward(r, { upgradeId: id });
+      const target = livingHeroes(r).reduce((a, b) => (a.hero.upgrades.length <= b.hero.upgrades.length ? a : b));
+      return chooseReward(r, { upgradeId: id, slot: target.slot, skillId: up.needsSkill ? HEROES[target.hero.classId].skills[0] : undefined });
+    }
+    case 'rest': {
+      if (!p.used) {
+        const deadSlot = r.party.findIndex((h) => h?.dead);
+        if (deadSlot >= 0 && canRevive(r, deadSlot)) return restRevive(r, deadSlot);
+        if (avgHpRatio(r) < 0.85) return restCamp(r);
+        const id = p.trainOptions[0];
+        const { slot, hero } = livingHeroes(r)[0];
+        return restTrain(r, slot, id, UPGRADES[id].needsSkill ? HEROES[hero.classId].skills[0] : undefined);
+      }
+      if (canRecruit(r)) return restRecruit(r, p.recruitCandidates[0]);
+      return leaveNode(r);
+    }
+    case 'event': {
+      if (p.resolved) return leaveNode(r);
+      const i = eventOptions(r).findIndex((o) => o.available);
+      return chooseEventOption(r, i);
+    }
+    case 'ended':
+      return r;
+  }
+}
+
+export function playRun(seed: number, opts: { layers?: number; scripted?: boolean } = {}): RunState {
+  let r = createRun(seed, { layers: opts.layers });
+  for (let guard = 0; guard < 500 && r.phase.kind !== 'ended'; guard++) r = stepRun(r, opts.scripted ?? true);
+  return r;
+}

@@ -65,7 +65,13 @@ export class Unit {
   guardedBy = -1;
   guardTime = 0;
   guardChance = 0;
+  /** 技能冷卻剩餘秒數（正在回復下一次使用） */
   cooldowns: Record<string, number> = {};
+  /** 技能目前可用次數（一般為 0 或 1；「二連」最多 2） */
+  charges: Record<string, number> = {};
+  /** 暫時的傷害增益（頭目戰吼等） */
+  damageBuffMult = 1;
+  damageBuffTime = 0;
 
   path: Vec[] | null = null;
   pathIndex = 0;
@@ -89,6 +95,7 @@ export class Unit {
     this.prevPos = { ...pos };
     this.hp = def.maxHp;
     this.personality = def.personality ?? 'steadfast';
+    for (const s of def.skills) this.charges[s] = this.maxCharges(s);
     this.facing = def.team === 'hero' ? 0 : Math.PI;
   }
 
@@ -107,6 +114,23 @@ export class Unit {
   get defense(): number {
     return this.def.defense + (this.blessTime > 0 ? this.blessDefense : 0);
   }
+  maxCharges(skillId: string): number {
+    return Math.max(1, this.def.skillMods?.[skillId]?.charges ?? 1);
+  }
+
+  skillCooldown(skillId: string, base: number): number {
+    return base * (this.def.skillMods?.[skillId]?.cooldownMult ?? 1);
+  }
+
+  skillReady(skillId: string): boolean {
+    return (this.charges[skillId] ?? 1) > 0;
+  }
+
+  /** 造成傷害的總倍率 */
+  get outgoingDamageMult(): number {
+    return (this.def.damageMult ?? 1) * (this.damageBuffTime > 0 ? this.damageBuffMult : 1);
+  }
+
   get isMelee(): boolean {
     return this.def.range < 1;
   }
