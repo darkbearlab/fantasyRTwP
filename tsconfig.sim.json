@@ -1,0 +1,9 @@
+{
+  "//": "模擬層專用型別檢查：不載入 DOM 型別，確保 src/sim 不碰瀏覽器 API",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "types": []
+  },
+  "include": ["src/sim"]
+}
