@@ -24,7 +24,7 @@ export interface ActionRequest {
 
 export function startAction(world: World, u: Unit, req: ActionRequest): void {
   const windup = req.kind === 'attack' ? u.def.windup : SKILLS[req.skillId!].windup;
-  const ticks = secondsToTicks(windup / u.def.attackSpeed);
+  const ticks = secondsToTicks(windup / (u.def.attackSpeed * world.config.actionSpeedMult));
   u.action = {
     kind: req.kind,
     skillId: req.skillId,
@@ -40,8 +40,8 @@ export function startAction(world: World, u: Unit, req: ActionRequest): void {
   world.emit({ type: 'actionStart', unitId: u.id, skillId: req.skillId, targetId: req.targetId, point: req.point });
 }
 
-export function enterRecovery(u: Unit, seconds: number): void {
-  const ticks = secondsToTicks(seconds / u.def.attackSpeed);
+export function enterRecovery(world: World, u: Unit, seconds: number): void {
+  const ticks = secondsToTicks(seconds / (u.def.attackSpeed * world.config.actionSpeedMult));
   if (!u.action) return;
   u.action.phase = 'recovery';
   u.action.ticksLeft = ticks;
@@ -67,7 +67,7 @@ export function finishWindup(world: World, u: Unit): void {
     } else {
       world.spawnProjectile(u, u.def.projectileKind ?? 'arrow', u.def.projectileSpeed ?? 20, { type: 'strike', melee: false, mult: 1, damageType: basicDamageType(u.def) }, { unit: t });
     }
-    if (!u.dead && u.action) enterRecovery(u, u.def.recovery);
+    if (!u.dead && u.action) enterRecovery(world, u, u.def.recovery);
     return;
   }
 
@@ -88,7 +88,7 @@ export function finishWindup(world: World, u: Unit): void {
     return;
   }
   afterSkill(world, u, def, target);
-  enterRecovery(u, def.recovery);
+  enterRecovery(world, u, def.recovery);
 }
 
 /** 技能生效後的後續指令：對敵技能接著普攻該目標，否則恢復先前的普攻 */
@@ -166,7 +166,7 @@ function applySkillEffect(world: World, u: Unit, def: SkillDef, t: Unit | undefi
         while (da < -Math.PI) da += Math.PI * 2;
         // 貼身的單位就算角度偏一點也算在內
         if (Math.abs(da) > half + Math.atan2(t.radius, Math.max(d, 0.01))) continue;
-        const dmg = rollDamage(world.rng, eff.damage, u.outgoingDamageMult);
+        const dmg = rollDamage(world.rng, eff.damage, damageMultOf(world, u));
         applyDamage(world, t, applyArmor(dmg, t.armor), 'area', u, { skillId: def.id });
       }
       return false;
@@ -201,7 +201,7 @@ export function tickDash(world: World, u: Unit): void {
   if (eff.kind === 'charge') {
     const t = world.getUnit(a.targetId!);
     if (!t || t.dead) {
-      enterRecovery(u, def.recovery);
+      enterRecovery(world, u, def.recovery);
       afterSkill(world, u, def, undefined);
       return;
     }
@@ -211,7 +211,7 @@ export function tickDash(world: World, u: Unit): void {
       const slot = world.slots.claim(t.id, t.pos, t.radius, u.id, u.pos, u.radius, (p) => grid.isWalkable(p));
       const r = world.moveAlong(u, slot.pos, { speed: u.def.moveSpeed * eff.speedMult, ignoreZoc: true, ignoreRoot: true, stopDist: 0.05 });
       if (r === 'nopath' || a.dashTime > eff.maxDuration) {
-        enterRecovery(u, def.recovery);
+        enterRecovery(world, u, def.recovery);
         afterSkill(world, u, def, t);
         return;
       }
@@ -219,7 +219,7 @@ export function tickDash(world: World, u: Unit): void {
     if (inRange()) {
       strike(world, u, t, { melee: true, mult: 1, damageType: basicDamageType(u.def), skillId: def.id });
       if (u.dead || !u.action) return;
-      enterRecovery(u, def.recovery);
+      enterRecovery(world, u, def.recovery);
       afterSkill(world, u, def, t);
     }
     return;
@@ -227,17 +227,22 @@ export function tickDash(world: World, u: Unit): void {
   if (eff.kind === 'tumble') {
     const r = world.moveAlong(u, a.point!, { speed: eff.speed, ignoreZoc: true, ignoreRoot: true, stopDist: 0.05 });
     if (r === 'arrived' || r === 'nopath' || a.dashTime > 1.5) {
-      enterRecovery(u, def.recovery);
+      enterRecovery(world, u, def.recovery);
       afterSkill(world, u, def, undefined);
     }
     return;
   }
-  enterRecovery(u, def.recovery);
+  enterRecovery(world, u, def.recovery);
 }
 
 /** 普攻的傷害類型 */
 export function basicDamageType(def: UnitDef): DamageType {
   return def.attackDamageType ?? (def.range < 1 ? 'melee' : 'projectile');
+}
+
+/** 造成傷害的總倍率：單位自身（強化、增益）× 我方傷害倍率設定 */
+export function damageMultOf(world: World, u: Unit): number {
+  return u.outgoingDamageMult * (u.team === 'hero' ? world.config.heroDamageMult : 1);
 }
 
 export interface StrikeParams {
@@ -272,7 +277,7 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): voi
     return;
   }
   const crit = result === 'crit';
-  const base = rollDamage(world.rng, p.flatDamage ?? src.def.damage, p.mult * src.outgoingDamageMult);
+  const base = rollDamage(world.rng, p.flatDamage ?? src.def.damage, p.mult * damageMultOf(world, src));
   const final = applyArmor(base * (crit ? CRIT_MULT : 1), target.armor);
   applyDamage(world, target, final, p.damageType, src, { crit, skillId: p.skillId, freeAttack: p.freeAttack });
   if (target.dead) return;
@@ -370,7 +375,7 @@ export function explode(world: World, src: Unit, point: { x: number; y: number }
     if (dist(u.pos, point) > eff.radius + u.radius * 0.5) continue;
     const ally = u.team === src.team;
     if (ally && !eff.friendlyFire) continue;
-    const mult = (ally ? world.config.friendlyFireMultiplier : 1) * src.outgoingDamageMult;
+    const mult = (ally ? world.config.friendlyFireMultiplier : 1) * damageMultOf(world, src);
     if (mult <= 0) continue;
     const dmg = rollDamage(world.rng, eff.damage, mult);
     applyDamage(world, u, applyArmor(dmg, u.armor), 'area', src, { skillId: def.id });

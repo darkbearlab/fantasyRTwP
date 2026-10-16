@@ -224,6 +224,27 @@ export class UIScene extends Phaser.Scene {
     leashRow.appendChild(leash);
     p.appendChild(leashRow);
 
+    p.appendChild(el('div', 'debug-sub', '節奏（即時生效）'));
+    const numSelect = (label: string, key: 'actionSpeedMult' | 'heroDamageMult', values: number[]) => {
+      const row = el('div', 'row');
+      row.appendChild(el('span', 'lbl', label));
+      const sel = el('select');
+      for (const v of values) {
+        const o = el('option', '', `×${v}`);
+        o.value = String(v);
+        sel.appendChild(o);
+      }
+      sel.addEventListener('change', () => {
+        this.cur().setSimConfig({ [key]: Number(sel.value) });
+        sel.blur();
+      });
+      this.debugInputs.push({ sync: () => document.activeElement !== sel && (sel.value = String(this.cur().simConfig[key])) });
+      row.appendChild(sel);
+      p.appendChild(row);
+    };
+    numSelect('行動條速度', 'actionSpeedMult', [0.7, 0.75, 0.8, 0.85, 0.9, 1]);
+    numSelect('我方傷害', 'heroDamageMult', [1, 1.1, 1.2, 1.3, 1.5]);
+
     p.appendChild(el('div', 'debug-sub', '自動暫停'));
     p.appendChild(this.checkbox('戰鬥開始', () => this.cur().autoPause.battleStart, (v) => (this.cur().autoPause.battleStart = v)));
     p.appendChild(this.checkbox('英雄生命低於 30%', () => this.cur().autoPause.heroLowHp, (v) => (this.cur().autoPause.heroLowHp = v)));
