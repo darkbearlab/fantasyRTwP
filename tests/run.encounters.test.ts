@@ -8,9 +8,9 @@ import { pickEncounter } from '../src/run/progression';
 import { createRun } from '../src/run/runState';
 
 describe('遭遇資料（SPEC_SLICE2 §7）', () => {
-  it('至少 4 張地圖＋頭目地圖都有被使用', () => {
+  it('所有地圖（含切片 3 的 marsh01、hill01）都有被使用', () => {
     const maps = new Set(Object.values(ENCOUNTERS).map((e) => e.map));
-    for (const m of ['arena01', 'forest01', 'ruins01', 'bridge01', 'boss01']) expect(maps.has(m), m).toBe(true);
+    for (const m of ['arena01', 'forest01', 'ruins01', 'bridge01', 'boss01', 'marsh01', 'hill01']) expect(maps.has(m), m).toBe(true);
   });
 
   it('所有敵人位置可走、可以走到英雄出生點；一般戰鬥 4–7 名', () => {

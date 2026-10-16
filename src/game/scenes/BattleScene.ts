@@ -7,6 +7,7 @@ import type { SimEvent } from '../../sim/events';
 import type { Vec } from '../../sim/math';
 import type { Unit } from '../../sim/unit';
 import { UnitState } from '../../sim/unit';
+import { T_BRUSH, T_HEDGE, T_HIGH, T_SHALLOW } from '../../sim/terrain';
 import { bakeGraphics } from '../render/bake';
 import { DebugOverlay } from '../render/debugOverlay';
 import { Fx } from '../render/fx';
@@ -34,6 +35,12 @@ export class BattleScene extends Phaser.Scene {
   private overG!: Phaser.GameObjects.Graphics;
   private ghostG!: Phaser.GameObjects.Graphics;
   private dim!: Phaser.GameObjects.Rectangle;
+  private brushG!: Phaser.GameObjects.Graphics;
+  private fireG!: Phaser.GameObjects.Graphics;
+  private brushVersion = -1;
+  private coverText!: Phaser.GameObjects.Text;
+  /** 本幀對我方隱藏的敵人（草叢隱匿） */
+  private hiddenIds = new Set<number>();
   private alpha = 0;
   private resultShown = false;
   private quickEncounter: { id: string; layer: number } | null = null;
@@ -71,6 +78,15 @@ export class BattleScene extends Phaser.Scene {
     this.lastFrame = 0;
 
     this.drawMap();
+    this.brushG = this.add.graphics().setDepth(1);
+    this.fireG = this.add.graphics().setDepth(2);
+    this.brushVersion = -1;
+    this.coverText = this.add
+      .text(0, 0, '掩體', { fontFamily: FONT, fontSize: '12px', color: '#d9b77a', fontStyle: 'bold' })
+      .setOrigin(0.5)
+      .setStroke('#000000', 3)
+      .setDepth(26)
+      .setVisible(false);
     this.zoneG = this.add.graphics().setDepth(3);
     for (const u of this.session.world.units) this.views.set(u.id, new UnitView(this, u));
     this.overG = this.add.graphics().setDepth(20);
@@ -122,10 +138,12 @@ export class BattleScene extends Phaser.Scene {
     };
     zone(map.heroSpawns, COLORS.heroZone);
     zone(map.enemySpawns, COLORS.enemyZone);
+    this.drawStaticTerrain(g);
     for (const r of map.obstacles) {
       // 不擋視線的障礙（河水）用水色
-      const water = r.blocksSight === false;
-      g.fillStyle(water ? 0x1d3f5c : COLORS.obstacle, 1);
+      const cliff = r.style === 'cliff';
+      const water = r.blocksSight === false && !cliff;
+      g.fillStyle(cliff ? COLORS.cliff : water ? 0x1d3f5c : COLORS.obstacle, 1);
       g.fillRect(r.x * PX, r.y * PX, r.w * PX, r.h * PX);
       if (!water) {
         g.lineStyle(2, COLORS.obstacleEdge, 1);
@@ -140,6 +158,84 @@ export class BattleScene extends Phaser.Scene {
       .text(map.width * PX - 8, 6, map.name, { fontFamily: FONT, fontSize: '14px', color: '#8a93a3' })
       .setOrigin(1, 0)
       .setDepth(1);
+  }
+
+  /** 不會變動的地形：高地、淺水、矮籬（草叢會燒掉，另外畫） */
+  private drawStaticTerrain(g: Phaser.GameObjects.Graphics): void {
+    const t = this.session.world.terrain;
+    if (!t.any) return;
+    const c = t.cell * PX;
+    const runs = (flag: number, fill: (x: number, y: number, w: number) => void) => {
+      for (let cy = 0; cy < t.rows; cy++) {
+        let start = -1;
+        for (let cx = 0; cx <= t.cols; cx++) {
+          const on = cx < t.cols && (t.flags[cy * t.cols + cx] & flag) !== 0;
+          if (on && start < 0) start = cx;
+          if (!on && start >= 0) {
+            fill(start * c, cy * c, (cx - start) * c);
+            start = -1;
+          }
+        }
+      }
+    };
+    g.fillStyle(COLORS.terrainHigh, 0.22);
+    runs(T_HIGH, (x, y, w) => g.fillRect(x, y, w, c));
+    g.fillStyle(COLORS.terrainShallow, 0.45);
+    runs(T_SHALLOW, (x, y, w) => g.fillRect(x, y, w, c));
+    // 高地邊框：高地格與非高地格的交界
+    g.lineStyle(2, COLORS.terrainHigh, 0.55);
+    const isHigh = (cx: number, cy: number) => cx >= 0 && cy >= 0 && cx < t.cols && cy < t.rows && (t.flags[cy * t.cols + cx] & T_HIGH) !== 0;
+    for (let cy = 0; cy < t.rows; cy++) {
+      for (let cx = 0; cx < t.cols; cx++) {
+        if (!isHigh(cx, cy)) continue;
+        if (!isHigh(cx - 1, cy)) g.lineBetween(cx * c, cy * c, cx * c, (cy + 1) * c);
+        if (!isHigh(cx + 1, cy)) g.lineBetween((cx + 1) * c, cy * c, (cx + 1) * c, (cy + 1) * c);
+        if (!isHigh(cx, cy - 1)) g.lineBetween(cx * c, cy * c, (cx + 1) * c, cy * c);
+        if (!isHigh(cx, cy + 1)) g.lineBetween(cx * c, (cy + 1) * c, (cx + 1) * c, (cy + 1) * c);
+      }
+    }
+    // 矮籬：棕色底＋橫紋
+    g.fillStyle(COLORS.terrainHedge, 0.55);
+    runs(T_HEDGE, (x, y, w) => g.fillRect(x, y, w, c));
+    g.lineStyle(2, COLORS.terrainHedgeLine, 0.9);
+    runs(T_HEDGE, (x, y, w) => g.lineBetween(x, y + c / 2, x + w, y + c / 2));
+  }
+
+  /** 草叢（燒掉時重畫）與火焰（每幀） */
+  private drawDynamicTerrain(): void {
+    const w = this.session.world;
+    const t = w.terrain;
+    if (!t.any) return;
+    const c = t.cell * PX;
+    if (t.version !== this.brushVersion) {
+      this.brushVersion = t.version;
+      const g = this.brushG;
+      g.clear();
+      g.fillStyle(COLORS.terrainBrush, 0.75);
+      for (let i = 0; i < t.flags.length; i++) {
+        if (!(t.flags[i] & T_BRUSH)) continue;
+        const cx = i % t.cols;
+        const cy = (i - cx) / t.cols;
+        g.fillRect(cx * c, cy * c, c, c);
+      }
+      g.fillStyle(COLORS.terrainBrushDot, 0.8);
+      for (let i = 0; i < t.flags.length; i++) {
+        if (!(t.flags[i] & T_BRUSH)) continue;
+        const cx = i % t.cols;
+        const cy = (i - cx) / t.cols;
+        g.fillCircle(cx * c + c * ((cx * 7 + cy * 3) % 5 + 1) / 6, cy * c + c * ((cx * 3 + cy * 5) % 5 + 1) / 6, 2);
+      }
+    }
+    const fg = this.fireG;
+    fg.clear();
+    if (w.fire.size === 0) return;
+    for (const [i] of w.fire) {
+      const cx = i % t.cols;
+      const cy = (i - cx) / t.cols;
+      const flick = 0.5 + 0.5 * Math.sin(this.time.now / 60 + i * 1.7);
+      fg.fillStyle(flick > 0.5 ? COLORS.fire : COLORS.fireHot, 0.55 + 0.35 * flick);
+      fg.fillRect(cx * c, cy * c, c, c);
+    }
   }
 
   private setupCamera(): void {
@@ -166,7 +262,7 @@ export class BattleScene extends Phaser.Scene {
     let best: Unit | undefined;
     let bestD = Infinity;
     for (const u of this.session.world.units) {
-      if (u.dead) continue;
+      if (u.dead || this.hiddenIds.has(u.id)) continue;
       const d = Math.hypot(u.pos.x - p.x, u.pos.y - p.y);
       if (d <= u.radius + 0.25 && d < bestD) {
         bestD = d;
@@ -341,7 +437,9 @@ export class BattleScene extends Phaser.Scene {
     const s = this.session;
     const w = s.world;
     const selected = new Set(s.selection);
+    this.updateConcealment();
     for (const v of this.views.values()) v.update(this.alpha, selected.has(v.unit.id), s.hoverUnitId === v.unit.id);
+    this.drawDynamicTerrain();
 
     this.drawZones(selected);
     this.drawSelfTelegraphs();
@@ -350,10 +448,38 @@ export class BattleScene extends Phaser.Scene {
     this.ghostG.clear();
     if (s.paused && !w.result) this.drawGhostLines();
     this.drawTargeting();
+    this.drawCoverHint();
     this.drawBoxSelect();
     this.debugOverlay.update(s, (id) => this.screenPos(w.getUnit(id)!));
     this.dim.setVisible(s.paused && !w.result);
     this.input.setDefaultCursor(s.targeting ? 'crosshair' : 'default');
+  }
+
+  /** 草叢隱匿：敵方被隱藏時不顯示；我方在草叢內半透明 */
+  private updateConcealment(): void {
+    const w = this.session.world;
+    this.hiddenIds.clear();
+    if (!w.terrain.any) {
+      for (const v of this.views.values()) v.setConcealment('normal');
+      return;
+    }
+    for (const v of this.views.values()) {
+      const u = v.unit;
+      if (u.dead) {
+        v.setConcealment('normal');
+        continue;
+      }
+      if (u.team === 'enemy') {
+        const hidden = !w.visibleToTeam(u, 'hero');
+        if (hidden) this.hiddenIds.add(u.id);
+        v.setConcealment(hidden ? 'hidden' : 'normal');
+      } else {
+        const inBrush = w.terrain.has(u.pos, T_BRUSH);
+        v.setConcealment(inBrush ? (w.visibleToTeam(u, 'enemy') ? 'brush' : 'concealed') : 'normal');
+      }
+    }
+    const s = this.session;
+    if (s.hoverUnitId !== null && this.hiddenIds.has(s.hoverUnitId)) s.hoverUnitId = null;
   }
 
   private drawZones(selected: Set<number>): void {
@@ -392,7 +518,7 @@ export class BattleScene extends Phaser.Scene {
     // 準備中的地面範圍法術：敵方紅色預警圈、我方紫色
     for (const u of w.units) {
       const a = u.action;
-      if (u.dead || !a || a.phase !== 'windup' || !a.point || !a.skillId) continue;
+      if (u.dead || !a || a.phase !== 'windup' || !a.point || !a.skillId || this.hiddenIds.has(u.id)) continue;
       const def = SKILLS[a.skillId];
       const pulse0 = 0.5 + 0.5 * Math.sin(this.time.now / 90);
       if (def.effect.kind === 'cone') {
@@ -431,7 +557,7 @@ export class BattleScene extends Phaser.Scene {
     const g = this.zoneG;
     for (const u of this.session.world.units) {
       const a = u.action;
-      if (u.dead || !a || a.phase !== 'windup' || !a.skillId || a.point || a.targetId !== undefined) continue;
+      if (u.dead || !a || a.phase !== 'windup' || !a.skillId || a.point || a.targetId !== undefined || this.hiddenIds.has(u.id)) continue;
       if (!SKILLS[a.skillId].telegraph) continue;
       const p = this.screenPos(u);
       const pulse = 0.5 + 0.5 * Math.sin(this.time.now / 70);
@@ -450,7 +576,7 @@ export class BattleScene extends Phaser.Scene {
     g.clear();
     for (const u of this.session.world.units) {
       const st = this.statusTexts.get(u.id);
-      if (u.dead) {
+      if (u.dead || this.hiddenIds.has(u.id)) {
         st?.setVisible(false);
         continue;
       }
@@ -621,6 +747,23 @@ export class BattleScene extends Phaser.Scene {
         g.strokeCircle(p.x, p.y, hu.radius * PX + 7);
       }
     }
+  }
+
+  /** 瞄準或滑過敵人時，若主要選取的遠程英雄打過去會有矮籬掩體，顯示「掩體」 */
+  private drawCoverHint(): void {
+    const s = this.session;
+    const w = s.world;
+    this.coverText.setVisible(false);
+    if (!w.terrain.any || s.hoverUnitId === null) return;
+    const target = w.getUnit(s.hoverUnitId);
+    if (!target || target.dead || target.team !== 'enemy') return;
+    const td = targetingDef(s);
+    const caster = td ? td.caster : s.primary();
+    if (!caster || caster.dead) return;
+    const ranged = td ? !(td.def.effect.kind === 'strike' && td.def.effect.melee) && td.def.target === 'enemy' : !caster.isMelee;
+    if (!ranged || !w.hasCover(caster.pos, target)) return;
+    const p = this.screenPos(target);
+    this.coverText.setPosition(p.x, p.y - target.radius * PX - 22).setVisible(true);
   }
 
   private drawBoxSelect(): void {
