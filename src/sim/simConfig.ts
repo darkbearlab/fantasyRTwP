@@ -26,6 +26,10 @@ export interface SimConfig {
   heroFleeRange: number;
   /** 游擊性格：每次逃跑的距離 */
   heroFleeDistance: number;
+  /** 節奏：敵我雙方準備／恢復時間的速度倍率（< 1 代表行動條累積較慢） */
+  actionSpeedMult: number;
+  /** 我方（英雄）造成傷害的倍率 */
+  heroDamageMult: number;
   /** 敵人察覺距離：任一英雄進入此距離就開始進攻 */
   enemyAggroRange: number;
   /** 戰鬥開始後幾秒，敵人無論如何都會開始進攻 */
@@ -39,6 +43,8 @@ export const DEFAULT_SIM_CONFIG: SimConfig = {
   friendlyFireMultiplier: 1.0,
   heroIdleAggroRange: 6,
   heroLeashRange: 1.5,
+  actionSpeedMult: 0.85,
+  heroDamageMult: 1.2,
   heroAggressiveRange: 10,
   heroFleeRange: 4,
   heroFleeDistance: 4,
