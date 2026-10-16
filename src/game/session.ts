@@ -121,6 +121,11 @@ export class BattleSession {
     this.world.enqueue(cmd);
   }
 
+  /** 戰鬥中生成的單位也要有名字 */
+  registerUnit(u: Unit, prefix = ''): void {
+    if (!this.labels.has(u.id)) this.labels.set(u.id, `${prefix}${u.def.name}`);
+  }
+
   label(id: number): string {
     return this.labels.get(id) ?? '?';
   }

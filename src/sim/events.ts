@@ -16,4 +16,6 @@ export type SimEvent =
   | { type: 'knockback'; unitId: number; from: Vec; to: Vec }
   | { type: 'notice'; unitId: number; text: string }
   | { type: 'aggro' }
+  | { type: 'spawn'; unitId: number; byId?: number }
+  | { type: 'warcry'; unitId: number }
   | { type: 'battleEnd'; winner: Team };

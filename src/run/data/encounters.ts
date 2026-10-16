@@ -25,68 +25,45 @@ export interface EncounterDef {
   enemies: EncounterEnemy[];
 }
 
-export const ENCOUNTERS: Record<string, EncounterDef> = {
-  // ── 隘口 arena01 ──
-  passScouts: {
-    id: 'passScouts', name: '隘口斥候', map: 'arena01', tier: 'battle', minLayer: 1, maxLayer: 3, difficulty: 1,
-    enemies: [
-      { enemy: 'brute', x: 31.5, y: 11 },
-      { enemy: 'brute', x: 31.5, y: 13.5 },
-      { enemy: 'archer', x: 35, y: 9.5 },
-      { enemy: 'skirmisher', x: 34, y: 17 },
-    ],
-  },
-  passHold: {
-    id: 'passHold', name: '隘口之戰', map: 'arena01', tier: 'battle', minLayer: 2, maxLayer: 7, difficulty: 2,
-    enemies: [
-      { enemy: 'brute', x: 31.5, y: 10.5 },
-      { enemy: 'brute', x: 31.5, y: 12.5 },
-      { enemy: 'brute', x: 32, y: 14.5 },
-      { enemy: 'skirmisher', x: 34, y: 17 },
-      { enemy: 'archer', x: 35, y: 9.5 },
-      { enemy: 'archer', x: 35, y: 15 },
-      { enemy: 'caster', x: 37, y: 12.5 },
-    ],
-  },
-  passCaptain: {
-    id: 'passCaptain', name: '隘口守將', map: 'arena01', tier: 'elite', minLayer: 3, maxLayer: 7, difficulty: 3,
-    enemies: [
-      { enemy: 'brute', x: 31.5, y: 12, captain: true },
-      { enemy: 'brute', x: 31.5, y: 9.5 },
-      { enemy: 'brute', x: 32, y: 14.5 },
-      { enemy: 'archer', x: 35, y: 9.5 },
-      { enemy: 'archer', x: 35, y: 15 },
-    ],
-  },
+const E = (enemy: string, x: number, y: number, captain = false): EncounterEnemy => ({ enemy, x, y, captain: captain || undefined });
+
+const list: EncounterDef[] = [
+  // ── 一般戰鬥：前期（4–5 名）──
+  { id: 'passScouts', name: '隘口斥候', map: 'arena01', tier: 'battle', minLayer: 1, maxLayer: 3, difficulty: 1,
+    enemies: [E('brute', 31.5, 11), E('brute', 31.5, 13.5), E('archer', 35, 9.5), E('skirmisher', 34, 17)] },
+  { id: 'forestAmbush', name: '林間伏兵', map: 'forest01', tier: 'battle', minLayer: 1, maxLayer: 3, difficulty: 1,
+    enemies: [E('brute', 30, 10), E('brute', 30, 14), E('archer', 35, 8), E('archer', 35, 16), E('skirmisher', 33, 21)] },
+  { id: 'ruinsScavengers', name: '廢墟拾荒者', map: 'ruins01', tier: 'battle', minLayer: 1, maxLayer: 3, difficulty: 1,
+    enemies: [E('skirmisher', 31, 3), E('skirmisher', 26, 20), E('brute', 22, 12), E('brute', 30, 12), E('archer', 36, 12)] },
+  // ── 中期（5–6 名）──
+  { id: 'bridgeFlank', name: '石橋夾擊', map: 'bridge01', tier: 'battle', minLayer: 2, maxLayer: 5, difficulty: 2,
+    enemies: [E('brute', 25, 11), E('brute', 25, 13.5), E('archer', 30, 9), E('archer', 30, 15), E('skirmisher', 3, 2.5), E('skirmisher', 3, 21.5)] },
+  { id: 'forestBand', name: '林地戰團', map: 'forest01', tier: 'battle', minLayer: 2, maxLayer: 5, difficulty: 2,
+    enemies: [E('brute', 29, 9), E('brute', 29, 12), E('brute', 29, 15), E('archer', 34, 7), E('archer', 34, 17), E('caster', 37, 12)] },
+  // ── 後期（6–7 名）──
+  { id: 'passHold', name: '隘口之戰', map: 'arena01', tier: 'battle', minLayer: 4, maxLayer: 7, difficulty: 3,
+    enemies: [E('brute', 31.5, 10.5), E('brute', 31.5, 12.5), E('brute', 32, 14.5), E('skirmisher', 34, 17), E('archer', 35, 9.5), E('archer', 35, 15), E('caster', 37, 12.5)] },
+  { id: 'ruinsGarrison', name: '廢墟守軍', map: 'ruins01', tier: 'battle', minLayer: 4, maxLayer: 7, difficulty: 3,
+    enemies: [E('brute', 22, 10), E('brute', 22, 14), E('archer', 18, 8.5), E('archer', 30, 7), E('archer', 30, 17), E('caster', 34, 12), E('skirmisher', 31, 2.5)] },
+  { id: 'bridgeSiege', name: '斷橋', map: 'bridge01', tier: 'battle', minLayer: 4, maxLayer: 7, difficulty: 3,
+    enemies: [E('brute', 25, 10.5), E('brute', 25, 12.5), E('brute', 26, 14.5), E('archer', 31, 8), E('archer', 31, 16), E('caster', 35, 12), E('skirmisher', 3, 21.5)] },
+  // ── 精英：一般組合＋1 名隊長 ──
+  { id: 'passCaptain', name: '隘口守將', map: 'arena01', tier: 'elite', minLayer: 3, maxLayer: 7, difficulty: 3,
+    enemies: [E('brute', 31.5, 12, true), E('brute', 31.5, 9.5), E('brute', 32, 14.5), E('archer', 35, 9.5), E('archer', 35, 15)] },
+  { id: 'forestCaptain', name: '獵頭隊長', map: 'forest01', tier: 'elite', minLayer: 3, maxLayer: 7, difficulty: 3,
+    enemies: [E('skirmisher', 32, 12, true), E('brute', 29, 10), E('brute', 29, 14), E('archer', 35, 8), E('archer', 35, 16)] },
+  { id: 'ruinsCaptain', name: '廢墟祭司', map: 'ruins01', tier: 'elite', minLayer: 3, maxLayer: 7, difficulty: 4,
+    enemies: [E('caster', 22, 12, true), E('brute', 18, 10), E('brute', 18, 14), E('archer', 30, 7), E('archer', 30, 17)] },
+  { id: 'bridgeCaptain', name: '橋頭神射手', map: 'bridge01', tier: 'elite', minLayer: 3, maxLayer: 7, difficulty: 4,
+    enemies: [E('archer', 30, 12, true), E('brute', 25, 11), E('brute', 25, 13.5), E('archer', 31, 7), E('skirmisher', 3, 2.5)] },
+  // ── 頭目 ──
+  { id: 'warlord', name: '戰爭領主', map: 'boss01', tier: 'boss', minLayer: 1, maxLayer: 99, difficulty: 5,
+    enemies: [E('warlord', 33, 12), E('brute', 30.5, 9.5), E('brute', 30.5, 14.5), E('archer', 35, 6.5), E('archer', 35, 17.5)] },
   // ── 事件遭遇 ──
-  ambush: {
-    id: 'ambush', name: '埋伏', map: 'arena01', tier: 'event', minLayer: 1, maxLayer: 8, difficulty: 2,
-    enemies: [
-      { enemy: 'skirmisher', x: 30, y: 17 },
-      { enemy: 'skirmisher', x: 30, y: 7 },
-      { enemy: 'brute', x: 31.5, y: 12 },
-      { enemy: 'archer', x: 35, y: 12 },
-    ],
-  },
-  nightRaid: {
-    id: 'nightRaid', name: '夜襲', map: 'arena01', tier: 'event', minLayer: 1, maxLayer: 8, difficulty: 2,
-    enemies: [
-      { enemy: 'archer', x: 34, y: 8 },
-      { enemy: 'archer', x: 34, y: 16 },
-      { enemy: 'skirmisher', x: 32, y: 17 },
-      { enemy: 'brute', x: 31.5, y: 12 },
-      { enemy: 'brute', x: 32, y: 10 },
-    ],
-  },
-  // ── 頭目（第 4 階段換成王座廳與戰爭領主）──
-  bossPlaceholder: {
-    id: 'bossPlaceholder', name: '戰爭領主', map: 'arena01', tier: 'boss', minLayer: 1, maxLayer: 99, difficulty: 5,
-    enemies: [
-      { enemy: 'brute', x: 32, y: 12, captain: true },
-      { enemy: 'brute', x: 31.5, y: 9.5 },
-      { enemy: 'brute', x: 31.5, y: 14.5 },
-      { enemy: 'archer', x: 35, y: 9.5 },
-      { enemy: 'archer', x: 35, y: 15 },
-    ],
-  },
-};
+  { id: 'ambush', name: '埋伏', map: 'forest01', tier: 'event', minLayer: 1, maxLayer: 99, difficulty: 2,
+    enemies: [E('skirmisher', 30, 19), E('skirmisher', 30, 5), E('brute', 28, 12), E('archer', 35, 12)] },
+  { id: 'nightRaid', name: '夜襲', map: 'ruins01', tier: 'event', minLayer: 1, maxLayer: 99, difficulty: 2,
+    enemies: [E('archer', 30, 7), E('archer', 30, 17), E('skirmisher', 31, 2.5), E('brute', 22, 12), E('brute', 27, 12)] },
+];
+
+export const ENCOUNTERS: Record<string, EncounterDef> = Object.fromEntries(list.map((e) => [e.id, e]));

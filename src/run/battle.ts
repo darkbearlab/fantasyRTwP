@@ -58,7 +58,8 @@ export function createBattleFromRun(run: RunState, config?: Partial<SimConfig>, 
     spawns.push({ defId: hero.classId, def, pos: map.heroSpawns[i % map.heroSpawns.length], heroSlot: slot, hp: hero.hp, personality: hero.personality });
   });
   for (const e of enc.enemies) spawns.push({ defId: e.enemy, def: enemyDef(e.enemy, layer, e.captain), pos: { x: e.x, y: e.y } });
-  return new World({ seed, map, spawns, config });
+  // 戰鬥中召喚的援軍也套用層數成長
+  return new World({ seed, map, spawns, config, enemyDefFor: (id) => enemyDef(id, layer) });
 }
 
 export interface BattleOutcome {

@@ -72,6 +72,7 @@ export function finishWindup(world: World, u: Unit): void {
   }
 
   const def = SKILLS[a.skillId!];
+  if (def.oncePerBattle) u.spentSkills.push(def.id);
   // 消耗一次使用；若沒有正在回復的冷卻就開始計算（冷卻從生效那一刻開始）
   u.charges[def.id] = Math.max(0, (u.charges[def.id] ?? 1) - 1);
   if ((u.cooldowns[def.id] ?? 0) <= 0) u.cooldowns[def.id] = u.skillCooldown(def.id, def.cooldown);
@@ -151,6 +152,40 @@ function applySkillEffect(world: World, u: Unit, def: SkillDef, t: Unit | undefi
         world.emit({ type: 'status', unitId: a.id, text: '祝福' });
       }
       return false;
+    case 'cone': {
+      if (!point) return false;
+      world.emit({ type: 'aoe', sourceId: u.id, point: { ...u.pos }, radius: eff.radius, skillId: def.id });
+      const dir = Math.atan2(point.y - u.pos.y, point.x - u.pos.x);
+      const half = (eff.angle / 2) * (Math.PI / 180);
+      for (const t of world.units) {
+        if (t.dead || t === u || (!eff.friendlyFire && t.team === u.team)) continue;
+        const d = dist(t.pos, u.pos);
+        if (d > eff.radius + t.radius) continue;
+        let da = Math.atan2(t.pos.y - u.pos.y, t.pos.x - u.pos.x) - dir;
+        while (da > Math.PI) da -= Math.PI * 2;
+        while (da < -Math.PI) da += Math.PI * 2;
+        // 貼身的單位就算角度偏一點也算在內
+        if (Math.abs(da) > half + Math.atan2(t.radius, Math.max(d, 0.01))) continue;
+        const dmg = rollDamage(world.rng, eff.damage, u.outgoingDamageMult);
+        applyDamage(world, t, applyArmor(dmg, t.armor), 'area', u, { skillId: def.id });
+      }
+      return false;
+    }
+    case 'warcry': {
+      world.emit({ type: 'warcry', unitId: u.id });
+      const pts = world.map.summonPoints ?? [];
+      for (let i = 0; i < eff.summon.count; i++) {
+        const p = pts.length ? pts[i % pts.length] : { x: world.map.width - 1, y: world.map.height / 2 };
+        const s = world.spawnUnit(world.enemyDefFor(eff.summon.enemy), p, u.id);
+        s.damageBuffMult = Math.max(s.damageBuffMult, 1);
+      }
+      for (const a of world.units) {
+        if (a.dead || a.team !== u.team) continue;
+        a.damageBuffMult = eff.damageBuff;
+        a.damageBuffTime = eff.duration;
+      }
+      return false;
+    }
     case 'charge':
     case 'tumble':
       return true;
@@ -289,6 +324,7 @@ export function interrupt(world: World, src: Unit, t: Unit): boolean {
   if (!t.action || t.action.phase !== 'windup') return false;
   const { skillId, point } = t.action;
   t.action = null;
+  if (skillId && SKILLS[skillId].lostOnInterrupt && !t.spentSkills.includes(skillId)) t.spentSkills.push(skillId);
   if (!t.def.interruptStunImmune) t.stunTime = Math.max(t.stunTime, INTERRUPT_STUN);
   world.emit({ type: 'interrupt', sourceId: src.id, targetId: t.id, skillId, point });
   return true;

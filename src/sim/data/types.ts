@@ -1,7 +1,7 @@
 import type { Vec } from '../math';
 
 export type Team = 'hero' | 'enemy';
-export type EnemyArchetype = 'brute' | 'skirmisher' | 'archer' | 'caster';
+export type EnemyArchetype = 'brute' | 'skirmisher' | 'archer' | 'caster' | 'boss';
 /** 投射物外觀種類（畫面層據此決定顏色大小） */
 export type ProjectileKind = 'arrow' | 'bolt' | 'fireball' | 'missile' | 'frost';
 /**
@@ -87,6 +87,10 @@ export type SkillEffect =
   | { kind: 'heal'; amount: number }
   | { kind: 'guard'; duration: number; chance: number }
   | { kind: 'bless'; radius: number; duration: number; accuracy: number; defense: number }
+  /** 前方扇形範圍攻擊（以施放者為圓心、朝目標點方向） */
+  | { kind: 'cone'; radius: number; angle: number; damage: [number, number]; friendlyFire: boolean }
+  /** 戰吼：召喚援軍，並讓全體友軍暫時提高傷害 */
+  | { kind: 'warcry'; summon: { enemy: string; count: number }; damageBuff: number; duration: number }
   | { kind: 'charge'; speedMult: number; maxDuration: number }
   | { kind: 'tumble'; speed: number };
 
@@ -105,6 +109,10 @@ export interface SkillDef {
   ignoresZoc?: boolean;
   /** 準備期間在地面顯示紅色預警圈 */
   telegraph?: boolean;
+  /** 每場戰鬥只能用一次 */
+  oncePerBattle?: boolean;
+  /** 被打斷就不能再用 */
+  lostOnInterrupt?: boolean;
   effect: SkillEffect;
 }
 
@@ -113,6 +121,8 @@ export interface Rect {
   y: number;
   w: number;
   h: number;
+  /** 是否遮擋視線（預設 true；河水等只擋路不擋視線設為 false） */
+  blocksSight?: boolean;
 }
 
 export interface MapDef {
@@ -125,4 +135,6 @@ export interface MapDef {
   enemySpawns: { enemy: string; x: number; y: number }[];
   /** 給腳本 AI 與鏡頭參考的地標 */
   landmarks?: Record<string, Vec>;
+  /** 援軍進場位置（頭目戰吼） */
+  summonPoints?: Vec[];
 }

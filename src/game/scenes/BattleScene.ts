@@ -17,6 +17,8 @@ import { targetingDef, validSkillTarget } from '../input/targeting';
 import { BattleSession, currentSimConfig } from '../session';
 import { battleSeed, createBattleFromRun, currentEncounter } from '../../run/battle';
 import { getRun } from '../runFlow';
+import type { RunState } from '../../run/runState';
+import { createRun } from '../../run/runState';
 
 const PX = GAME_CONFIG.pxPerMeter;
 
@@ -34,6 +36,7 @@ export class BattleScene extends Phaser.Scene {
   private dim!: Phaser.GameObjects.Rectangle;
   private alpha = 0;
   private resultShown = false;
+  private quickEncounter: { id: string; layer: number } | null = null;
   /** 上一幀的真實時間（Phaser 的 delta 會被平滑，掉幀時 sim 會變慢動作） */
   private lastFrame = 0;
 
@@ -41,8 +44,14 @@ export class BattleScene extends Phaser.Scene {
     super('Battle');
   }
 
-  create(data: { seed?: number; run?: boolean }): void {
-    if (data.run) {
+  create(data: { seed?: number; run?: boolean; encounterId?: string; layer?: number }): void {
+    if (data.encounterId) {
+      // 快速戰鬥：用滿血隊伍打指定遭遇（測試地圖與頭目用）
+      const seed = data.seed ?? randomSeed();
+      const run = quickRun(seed, data.encounterId, data.layer ?? 1);
+      this.session = new BattleSession(seed, { world: createBattleFromRun(run, currentSimConfig(), seed), mode: 'quick' });
+      this.quickEncounter = { id: data.encounterId, layer: data.layer ?? 1 };
+    } else if (data.run) {
       // 遠征模式：由 RunState 建立戰鬥（生命、強化、性格帶入）
       const run = getRun(this);
       const seed = battleSeed(run);
@@ -52,6 +61,7 @@ export class BattleScene extends Phaser.Scene {
         partySlots: run.party.map((h) => (h ? { classId: h.classId, dead: h.dead } : null)),
       });
     } else this.session = new BattleSession(data.seed ?? randomSeed());
+    if (!data.encounterId) this.quickEncounter = null;
     const seed = this.session.seed;
     this.registry.set('session', this.session);
     this.views.clear();
@@ -113,10 +123,14 @@ export class BattleScene extends Phaser.Scene {
     zone(map.heroSpawns, COLORS.heroZone);
     zone(map.enemySpawns, COLORS.enemyZone);
     for (const r of map.obstacles) {
-      g.fillStyle(COLORS.obstacle, 1);
+      // 不擋視線的障礙（河水）用水色
+      const water = r.blocksSight === false;
+      g.fillStyle(water ? 0x1d3f5c : COLORS.obstacle, 1);
       g.fillRect(r.x * PX, r.y * PX, r.w * PX, r.h * PX);
-      g.lineStyle(2, COLORS.obstacleEdge, 1);
-      g.strokeRect(r.x * PX, r.y * PX, r.w * PX, r.h * PX);
+      if (!water) {
+        g.lineStyle(2, COLORS.obstacleEdge, 1);
+        g.strokeRect(r.x * PX, r.y * PX, r.w * PX, r.h * PX);
+      }
     }
     g.lineStyle(3, 0x15171b, 1);
     g.strokeRect(0, 0, map.width * PX, map.height * PX);
@@ -145,7 +159,7 @@ export class BattleScene extends Phaser.Scene {
 
   restartBattle(seed: number): void {
     this.scene.stop('Result');
-    this.scene.restart({ seed });
+    this.scene.restart(this.quickEncounter ? { seed, encounterId: this.quickEncounter.id, layer: this.quickEncounter.layer } : { seed });
   }
 
   unitAt(p: Vec): Unit | undefined {
@@ -290,6 +304,21 @@ export class BattleScene extends Phaser.Scene {
           }
           break;
         }
+        case 'spawn': {
+          const u = w.getUnit(ev.unitId)!;
+          this.views.set(u.id, new UnitView(this, u));
+          s.registerUnit(u, '援軍');
+          this.fx.ring(u.pos, 1.2, 0xff6b6b, 500);
+          break;
+        }
+        case 'warcry': {
+          const u = w.getUnit(ev.unitId)!;
+          this.fx.ring(u.pos, 6, 0xff2a2a, 900, 0.1, 8);
+          this.fx.text(u.pos, '戰吼！', '#ff6b6b', 26, 50, 1400);
+          this.cameras.main.shake(300, 0.006);
+          s.addLog(`⚠ ${L(u.id)} 發出戰吼！援軍進場，敵人傷害提高`, 'warn');
+          break;
+        }
         case 'aggro':
           s.addLog('敵人開始進攻！', 'warn');
           s.showToast('敵人開始進攻！', this.time.now, 1800);
@@ -315,6 +344,7 @@ export class BattleScene extends Phaser.Scene {
     for (const v of this.views.values()) v.update(this.alpha, selected.has(v.unit.id), s.hoverUnitId === v.unit.id);
 
     this.drawZones(selected);
+    this.drawSelfTelegraphs();
     this.drawBars();
     this.drawProjectiles();
     this.ghostG.clear();
@@ -364,6 +394,24 @@ export class BattleScene extends Phaser.Scene {
       const a = u.action;
       if (u.dead || !a || a.phase !== 'windup' || !a.point || !a.skillId) continue;
       const def = SKILLS[a.skillId];
+      const pulse0 = 0.5 + 0.5 * Math.sin(this.time.now / 90);
+      if (def.effect.kind === 'cone') {
+        // 扇形預警（橫掃）
+        const p = this.screenPos(u);
+        const dir = Math.atan2(a.point.y - u.pos.y, a.point.x - u.pos.x);
+        const half = (def.effect.angle / 2) * (Math.PI / 180);
+        const R = def.effect.radius * PX;
+        g.fillStyle(COLORS.telegraph, 0.14 + 0.1 * pulse0);
+        g.slice(p.x, p.y, R, dir - half, dir + half, false);
+        g.fillPath();
+        g.fillStyle(COLORS.telegraph, 0.28);
+        g.slice(p.x, p.y, R * u.actionProgress, dir - half, dir + half, false);
+        g.fillPath();
+        g.lineStyle(3, COLORS.telegraph, 0.9);
+        g.slice(p.x, p.y, R, dir - half, dir + half, false);
+        g.strokePath();
+        continue;
+      }
       if (def.effect.kind !== 'aoe') continue;
       const r = def.effect.radius * PX;
       const enemy = u.team === 'enemy';
@@ -375,6 +423,25 @@ export class BattleScene extends Phaser.Scene {
       g.fillCircle(a.point.x * PX, a.point.y * PX, r * u.actionProgress);
       g.lineStyle(enemy ? 3 : 2, c, 0.9);
       g.strokeCircle(a.point.x * PX, a.point.y * PX, r);
+    }
+  }
+
+  /** 自身類的預警技能（戰吼）：單位周圍的紅色脈衝環 */
+  private drawSelfTelegraphs(): void {
+    const g = this.zoneG;
+    for (const u of this.session.world.units) {
+      const a = u.action;
+      if (u.dead || !a || a.phase !== 'windup' || !a.skillId || a.point || a.targetId !== undefined) continue;
+      if (!SKILLS[a.skillId].telegraph) continue;
+      const p = this.screenPos(u);
+      const pulse = 0.5 + 0.5 * Math.sin(this.time.now / 70);
+      const r = (u.radius + 1.2 + pulse * 0.3) * PX;
+      g.lineStyle(4, COLORS.telegraph, 0.6 + 0.4 * pulse);
+      g.strokeCircle(p.x, p.y, r);
+      g.lineStyle(6, 0xffd166, 0.9);
+      g.beginPath();
+      g.arc(p.x, p.y, r + 6, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * u.actionProgress);
+      g.strokePath();
     }
   }
 
@@ -566,6 +633,15 @@ export class BattleScene extends Phaser.Scene {
     g.lineStyle(1, 0xffffff, 0.7);
     g.strokeRect(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.abs(b.x - a.x), Math.abs(b.y - a.y));
   }
+}
+
+/** 快速戰鬥用的暫時遠征狀態：滿血隊伍、指定遭遇與層數 */
+function quickRun(seed: number, encounterId: string, layer: number): RunState {
+  const r = createRun(seed);
+  const node = r.map.nodes.find((n) => n.layer === Math.min(layer, r.map.layerCount)) ?? r.map.nodes[0];
+  r.currentNodeId = node.id;
+  r.phase = { kind: 'battle', nodeId: node.id, encounterId, fromEvent: false };
+  return r;
 }
 
 function randomSeed(): number {

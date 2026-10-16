@@ -33,4 +33,12 @@ export const ENEMIES: Record<string, UnitDef> = {
     projectsZoc: false, projectileSpeed: 16, projectileKind: 'bolt', attackDamageType: 'spell',
     skills: ['hellfire'],
   },
+  /** 頭目：戰爭領主（SPEC_SLICE2 §7.3） */
+  warlord: {
+    id: 'warlord', name: '戰爭領主', letter: 'L', color: 0x7a0d0d, team: 'enemy', ai: 'boss',
+    maxHp: 630, armor: 6, accuracy: 35, defense: 35, damage: [14, 22],
+    range: 0.4, windup: 0.8, recovery: 1.2, attackSpeed: 1, moveSpeed: 2.4, radius: 0.7,
+    projectsZoc: true,
+    skills: ['sweep', 'warcry'],
+  },
 };
