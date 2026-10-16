@@ -22,6 +22,8 @@ export interface DebugFlags {
   allZoc: boolean;
   los: boolean;
   slots: boolean;
+  /** 方向對照：地上畫出實際面向箭頭與 Flare 方向編號 */
+  facing: boolean;
 }
 
 export interface Targeting {
@@ -38,7 +40,7 @@ export interface LogEntry {
 /** 偏好設定跨重來保留 */
 const persisted = {
   timeScale: GAME_CONFIG.defaultTimeScale,
-  debug: { panel: false, navGrid: false, paths: false, allZoc: false, los: false, slots: false } as DebugFlags,
+  debug: { panel: false, navGrid: false, paths: false, allZoc: false, los: false, slots: false, facing: false } as DebugFlags,
   autoPause: { ...GAME_CONFIG.autoPause } as AutoPauseConfig,
   sim: { ...GAME_CONFIG.sim },
   logOpen: true,
