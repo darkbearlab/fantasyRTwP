@@ -100,22 +100,24 @@ export function useFlare(scene: Phaser.Scene): boolean {
 export type DirMode = 'screen' | 'map';
 export const DIR_SETTINGS = { mode: 'screen' as DirMode, offset: 0, spin: false };
 
-/** 0=西、1=西南、2=南、3=東南、4=東、5=東北、6=北、7=西北 */
-export const DIR_NAMES = ['西', '西南', '南', '東南', '東', '東北', '北', '西北'];
+/** Flare 的 8 方向（Alan 對照素材確認）：0=西、1=西北、2=北、3=東北、4=東、5=東南、6=南（面向鏡頭）、7=西南 */
+export const DIR_NAMES = ['西', '西北', '北', '東北', '東', '東南', '南', '西南'];
 
 /** 角色面向（世界角度）→ Flare 的 8 方向 */
 export function flareDir(facing: number): number {
   let base: number;
+  // 角度 k（每 45° 一格，0=東、1=東南、2=南、3=西南、4=西、5=西北、6=北、7=東北）→ Flare 編號 = (k + 4) mod 8
+  let k: number;
   if (DIR_SETTINGS.mode === 'map') {
-    // 地圖方向：西 = −x、南 = +y、東 = +x、北 = −y
-    base = ((Math.round((Math.PI - facing) / (Math.PI / 4)) % 8) + 8) % 8;
+    // 地圖方向：直接用世界角度（東 = +x、南 = +y）
+    k = Math.round(facing / (Math.PI / 4));
   } else {
     const o = worldToScreen(0, 0);
     const p = worldToScreen(Math.cos(facing), Math.sin(facing));
-    const a = Math.atan2(p.y - o.y, p.x - o.x); // 螢幕角度：0=東、π/2=南
-    const k = ((Math.round(a / (Math.PI / 4)) % 8) + 8) % 8; // 0=東、1=東南、2=南…
-    base = (4 - k + 8) % 8;
+    k = Math.round(Math.atan2(p.y - o.y, p.x - o.x) / (Math.PI / 4)); // 螢幕角度：0=東、π/2=南
   }
+  k = ((k % 8) + 8) % 8;
+  base = (k + 4) % 8;
   return (base + DIR_SETTINGS.offset + 8) % 8;
 }
 
