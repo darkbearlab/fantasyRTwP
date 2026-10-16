@@ -29,6 +29,22 @@ export function canSeeCircle(grid: NavGrid, a: Vec, ar: number, b: Vec, br: numb
   return false;
 }
 
+/**
+ * 找一組看得見的取樣點（投射物的發射點與瞄準偏移）：
+ * 回傳 A 端取樣點，以及 B 端取樣點相對於 B 中心的偏移；看不見時回傳 null。
+ */
+export function clearLine(grid: NavGrid, a: Vec, ar: number, b: Vec, br: number): { from: Vec; aim: Vec } | null {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const l = Math.hypot(dx, dy);
+  if (l < 1e-9) return { from: { ...a }, aim: { x: 0, y: 0 } };
+  const perp = { x: -dy / l, y: dx / l };
+  const sa = samples(a, ar, perp);
+  const sb = samples(b, br, perp);
+  for (const p of sa) for (const q of sb) if (segmentClear(grid, p, q)) return { from: { ...p }, aim: { x: q.x - b.x, y: q.y - b.y } };
+  return null;
+}
+
 /** 單位對地面點的視線 */
 export function canSeePoint(grid: NavGrid, a: Vec, ar: number, p: Vec): boolean {
   return canSeeCircle(grid, a, ar, p, 0);

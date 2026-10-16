@@ -6,7 +6,7 @@ import { HEROES } from './data/heroes';
 import { SKILLS } from './data/skills';
 import type { DamageType, MapDef, Personality, ProjectileKind, SkillDef, Team, UnitDef } from './data/types';
 import type { SimEvent } from './events';
-import { canSeeCircle, canSeePoint } from './los';
+import { canSeeCircle, canSeePoint, clearLine, segmentClear } from './los';
 import type { Vec } from './math';
 import { dist, norm, sub } from './math';
 import { findPath } from './nav/astar';
@@ -76,6 +76,10 @@ export interface Projectile {
   sourceId: number;
   /** 發射位置（矮籬掩體判定用） */
   origin: Vec;
+  /** 瞄準點相對於目標中心的偏移（從看得見的取樣點射過去） */
+  aim?: Vec;
+  /** 飛行中會被遮擋視線的障礙物擋下（單體目標的直射投射物） */
+  collides: boolean;
   targetId?: number;
   point?: Vec;
   pos: Vec;
@@ -272,6 +276,24 @@ export class World implements ZocContext {
       return true;
     });
     return cover;
+  }
+
+  /** 射入混戰：origin → target 的路徑上是否有其他單位擋著 */
+  hasBodyCover(origin: Vec, target: Unit, srcId: number): boolean {
+    const dx = target.pos.x - origin.x;
+    const dy = target.pos.y - origin.y;
+    const len2 = dx * dx + dy * dy;
+    if (len2 < 1e-9) return false;
+    for (const u of this.units) {
+      if (u.dead || u.id === srcId || u === target) continue;
+      if (dist(u.pos, origin) <= TERRAIN.bodyCoverShooterClearance) continue;
+      const t = ((u.pos.x - origin.x) * dx + (u.pos.y - origin.y) * dy) / len2;
+      if (t <= 0 || t >= 1) continue;
+      const cx = origin.x + dx * t;
+      const cy = origin.y + dy * t;
+      if (Math.hypot(u.pos.x - cx, u.pos.y - cy) <= u.radius) return true;
+    }
+    return false;
   }
 
   /** 點燃半徑內的草叢 */
@@ -774,7 +796,7 @@ export class World implements ZocContext {
     }
     u.repathTimer -= DT;
 
-    const speed = (opts.speed ?? u.def.moveSpeed) * this.moveMultFor(u);
+    const speed = (opts.speed ?? u.def.moveSpeed * this.config.moveSpeedMult) * this.moveMultFor(u);
     const ignoreZoc = opts.ignoreZoc || u.def.ignoresZoc || u.stealthTime > 0;
     let step = speed * DT;
     let moved = false;
@@ -862,14 +884,21 @@ export class World implements ZocContext {
   // ───────────── 投射物 ─────────────
 
   spawnProjectile(src: Unit, kind: ProjectileKind, speed: number, payload: ProjectilePayload, target: { unit?: Unit; point?: Vec }): void {
+    const arc = payload.type === 'strike' && !!payload.arc;
+    const collides = !!target.unit && !arc && payload.type !== 'aoe' && payload.type !== 'aoeHeal';
+    // 直射：從看得見的取樣點發射、瞄準對應的取樣點（與視線判定一致，不會一出手就撞牆）
+    const line = collides ? clearLine(this.sight, src.pos, src.radius, target.unit!.pos, target.unit!.radius) : null;
+    const start = line ? line.from : { x: src.pos.x, y: src.pos.y };
     this.projectiles.push({
       id: this.nextProjectileId++,
       sourceId: src.id,
       origin: { x: src.pos.x, y: src.pos.y },
+      aim: line?.aim,
+      collides,
       targetId: target.unit?.id,
       point: target.point ? { ...target.point } : undefined,
-      pos: { x: src.pos.x, y: src.pos.y },
-      prevPos: { x: src.pos.x, y: src.pos.y },
+      pos: { ...start },
+      prevPos: { ...start },
       speed,
       kind,
       payload,
@@ -881,16 +910,23 @@ export class World implements ZocContext {
     for (const p of this.projectiles) {
       const tu = p.targetId !== undefined ? this.getUnit(p.targetId) : undefined;
       if (p.targetId !== undefined && (!tu || tu.dead)) continue;
-      const dest = tu ? tu.pos : p.point!;
+      const dest = tu ? (p.aim ? { x: tu.pos.x + p.aim.x, y: tu.pos.y + p.aim.y } : tu.pos) : p.point!;
       const d = dist(p.pos, dest);
       const step = p.speed * DT;
-      if (d <= step + (tu ? tu.radius * 0.5 : 0)) {
-        p.pos = { x: dest.x, y: dest.y };
+      const arrive = d <= step + (tu ? tu.radius * 0.5 : 0);
+      const dir = norm(sub(dest, p.pos));
+      const next = arrive ? { x: dest.x, y: dest.y } : { x: p.pos.x + dir.x * step, y: p.pos.y + dir.y * step };
+      // 直射投射物撞到遮擋視線的障礙物：落空（目標躲到岩石後面）
+      if (p.collides && !segmentClear(this.sight, p.pos, next)) {
+        const pl = p.payload;
+        this.emit({ type: 'miss', sourceId: p.sourceId, targetId: p.targetId!, skillId: 'skillId' in pl ? pl.skillId : undefined, blocked: true, point: { ...p.pos } });
+        continue;
+      }
+      p.pos = next;
+      if (arrive) {
         resolveProjectilePayload(this, this.getUnit(p.sourceId)!, p, tu);
         continue;
       }
-      const dir = norm(sub(dest, p.pos));
-      p.pos = { x: p.pos.x + dir.x * step, y: p.pos.y + dir.y * step };
       keep.push(p);
     }
     // resolveProjectile 期間不會新增投射物，可直接替換

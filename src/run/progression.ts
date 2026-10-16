@@ -81,11 +81,19 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
   const r = cloneRun(run);
   const { nodeId, fromEvent } = run.phase;
   const node = r.map.nodes[nodeId];
+  let recovered = 0;
   for (const o of outcome.heroes) {
     const h = r.party[o.slot];
     if (!h) continue;
     if (!h.dead && o.dead) r.stats.heroesLost++;
+    const startHp = h.hp;
     h.hp = o.dead ? 0 : Math.max(1, Math.min(maxHpOf(h), Math.round(o.hp)));
+    // 戰後整補（參考永恆之柱）：勝利後存活者回復本場損失生命的一部分，其餘是長期傷勢
+    if (outcome.won && !o.dead && startHp > h.hp) {
+      const heal = Math.round((startHp - h.hp) * ECONOMY.postBattleRecoveryRatio);
+      h.hp = Math.min(maxHpOf(h), h.hp + heal);
+      recovered += heal;
+    }
     h.dead = o.dead;
     h.kills += o.kills;
     h.damageDealt += o.damageDealt;
@@ -112,6 +120,7 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
     r.phase = { kind: 'ended', result: 'won' };
     return r;
   }
+  if (recovered > 0) r.journal.push(`戰後整補：全隊回復 ${recovered} 生命。`);
   const elite = node.type === 'elite' && !fromEvent;
   const gold = elite ? ECONOMY.goldPerElite : ECONOMY.goldPerBattle;
   r.gold += gold;

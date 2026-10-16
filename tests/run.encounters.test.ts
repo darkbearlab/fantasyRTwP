@@ -13,7 +13,7 @@ describe('遭遇資料（SPEC_SLICE2 §7）', () => {
     for (const m of ['arena01', 'forest01', 'ruins01', 'bridge01', 'boss01', 'marsh01', 'hill01']) expect(maps.has(m), m).toBe(true);
   });
 
-  it('所有敵人位置可走、可以走到英雄出生點；一般戰鬥 4–7 名', () => {
+  it('所有敵人位置可走、可以走到英雄出生點；一般戰鬥 3–5 名、精英 4–5 名', () => {
     for (const e of Object.values(ENCOUNTERS)) {
       const map = MAPS[e.map];
       const g = NavGrid.fromMap(map, 0.5, 0.5);
@@ -22,8 +22,9 @@ describe('遭遇資料（SPEC_SLICE2 §7）', () => {
         expect(g.isWalkable(u), `${e.id} (${u.x},${u.y})`).toBe(true);
         expect(findPath(g, u, map.heroSpawns[0]), `${e.id} (${u.x},${u.y})`).not.toBeNull();
       }
-      if (e.tier === 'battle') expect(e.enemies.length).toBeGreaterThanOrEqual(4);
-      expect(e.enemies.length).toBeLessThanOrEqual(7);
+      if (e.tier === 'battle') expect(e.enemies.length, e.id).toBeGreaterThanOrEqual(3);
+      if (e.tier === 'elite') expect(e.enemies.length, e.id).toBeGreaterThanOrEqual(4);
+      expect(e.enemies.length, e.id).toBeLessThanOrEqual(5);
       if (e.tier === 'elite') expect(e.enemies.filter((x) => x.captain).length).toBe(1);
     }
   });

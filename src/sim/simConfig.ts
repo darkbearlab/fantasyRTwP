@@ -30,6 +30,8 @@ export interface SimConfig {
   actionSpeedMult: number;
   /** 我方（英雄）造成傷害的倍率 */
   heroDamageMult: number;
+  /** 節奏：敵我雙方一般移動速度的倍率（衝鋒、翻滾等技能位移不受影響；參考柏德之門／永恆之柱放慢） */
+  moveSpeedMult: number;
   /** 敵人察覺距離：任一英雄進入此距離就開始進攻 */
   enemyAggroRange: number;
   /** 戰鬥開始後幾秒，敵人無論如何都會開始進攻 */
@@ -45,9 +47,11 @@ export const DEFAULT_SIM_CONFIG: SimConfig = {
   heroLeashRange: 1.5,
   actionSpeedMult: 0.85,
   heroDamageMult: 1.2,
+  moveSpeedMult: 0.8,
   heroAggressiveRange: 10,
   heroFleeRange: 4,
   heroFleeDistance: 4,
-  enemyAggroRange: 14,
-  enemyAggroTime: 8,
+  // 拉開交戰：敵人開場不會立刻衝過來，給玩家部陣時間（Alan 決定方向；數值佔位）
+  enemyAggroRange: 10,
+  enemyAggroTime: 20,
 };

@@ -51,19 +51,24 @@ describe('遠征狀態（SPEC_SLICE2 §3、§11-2/3）', () => {
       ],
     };
     const after = applyBattleResult(r, outcome);
-    expect(after.party[0]!.hp).toBe(77);
+    // 戰後整補：回復本場損失的 postBattleRecoveryRatio（140 → 77 → 77 + 32）
+    const rec = (start: number, end: number) => end + Math.round((start - end) * ECONOMY.postBattleRecoveryRatio);
+    expect(after.party[0]!.hp).toBe(rec(140, 77));
     expect(after.party[1]!.dead).toBe(true);
-    expect(after.party[3]!.hp).toBe(12);
+    expect(after.party[3]!.hp).toBe(rec(HEROES.cleric.maxHp, 12));
     expect(after.gold).toBe(ECONOMY.startGold + ECONOMY.goldPerBattle);
     expect(after.phase.kind).toBe('reward');
     expect(r.party[0]!.hp).toBe(HEROES.warrior.maxHp); // 原狀態不被修改
+    // 輸掉不整補
+    const lost = applyBattleResult(r, { ...outcome, won: false });
+    expect(lost.party[0]!.hp).toBe(77);
 
     const next = chooseNode(chooseReward(after, 'skip'), availableNodes(chooseReward(after, 'skip'))[0].id);
     if (next.phase.kind === 'battle') {
       const w = createBattleFromRun(next);
       const heroes = w.units.filter((u) => u.team === 'hero');
       expect(heroes.map((u) => u.heroSlot)).toEqual([0, 2, 3]);
-      expect(heroes.find((u) => u.heroSlot === 3)!.hp).toBe(12);
+      expect(heroes.find((u) => u.heroSlot === 3)!.hp).toBe(rec(HEROES.cleric.maxHp, 12));
     }
   });
 

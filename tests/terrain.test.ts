@@ -4,8 +4,10 @@ import { TERRAIN } from '../src/sim/data/terrain';
 import type { MapDef, TerrainRect } from '../src/sim/data/types';
 import { MAPS } from '../src/sim/data/maps';
 import { dist } from '../src/sim/math';
+import type { Unit } from '../src/sim/unit';
 import { findPath } from '../src/sim/nav/astar';
 import { NavGrid } from '../src/sim/nav/grid';
+import { segmentClear } from '../src/sim/los';
 import { T_HIGH, T_SHALLOW, TerrainGrid } from '../src/sim/terrain';
 import type { UnitSpawn } from '../src/sim/world';
 import { HOLD, OPEN_MAP, makeWorld, run } from './helpers';
@@ -175,5 +177,95 @@ describe('切片 3 新地圖（SPEC_SLICE3 §4）', () => {
     expect(t.has({ x: 27, y: 14 }, T_HIGH)).toBe(true);
     expect(findPath(g, hill.heroSpawns[0], { x: 27, y: 14 })).not.toBeNull();
     expect(new TerrainGrid(MAPS.marsh01).has({ x: 19, y: 15 }, T_SHALLOW)).toBe(true);
+  });
+});
+
+describe('遠程阻擋（Alan 回饋：射擊要被障礙物與人群擋住）', () => {
+  it('投射物飛行中撞到遮擋視線的障礙物會落空（目標躲到岩石後面）', () => {
+    const wall: MapDef = { ...OPEN_MAP, id: 'wall', obstacles: [{ x: 9, y: 4, w: 1, h: 4 }] };
+    const w = makeWorld([{ defId: 'ranger', pos: { x: 3, y: 9 } }, { defId: 'brute', pos: { x: 14, y: 9 } }], {}, wall, 1, HOLD);
+    const [r, b] = w.units;
+    expect(w.canSee(r, b)).toBe(true);
+    w.spawnProjectile(r, 'arrow', 10, { type: 'strike', melee: false, mult: 1, damageType: 'projectile' }, { unit: b });
+    // 目標躲到牆後
+    b.pos = { x: 14, y: 6 };
+    b.prevPos = { ...b.pos };
+    const evs = run(w, 60);
+    expect(evs.some((e) => e.type === 'miss' && e.blocked)).toBe(true);
+    expect(evs.some((e) => e.type === 'hit')).toBe(false);
+  });
+
+  it('看得見的目標：投射物從看得見的取樣點射出，不會一出手就撞牆', () => {
+    // 牆角只擋住中心連線、側邊看得到
+    const corner: MapDef = { ...OPEN_MAP, id: 'corner', obstacles: [{ x: 8, y: 4, w: 2, h: 4.9 }] };
+    const w = makeWorld([{ defId: 'ranger', pos: { x: 3, y: 9 } }, { defId: 'brute', pos: { x: 15, y: 4 } }], {}, corner, 1, HOLD);
+    const [r, b] = w.units;
+    // 找一個「中心連線被擋、但側邊取樣點看得到」的位置
+    let found = false;
+    for (let y = 2; y <= 11 && !found; y += 0.05) {
+      b.pos = { x: 15, y };
+      if (w.canSee(r, b) && !segmentClear(w.sight, r.pos, b.pos)) found = true;
+    }
+    expect(found).toBe(true);
+    b.prevPos = { ...b.pos };
+    w.spawnProjectile(r, 'arrow', 20, { type: 'strike', melee: false, mult: 1, damageType: 'projectile' }, { unit: b });
+    const evs = run(w, 60);
+    expect(evs.some((e) => e.type === 'miss' && e.blocked)).toBe(false);
+  });
+
+  it('拋物線投射物不會被擋', () => {
+    const wall: MapDef = { ...OPEN_MAP, id: 'wall', obstacles: [{ x: 9, y: 2, w: 1, h: 8 }] };
+    const w = makeWorld([{ defId: 'alchemist', pos: { x: 3, y: 6 } }, { defId: 'brute', pos: { x: 14, y: 6 } }], {}, wall, 1, HOLD);
+    const [a, b] = w.units;
+    w.spawnProjectile(a, 'flask', 14, { type: 'strike', melee: false, mult: 1, damageType: 'projectile', arc: true }, { unit: b });
+    const evs = run(w, 60);
+    expect(evs.some((e) => e.type === 'miss' && e.blocked)).toBe(false);
+  });
+
+  it('射入混戰：路徑上有其他單位時目標防禦 +10（敵我都算；射手身邊的隊友不算）', () => {
+    const w = makeWorld([
+      { defId: 'ranger', pos: { x: 3, y: 6 } },
+      { defId: 'brute', pos: { x: 12, y: 6 } },
+      { defId: 'warrior', pos: { x: 8, y: 6.1 } },
+      { defId: 'cleric', pos: { x: 3.8, y: 6 } },
+    ], {}, OPEN_MAP, 1, HOLD);
+    const [r, b, war, cl] = w.units;
+    expect(w.hasBodyCover(r.pos, b, r.id)).toBe(true);
+    war.pos = { x: 8, y: 9 };
+    expect(w.hasBodyCover(r.pos, b, r.id)).toBe(false);
+    // 緊貼射手的隊友不擋
+    expect(dist(cl.pos, r.pos)).toBeLessThan(TERRAIN.bodyCoverShooterClearance);
+    // 命中率確實下降
+    war.pos = { x: 8, y: 6.1 };
+    const covered = hitRateWith(w, r, b);
+    war.pos = { x: 8, y: 9 };
+    const open = hitRateWith(w, r, b);
+    expect(open - covered).toBeGreaterThan(0.05);
+  });
+});
+
+function hitRateWith(w: ReturnType<typeof makeWorld>, src: Unit, tgt: Unit): number {
+  const N = 2000;
+  const hp = tgt.hp;
+  let hits = 0;
+  for (let i = 0; i < N; i++) {
+    const before = tgt.stats.damageTaken;
+    strike(w, src, tgt, { melee: false, mult: 1, damageType: 'projectile' });
+    if (tgt.stats.damageTaken > before) hits++;
+    tgt.hp = hp;
+  }
+  return hits / N;
+}
+
+describe('節奏設定', () => {
+  it('moveSpeedMult 放慢一般移動；衝鋒、翻滾等技能位移不受影響', () => {
+    const go = (mult: number) => {
+      const w = makeWorld([{ defId: 'warrior', pos: { x: 2, y: 6 } }, { defId: 'brute', pos: { x: 19, y: 11 } }], { moveSpeedMult: mult }, OPEN_MAP, 1, HOLD);
+      const [u] = w.units;
+      w.enqueue({ type: 'move', unitIds: [u.id], point: { x: 18, y: 6 } });
+      run(w, 30);
+      return u.pos.x - 2;
+    };
+    expect(go(0.5) / go(1)).toBeCloseTo(0.5, 1);
   });
 });

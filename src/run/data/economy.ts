@@ -21,6 +21,8 @@ export const ECONOMY = {
   allowDuplicateClasses: false,
   /** 越晚加入越強：招募時獲得 floor(層數 / lateJoinLayersPerUpgrade) 個隨機強化（SPEC_SLICE3 §1.3、§9-4） */
   lateJoinLayersPerUpgrade: 2,
+  /** 戰後整補：勝利後存活者回復「本場損失生命」的比例（參考永恆之柱的耐力／生命；Alan 決定 0.5） */
+  postBattleRecoveryRatio: 0.5,
   /** 紮營恢復最大生命的比例 */
   campHealRatio: 0.4,
   rewardChoices: 3,

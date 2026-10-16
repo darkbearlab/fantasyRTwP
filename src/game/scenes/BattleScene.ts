@@ -329,6 +329,11 @@ export class BattleScene extends Phaser.Scene {
         }
         case 'miss': {
           const t = w.getUnit(ev.targetId)!;
+          if (ev.blocked && ev.point) {
+            this.fx.text(ev.point, '擋下', '#c8ccd2', 13);
+            s.addLog(`${L(ev.sourceId)} → ${L(t.id)}：被障礙物擋下${ev.skillId ? `〔${skillName(ev.skillId)}〕` : ''}`, 'miss');
+            break;
+          }
           this.fx.text(t.pos, 'Miss', '#9aa0a6', 14);
           s.addLog(`${L(ev.sourceId)} → ${L(t.id)}：未命中${ev.skillId ? `〔${skillName(ev.skillId)}〕` : ''}`, 'miss');
           break;

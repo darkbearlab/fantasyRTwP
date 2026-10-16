@@ -17,7 +17,7 @@ export const OPEN_MAP: MapDef = {
 };
 
 /** 節奏倍率固定為 1：測試驗證的是機制本身，不受調數值影響 */
-export const NEUTRAL_PACING: Partial<SimConfig> = { actionSpeedMult: 1, heroDamageMult: 1 };
+export const NEUTRAL_PACING: Partial<SimConfig> = { actionSpeedMult: 1, heroDamageMult: 1, moveSpeedMult: 1 };
 
 /** 敵人 AI 不會主動進攻的設定（方便控制測試情境） */
 export const PASSIVE: Partial<SimConfig> = { enemyAggroRange: 0, enemyAggroTime: 1e9, ...NEUTRAL_PACING };
