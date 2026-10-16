@@ -20,6 +20,15 @@ export const COLORS = {
   ghostFollow: 0x7fd1ff,
   telegraph: 0xff2a2a,
   targeting: 0xc77dff,
+  terrainBrush: 0x1f4a2a,
+  terrainBrushDot: 0x3d7a43,
+  terrainShallow: 0x5aa7d6,
+  terrainHedge: 0x6b4a2b,
+  terrainHedgeLine: 0xa07444,
+  terrainHigh: 0xd8d2b0,
+  cliff: 0x6e6248,
+  fire: 0xff6a1a,
+  fireHot: 0xffb43a,
 };
 
 export const PROJECTILE_STYLE: Record<string, { color: number; size: number }> = {

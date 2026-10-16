@@ -125,6 +125,8 @@ export interface Rect {
   h: number;
   /** 是否遮擋視線（預設 true；河水等只擋路不擋視線設為 false） */
   blocksSight?: boolean;
+  /** 只影響畫面：cliff＝高地邊緣的斷崖（通常搭配 blocksSight: false） */
+  style?: 'cliff';
 }
 
 /** 戰術地形種類（SPEC_SLICE3 §2） */

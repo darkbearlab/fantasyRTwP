@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { strike } from '../src/sim/actions';
 import { TERRAIN } from '../src/sim/data/terrain';
 import type { MapDef, TerrainRect } from '../src/sim/data/types';
+import { MAPS } from '../src/sim/data/maps';
 import { dist } from '../src/sim/math';
+import { findPath } from '../src/sim/nav/astar';
+import { NavGrid } from '../src/sim/nav/grid';
+import { T_HIGH, T_SHALLOW, TerrainGrid } from '../src/sim/terrain';
 import type { UnitSpawn } from '../src/sim/world';
 import { HOLD, OPEN_MAP, makeWorld, run } from './helpers';
 
@@ -155,5 +159,21 @@ describe('草叢隱匿與點燃（SPEC_SLICE3 §2.2）', () => {
     run(w, 30 * 10);
     expect(w.fire.size).toBe(0);
     expect(w.terrain.patchAt({ x: 11.5, y: 6 })).toBe(-1); // 草叢燒光
+  });
+});
+
+describe('切片 3 新地圖（SPEC_SLICE3 §4）', () => {
+  it('marsh01、hill01 各有至少 3 種戰術地形（障礙物算一種），高地可以從英雄出生點走上去', () => {
+    for (const id of ['marsh01', 'hill01']) {
+      const map = MAPS[id];
+      const kinds = new Set((map.terrain ?? []).map((t) => t.kind));
+      expect(kinds.size + (map.obstacles.length > 0 ? 1 : 0), id).toBeGreaterThanOrEqual(3);
+    }
+    const hill = MAPS.hill01;
+    const g = NavGrid.fromMap(hill, 0.5, 0.5);
+    const t = new TerrainGrid(hill);
+    expect(t.has({ x: 27, y: 14 }, T_HIGH)).toBe(true);
+    expect(findPath(g, hill.heroSpawns[0], { x: 27, y: 14 })).not.toBeNull();
+    expect(new TerrainGrid(MAPS.marsh01).has({ x: 19, y: 15 }, T_SHALLOW)).toBe(true);
   });
 });

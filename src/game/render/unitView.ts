@@ -5,6 +5,9 @@ import { COLORS, FONT, darken } from './palette';
 
 const PX = GAME_CONFIG.pxPerMeter;
 
+/** normal：一般；brush：在草叢裡但敵人看得到；concealed：我方躲在草叢中（半透明）；hidden：對我方隱藏的敵人 */
+export type Concealment = 'normal' | 'brush' | 'concealed' | 'hidden';
+
 /** 單位的占位外觀：圓形色塊＋字母＋面向短線 */
 export class UnitView {
   readonly container: Phaser.GameObjects.Container;
@@ -13,6 +16,7 @@ export class UnitView {
   private facing: Phaser.GameObjects.Graphics;
   private letter: Phaser.GameObjects.Text;
   private wasDead = false;
+  private concealment: Concealment = 'normal';
   x = 0;
   y = 0;
 
@@ -65,6 +69,13 @@ export class UnitView {
       this.ring.lineStyle(2, COLORS.selection, 0.5);
       this.ring.strokeCircle(0, 0, r + 4);
     }
+  }
+
+  setConcealment(c: Concealment): void {
+    if (c === this.concealment) return;
+    this.concealment = c;
+    this.container.setVisible(c !== 'hidden');
+    if (!this.unit.dead) this.container.setAlpha(c === 'concealed' ? 0.5 : 1);
   }
 
   destroy(): void {

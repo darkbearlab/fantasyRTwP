@@ -22,6 +22,8 @@ export class TerrainGrid {
   readonly patch: Int32Array;
   /** 地圖上是否有任何地形（沒有時可以略過計算） */
   readonly any: boolean;
+  /** 地形變動次數（草叢燒光時遞增，畫面據此重畫） */
+  version = 0;
 
   constructor(map: MapDef) {
     this.cols = Math.ceil(map.width / this.cell);
@@ -104,5 +106,6 @@ export class TerrainGrid {
   clearBrush(i: number): void {
     this.flags[i] &= ~T_BRUSH;
     this.patch[i] = -1;
+    this.version++;
   }
 }
