@@ -2,11 +2,11 @@
 
 奇幻版「路線圖 roguelite ＋ 即時暫停（RTwP）小隊戰鬥」。
 
-- 規格：[SPEC.md](SPEC.md)
+- 規格：[SPEC.md](SPEC.md)（戰鬥系統總規格）、[SPEC_SLICE2.md](SPEC_SLICE2.md)（切片 2：路線圖循環＋操作改版）
 - 實作守則：[AGENTS.md](AGENTS.md)
 - 引擎：Phaser 3 + TypeScript + Vite，測試用 Vitest
 
-目前階段：**切片 1 —— 一場可玩的戰鬥**（隘口之戰：4 名英雄對 7 名敵人），規格 v0.3。
+目前階段：切片 1（一場可玩的戰鬥，規格 v0.3）已完成；**切片 2 —— 八節點路線圖循環＋操作改版** 規格已就緒。
 
 ## 指令
 
