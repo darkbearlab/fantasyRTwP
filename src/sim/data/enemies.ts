@@ -33,6 +33,28 @@ export const ENEMIES: Record<string, UnitDef> = {
     projectsZoc: false, projectileSpeed: 16, projectileKind: 'bolt', attackDamageType: 'spell',
     skills: ['hellfire'],
   },
+  // ── 切片 3 新敵人（SPEC_SLICE3 §3） ──
+  siege: {
+    id: 'siege', name: '攻城兵', letter: 'X', color: 0x9c4a1a, team: 'enemy', ai: 'siege',
+    maxHp: 150, armor: 6, accuracy: 25, defense: 25, damage: [8, 12],
+    range: 0.3, windup: 0.8, recovery: 1.2, attackSpeed: 1, moveSpeed: 2.4, radius: 0.5,
+    projectsZoc: true, ignoresZoc: true,
+    skills: ['ram'],
+  },
+  bomber: {
+    id: 'bomber', name: '投彈手', letter: 'O', color: 0xc77a2e, team: 'enemy', ai: 'bomber',
+    maxHp: 55, armor: 1, accuracy: 30, defense: 25, damage: [4, 7],
+    range: 9, windup: 0.9, recovery: 1.3, attackSpeed: 1, moveSpeed: 2.8, radius: 0.4,
+    projectsZoc: false, projectileSpeed: 12, projectileKind: 'flask', arcAttack: true,
+    skills: ['bomb'],
+  },
+  lurker: {
+    id: 'lurker', name: '潛行者', letter: 'V', color: 0x6b3a5a, team: 'enemy', ai: 'lurker',
+    maxHp: 50, armor: 1, accuracy: 40, defense: 40, damage: [7, 11],
+    range: 0.3, windup: 0.35, recovery: 0.7, attackSpeed: 1, moveSpeed: 4.5, radius: 0.38,
+    projectsZoc: false, startsHidden: true,
+    skills: [],
+  },
   /** 頭目：戰爭領主（SPEC_SLICE2 §7.3） */
   warlord: {
     id: 'warlord', name: '戰爭領主', letter: 'L', color: 0x7a0d0d, team: 'enemy', ai: 'boss',

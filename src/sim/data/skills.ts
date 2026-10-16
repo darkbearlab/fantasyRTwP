@@ -108,6 +108,17 @@ export const SKILLS: Record<string, SkillDef> = {
     target: 'ground', range: 10, windup: 0.8, recovery: 0.8, cooldown: 10, requiresLos: false,
     effect: { kind: 'aoe', radius: 2, damage: [10, 14], friendlyFire: false, ignites: true, burns: true, projectileSpeed: 14, projectileKind: 'flask' },
   },
+  // ── 切片 3 新敵人 ──
+  ram: {
+    id: 'ram', name: '撞擊', description: '衝向英雄（無視控制區），抵達時攻擊並擊退 2 m',
+    target: 'enemy', range: 9, windup: 0.6, recovery: 1.0, cooldown: 10, requiresLos: true, ignoresZoc: true,
+    effect: { kind: 'charge', speedMult: 2.5, maxDuration: 2.5, knockback: 2 },
+  },
+  bomb: {
+    id: 'bomb', name: '投彈', description: '拋物線投擲（不需視線）：半徑 1.5 m 傷害 6–9',
+    target: 'ground', range: 9, windup: 1.0, recovery: 1.2, cooldown: 6, requiresLos: false,
+    effect: { kind: 'aoe', radius: 1.5, damage: [6, 9], friendlyFire: false, projectileSpeed: 12, projectileKind: 'flask' },
+  },
   // ── 頭目：戰爭領主 ──
   sweep: {
     id: 'sweep', name: '橫掃', description: '前方扇形範圍攻擊，準備 1.5 秒，可打斷',

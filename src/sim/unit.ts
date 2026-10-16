@@ -110,6 +110,7 @@ export class Unit {
     this.hp = def.maxHp;
     this.personality = def.personality ?? 'steadfast';
     for (const s of def.skills) this.charges[s] = this.maxCharges(s);
+    if (def.startsHidden) this.stealthTime = Infinity;
     this.facing = def.team === 'hero' ? 0 : Math.PI;
   }
 

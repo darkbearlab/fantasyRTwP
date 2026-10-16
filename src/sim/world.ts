@@ -747,7 +747,7 @@ export class World implements ZocContext {
     if (melee) {
       const grid = this.navFor(u);
       const slot = this.slots.claim(t.id, t.pos, t.radius, u.id, u.pos, u.radius, (p) => grid.isWalkable(p));
-      return this.moveAlong(u, slot.pos, { stopDist: 0.05, avoidZoc: u.def.ai === 'skirmisher' });
+      return this.moveAlong(u, slot.pos, { stopDist: 0.05, avoidZoc: u.def.ai === 'skirmisher' || u.def.ai === 'lurker' });
     }
     return this.moveAlong(u, t.pos, { stopDist: u.radius + t.radius });
   }

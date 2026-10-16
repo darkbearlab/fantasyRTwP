@@ -287,7 +287,7 @@ export function tickDash(world: World, u: Unit): void {
       }
     }
     if (inRange()) {
-      strike(world, u, t, { melee: true, mult: 1, damageType: basicDamageType(u.def), skillId: def.id });
+      strike(world, u, t, { melee: true, mult: 1, damageType: basicDamageType(u.def), skillId: def.id, knockback: eff.knockback });
       if (u.dead || !u.action) return;
       enterRecovery(world, u, def.recovery);
       afterSkill(world, u, def, t);
