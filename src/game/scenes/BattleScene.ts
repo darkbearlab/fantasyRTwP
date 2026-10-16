@@ -119,9 +119,10 @@ export class BattleScene extends Phaser.Scene {
       .setDepth(1200)
       .setVisible(false);
     this.fx = new Fx(this);
+    // 暫停時的變暗層：scrollFactor 0 仍會跟著鏡頭縮放（以畫面中心縮放），做成三倍大，縮小到最小倍率也能蓋滿畫面
     this.dim = this.add
-      .rectangle(0, 0, this.scale.width, this.scale.height, 0x000000, 0.22)
-      .setOrigin(0)
+      .rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width * 3, this.scale.height * 3, 0x000000, 0.22)
+      .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(3000)
       .setVisible(false);
