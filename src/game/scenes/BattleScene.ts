@@ -14,7 +14,9 @@ import { COLORS, FONT, PROJECTILE_STYLE } from '../render/palette';
 import { UnitView } from '../render/unitView';
 import { InputController } from '../input/inputController';
 import { targetingDef, validSkillTarget } from '../input/targeting';
-import { BattleSession } from '../session';
+import { BattleSession, currentSimConfig } from '../session';
+import { battleSeed, createBattleFromRun, currentEncounter } from '../../run/battle';
+import { getRun } from '../runFlow';
 
 const PX = GAME_CONFIG.pxPerMeter;
 
@@ -39,9 +41,18 @@ export class BattleScene extends Phaser.Scene {
     super('Battle');
   }
 
-  create(data: { seed?: number }): void {
-    const seed = data.seed ?? randomSeed();
-    this.session = new BattleSession(seed);
+  create(data: { seed?: number; run?: boolean }): void {
+    if (data.run) {
+      // 遠征模式：由 RunState 建立戰鬥（生命、強化、性格帶入）
+      const run = getRun(this);
+      const seed = battleSeed(run);
+      this.session = new BattleSession(seed, {
+        world: createBattleFromRun(run, currentSimConfig(), seed),
+        mode: 'run',
+        partySlots: run.party.map((h) => (h ? { classId: h.classId, dead: h.dead } : null)),
+      });
+    } else this.session = new BattleSession(data.seed ?? randomSeed());
+    const seed = this.session.seed;
     this.registry.set('session', this.session);
     this.views.clear();
     this.statusTexts.clear();
@@ -72,7 +83,10 @@ export class BattleScene extends Phaser.Scene {
     });
 
     if (this.session.autoPause.battleStart) this.session.setPaused(true, '戰鬥開始');
-    this.session.addLog(`戰鬥開始（種子 ${seed}）`, 'sys');
+    if (this.session.mode === 'run') {
+      const enc = currentEncounter(getRun(this));
+      this.session.addLog(`${enc.name}（${this.session.world.map.name}）`, 'sys');
+    } else this.session.addLog(`戰鬥開始（種子 ${seed}）`, 'sys');
 
     if (!this.scene.isActive('UI')) this.scene.launch('UI');
     this.scene.bringToTop('UI');

@@ -659,3 +659,481 @@ body {
   gap: 12px;
   justify-content: center;
 }
+
+/* ───────── 切片 2：遠征畫面 ───────── */
+.hud-root {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.screen {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 30%, #1f232b 0%, #0f1115 75%);
+  overflow: hidden;
+}
+
+.hero-card.placeholder {
+  opacity: 0.4;
+  filter: grayscale(1);
+  cursor: default;
+  grid-template-rows: 48px;
+}
+
+.hero-card.placeholder .info {
+  align-self: center;
+  color: #9aa3b2;
+}
+
+/* 標題 */
+.title-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.title-box {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.title-box h1 {
+  font-size: 64px;
+  margin: 0;
+  letter-spacing: 6px;
+  color: #f5d142;
+  text-shadow: 0 4px 24px rgba(245, 209, 66, 0.25);
+}
+
+.title-box .subtitle {
+  color: #b7becb;
+  max-width: 560px;
+  line-height: 1.7;
+}
+
+.title-hint {
+  color: #6f7888;
+  font-size: 12px;
+  margin-top: 18px;
+}
+
+.seed-row input {
+  background: #171a20;
+  color: #e6e9ef;
+  border: 1px solid #454c5a;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 15px;
+  width: 220px;
+  text-align: center;
+  font-family: inherit;
+}
+
+.btn.big {
+  font-size: 20px;
+  padding: 10px 40px;
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* 路線圖 */
+.map-screen {
+  display: flex;
+}
+
+.map-side {
+  width: 300px;
+  padding: 16px;
+  background: rgba(10, 12, 15, 0.75);
+  border-right: 1px solid #2c313b;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.map-title {
+  font-size: 22px;
+  font-weight: bold;
+  color: #f5d142;
+}
+
+.gold {
+  font-size: 16px;
+}
+
+.map-progress,
+.buff-note {
+  color: #9aa3b2;
+  font-size: 12px;
+}
+
+.buff-note {
+  color: #a6e3ff;
+}
+
+.journal {
+  flex: 1;
+  overflow-y: auto;
+  font-size: 12px;
+  color: #8a93a3;
+  line-height: 1.6;
+  border-top: 1px solid #2c313b;
+  padding-top: 6px;
+}
+
+.journal.long {
+  max-height: 150px;
+  text-align: left;
+  margin-top: 10px;
+}
+
+.map-area {
+  position: relative;
+  flex: 1;
+  margin: 40px 20px;
+}
+
+.map-lines {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.map-lines line {
+  stroke: #3a404c;
+  stroke-width: 3;
+}
+
+.map-lines line.walked {
+  stroke: #f5d142;
+  stroke-width: 4;
+}
+
+.map-lines line.open {
+  stroke: #8fd18f;
+  stroke-dasharray: 8 6;
+}
+
+.map-node {
+  position: absolute;
+  width: 56px;
+  height: 56px;
+  margin: -28px 0 0 -28px;
+  border-radius: 50%;
+  background: #23272f;
+  border: 3px solid #4a5160;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  transition: transform 0.1s;
+}
+
+.map-node.locked {
+  opacity: 0.35;
+}
+
+.map-node.visited {
+  border-color: #f5d142;
+  background: #3a3424;
+}
+
+.map-node.current {
+  box-shadow: 0 0 0 4px rgba(245, 209, 66, 0.35);
+}
+
+.map-node.available {
+  border-color: #8fd18f;
+  cursor: pointer;
+  animation: glow 1.2s ease-in-out infinite alternate;
+}
+
+.map-node.available:hover {
+  transform: scale(1.12);
+}
+
+.map-node.t-boss {
+  width: 72px;
+  height: 72px;
+  margin: -36px 0 0 -36px;
+  font-size: 32px;
+  border-color: #c0392b;
+}
+
+@keyframes glow {
+  from {
+    box-shadow: 0 0 4px rgba(143, 209, 143, 0.4);
+  }
+  to {
+    box-shadow: 0 0 18px rgba(143, 209, 143, 0.9);
+  }
+}
+
+.map-tip {
+  position: absolute;
+  background: rgba(14, 16, 20, 0.95);
+  border: 1px solid #4a5160;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  line-height: 1.6;
+  max-width: 240px;
+  display: none;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.map-tip.show {
+  display: block;
+}
+
+/* 隊伍面板 */
+.party-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.party-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 5px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: rgba(30, 34, 41, 0.6);
+}
+
+.party-row.dead {
+  opacity: 0.5;
+  filter: grayscale(1);
+}
+
+.party-row.empty {
+  opacity: 0.4;
+}
+
+.party-row.pickable {
+  cursor: pointer;
+  border-color: #6b7486;
+}
+
+.party-row.pickable:hover {
+  border-color: #f5d142;
+}
+
+.portrait.small {
+  width: 34px;
+  height: 34px;
+  font-size: 16px;
+  flex: none;
+}
+
+.empty-slot {
+  background: #23272f;
+  color: #6f7888;
+}
+
+.party-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.party-name {
+  display: flex;
+  align-items: baseline;
+  font-weight: bold;
+  font-size: 13px;
+}
+
+.party-ups {
+  font-size: 11px;
+  color: #c7a6ff;
+  margin-top: 2px;
+}
+
+/* 面板畫面（獎勵、事件、休息、結算） */
+.panel-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.panel-screen > .panel {
+  background: #171a20;
+  border: 2px solid #4a5160;
+  border-radius: 12px;
+  padding: 18px 26px 22px;
+  width: 560px;
+  max-height: 690px;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.panel-screen > .panel.wide {
+  width: 820px;
+}
+
+.panel h2 {
+  margin: 0;
+  color: #f5d142;
+}
+
+.panel .meta {
+  color: #9aa3b2;
+}
+
+.step-title {
+  font-weight: bold;
+  margin-top: 4px;
+}
+
+.btn-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.upgrade-cards {
+  display: flex;
+  gap: 10px;
+}
+
+.upgrade-card {
+  flex: 1;
+  background: #222730;
+  border: 2px solid #454c5a;
+  border-radius: 10px;
+  padding: 10px;
+  cursor: pointer;
+  min-height: 110px;
+}
+
+.upgrade-card:hover {
+  border-color: #c9d1de;
+}
+
+.upgrade-card.rare {
+  border-color: #b48a2c;
+  background: #2b2618;
+}
+
+.upgrade-card.picked {
+  border-color: #f5d142;
+  box-shadow: 0 0 0 2px #f5d142 inset;
+}
+
+.up-name {
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.up-desc {
+  color: #c7ccd6;
+  margin: 6px 0;
+  line-height: 1.5;
+}
+
+.up-scope {
+  color: #7d8594;
+  font-size: 11px;
+}
+
+.event-text,
+.event-result {
+  line-height: 1.8;
+  color: #d5dae3;
+  white-space: pre-line;
+}
+
+.event-result {
+  color: #f0d8a8;
+  border-left: 3px solid #b48a2c;
+  padding-left: 10px;
+}
+
+.event-options,
+.rest-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btn.event-option,
+.btn.rest-option {
+  text-align: left;
+  padding: 10px 14px;
+}
+
+.recruit {
+  border-top: 1px solid #2c313b;
+  padding-top: 8px;
+}
+
+.btn.recruit-btn {
+  border-width: 2px;
+}
+
+.result-panel h1 {
+  margin: 0;
+  font-size: 40px;
+  letter-spacing: 8px;
+  text-align: center;
+}
+
+.result-panel h1.win {
+  color: #f5d142;
+}
+
+.result-panel h1.lose {
+  color: #ff6b6b;
+}
+
+.result-panel table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.result-panel th {
+  color: #8a93a3;
+  font-weight: normal;
+  border-bottom: 1px solid #343a46;
+  padding: 4px;
+}
+
+.result-panel td {
+  padding: 4px;
+  text-align: center;
+  border-bottom: 1px solid #23272f;
+}
+
+.result-panel tr.dead {
+  color: #7d8594;
+}
+
+.run-path {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  font-size: 20px;
+}
+
+.path-sep {
+  color: #5e6675;
+  font-size: 14px;
+}
+
+.warn-text {
+  color: #ffb36b !important;
+}

@@ -3,7 +3,7 @@
  */
 import { ENEMIES } from '../sim/data/enemies';
 import { MAPS } from '../sim/data/maps';
-import type { UnitDef } from '../sim/data/types';
+import type { Personality, UnitDef } from '../sim/data/types';
 import type { SimConfig } from '../sim/simConfig';
 import type { UnitSpawn } from '../sim/world';
 import { World } from '../sim/world';
@@ -64,7 +64,7 @@ export function createBattleFromRun(run: RunState, config?: Partial<SimConfig>, 
 export interface BattleOutcome {
   won: boolean;
   time: number;
-  heroes: { slot: number; hp: number; dead: boolean; kills: number; damageDealt: number; damageTaken: number }[];
+  heroes: { slot: number; hp: number; dead: boolean; kills: number; damageDealt: number; damageTaken: number; personality?: Personality }[];
 }
 
 export function battleOutcomeFromWorld(world: World): BattleOutcome {
@@ -73,6 +73,6 @@ export function battleOutcomeFromWorld(world: World): BattleOutcome {
     time: world.time,
     heroes: world.units
       .filter((u) => u.team === 'hero')
-      .map((u) => ({ slot: u.heroSlot, hp: u.hp, dead: u.dead, kills: u.stats.kills, damageDealt: u.stats.damageDealt, damageTaken: u.stats.damageTaken })),
+      .map((u) => ({ slot: u.heroSlot, hp: u.hp, dead: u.dead, kills: u.stats.kills, damageDealt: u.stats.damageDealt, damageTaken: u.stats.damageTaken, personality: u.personality })),
   };
 }

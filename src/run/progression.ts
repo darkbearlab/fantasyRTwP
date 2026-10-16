@@ -9,7 +9,7 @@ import { EVENTS } from './data/events';
 import { UPGRADES } from './data/upgrades';
 import type { BattleOutcome } from './battle';
 import type { MapNode } from './mapGen';
-import type { RunState } from './runState';
+import type { HeroRecord, RunState } from './runState';
 import { cloneRun, firstEmptySlot, livingHeroes, newHero } from './runState';
 import { pickN, rngFor } from './seed';
 import { grantUpgrade, maxHpOf, rollUpgrades } from './upgrades';
@@ -90,6 +90,7 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
     h.damageDealt += o.damageDealt;
     h.damageTaken += o.damageTaken;
     h.battles++;
+    if (o.personality) h.personality = o.personality;
   }
   r.nextBattleBuff = null;
   r.stats.battles++;
@@ -224,4 +225,12 @@ export function restRecruit(run: RunState, classId: string): RunState {
 
 export function isRunOver(run: RunState): boolean {
   return run.phase.kind === 'ended';
+}
+
+/** 在路線圖上切換英雄的閒置性格（跨戰鬥保留） */
+export function setHeroPersonality(run: RunState, slot: number, personality: HeroRecord['personality']): RunState {
+  const r = cloneRun(run);
+  const h = r.party[slot];
+  if (h) h.personality = personality;
+  return r;
 }
