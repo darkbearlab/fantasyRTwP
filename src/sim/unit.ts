@@ -69,6 +69,12 @@ export class Unit {
   cooldowns: Record<string, number> = {};
   /** 技能目前可用次數（一般為 0 或 1；「二連」最多 2） */
   charges: Record<string, number> = {};
+  /** 剛攻擊過：在草叢裡也會暴露（秒） */
+  revealTime = 0;
+  /** 燃燒狀態（秒）與下一次燃燒傷害的倒數 */
+  burnTime = 0;
+  burnTick = 0;
+  burnSourceId = -1;
   /** 這場戰鬥已不能再用的技能（一次性、被打斷就失去） */
   spentSkills: string[] = [];
   /** 暫時的傷害增益（頭目戰吼等） */

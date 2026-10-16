@@ -21,7 +21,8 @@ export function enemyThink(world: World, u: Unit): void {
   if (u.order && u.aiTimer > 0) return;
   u.aiTimer = EVAL_INTERVAL + world.rng.range(-EVAL_JITTER, EVAL_JITTER);
 
-  const heroes = world.units.filter((h) => h.team !== u.team && !h.dead);
+  // 躲在草叢裡的英雄看不到
+  const heroes = world.units.filter((h) => h.team !== u.team && !h.dead && world.canTarget(u, h));
   if (heroes.length === 0) return;
 
   // 被牽制時：先處理牽制自己的英雄
@@ -48,7 +49,7 @@ export function enemyThink(world: World, u: Unit): void {
           return;
         }
       }
-      const visible = heroes.filter((h) => world.canSee(u, h) && edgeDistance(u, h) <= u.def.range + 2);
+      const visible = heroes.filter((h) => world.canSee(u, h) && edgeDistance(u, h) <= world.attackRange(u) + 2);
       if (visible.length > 0) {
         const t = visible.sort((a, b) => a.defense - b.defense || dist(u.pos, a.pos) - dist(u.pos, b.pos))[0];
         attack(world, u, t);
