@@ -1,0 +1,205 @@
+import Phaser from 'phaser';
+import { GAME_CONFIG } from '../../config';
+import type { Vec } from '../../sim/math';
+import type { Unit } from '../../sim/unit';
+import type { BattleSession } from '../session';
+import { beginSkill, confirmTargeting } from './targeting';
+
+const PX = GAME_CONFIG.pxPerMeter;
+
+export interface InputHost {
+  scene: Phaser.Scene;
+  session(): BattleSession;
+  unitAt(p: Vec): Unit | undefined;
+}
+
+/**
+ * 輸入層（SPEC §11、§13）：把滑鼠／鍵盤轉成 Command 或畫面層狀態（選取、瞄準、鏡頭）。
+ * sim 與渲染都不直接處理輸入，之後接觸控只要再寫一個 controller。
+ */
+export class InputController {
+  /** 框選：起點（世界 px） */
+  dragStart: { x: number; y: number } | null = null;
+  dragNow: { x: number; y: number } | null = null;
+  private panLast: { x: number; y: number } | null = null;
+  /** 滑鼠真的移動過才啟用邊緣捲動（指標預設在 (0,0)） */
+  private pointerSeen = false;
+  private cursors: Phaser.Types.Input.Keyboard.CursorKeys;
+
+  constructor(private host: InputHost) {
+    const scene = host.scene;
+    const input = scene.input;
+    input.mouse?.disableContextMenu();
+    this.cursors = input.keyboard!.createCursorKeys();
+    input.keyboard!.addCapture('SPACE,UP,DOWN,LEFT,RIGHT');
+
+    input.on('pointerdown', (p: Phaser.Input.Pointer) => this.onDown(p));
+    input.on('pointermove', (p: Phaser.Input.Pointer) => this.onMove(p));
+    input.on('pointerup', (p: Phaser.Input.Pointer) => this.onUp(p));
+    input.on('wheel', (_p: Phaser.Input.Pointer, _o: unknown, _dx: number, dy: number) => {
+      const cam = scene.cameras.main;
+      cam.setZoom(Phaser.Math.Clamp(cam.zoom * (dy > 0 ? 0.9 : 1.1), 0.6, 1.8));
+    });
+    input.keyboard!.on('keydown', (e: KeyboardEvent) => this.onKey(e));
+  }
+
+  private get session(): BattleSession {
+    return this.host.session();
+  }
+
+  private toMeters(p: Phaser.Input.Pointer): Vec {
+    const w = p.positionToCamera(this.host.scene.cameras.main) as Phaser.Math.Vector2;
+    return { x: w.x / PX, y: w.y / PX };
+  }
+
+  private now(): number {
+    return this.host.scene.time.now;
+  }
+
+  private onDown(p: Phaser.Input.Pointer): void {
+    const s = this.session;
+    if (p.middleButtonDown()) {
+      this.panLast = { x: p.x, y: p.y };
+      return;
+    }
+    const m = this.toMeters(p);
+    const unit = this.host.unitAt(m);
+    if (p.rightButtonDown()) {
+      if (s.targeting) {
+        s.targeting = null;
+        return;
+      }
+      this.rightClick(m, unit);
+      return;
+    }
+    if (p.leftButtonDown()) {
+      if (s.targeting) {
+        confirmTargeting(s, m, unit, this.now());
+        return;
+      }
+      this.dragStart = { x: m.x * PX, y: m.y * PX };
+      this.dragNow = { ...this.dragStart };
+    }
+  }
+
+  private onMove(p: Phaser.Input.Pointer): void {
+    this.pointerSeen = true;
+    const m = this.toMeters(p);
+    const u = this.host.unitAt(m);
+    this.session.hoverUnitId = u ? u.id : null;
+    if (this.panLast && p.middleButtonDown()) {
+      const cam = this.host.scene.cameras.main;
+      cam.scrollX -= (p.x - this.panLast.x) / cam.zoom;
+      cam.scrollY -= (p.y - this.panLast.y) / cam.zoom;
+      this.panLast = { x: p.x, y: p.y };
+    }
+    if (this.dragStart) this.dragNow = { x: m.x * PX, y: m.y * PX };
+  }
+
+  private onUp(p: Phaser.Input.Pointer): void {
+    if (this.panLast && !p.middleButtonDown()) this.panLast = null;
+    if (!this.dragStart || p.leftButtonDown()) return;
+    const s = this.session;
+    const a = this.dragStart;
+    const b = this.dragNow ?? a;
+    this.dragStart = null;
+    this.dragNow = null;
+    const shift = !!(p.event as MouseEvent | undefined)?.shiftKey;
+    const heroes = s.world.units.filter((u) => u.team === 'hero' && !u.dead);
+    if (Math.hypot(b.x - a.x, b.y - a.y) > 6) {
+      // 框選
+      const x0 = Math.min(a.x, b.x) / PX;
+      const x1 = Math.max(a.x, b.x) / PX;
+      const y0 = Math.min(a.y, b.y) / PX;
+      const y1 = Math.max(a.y, b.y) / PX;
+      const inBox = heroes.filter((u) => u.pos.x >= x0 && u.pos.x <= x1 && u.pos.y >= y0 && u.pos.y <= y1).sort((p1, p2) => p1.heroSlot - p2.heroSlot);
+      if (shift) for (const u of inBox) if (!s.selection.includes(u.id)) s.selection.push(u.id);
+      if (!shift) s.selection = inBox.map((u) => u.id);
+      return;
+    }
+    const unit = this.host.unitAt({ x: a.x / PX, y: a.y / PX });
+    if (unit && unit.team === 'hero' && !unit.dead) this.selectHero(unit.id, shift);
+    else if (!shift) s.selection = [];
+  }
+
+  selectHero(id: number, shift: boolean): void {
+    const s = this.session;
+    if (shift) {
+      const i = s.selection.indexOf(id);
+      if (i >= 0) s.selection.splice(i, 1);
+      else s.selection.push(id);
+    } else s.selection = [id];
+  }
+
+  private rightClick(m: Vec, unit: Unit | undefined): void {
+    const s = this.session;
+    const sel = s.selectedUnits();
+    if (sel.length === 0) return;
+    const ids = sel.map((u) => u.id);
+    if (unit && !unit.dead && unit.team === 'enemy') {
+      s.enqueue({ type: 'attack', unitIds: ids, targetId: unit.id });
+    } else if (unit && !unit.dead && unit.team === 'hero') {
+      const others = ids.filter((id) => id !== unit.id);
+      if (others.length > 0) s.enqueue({ type: 'follow', unitIds: others, targetId: unit.id });
+    } else {
+      s.enqueue({ type: 'move', unitIds: ids, point: m });
+    }
+  }
+
+  private onKey(e: KeyboardEvent): void {
+    const s = this.session;
+    if (e.repeat) return;
+    const target = e.target as HTMLElement | null;
+    if (target && (target.tagName === 'INPUT' || target.tagName === 'SELECT')) return;
+    switch (e.code) {
+      case 'Space':
+        e.preventDefault();
+        if (s.world.result) return;
+        s.setPaused(!s.paused);
+        return;
+      case 'Escape':
+        s.targeting = null;
+        return;
+      case 'KeyH': {
+        const ids = s.selectedUnits().map((u) => u.id);
+        if (ids.length) s.enqueue({ type: 'stop', unitIds: ids });
+        return;
+      }
+      case 'Backquote':
+        s.debug.panel = !s.debug.panel;
+        return;
+    }
+    GAME_CONFIG.hotkeys.forEach((row, slot) => {
+      const idx = row.indexOf(e.code);
+      if (idx >= 0) {
+        e.preventDefault();
+        beginSkill(s, slot, idx, this.now());
+      }
+    });
+  }
+
+  /** 每幀：方向鍵、滑鼠移到邊緣捲動鏡頭 */
+  update(dtSec: number): void {
+    const scene = this.host.scene;
+    const cam = scene.cameras.main;
+    const speed = (GAME_CONFIG.cameraScrollSpeed * dtSec) / cam.zoom;
+    let dx = 0;
+    let dy = 0;
+    if (this.cursors.left.isDown) dx -= 1;
+    if (this.cursors.right.isDown) dx += 1;
+    if (this.cursors.up.isDown) dy -= 1;
+    if (this.cursors.down.isDown) dy += 1;
+    const p = scene.input.activePointer;
+    const m = GAME_CONFIG.edgeScrollMargin;
+    if (this.pointerSeen && scene.input.isOver && !this.dragStart && !this.panLast) {
+      if (p.x <= m) dx -= 1;
+      if (p.x >= scene.scale.width - m) dx += 1;
+      if (p.y <= m) dy -= 1;
+      if (p.y >= scene.scale.height - m) dy += 1;
+    }
+    if (dx || dy) {
+      cam.scrollX += dx * speed;
+      cam.scrollY += dy * speed;
+    }
+  }
+}
