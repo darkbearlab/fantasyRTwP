@@ -44,7 +44,7 @@ export function returnToGuard(u: Unit, guard: Vec): Order | null {
 }
 
 /**
- * 預設：近戰對 heroIdleAggroRange 內的敵人、遠程對射程內且有視線的敵人自動普攻。
+ * 堅守（預設）：近戰對 heroIdleAggroRange 內的敵人、遠程對射程內且有視線的敵人自動普攻。
  * 有駐守點時只打「不離開駐守範圍就打得到」的敵人，沒有目標就走回駐守點。
  */
 export const defaultIdleBehavior: IdleBehavior = {
@@ -74,10 +74,10 @@ export const defaultIdleBehavior: IdleBehavior = {
 const FLEE_DIRECTIONS = 16;
 
 /**
- * 膽小：不會自動攻擊。敵人進入 heroFleeRange 就往遠離敵人的方向跑 heroFleeDistance。
+ * 游擊：不會自動攻擊。敵人進入 heroFleeRange 就往遠離敵人的方向跑 heroFleeDistance。
  * 被牽制或無路可逃時原地不動，等玩家下指令。
  */
-export const cowardlyIdleBehavior: IdleBehavior = {
+export const guerrillaIdleBehavior: IdleBehavior = {
   decide(world, u) {
     const threats = world.units.filter((e) => !e.dead && e.team !== u.team && edgeDistance(u, e) <= world.config.heroFleeRange);
     if (threats.length === 0) return null;
@@ -132,8 +132,35 @@ export function fleePoint(world: World, u: Unit, threats: Unit[]): Vec | null {
   return best;
 }
 
+/**
+ * 好戰：看得到且在 heroAggressiveRange 內的敵人就主動衝出去打。
+ * 下的是一般攻擊指令（不受駐守點限制），所以會一路追擊到目標倒下。
+ */
+export const aggressiveIdleBehavior: IdleBehavior = {
+  decide(world, u) {
+    let best: Unit | null = null;
+    let bestD = Infinity;
+    for (const e of world.units) {
+      if (e.dead || e.team === u.team) continue;
+      const d = edgeDistance(u, e);
+      if (d > world.config.heroAggressiveRange || d >= bestD || !world.canSee(u, e)) continue;
+      bestD = d;
+      best = e;
+    }
+    return best ? { type: 'attack', targetId: best.id } : null;
+  },
+};
+
 /** 性格 → 閒置行為 */
 export const IDLE_BEHAVIORS: Record<Personality, IdleBehavior> = {
-  aggressive: defaultIdleBehavior,
-  cowardly: cowardlyIdleBehavior,
+  steadfast: defaultIdleBehavior,
+  aggressive: aggressiveIdleBehavior,
+  guerrilla: guerrillaIdleBehavior,
+};
+
+/** 顯示名稱 */
+export const PERSONALITY_LABEL: Record<Personality, string> = {
+  steadfast: '堅守',
+  aggressive: '好戰',
+  guerrilla: '游擊',
 };

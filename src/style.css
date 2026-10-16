@@ -200,12 +200,17 @@ body {
   border: 1px solid transparent;
 }
 
+.personality.steadfast {
+  background: #4a4426;
+  color: #ffe08a;
+}
+
 .personality.aggressive {
   background: #5a2626;
   color: #ffb3a1;
 }
 
-.personality.cowardly {
+.personality.guerrilla {
   background: #26425a;
   color: #a6d8ff;
 }

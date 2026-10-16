@@ -5,6 +5,11 @@ import type { ZocMode } from '../../sim/simConfig';
 import type { Unit } from '../../sim/unit';
 import { UnitState } from '../../sim/unit';
 import { beginSkill } from '../input/targeting';
+import { PERSONALITY_LABEL } from '../../sim/ai/idleBehavior';
+import type { Personality } from '../../sim/data/types';
+
+/** 點擊性格標籤時的切換順序 */
+const PERSONALITY_CYCLE: Personality[] = ['steadfast', 'aggressive', 'guerrilla'];
 import { hex } from '../render/palette';
 import type { BattleSession, DebugFlags } from '../session';
 import type { BattleScene } from './BattleScene';
@@ -259,12 +264,12 @@ export class UIScene extends Phaser.Scene {
       const nameRow = el('div', 'name-row');
       nameRow.append(el('span', 'name', u.def.name));
       const personality = el('span', 'personality');
-      personality.title = '閒置性格（點擊切換）\n好戰：附近有敵人就自動普攻\n膽小：敵人靠近就逃跑，要下指令才會接戰';
+      personality.title = '閒置性格（點擊切換）\n堅守：附近有敵人就自動普攻，不離開駐守點\n好戰：看到敵人就衝出去打，一路追擊\n游擊：敵人靠近就逃跑，要下指令才會接戰';
       noFocus(personality);
       personality.addEventListener('click', (ev) => {
         ev.stopPropagation();
         if (u.dead) return;
-        this.cur().enqueue({ type: 'setPersonality', unitId: u.id, personality: u.personality === 'aggressive' ? 'cowardly' : 'aggressive' });
+        this.cur().enqueue({ type: 'setPersonality', unitId: u.id, personality: PERSONALITY_CYCLE[(PERSONALITY_CYCLE.indexOf(u.personality) + 1) % PERSONALITY_CYCLE.length] });
       });
       nameRow.append(personality);
       const state = el('span', 'state');
@@ -345,7 +350,7 @@ export class UIScene extends Phaser.Scene {
       if (u.rooted && !u.dead) label += '・定身';
       if (u.guardPoint && !u.dead && u.state === UnitState.Idle) label = '駐守中';
       c.state.textContent = label;
-      const pTxt = u.personality === 'aggressive' ? '好戰' : '膽小';
+      const pTxt = PERSONALITY_LABEL[u.personality];
       if (c.personality.textContent !== pTxt) {
         c.personality.textContent = pTxt;
         c.personality.className = `personality ${u.personality}`;

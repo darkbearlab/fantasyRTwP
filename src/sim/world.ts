@@ -411,7 +411,7 @@ export class World implements ZocContext {
     if (u.team === 'enemy') enemyThink(this, u);
     else if (!u.order) {
       const o = (this.idleBehavior ?? IDLE_BEHAVIORS[u.personality]).decide(this, u);
-      if (o?.type === 'move' && !this.idleBehavior && u.personality === 'cowardly') this.emit({ type: 'notice', unitId: u.id, text: '逃跑！' });
+      if (o?.type === 'move' && !this.idleBehavior && u.personality === 'guerrilla') this.emit({ type: 'notice', unitId: u.id, text: '逃跑！' });
       if (o) this.setOrder(u, o);
     }
     if (u.order) this.executeOrder(u);

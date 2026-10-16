@@ -88,7 +88,7 @@ export class Unit {
     this.pos = { ...pos };
     this.prevPos = { ...pos };
     this.hp = def.maxHp;
-    this.personality = def.personality ?? 'aggressive';
+    this.personality = def.personality ?? 'steadfast';
     this.facing = def.team === 'hero' ? 0 : Math.PI;
   }
 
