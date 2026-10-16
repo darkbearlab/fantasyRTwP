@@ -63,6 +63,12 @@ npm run autorun -- --runs 100 --fixed  # 同上，但隊伍固定為四個 Arche
 投影只在畫面層（`src/game/render/projection.ts`），sim 仍然用公尺的平面座標；除錯面板可即時切回正俯視比較。
 投影參數在 `src/config.ts`（`projection`、`iso`），角色身高與障礙物高度在 `src/game/render/visual.ts`。
 
+## 美術試裝：Flare 等角素材
+
+`config.art = 'flare'`（預設）時，等角戰鬥中的英雄、敵人與地板改用 [Flare](https://github.com/flareteam/flare-game) 的素材；除錯面板「美術」可即時切回色塊。
+素材授權為 **CC-BY-SA 3.0**（見 [ASSET_LICENSES.md](ASSET_LICENSES.md)），標題畫面「製作人員」列出美術貢獻者。
+重新產生素材：依 `tools/importFlare.py` 開頭說明 sparse checkout flare-game 後執行 `python3 tools/importFlare.py <路徑>`（需要 Pillow）；對應與縮放在 `src/game/render/flareArt.json`。
+
 ## 部署到 GitHub Pages
 
 `.github/workflows/deploy.yml` 會在 `main` 有新提交時跑測試、打包並部署。第一次使用需要到

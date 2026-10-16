@@ -14,6 +14,10 @@ import { Fx } from '../render/fx';
 import { AOE_STYLE, COLORS, FONT, PROJECTILE_STYLE, darken, lighten } from '../render/palette';
 import type { SkillDef } from '../../sim/data/types';
 import { OBJECT_DEPTH_BASE, UnitView } from '../render/unitView';
+import type { UnitVisual } from '../render/unitView';
+import { FlareView } from '../render/flareView';
+import { FLARE, FLARE_TILES, ensureFlareLoaded, getArt, useFlare } from '../render/art';
+import type { ArtMode } from '../render/art';
 import {
   depthOf,
   getProjection,
@@ -43,7 +47,7 @@ const STATUS_COLOR: Record<string, string> = { 暈眩: '#ffe066', 定身: '#a6e3
 export class BattleScene extends Phaser.Scene {
   session!: BattleSession;
   input2!: InputController;
-  private views = new Map<number, UnitView>();
+  private views = new Map<number, UnitVisual>();
   private statusTexts = new Map<number, Phaser.GameObjects.Text>();
   private fx!: Fx;
   private debugOverlay!: DebugOverlay;
@@ -67,6 +71,9 @@ export class BattleScene extends Phaser.Scene {
   /** 等角模式的障礙物方塊（遮擋判定用：深度、高度、畫面範圍） */
   private blocks: { depth: number; h: number; x0: number; x1: number; y0: number; y1: number }[] = [];
   private builtMode: ProjectionMode = getProjection();
+  private builtArt: ArtMode = getArt();
+  /** 目前畫面是否真的用 Flare 素材建立（素材還沒載入時先用色塊） */
+  private builtFlare = false;
   /** 每幀記錄鏡頭中心對應的地面點（切換投影時保持鏡頭位置） */
   private lastCenterGround: Vec = { x: 0, y: 0 };
   /** 被高障礙物擋住的角色輪廓（最上層） */
@@ -151,9 +158,11 @@ export class BattleScene extends Phaser.Scene {
   /** 依目前投影建立地面、障礙物、單位外觀與除錯圖層 */
   private buildWorld(): void {
     this.builtMode = getProjection();
+    this.builtArt = getArt();
+    this.builtFlare = useFlare(this);
     this.drawMap();
     if (isIso()) this.buildObstacleBlocks();
-    for (const u of this.session.world.units) this.views.set(u.id, new UnitView(this, u));
+    for (const u of this.session.world.units) this.views.set(u.id, this.makeView(u));
     this.debugOverlay = new DebugOverlay(this, this.session.world);
     this.brushVersion = -1;
   }
@@ -167,9 +176,19 @@ export class BattleScene extends Phaser.Scene {
     this.debugOverlay.destroy();
   }
 
-  /** 除錯面板切換投影：重建畫面物件，鏡頭對準同一個地面點 */
+  private makeView(u: Unit): UnitVisual {
+    return this.builtFlare ? new FlareView(this, u) : new UnitView(this, u);
+  }
+
+  /** 除錯面板切換投影或美術：重建畫面物件，鏡頭對準同一個地面點 */
   private checkProjection(): void {
-    if (getProjection() === this.builtMode) return;
+    const wantFlare = getArt() === 'flare' && isIso();
+    if (wantFlare && !useFlare(this)) {
+      // Flare 素材第一次使用時才載入；載入完成前先維持目前的畫面
+      ensureFlareLoaded(this, () => undefined);
+      if (getProjection() === this.builtMode) return;
+    }
+    if (getProjection() === this.builtMode && getArt() === this.builtArt && this.builtFlare === useFlare(this)) return;
     const center = this.lastCenterGround;
     this.destroyWorld();
     this.buildWorld();
@@ -184,18 +203,21 @@ export class BattleScene extends Phaser.Scene {
     const H = map.height;
     const b = mapScreenBounds(W, H);
     const pad = 4;
+    const flare = useFlare(this);
+    if (flare) this.drawFloorTiles(b, pad);
     const g = this.add.graphics();
     g.translateCanvas(-b.x + pad, -b.y + pad);
-    groundRect(g, 0, 0, W, H, { fill: COLORS.floor });
-    for (let x = 0; x <= W; x++) groundLine(g, { x, y: 0 }, { x, y: H }, 1, COLORS.floorGrid);
-    for (let y = 0; y <= H; y++) groundLine(g, { x: 0, y }, { x: W, y }, 1, COLORS.floorGrid);
+    if (!flare) groundRect(g, 0, 0, W, H, { fill: COLORS.floor });
+    const gridAlpha = flare ? 0.18 : 1;
+    for (let x = 0; x <= W; x++) groundLine(g, { x, y: 0 }, { x, y: H }, 1, COLORS.floorGrid, gridAlpha);
+    for (let y = 0; y <= H; y++) groundLine(g, { x: 0, y }, { x: W, y }, 1, COLORS.floorGrid, gridAlpha);
     const zone = (pts: Vec[], color: number) => {
       if (pts.length === 0) return;
       const xs = pts.map((p) => p.x);
       const ys = pts.map((p) => p.y);
       const x0 = Math.min(...xs) - 1.5;
       const y0 = Math.min(...ys) - 1.5;
-      groundRect(g, x0, y0, Math.max(...xs) + 1.5 - x0, Math.max(...ys) + 1.5 - y0, { fill: color, fillAlpha: 0.35 });
+      groundRect(g, x0, y0, Math.max(...xs) + 1.5 - x0, Math.max(...ys) + 1.5 - y0, { fill: color, fillAlpha: flare ? 0.18 : 0.35 });
     };
     zone(map.heroSpawns, COLORS.heroZone);
     zone(map.enemySpawns, COLORS.enemyZone);
@@ -215,7 +237,7 @@ export class BattleScene extends Phaser.Scene {
     }
     groundRect(g, 0, 0, W, H, { stroke: 0x15171b, width: 3 });
     // 靜態圖層烘成貼圖，避免每幀重新三角化
-    this.worldObjects.push(bakeGraphics(this, g, 'map-floor', b.w + pad * 2, b.h + pad * 2, 0, b.x - pad, b.y - pad));
+    this.worldObjects.push(bakeGraphics(this, g, 'map-floor', b.w + pad * 2, b.h + pad * 2, flare ? 0.5 : 0, b.x - pad, b.y - pad));
     const corner = worldToScreen(W, 0);
     this.worldObjects.push(
       this.add
@@ -223,6 +245,30 @@ export class BattleScene extends Phaser.Scene {
         .setOrigin(1, 0)
         .setDepth(1),
     );
+  }
+
+  /** Flare 地板磚：乾淨地板隨機混搭；英雄出生區用花磚 */
+  private drawFloorTiles(b: { x: number; y: number; w: number; h: number }, pad: number): void {
+    const map = this.session.world.map;
+    const rt = this.add.renderTexture(b.x - pad, b.y - pad, Math.ceil(b.w + pad * 2), Math.ceil(b.h + pad * 2)).setOrigin(0).setDepth(0);
+    const xs = map.heroSpawns.map((p) => p.x);
+    const ys = map.heroSpawns.map((p) => p.y);
+    const inSpawn = (x: number, y: number) =>
+      xs.length > 0 && x >= Math.min(...xs) - 1.5 && x <= Math.max(...xs) + 1.5 && y >= Math.min(...ys) - 1.5 && y <= Math.max(...ys) + 1.5;
+    const T = FLARE.tiles;
+    for (let cy = 0; cy < map.height; cy++) {
+      for (let cx = 0; cx < map.width; cx++) {
+        // 決定論的雜湊，同一張地圖每次都一樣
+        const h = ((cx * 73856093) ^ (cy * 19349663) ^ map.id.length * 83492791) >>> 0;
+        const list = inSpawn(cx + 0.5, cy + 0.5) ? T.fancy : T.floor;
+        const name = `tile/${list[h % list.length]}`;
+        const fr = this.textures.getFrame(FLARE_TILES, name);
+        if (!fr) continue;
+        const p = worldToScreen(cx + 0.5, cy + 0.5);
+        rt.drawFrame(FLARE_TILES, name, p.x - fr.pivotX * fr.width - (b.x - pad), p.y - fr.pivotY * fr.height - (b.y - pad));
+      }
+    }
+    this.worldObjects.push(rt);
   }
 
   /** 等角模式：障礙物畫成立體方塊，大型障礙物切成每格一塊各自排序 */
@@ -456,6 +502,7 @@ export class BattleScene extends Phaser.Scene {
         case 'hit': {
           const t = w.getUnit(ev.targetId)!;
           const src = w.getUnit(ev.sourceId)!;
+          this.views.get(t.id)?.onHit?.(w.time);
           this.fx.text(t.pos, ev.crit ? `${ev.damage}!` : `${ev.damage}`, ev.crit ? '#ffd23f' : '#ffffff', ev.crit ? 24 : 16, 34, 900, this.headZ(t));
           s.addLog(
             `${L(src.id)} → ${L(t.id)}：${ev.damage}${ev.crit ? '（爆擊）' : ''}${ev.skillId ? `〔${skillName(ev.skillId)}〕` : ''}${ev.freeAttack ? '〔脫離攻擊〕' : ''}`,
@@ -552,7 +599,7 @@ export class BattleScene extends Phaser.Scene {
         }
         case 'spawn': {
           const u = w.getUnit(ev.unitId)!;
-          this.views.set(u.id, new UnitView(this, u));
+          this.views.set(u.id, this.makeView(u));
           s.registerUnit(u, '援軍');
           this.fx.ring(u.pos, 1.2, 0xff6b6b, 500);
           break;
@@ -588,7 +635,8 @@ export class BattleScene extends Phaser.Scene {
     const w = s.world;
     const selected = new Set(s.selection);
     this.updateConcealment();
-    for (const v of this.views.values()) v.update(this.alpha, selected.has(v.unit.id), s.hoverUnitId === v.unit.id);
+    const simTime = w.time + this.alpha * DT;
+    for (const v of this.views.values()) v.update(this.alpha, selected.has(v.unit.id), s.hoverUnitId === v.unit.id, simTime);
     this.drawDynamicTerrain();
 
     this.drawZones(selected);
