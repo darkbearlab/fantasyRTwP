@@ -9,6 +9,8 @@ import { dist, norm, sub } from './math';
 import type { Unit } from './unit';
 import type { Projectile, World } from './world';
 import { edgeDistance } from './zoc';
+import { T_SHALLOW } from './terrain';
+import { TERRAIN } from './data/terrain';
 
 /** 打斷造成的硬直秒數 */
 export const INTERRUPT_STUN = 0.5;
@@ -51,6 +53,8 @@ export function enterRecovery(world: World, u: Unit, seconds: number): void {
 /** 準備時間結束的那一個節拍：效果生效 */
 export function finishWindup(world: World, u: Unit): void {
   const a = u.action!;
+  // 攻擊或施法會暴露草叢中的位置
+  u.revealTime = TERRAIN.revealAfterAttack;
   if (a.kind === 'attack') {
     const t = world.getUnit(a.targetId!);
     if (!t || t.dead) {
@@ -247,6 +251,10 @@ export function damageMultOf(world: World, u: Unit): number {
 
 export interface StrikeParams {
   melee: boolean;
+  /** 拋物線攻擊：不受掩體影響 */
+  arc?: boolean;
+  /** 發射位置（投射物）；省略時用攻擊者目前位置 */
+  origin?: { x: number; y: number };
   damageType: DamageType;
   mult: number;
   accBonus?: number;
@@ -270,14 +278,27 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): voi
       target = g;
     }
   }
-  const { result } = rollHit(world.rng, src.accuracy + (p.accBonus ?? 0), target.defense);
+  // 地形修正：淺水防禦下降、矮籬掩體、由低打高命中下降、高地傷害加成
+  let defense = target.defense;
+  let accuracy = src.accuracy + (p.accBonus ?? 0);
+  let terrainMult = 1;
+  if (world.terrain.any) {
+    if (world.terrain.has(target.pos, T_SHALLOW)) defense += TERRAIN.shallowDefense;
+    if (!p.melee) {
+      if (!p.arc && world.hasCover(p.origin ?? src.pos, target)) defense += TERRAIN.hedgeCoverDefense;
+      const srcHigh = world.onHigh(src);
+      if (!srcHigh && world.onHigh(target)) accuracy += TERRAIN.lowToHighAccuracy;
+      if (srcHigh) terrainMult = TERRAIN.highDamageMult;
+    }
+  }
+  const { result } = rollHit(world.rng, accuracy, defense);
   if (result === 'miss') {
     world.emit({ type: 'miss', sourceId: src.id, targetId: target.id, skillId: p.skillId, freeAttack: p.freeAttack });
     if (target.team === 'enemy') world.triggerAggro();
     return;
   }
   const crit = result === 'crit';
-  const base = rollDamage(world.rng, p.flatDamage ?? src.def.damage, p.mult * damageMultOf(world, src));
+  const base = rollDamage(world.rng, p.flatDamage ?? src.def.damage, p.mult * damageMultOf(world, src) * terrainMult);
   const final = applyArmor(base * (crit ? CRIT_MULT : 1), target.armor);
   applyDamage(world, target, final, p.damageType, src, { crit, skillId: p.skillId, freeAttack: p.freeAttack });
   if (target.dead) return;
@@ -370,6 +391,7 @@ export function explode(world: World, src: Unit, point: { x: number; y: number }
   const eff = def.effect;
   if (eff.kind !== 'aoe') return;
   world.emit({ type: 'aoe', sourceId: src.id, point: { ...point }, radius: eff.radius, skillId: def.id });
+  if (eff.ignites) world.ignite(point, eff.radius, src.id);
   for (const u of world.units) {
     if (u.dead) continue;
     if (dist(u.pos, point) > eff.radius + u.radius * 0.5) continue;
@@ -393,7 +415,7 @@ export function resolveProjectilePayload(world: World, src: Unit, p: Projectile,
   const pl = p.payload;
   switch (pl.type) {
     case 'strike':
-      if (target) strike(world, src, target, pl);
+      if (target) strike(world, src, target, { ...pl, origin: p.origin });
       break;
     case 'aoe':
       explode(world, src, p.point!, SKILLS[pl.skillId]);

@@ -80,6 +80,8 @@ export type SkillEffect =
       damage: [number, number];
       friendlyFire: boolean;
       interrupts?: boolean;
+      /** 會點燃草叢 */
+      ignites?: boolean;
       projectileSpeed?: number;
       projectileKind?: ProjectileKind;
     }
@@ -125,6 +127,17 @@ export interface Rect {
   blocksSight?: boolean;
 }
 
+/** 戰術地形種類（SPEC_SLICE3 §2） */
+export type TerrainKind = 'brush' | 'shallow' | 'hedge' | 'high';
+
+export interface TerrainRect {
+  kind: TerrainKind;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 export interface MapDef {
   id: string;
   name: string;
@@ -135,6 +148,8 @@ export interface MapDef {
   enemySpawns: { enemy: string; x: number; y: number }[];
   /** 給腳本 AI 與鏡頭參考的地標 */
   landmarks?: Record<string, Vec>;
+  /** 戰術地形 */
+  terrain?: TerrainRect[];
   /** 援軍進場位置（頭目戰吼） */
   summonPoints?: Vec[];
 }

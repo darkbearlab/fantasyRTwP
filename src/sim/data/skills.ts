@@ -38,7 +38,7 @@ export const SKILLS: Record<string, SkillDef> = {
   fireball: {
     id: 'fireball', name: '火球', description: '半徑 2.5 m 範圍傷害 18–26，會傷到友軍',
     target: 'ground', range: 12, windup: 2.0, recovery: 1.2, cooldown: 12, requiresLos: true,
-    effect: { kind: 'aoe', radius: 2.5, damage: [18, 26], friendlyFire: true, projectileSpeed: 16, projectileKind: 'fireball' },
+    effect: { kind: 'aoe', radius: 2.5, damage: [18, 26], friendlyFire: true, ignites: true, projectileSpeed: 16, projectileKind: 'fireball' },
   },
   iceBind: {
     id: 'iceBind', name: '冰縛', description: '定身 4 秒（不能移動，可攻擊）',

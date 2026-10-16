@@ -15,12 +15,15 @@ import { NavGrid } from './nav/grid';
 import { lineWalkable, smoothPath } from './nav/smooth';
 import { SlotManager } from './nav/slots';
 import { Rng } from './rng';
+import { T_BRUSH, T_HEDGE, T_HIGH, T_SHALLOW, TerrainGrid } from './terrain';
+import { TERRAIN } from './data/terrain';
+import { traceSupercover } from './nav/raycast';
 import type { SimConfig } from './simConfig';
 import { DEFAULT_SIM_CONFIG } from './simConfig';
 import { Unit } from './unit';
 import type { ZocContext } from './zoc';
 import { disengagedFrom, edgeDistance, pinBlocker, zoneDistance } from './zoc';
-import { finishWindup, freeAttack, resolveProjectilePayload, startAction, tickDash } from './actions';
+import { applyDamage, finishWindup, freeAttack, resolveProjectilePayload, startAction, tickDash } from './actions';
 import type { IdleBehavior } from './ai/idleBehavior';
 import { IDLE_BEHAVIORS, leashedApproachPoint, returnToGuard, withinLeash } from './ai/idleBehavior';
 import { enemyThink } from './ai/enemyAI';
@@ -67,6 +70,8 @@ export type ProjectilePayload =
 export interface Projectile {
   id: number;
   sourceId: number;
+  /** 發射位置（矮籬掩體判定用） */
+  origin: Vec;
   targetId?: number;
   point?: Vec;
   pos: Vec;
@@ -108,6 +113,10 @@ export class World implements ZocContext {
   idleBehavior: IdleBehavior | null;
 
   readonly enemyDefFor: (enemyId: string) => UnitDef;
+  /** 戰術地形（草叢會被燒掉，所以每場戰鬥各一份） */
+  readonly terrain: TerrainGrid;
+  /** 燃燒中的格子：格子索引 → 狀態 */
+  readonly fire = new Map<number, { time: number; spread: number; sourceId: number }>();
   private nextUnitId = 1;
   private navGrids = new Map<number, NavGrid>();
   private queue: Command[] = [];
@@ -123,6 +132,7 @@ export class World implements ZocContext {
     // 視線格子只算會遮擋視線的障礙物（河水擋路不擋視線）
     this.sight = new NavGrid(opts.map.width, opts.map.height, NAV_CELL, 0, opts.map.obstacles.filter((o) => o.blocksSight !== false));
     this.enemyDefFor = opts.enemyDefFor ?? ((id) => ENEMIES[id]);
+    this.terrain = new TerrainGrid(opts.map);
     this.idleBehavior = opts.idleBehavior ?? null;
     const defs = opts.defs ?? { ...HEROES, ...ENEMIES };
     let heroSlot = 0;
@@ -178,6 +188,109 @@ export class World implements ZocContext {
     return this.navGrid(u.radius);
   }
 
+  // ───────────── 地形 ─────────────
+
+  onHigh(u: Unit): boolean {
+    return this.terrain.has(u.pos, T_HIGH);
+  }
+
+  /** 位置的移動倍率（淺水、矮籬） */
+  moveMultAt(p: Vec): number {
+    const f = this.terrain.flagsAt(p);
+    let m = 1;
+    if (f & T_SHALLOW) m = Math.min(m, TERRAIN.shallowMoveMult);
+    if (f & T_HEDGE) m = Math.min(m, TERRAIN.hedgeMoveMult);
+    return m;
+  }
+
+  /** 普攻射程：遠程單位站在高地上射程增加 */
+  attackRange(u: Unit): number {
+    return u.def.range + (!u.isMelee && this.onHigh(u) ? TERRAIN.highRangeBonus : 0);
+  }
+
+  /** 技能射程：遠程單體／地面技能站在高地上射程增加 */
+  skillRange(u: Unit, def: SkillDef): number {
+    const melee = def.effect.kind === 'strike' && def.effect.melee;
+    return def.range + (!melee && def.range >= 1 && this.onHigh(u) ? TERRAIN.highRangeBonus : 0);
+  }
+
+  /**
+   * 草叢隱匿（敵我通用）：viewer 能否把 target 當成目標。
+   * 草叢裡的單位對「不在同一片草叢」的敵人隱藏，除非距離夠近或剛攻擊過。
+   */
+  canTarget(viewer: Unit, target: Unit): boolean {
+    if (target.dead) return false;
+    if (viewer.team === target.team || !this.terrain.any) return true;
+    const patch = this.terrain.patchAt(target.pos);
+    if (patch < 0 || target.revealTime > 0) return true;
+    if (this.terrain.patchAt(viewer.pos) === patch) return true;
+    return dist(viewer.pos, target.pos) <= TERRAIN.brushRevealDistance;
+  }
+
+  /** 對某一方是否可見（畫面用：任一存活成員看得到就算） */
+  visibleToTeam(u: Unit, team: Team): boolean {
+    if (u.team === team) return true;
+    return this.units.some((v) => !v.dead && v.team === team && this.canTarget(v, u));
+  }
+
+  /** 矮籬掩體（SPEC_SLICE3 §2.3）：遠程攻擊路徑穿過貼近目標、但不貼近攻擊者的矮籬 */
+  hasCover(origin: Vec, target: Unit): boolean {
+    if (!this.terrain.any) return false;
+    const r = TERRAIN.hedgeCoverRange;
+    let cover = false;
+    traceSupercover(this.terrain.cell, origin, target.pos, (cx, cy) => {
+      if (cx < 0 || cy < 0 || cx >= this.terrain.cols || cy >= this.terrain.rows) return true;
+      const i = cy * this.terrain.cols + cx;
+      if (!(this.terrain.flags[i] & T_HEDGE)) return true;
+      const c = this.terrain.centerOf(i);
+      if (dist(c, target.pos) <= r + target.radius && dist(c, origin) > r) {
+        cover = true;
+        return false;
+      }
+      return true;
+    });
+    return cover;
+  }
+
+  /** 點燃半徑內的草叢 */
+  ignite(point: Vec, radius: number, sourceId: number): void {
+    const t = this.terrain;
+    for (let i = 0; i < t.flags.length; i++) {
+      if (!(t.flags[i] & T_BRUSH) || this.fire.has(i)) continue;
+      if (dist(t.centerOf(i), point) <= radius) this.fire.set(i, { time: TERRAIN.fireDuration, spread: TERRAIN.fireSpreadInterval, sourceId });
+    }
+  }
+
+  private updateFire(): void {
+    if (this.fire.size === 0) return;
+    const t = this.terrain;
+    const spreadTo: [number, number][] = [];
+    for (const [i, f] of this.fire) {
+      f.time -= DT;
+      f.spread -= DT;
+      if (f.spread <= 0) {
+        f.spread = TERRAIN.fireSpreadInterval;
+        for (const n of t.neighbors(i)) if (t.flags[n] & T_BRUSH && !this.fire.has(n)) spreadTo.push([n, f.sourceId]);
+      }
+    }
+    for (const [n, src] of spreadTo) if (!this.fire.has(n)) this.fire.set(n, { time: TERRAIN.fireDuration, spread: TERRAIN.fireSpreadInterval, sourceId: src });
+    for (const [i, f] of [...this.fire]) {
+      if (f.time <= 0) {
+        this.fire.delete(i);
+        t.clearBrush(i);
+      }
+    }
+    // 站在火上的單位會燃燒
+    for (const u of this.units) {
+      if (u.dead) continue;
+      const f = this.fire.get(t.indexOf(u.pos));
+      if (!f) continue;
+      if (u.burnTime <= 0) u.burnTick = 0;
+      u.burnTime = Math.max(u.burnTime, TERRAIN.burnDuration);
+      u.burnSourceId = f.sourceId;
+    }
+  }
+
   canSee(a: Unit, b: Unit): boolean {
     return canSeeCircle(this.sight, a.pos, a.radius, b.pos, b.radius);
   }
@@ -217,6 +330,7 @@ export class World implements ZocContext {
     for (const u of this.units) this.tickTimers(u);
     for (const u of this.units) this.updateUnit(u);
     this.updateProjectiles();
+    this.updateFire();
     separateUnits(this.units, (u) => this.navFor(u));
     this.checkEnd();
     this.tick++;
@@ -238,7 +352,7 @@ export class World implements ZocContext {
         const t = this.getUnit(cmd.targetId);
         if (!t || t.dead) return;
         for (const u of this.liveUnits(cmd.unitIds)) {
-          if (u.team !== t.team) {
+          if (u.team !== t.team && this.canTarget(u, t)) {
             u.guardPoint = null;
             this.issueOrder(u, { type: 'attack', targetId: t.id });
           }
@@ -375,6 +489,17 @@ export class World implements ZocContext {
 
   private tickTimers(u: Unit): void {
     if (u.dead) return;
+    if (u.revealTime > 0) u.revealTime = Math.max(0, u.revealTime - DT);
+    if (u.burnTime > 0) {
+      u.burnTime = Math.max(0, u.burnTime - DT);
+      u.burnTick -= DT;
+      if (u.burnTick <= 0) {
+        u.burnTick = 1;
+        const src = this.getUnit(u.burnSourceId) ?? u;
+        applyDamage(this, u, TERRAIN.burnDamagePerSecond, 'area', src, { skillId: 'burn' });
+        if (u.dead) return;
+      }
+    }
     if (u.rootTime > 0) u.rootTime = Math.max(0, u.rootTime - DT);
     if (u.blessTime > 0) u.blessTime = Math.max(0, u.blessTime - DT);
     if (u.guardTime > 0) {
@@ -475,11 +600,12 @@ export class World implements ZocContext {
       }
       case 'attack': {
         const t = this.getUnit(o.targetId);
-        if (!t || t.dead || t.team === u.team) {
+        if (!t || t.dead || t.team === u.team || !this.canTarget(u, t)) {
+          // 目標死亡或躲進草叢：失去目標
           this.setOrder(u, null);
           break;
         }
-        const inRange = edgeDistance(u, t) <= u.def.range + RANGE_TOLERANCE && (u.isMelee || this.canSee(u, t));
+        const inRange = edgeDistance(u, t) <= this.attackRange(u) + RANGE_TOLERANCE && (u.isMelee || this.canSee(u, t));
         const guard = o.leashed ? u.guardPoint : null;
         if (guard && !inRange && !withinLeash(this, u, t, guard)) {
           // 目標跑出駐守範圍：放棄，走回駐守點
@@ -528,7 +654,7 @@ export class World implements ZocContext {
         this.setOrder(u, null);
         return;
       }
-      if (dist(u.pos, p) <= def.range + RANGE_TOLERANCE && (!def.requiresLos || this.canSeePoint(u, p))) {
+      if (dist(u.pos, p) <= this.skillRange(u, def) + RANGE_TOLERANCE && (!def.requiresLos || this.canSeePoint(u, p))) {
         startAction(this, u, { kind: 'skill', skillId: def.id, point: { ...p } });
         return;
       }
@@ -536,17 +662,17 @@ export class World implements ZocContext {
       if (r === 'pinned') this.stopPinned(u);
       else if (r === 'nopath' || r === 'arrived') {
         // 走到點上仍不符合（例如沒有視線）：放棄
-        if (r === 'nopath' || !(dist(u.pos, p) <= def.range)) this.setOrder(u, null);
+        if (r === 'nopath' || !(dist(u.pos, p) <= this.skillRange(u, def))) this.setOrder(u, null);
       }
       return;
     }
     const t = o.targetId !== undefined ? this.getUnit(o.targetId) : undefined;
-    if (!t || t.dead || !this.validSkillTarget(u, def, t)) {
+    if (!t || t.dead || !this.validSkillTarget(u, def, t) || !this.canTarget(u, t)) {
       this.setOrder(u, u.resumeOrder ?? null);
       return;
     }
     const melee = def.effect.kind === 'strike' && def.effect.melee;
-    if (edgeDistance(u, t) <= def.range + RANGE_TOLERANCE && (!def.requiresLos || this.canSee(u, t))) {
+    if (edgeDistance(u, t) <= this.skillRange(u, def) + RANGE_TOLERANCE && (!def.requiresLos || this.canSee(u, t))) {
       startAction(this, u, { kind: 'skill', skillId: def.id, targetId: t.id });
       return;
     }
@@ -623,7 +749,7 @@ export class World implements ZocContext {
     }
     u.repathTimer -= DT;
 
-    const speed = opts.speed ?? u.def.moveSpeed;
+    const speed = (opts.speed ?? u.def.moveSpeed) * this.moveMultAt(u.pos);
     let step = speed * DT;
     let moved = false;
     // 一個節拍內可能經過多個路徑點
@@ -713,6 +839,7 @@ export class World implements ZocContext {
     this.projectiles.push({
       id: this.nextProjectileId++,
       sourceId: src.id,
+      origin: { x: src.pos.x, y: src.pos.y },
       targetId: target.unit?.id,
       point: target.point ? { ...target.point } : undefined,
       pos: { x: src.pos.x, y: src.pos.y },

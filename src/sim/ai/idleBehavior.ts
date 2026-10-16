@@ -23,7 +23,8 @@ const GUARD_RETURN_SLACK = 0.3;
  * 遠程：不移動，目前位置在射程內且有視線。
  */
 export function withinLeash(world: World, u: Unit, t: Unit, guard: Vec): boolean {
-  if (!u.isMelee) return edgeDistance(u, t) <= u.def.range && world.canSee(u, t);
+  if (!world.canTarget(u, t)) return false;
+  if (!u.isMelee) return edgeDistance(u, t) <= world.attackRange(u) && world.canSee(u, t);
   return dist(guard, t.pos) - t.radius - u.radius - u.def.range <= world.config.heroLeashRange;
 }
 
@@ -53,13 +54,13 @@ export const defaultIdleBehavior: IdleBehavior = {
     let best: Unit | null = null;
     let bestD = Infinity;
     for (const e of world.units) {
-      if (e.dead || e.team === u.team) continue;
+      if (e.dead || e.team === u.team || !world.canTarget(u, e)) continue;
       const d = edgeDistance(u, e);
       if (guard) {
         if (!withinLeash(world, u, e, guard)) continue;
       } else if (u.isMelee) {
         if (d > world.config.heroIdleAggroRange) continue;
-      } else if (d > u.def.range || !world.canSee(u, e)) continue;
+      } else if (d > world.attackRange(u) || !world.canSee(u, e)) continue;
       if (d < bestD) {
         bestD = d;
         best = e;
@@ -79,7 +80,7 @@ const FLEE_DIRECTIONS = 16;
  */
 export const guerrillaIdleBehavior: IdleBehavior = {
   decide(world, u) {
-    const threats = world.units.filter((e) => !e.dead && e.team !== u.team && edgeDistance(u, e) <= world.config.heroFleeRange);
+    const threats = world.units.filter((e) => !e.dead && e.team !== u.team && world.canTarget(u, e) && edgeDistance(u, e) <= world.config.heroFleeRange);
     if (threats.length === 0) return null;
     if (pinnersAt(world, u).length > 0) return null;
     const p = fleePoint(world, u, threats);
@@ -141,7 +142,7 @@ export const aggressiveIdleBehavior: IdleBehavior = {
     let best: Unit | null = null;
     let bestD = Infinity;
     for (const e of world.units) {
-      if (e.dead || e.team === u.team) continue;
+      if (e.dead || e.team === u.team || !world.canTarget(u, e)) continue;
       const d = edgeDistance(u, e);
       if (d > world.config.heroAggressiveRange || d >= bestD || !world.canSee(u, e)) continue;
       bestD = d;
