@@ -31,7 +31,8 @@ interface CardRefs {
   state: HTMLElement;
   personality: HTMLElement;
   bar: HTMLElement;
-  skills: { btn: HTMLElement; cd: HTMLElement; cdText: HTMLElement; skillId: string }[];
+  skills: { btn: HTMLElement; cd: HTMLElement; cdText: HTMLElement; key: HTMLElement; skillId: string }[];
+  slotKey: HTMLElement;
 }
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', text = ''): HTMLElementTagNameMap[K] {
@@ -106,7 +107,7 @@ export class UIScene extends Phaser.Scene {
       const list = GAME_CONFIG.timeScales;
       s.timeScale = list[(list.indexOf(s.timeScale) + 1) % list.length];
     });
-    const hint = el('div', 'pill hint', '空白鍵 暫停／繼續　右鍵 移動・攻擊・跟隨　技能 1 2 3／Q W E／A S D／Z X C　H 停止　` 除錯');
+    const hint = el('div', 'pill hint', '空白鍵 暫停　1–4 選人（連按跳鏡頭）　Tab 切換　Q E R 技能　右鍵 移動・攻擊・跟隨　WASD 鏡頭　H 停止　` 除錯');
     top.append(this.timeEl, this.speedEl, hint);
     this.root.appendChild(top);
   }
@@ -260,6 +261,11 @@ export class UIScene extends Phaser.Scene {
       const root = el('div', 'hero-card');
       const portrait = el('div', 'portrait', u.def.letter);
       portrait.style.background = hex(u.def.color);
+      // 欄位編號（數字鍵）與主要選取標籤
+      const slotKey = el('span', 'slot-key', String(u.heroSlot + 1));
+      portrait.appendChild(slotKey);
+      const qer = el('span', 'qer-tag', GAME_CONFIG.skillKeyLabels.join(' '));
+      root.appendChild(qer);
       const info = el('div', 'info');
       const nameRow = el('div', 'name-row');
       nameRow.append(el('span', 'name', u.def.name));
@@ -287,8 +293,8 @@ export class UIScene extends Phaser.Scene {
         const btn = el('button', 'skill');
         btn.tabIndex = -1;
         noFocus(btn);
-        btn.title = `${def.name}（${GAME_CONFIG.hotkeyLabels[u.heroSlot][idx]}）\n準備 ${def.windup} 秒／恢復 ${def.recovery} 秒／冷卻 ${def.cooldown} 秒\n${def.description}`;
-        const key = el('span', 'key', GAME_CONFIG.hotkeyLabels[u.heroSlot]?.[idx] ?? '');
+        btn.title = `${def.name}（選取後按 ${GAME_CONFIG.skillKeyLabels[idx]}）\n準備 ${def.windup} 秒／恢復 ${def.recovery} 秒／冷卻 ${def.cooldown} 秒\n${def.description}`;
+        const key = el('span', 'key', GAME_CONFIG.skillKeyLabels[idx] ?? '');
         const nm = el('span', 'sname', def.name);
         const cd = el('div', 'cd');
         const cdText = el('span', 'cdtext');
@@ -297,7 +303,7 @@ export class UIScene extends Phaser.Scene {
           ev.stopPropagation();
           beginSkill(this.cur(), u.heroSlot, idx, this.time.now);
         });
-        skills.push({ btn, cd, cdText, skillId });
+        skills.push({ btn, cd, cdText, key, skillId });
         skillsBox.appendChild(btn);
       });
       root.append(portrait, info, skillsBox);
@@ -308,7 +314,7 @@ export class UIScene extends Phaser.Scene {
       });
       root.addEventListener('dblclick', () => this.battle.centerOnUnit(u.id));
       this.heroBar.appendChild(root);
-      this.cards.push({ unit: u, root, hpFill, hpText, state, personality, bar, skills });
+      this.cards.push({ unit: u, root, hpFill, hpText, state, personality, bar, skills, slotKey });
     }
   }
 
@@ -337,9 +343,13 @@ export class UIScene extends Phaser.Scene {
     } else this.toastEl.classList.remove('show');
 
     const sel = new Set(s.selection);
+    const primaryId = s.primary()?.id;
     for (const c of this.cards) {
       const u = c.unit;
+      const isPrimary = u.id === primaryId;
       c.root.classList.toggle('selected', sel.has(u.id));
+      c.root.classList.toggle('primary', isPrimary);
+      for (const sk of c.skills) sk.key.style.visibility = isPrimary ? 'visible' : 'hidden';
       c.root.classList.toggle('dead', u.dead);
       const frac = Math.max(0, u.hp / u.maxHp);
       c.hpFill.style.width = `${frac * 100}%`;

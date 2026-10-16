@@ -109,6 +109,15 @@ export class BattleSession {
     return this.world.units.find((u) => u.heroSlot === slot);
   }
 
+  /** 主要選取：單選時就是那名英雄；多選時是最後一個被加入選取的英雄（Q E R 作用對象） */
+  primary(): Unit | undefined {
+    for (let i = this.selection.length - 1; i >= 0; i--) {
+      const u = this.world.getUnit(this.selection[i]);
+      if (u && !u.dead) return u;
+    }
+    return undefined;
+  }
+
   selectedUnits(): Unit[] {
     return this.selection.map((id) => this.world.getUnit(id)!).filter((u) => u && !u.dead);
   }

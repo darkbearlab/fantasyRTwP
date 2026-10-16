@@ -11,10 +11,11 @@ export interface InputHost {
   scene: Phaser.Scene;
   session(): BattleSession;
   unitAt(p: Vec): Unit | undefined;
+  centerOn(unitId: number): void;
 }
 
 /**
- * 輸入層（SPEC §11、§13）：把滑鼠／鍵盤轉成 Command 或畫面層狀態（選取、瞄準、鏡頭）。
+ * 輸入層（SPEC_SLICE2 §1、SPEC §13）：把滑鼠／鍵盤轉成 Command 或畫面層狀態（選取、瞄準、鏡頭）。
  * sim 與渲染都不直接處理輸入，之後接觸控只要再寫一個 controller。
  */
 export class InputController {
@@ -24,14 +25,15 @@ export class InputController {
   private panLast: { x: number; y: number } | null = null;
   /** 滑鼠真的移動過才啟用邊緣捲動（指標預設在 (0,0)） */
   private pointerSeen = false;
-  private cursors: Phaser.Types.Input.Keyboard.CursorKeys;
+  /** 目前按住的按鍵（鏡頭移動用） */
+  private held = new Set<string>();
+  private lastSlotTap = { slot: -1, at: 0 };
 
   constructor(private host: InputHost) {
     const scene = host.scene;
     const input = scene.input;
     input.mouse?.disableContextMenu();
-    this.cursors = input.keyboard!.createCursorKeys();
-    input.keyboard!.addCapture('SPACE,UP,DOWN,LEFT,RIGHT');
+    input.keyboard!.addCapture('SPACE,UP,DOWN,LEFT,RIGHT,TAB');
 
     input.on('pointerdown', (p: Phaser.Input.Pointer) => this.onDown(p));
     input.on('pointermove', (p: Phaser.Input.Pointer) => this.onMove(p));
@@ -40,7 +42,13 @@ export class InputController {
       const cam = scene.cameras.main;
       cam.setZoom(Phaser.Math.Clamp(cam.zoom * (dy > 0 ? 0.9 : 1.1), 0.6, 1.8));
     });
-    input.keyboard!.on('keydown', (e: KeyboardEvent) => this.onKey(e));
+    input.keyboard!.on('keydown', (e: KeyboardEvent) => {
+      this.held.add(e.code);
+      this.onKey(e);
+    });
+    input.keyboard!.on('keyup', (e: KeyboardEvent) => this.held.delete(e.code));
+    // 視窗失焦時放開所有按鍵，避免鏡頭一直捲
+    window.addEventListener('blur', () => this.held.clear());
   }
 
   private get session(): BattleSession {
@@ -151,31 +159,60 @@ export class InputController {
     if (e.repeat) return;
     const target = e.target as HTMLElement | null;
     if (target && (target.tagName === 'INPUT' || target.tagName === 'SELECT')) return;
-    switch (e.code) {
-      case 'Space':
-        e.preventDefault();
-        if (s.world.result) return;
-        s.setPaused(!s.paused);
-        return;
-      case 'Escape':
-        s.targeting = null;
-        return;
-      case 'KeyH': {
-        const ids = s.selectedUnits().map((u) => u.id);
-        if (ids.length) s.enqueue({ type: 'stop', unitIds: ids });
-        return;
-      }
-      case 'Backquote':
-        s.debug.panel = !s.debug.panel;
-        return;
+    const K = GAME_CONFIG.keys;
+    const code = e.code;
+    if (K.pause.includes(code)) {
+      e.preventDefault();
+      if (!s.world.result) s.setPaused(!s.paused);
+    } else if (K.cancel.includes(code)) {
+      s.targeting = null;
+    } else if (K.stop.includes(code)) {
+      const ids = s.selectedUnits().map((u) => u.id);
+      if (ids.length) s.enqueue({ type: 'stop', unitIds: ids });
+    } else if (K.debug.includes(code)) {
+      s.debug.panel = !s.debug.panel;
+    } else if (K.cycleHero.includes(code)) {
+      e.preventDefault();
+      this.cycleHero();
+    } else if (K.selectSlot.includes(code)) {
+      this.selectSlot(K.selectSlot.indexOf(code), e.shiftKey);
+    } else if (K.skills.includes(code)) {
+      e.preventDefault();
+      const p = s.primary();
+      if (!p) s.showToast('請先選取英雄（1–4）', this.now(), 1000);
+      else beginSkill(s, p.heroSlot, K.skills.indexOf(code), this.now());
     }
-    GAME_CONFIG.hotkeys.forEach((row, slot) => {
-      const idx = row.indexOf(e.code);
-      if (idx >= 0) {
-        e.preventDefault();
-        beginSkill(s, slot, idx, this.now());
-      }
-    });
+  }
+
+  /** 數字鍵選取英雄欄位；連按兩下鏡頭移過去 */
+  selectSlot(slot: number, shift: boolean): void {
+    const s = this.session;
+    const u = s.heroBySlot(slot);
+    if (!u || u.dead) {
+      s.showToast(u ? `${u.def.name}已陣亡` : '這個欄位沒有英雄', this.now(), 1000);
+      return;
+    }
+    const now = this.now();
+    const double = this.lastSlotTap.slot === slot && now - this.lastSlotTap.at <= GAME_CONFIG.doubleTapMs;
+    this.lastSlotTap = { slot, at: now };
+    s.targeting = null;
+    if (shift) {
+      // 加選；已選的話移到最後，成為主要選取
+      s.selection = s.selection.filter((id) => id !== u.id);
+      s.selection.push(u.id);
+    } else s.selection = [u.id];
+    if (double) this.host.centerOn(u.id);
+  }
+
+  /** Tab：主要選取切換到下一名存活英雄（只選他一人） */
+  cycleHero(): void {
+    const s = this.session;
+    const heroes = s.world.units.filter((u) => u.team === 'hero' && !u.dead).sort((a, b) => a.heroSlot - b.heroSlot);
+    if (heroes.length === 0) return;
+    const p = s.primary();
+    const i = p ? heroes.findIndex((u) => u.id === p.id) : -1;
+    s.selection = [heroes[(i + 1) % heroes.length].id];
+    s.targeting = null;
   }
 
   /** 每幀：方向鍵、滑鼠移到邊緣捲動鏡頭 */
@@ -185,10 +222,12 @@ export class InputController {
     const speed = (GAME_CONFIG.cameraScrollSpeed * dtSec) / cam.zoom;
     let dx = 0;
     let dy = 0;
-    if (this.cursors.left.isDown) dx -= 1;
-    if (this.cursors.right.isDown) dx += 1;
-    if (this.cursors.up.isDown) dy -= 1;
-    if (this.cursors.down.isDown) dy += 1;
+    const K = GAME_CONFIG.keys;
+    const down = (codes: string[]) => codes.some((c) => this.held.has(c));
+    if (down(K.cameraLeft)) dx -= 1;
+    if (down(K.cameraRight)) dx += 1;
+    if (down(K.cameraUp)) dy -= 1;
+    if (down(K.cameraDown)) dy += 1;
     const p = scene.input.activePointer;
     const m = GAME_CONFIG.edgeScrollMargin;
     if (this.pointerSeen && scene.input.isOver && !this.dragStart && !this.panLast) {
