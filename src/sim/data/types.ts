@@ -9,6 +9,12 @@ export type ProjectileKind = 'arrow' | 'bolt' | 'fireball' | 'missile' | 'frost'
  * 之後的隨從系統會依此決定吸收權重與抗性。
  */
 export type DamageType = 'melee' | 'projectile' | 'spell' | 'area';
+/**
+ * 英雄閒置性格（決定沒有指令時的行為）：
+ * - aggressive 好戰：附近有敵人就自動普攻
+ * - cowardly 膽小：敵人靠近就往反方向逃跑，不會自動攻擊（要玩家下指令才接戰）
+ */
+export type Personality = 'aggressive' | 'cowardly';
 
 export interface UnitDef {
   id: string;
@@ -36,6 +42,8 @@ export interface UnitDef {
   projectileKind?: ProjectileKind;
   /** 普攻的傷害類型；省略時近戰為 melee、遠程為 projectile */
   attackDamageType?: DamageType;
+  /** 閒置性格（英雄用；省略為 aggressive） */
+  personality?: Personality;
   /** 技能 id，依序對應快捷鍵 */
   skills: string[];
   ai?: EnemyArchetype;

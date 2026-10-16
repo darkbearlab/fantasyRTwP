@@ -190,6 +190,30 @@ body {
   font-size: 14px;
 }
 
+.personality {
+  font-size: 10px;
+  padding: 0 5px;
+  border-radius: 8px;
+  margin-left: 4px;
+  margin-right: auto;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.personality.aggressive {
+  background: #5a2626;
+  color: #ffb3a1;
+}
+
+.personality.cowardly {
+  background: #26425a;
+  color: #a6d8ff;
+}
+
+.personality:hover {
+  border-color: #ffffff;
+}
+
 .state {
   color: #9aa3b2;
   font-size: 11px;

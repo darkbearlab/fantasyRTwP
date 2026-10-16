@@ -13,6 +13,9 @@ function pinSetup(config = {}) {
       { defId: 'warrior', pos: { x: 5, y: 3 } },
     ],
     config,
+    undefined,
+    1,
+    HOLD, // 只測牽制本身，英雄不做閒置行為
   );
   const [x, e, war] = w.units;
   return { w, x, e, war, zone: zoneDistance(e, x, w.config) };

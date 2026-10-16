@@ -1,5 +1,5 @@
 import type { Order } from './commands';
-import type { Team, UnitDef } from './data/types';
+import type { Personality, Team, UnitDef } from './data/types';
 import type { Vec } from './math';
 
 export enum UnitState {
@@ -49,6 +49,8 @@ export class Unit {
   order: Order | null = null;
   /** 恢復期間收到的指令；undefined 表示沒有，null 表示「停止」 */
   nextOrder: Order | null | undefined = undefined;
+  /** 閒置性格（可用 setPersonality 指令切換） */
+  personality: Personality;
   /** 駐守點：玩家移動指令完成後的位置；攻擊／跟隨／技能指令會清除（SPEC §10.4） */
   guardPoint: Vec | null = null;
   /** 施放技能後要恢復的普攻指令 */
@@ -86,6 +88,7 @@ export class Unit {
     this.pos = { ...pos };
     this.prevPos = { ...pos };
     this.hp = def.maxHp;
+    this.personality = def.personality ?? 'aggressive';
     this.facing = def.team === 'hero' ? 0 : Math.PI;
   }
 

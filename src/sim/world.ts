@@ -22,7 +22,7 @@ import type { ZocContext } from './zoc';
 import { disengagedFrom, edgeDistance, pinBlocker, zoneDistance } from './zoc';
 import { finishWindup, freeAttack, resolveProjectilePayload, startAction, tickDash } from './actions';
 import type { IdleBehavior } from './ai/idleBehavior';
-import { defaultIdleBehavior, leashedApproachPoint, returnToGuard, withinLeash } from './ai/idleBehavior';
+import { IDLE_BEHAVIORS, leashedApproachPoint, returnToGuard, withinLeash } from './ai/idleBehavior';
 import { enemyThink } from './ai/enemyAI';
 
 export interface UnitSpawn {
@@ -97,7 +97,8 @@ export class World implements ZocContext {
   tick = 0;
   result: Team | null = null;
   enemyAggro = false;
-  idleBehavior: IdleBehavior;
+  /** 指定時所有英雄都用這個閒置行為（測試用）；否則依各英雄的性格 */
+  idleBehavior: IdleBehavior | null;
 
   private navGrids = new Map<number, NavGrid>();
   private queue: Command[] = [];
@@ -111,7 +112,7 @@ export class World implements ZocContext {
     this.config = { ...DEFAULT_SIM_CONFIG, ...(opts.config ?? {}) };
     this.rng = new Rng(opts.seed);
     this.sight = NavGrid.fromMap(opts.map, NAV_CELL, 0);
-    this.idleBehavior = opts.idleBehavior ?? defaultIdleBehavior;
+    this.idleBehavior = opts.idleBehavior ?? null;
     const defs = opts.defs ?? { ...HEROES, ...ENEMIES };
     let id = 1;
     let heroSlot = 0;
@@ -257,6 +258,11 @@ export class World implements ZocContext {
       case 'setConfig':
         Object.assign(this.config, cmd.patch);
         break;
+      case 'setPersonality': {
+        const u = this.getUnit(cmd.unitId);
+        if (u) u.personality = cmd.personality;
+        break;
+      }
     }
   }
 
@@ -404,7 +410,8 @@ export class World implements ZocContext {
 
     if (u.team === 'enemy') enemyThink(this, u);
     else if (!u.order) {
-      const o = this.idleBehavior.decide(this, u);
+      const o = (this.idleBehavior ?? IDLE_BEHAVIORS[u.personality]).decide(this, u);
+      if (o?.type === 'move' && !this.idleBehavior && u.personality === 'cowardly') this.emit({ type: 'notice', unitId: u.id, text: '逃跑！' });
       if (o) this.setOrder(u, o);
     }
     if (u.order) this.executeOrder(u);

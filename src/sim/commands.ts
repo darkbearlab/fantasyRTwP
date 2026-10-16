@@ -1,5 +1,6 @@
 import type { Vec } from './math';
 import type { SimConfig } from './simConfig';
+import type { Personality } from './data/types';
 
 /** 畫面層 → sim 的唯一管道 */
 export type Command =
@@ -8,7 +9,8 @@ export type Command =
   | { type: 'follow'; unitIds: number[]; targetId: number }
   | { type: 'skill'; unitId: number; skillId: string; targetId?: number; point?: Vec }
   | { type: 'stop'; unitIds: number[] }
-  | { type: 'setConfig'; patch: Partial<SimConfig> };
+  | { type: 'setConfig'; patch: Partial<SimConfig> }
+  | { type: 'setPersonality'; unitId: number; personality: Personality };
 
 /** 單位層級的指令（單位目前在做的事） */
 export type Order =
