@@ -43,6 +43,12 @@ export interface UnitDef {
   projectileKind?: ProjectileKind;
   /** 普攻的傷害類型；省略時近戰為 melee、遠程為 projectile */
   attackDamageType?: DamageType;
+  /** 造成傷害的倍率（強化用；省略為 1） */
+  damageMult?: number;
+  /** 被打斷時不會暈眩（強化「堅定」） */
+  interruptStunImmune?: boolean;
+  /** 個別技能的修飾：冷卻倍率、可儲存次數（強化「熟練」「二連」） */
+  skillMods?: Record<string, { cooldownMult?: number; charges?: number }>;
   /** 閒置性格（英雄用；省略為 steadfast） */
   personality?: Personality;
   /** 技能 id，依序對應快捷鍵 */

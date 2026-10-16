@@ -4,7 +4,7 @@ import { DT, NAV_CELL, RANGE_TOLERANCE } from './constants';
 import { ENEMIES } from './data/enemies';
 import { HEROES } from './data/heroes';
 import { SKILLS } from './data/skills';
-import type { DamageType, MapDef, ProjectileKind, SkillDef, Team, UnitDef } from './data/types';
+import type { DamageType, MapDef, Personality, ProjectileKind, SkillDef, Team, UnitDef } from './data/types';
 import type { SimEvent } from './events';
 import { canSeeCircle, canSeePoint } from './los';
 import type { Vec } from './math';
@@ -28,6 +28,11 @@ import { enemyThink } from './ai/enemyAI';
 export interface UnitSpawn {
   defId: string;
   pos: Vec;
+  /** 直接指定定義（遠征套用強化後的英雄）；省略時以 defId 查表 */
+  def?: UnitDef;
+  /** 初始生命（跨戰鬥延續）；省略為滿血 */
+  hp?: number;
+  personality?: Personality;
   /** 未指定時依英雄出現順序自動編號 */
   heroSlot?: number;
 }
@@ -117,10 +122,12 @@ export class World implements ZocContext {
     let id = 1;
     let heroSlot = 0;
     for (const s of opts.spawns) {
-      const def = defs[s.defId];
+      const def = s.def ?? defs[s.defId];
       if (!def) throw new Error(`未知的單位定義：${s.defId}`);
       const slot = def.team === 'hero' ? (s.heroSlot ?? heroSlot++) : -1;
       const u = new Unit(id++, def, s.pos, slot);
+      if (s.hp !== undefined) u.hp = Math.max(1, Math.min(def.maxHp, Math.round(s.hp)));
+      if (s.personality) u.personality = s.personality;
       // 錯開敵人 AI 評估時間
       u.aiTimer = this.rng.range(0, 0.4);
       this.units.push(u);
@@ -371,8 +378,16 @@ export class World implements ZocContext {
     }
     if (u.aiTimer > 0) u.aiTimer -= DT;
     if (u.retreatCooldown > 0) u.retreatCooldown = Math.max(0, u.retreatCooldown - DT);
+    if (u.damageBuffTime > 0) u.damageBuffTime = Math.max(0, u.damageBuffTime - DT);
     for (const k in u.cooldowns) {
-      if (u.cooldowns[k] > 0) u.cooldowns[k] = Math.max(0, u.cooldowns[k] - DT);
+      if (u.cooldowns[k] <= 0) continue;
+      u.cooldowns[k] = Math.max(0, u.cooldowns[k] - DT);
+      if (u.cooldowns[k] === 0) {
+        // 冷卻完成：回復一次使用；還沒滿就繼續回復下一次
+        const max = u.maxCharges(k);
+        u.charges[k] = Math.min(max, (u.charges[k] ?? 0) + 1);
+        if (u.charges[k] < max) u.cooldowns[k] = u.skillCooldown(k, SKILLS[k].cooldown);
+      }
     }
   }
 
@@ -487,7 +502,7 @@ export class World implements ZocContext {
       this.setOrder(u, null);
       return;
     }
-    if ((u.cooldowns[def.id] ?? 0) > 0) {
+    if (!u.skillReady(def.id)) {
       this.emit({ type: 'notice', unitId: u.id, text: '冷卻中' });
       this.setOrder(u, u.resumeOrder ?? null);
       return;
@@ -723,7 +738,7 @@ export class World implements ZocContext {
     return JSON.stringify({
       tick: this.tick,
       rng: this.rng.state,
-      units: this.units.map((u) => [u.id, u.pos.x, u.pos.y, u.hp, u.state, u.order, u.action, u.stunTime, u.cooldowns]),
+      units: this.units.map((u) => [u.id, u.pos.x, u.pos.y, u.hp, u.state, u.order, u.action, u.stunTime, u.cooldowns, u.charges]),
       projectiles: this.projectiles.map((p) => [p.id, p.pos.x, p.pos.y]),
       result: this.result,
     });

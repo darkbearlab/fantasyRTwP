@@ -10,9 +10,9 @@ function files(dir: string): string[] {
 }
 
 describe('架構紅線（AGENTS.md）', () => {
-  const simFiles = files(join(__dirname, '..', 'src', 'sim'));
+  const simFiles = [...files(join(__dirname, '..', 'src', 'sim')), ...files(join(__dirname, '..', 'src', 'run'))];
 
-  it('src/sim 不 import Phaser、不使用 DOM', () => {
+  it('src/sim、src/run 不 import Phaser、不使用 DOM', () => {
     for (const f of simFiles) {
       const src = readFileSync(f, 'utf8');
       expect(src, f).not.toMatch(/from ['"]phaser['"]/);
@@ -20,7 +20,7 @@ describe('架構紅線（AGENTS.md）', () => {
     }
   });
 
-  it('src/sim 不使用 Math.random()', () => {
+  it('src/sim、src/run 不使用 Math.random()', () => {
     for (const f of simFiles) expect(readFileSync(f, 'utf8'), f).not.toMatch(/Math\.random/);
   });
 });

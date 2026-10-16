@@ -373,9 +373,11 @@ export class UIScene extends Phaser.Scene {
       for (const sk of c.skills) {
         const def = SKILLS[sk.skillId];
         const cd = u.cooldowns[sk.skillId] ?? 0;
-        sk.cd.style.height = `${(cd / def.cooldown) * 100}%`;
-        sk.cdText.textContent = cd > 0 ? cd.toFixed(cd < 10 ? 1 : 0) : '';
-        sk.btn.classList.toggle('cooling', cd > 0);
+        const ready = u.skillReady(sk.skillId);
+        const maxCharges = u.maxCharges(sk.skillId);
+        sk.cd.style.height = ready ? '0' : `${(cd / u.skillCooldown(sk.skillId, def.cooldown)) * 100}%`;
+        sk.cdText.textContent = !ready && cd > 0 ? cd.toFixed(cd < 10 ? 1 : 0) : maxCharges > 1 ? `×${u.charges[sk.skillId] ?? 0}` : '';
+        sk.btn.classList.toggle('cooling', !ready);
         sk.btn.classList.toggle('targeting', s.targeting?.unitId === u.id && s.targeting.skillId === sk.skillId);
         sk.btn.classList.toggle('casting', u.action?.skillId === sk.skillId && u.action.phase === 'windup');
       }
