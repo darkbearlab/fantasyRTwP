@@ -5,6 +5,7 @@ import type { ZocMode } from '../../sim/simConfig';
 import type { Unit } from '../../sim/unit';
 import { UnitState } from '../../sim/unit';
 import { beginSkill } from '../input/targeting';
+import { HEROES } from '../../sim/data/heroes';
 import { PERSONALITY_LABEL } from '../../sim/ai/idleBehavior';
 import type { Personality } from '../../sim/data/types';
 
@@ -66,6 +67,8 @@ export class UIScene extends Phaser.Scene {
   private debugPanel!: HTMLElement;
   private seedEl!: HTMLElement;
   private debugInputs: { sync: () => unknown }[] = [];
+  /** 只在單場模式顯示的按鈕（遠征中不能重來） */
+  private quickOnly: HTMLElement[] = [];
   private logCount = -1;
   private logLast: unknown = null;
 
@@ -74,8 +77,11 @@ export class UIScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.root = document.getElementById('ui')!;
-    this.root.innerHTML = '';
+    // 自己的容器，關閉場景時一起移除（其他畫面也會掛在 #ui 上）
+    this.root = el('div', 'hud-root');
+    document.getElementById('ui')!.appendChild(this.root);
+    this.events.once('shutdown', () => this.root.remove());
+    this.session = null;
     this.buildTop();
     this.buildBanner();
     this.buildLog();
@@ -233,6 +239,7 @@ export class UIScene extends Phaser.Scene {
     same.addEventListener('click', () => this.battle.restartBattle(this.cur().seed));
     fresh.addEventListener('click', () => this.battle.restartBattle(1 + Math.floor(Math.random() * 999999)));
     seedRow.append(this.seedEl, same, fresh);
+    this.quickOnly = [same, fresh];
     p.appendChild(seedRow);
 
     this.debugPanel = p;
@@ -257,8 +264,22 @@ export class UIScene extends Phaser.Scene {
     this.heroBar.innerHTML = '';
     this.cards = [];
     const heroes = s.world.units.filter((u) => u.team === 'hero').sort((a, b) => a.heroSlot - b.heroSlot);
+    // 遠征模式：陣亡或空欄位也佔位，數字鍵不會錯位
+    if (s.partySlots) {
+      s.partySlots.forEach((info, slot) => {
+        if (heroes.some((u) => u.heroSlot === slot)) return;
+        const card = el('div', 'hero-card placeholder');
+        card.style.order = String(slot);
+        const def = info ? HEROES[info.classId] : null;
+        const portrait = el('div', 'portrait', def ? def.letter : '');
+        portrait.appendChild(el('span', 'slot-key', String(slot + 1)));
+        card.append(portrait, el('div', 'info', def ? `${def.name}　陣亡` : '（空欄位）'));
+        this.heroBar.appendChild(card);
+      });
+    }
     for (const u of heroes) {
       const root = el('div', 'hero-card');
+      root.style.order = String(u.heroSlot);
       const portrait = el('div', 'portrait', u.def.letter);
       portrait.style.background = hex(u.def.color);
       // 欄位編號（數字鍵）與主要選取標籤
@@ -402,6 +423,7 @@ export class UIScene extends Phaser.Scene {
     if (s.debug.panel) {
       for (const d of this.debugInputs) d.sync();
       this.seedEl.textContent = `種子 ${s.seed}`;
+      for (const b of this.quickOnly) b.style.display = s.mode === 'run' ? 'none' : '';
     }
   }
 }

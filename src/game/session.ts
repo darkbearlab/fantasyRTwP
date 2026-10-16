@@ -5,6 +5,16 @@ import type { Command } from '../sim/commands';
 import type { Unit } from '../sim/unit';
 import type { World } from '../sim/world';
 
+/** 英雄欄位資訊（遠征模式：陣亡或空欄位也要在英雄列上佔位） */
+export type PartySlotInfo = { classId: string; dead: boolean } | null;
+
+export interface SessionOptions {
+  /** 由遠征建立的戰鬥；省略時建立切片 1 的單場隘口戰 */
+  world?: World;
+  mode?: 'quick' | 'run';
+  partySlots?: PartySlotInfo[];
+}
+
 export interface DebugFlags {
   panel: boolean;
   navGrid: boolean;
@@ -34,6 +44,11 @@ const persisted = {
   logOpen: true,
 };
 
+/** 玩家目前的 sim 設定偏好（遠征建立戰鬥時帶入） */
+export function currentSimConfig() {
+  return { ...persisted.sim };
+}
+
 /**
  * 一場戰鬥的畫面層狀態：sim 世界、暫停、選取、瞄準、除錯開關、戰鬥紀錄。
  * 畫面層只讀 world；任何改變都透過 enqueue(Command)。
@@ -54,9 +69,14 @@ export class BattleSession {
   lowHpWarned = new Set<number>();
   private labels = new Map<number, string>();
 
-  constructor(seed: number) {
+  readonly mode: 'quick' | 'run';
+  readonly partySlots: PartySlotInfo[] | null;
+
+  constructor(seed: number, opts: SessionOptions = {}) {
     this.seed = seed;
-    this.world = createBattle(seed, persisted.sim);
+    this.world = opts.world ?? createBattle(seed, persisted.sim);
+    this.mode = opts.mode ?? 'quick';
+    this.partySlots = opts.partySlots ?? null;
     const counts = new Map<string, number>();
     const totals = new Map<string, number>();
     for (const u of this.world.units) totals.set(u.def.id, (totals.get(u.def.id) ?? 0) + 1);

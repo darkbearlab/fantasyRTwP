@@ -1,8 +1,11 @@
 import Phaser from 'phaser';
+import { applyBattleResult } from '../../run/progression';
+import { battleOutcomeFromWorld } from '../../run/battle';
+import { advance, getRun, switchTo } from '../runFlow';
 import type { BattleSession } from '../session';
 import type { BattleScene } from './BattleScene';
 
-/** 結算畫面（SPEC §12）：戰鬥時間、各英雄造成與承受的傷害、重來按鈕 */
+/** 單場戰鬥結算（SPEC §12）：戰鬥時間、各英雄造成與承受的傷害；遠征模式按「繼續」回到流程 */
 export class ResultScene extends Phaser.Scene {
   private box: HTMLElement | null = null;
 
@@ -27,6 +30,10 @@ export class ResultScene extends Phaser.Scene {
           `<td>${u.stats.damageDealt}</td><td>${u.stats.damageTaken}</td><td>${u.stats.healing}</td><td>${u.stats.kills}</td><td>${u.dead ? '陣亡' : `${u.hp}/${u.maxHp}`}</td></tr>`,
       )
       .join('');
+    const buttons =
+      s.mode === 'run'
+        ? `<button class="btn primary" data-act="continue">繼續</button>`
+        : `<button class="btn" data-act="same">重來（同種子）</button><button class="btn primary" data-act="new">重來（新種子）</button><button class="btn" data-act="title">回標題</button>`;
     box.innerHTML = `
       <div class="panel">
         <h1 class="${win ? 'win' : 'lose'}">${win ? '勝利！' : '失敗'}</h1>
@@ -35,16 +42,16 @@ export class ResultScene extends Phaser.Scene {
           <thead><tr><th>英雄</th><th>造成傷害</th><th>承受傷害</th><th>治療</th><th>擊倒</th><th>狀態</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
-        <div class="buttons">
-          <button class="btn" data-act="same">重來（同種子）</button>
-          <button class="btn primary" data-act="new">重來（新種子）</button>
-        </div>
+        ${s.mode === 'run' && !win ? '<div class="meta">隊伍全滅，遠征結束。</div>' : ''}
+        <div class="buttons">${buttons}</div>
       </div>`;
     box.querySelectorAll('button').forEach((b) => {
       b.addEventListener('mousedown', (e) => e.preventDefault());
       b.addEventListener('click', () => {
         const act = (b as HTMLElement).dataset.act;
-        battle.restartBattle(act === 'same' ? s.seed : 1 + Math.floor(Math.random() * 999999));
+        if (act === 'continue') advance(this, applyBattleResult(getRun(this), battleOutcomeFromWorld(w)));
+        else if (act === 'title') switchTo(this, 'Title');
+        else battle.restartBattle(act === 'same' ? s.seed : 1 + Math.floor(Math.random() * 999999));
       });
     });
     document.getElementById('ui')!.appendChild(box);

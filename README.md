@@ -12,7 +12,7 @@
 
 ```bash
 npm install
-npm run dev                      # 開發伺服器，開起來直接進入戰鬥（自動暫停）
+npm run dev                      # 開發伺服器（標題 → 路線圖 → 戰鬥／事件／休息 → 結算）
 npm run build                    # 型別檢查＋打包到 dist/
 npm test                         # 模擬層單元測試
 npm run autobattle -- --runs 200 # 無畫面自動對戰，輸出勝率與平均傷害
