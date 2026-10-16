@@ -2,7 +2,6 @@
  * 無畫面整趟遠征（SPEC_SLICE2 §12）：戰鬥用腳本英雄 AI，選路／事件／休息／獎勵用簡單規則。
  */
 import { TICK_RATE } from '../src/sim/constants';
-import { HEROES } from '../src/sim/data/heroes';
 import { UPGRADES } from '../src/run/data/upgrades';
 import { battleOutcomeFromWorld, createBattleFromRun } from '../src/run/battle';
 import { chooseEventOption, eventOptions } from '../src/run/events';
@@ -64,7 +63,7 @@ export function stepRun(r: RunState, scripted = true): RunState {
       const up = UPGRADES[id];
       if (up.scope === 'party') return chooseReward(r, { upgradeId: id });
       const target = livingHeroes(r).reduce((a, b) => (a.hero.upgrades.length <= b.hero.upgrades.length ? a : b));
-      return chooseReward(r, { upgradeId: id, slot: target.slot, skillId: up.needsSkill ? HEROES[target.hero.classId].skills[0] : undefined });
+      return chooseReward(r, { upgradeId: id, slot: target.slot, skillId: up.needsSkill ? target.hero.skills[0] : undefined });
     }
     case 'rest': {
       if (!p.used) {
@@ -73,7 +72,7 @@ export function stepRun(r: RunState, scripted = true): RunState {
         if (avgHpRatio(r) < 0.85) return restCamp(r);
         const id = p.trainOptions[0];
         const { slot, hero } = livingHeroes(r)[0];
-        return restTrain(r, slot, id, UPGRADES[id].needsSkill ? HEROES[hero.classId].skills[0] : undefined);
+        return restTrain(r, slot, id, UPGRADES[id].needsSkill ? hero.skills[0] : undefined);
       }
       if (canRecruit(r)) return restRecruit(r, p.recruitCandidates[0]);
       return leaveNode(r);

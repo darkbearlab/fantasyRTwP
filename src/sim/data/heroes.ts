@@ -1,20 +1,20 @@
 import type { UnitDef } from './types';
 
-/** 英雄資料（SPEC §10.1） */
+/** 英雄資料（SPEC §10.1）。skills 是預設技能欄，第 1 欄為專用技能（SPEC_SLICE3 §1.1，見 classes.ts） */
 export const HEROES: Record<string, UnitDef> = {
   warrior: {
     id: 'warrior', name: '戰士', letter: 'W', color: 0x3a7bd5, team: 'hero',
     maxHp: 140, armor: 6, accuracy: 30, defense: 40, damage: [10, 16],
     range: 0.3, windup: 0.5, recovery: 0.9, attackSpeed: 1, moveSpeed: 3.0, radius: 0.4,
     projectsZoc: true,
-    skills: ['shieldBash', 'guard', 'charge'],
+    skills: ['guard', 'shieldBash', 'charge'],
   },
   ranger: {
     id: 'ranger', name: '遊俠', letter: 'R', color: 0x3fae4a, team: 'hero',
     maxHp: 80, armor: 2, accuracy: 40, defense: 30, damage: [8, 14],
     range: 12, windup: 0.6, recovery: 1.0, attackSpeed: 1, moveSpeed: 3.5, radius: 0.4,
     projectsZoc: false, projectileSpeed: 24, projectileKind: 'arrow', personality: 'guerrilla',
-    skills: ['aimedShot', 'stunArrow', 'tumble'],
+    skills: ['tumble', 'aimedShot', 'stunArrow'],
   },
   mage: {
     id: 'mage', name: '法師', letter: 'M', color: 0x9b59d0, team: 'hero',

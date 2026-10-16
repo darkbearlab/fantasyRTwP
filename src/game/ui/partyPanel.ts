@@ -5,6 +5,7 @@ import { UPGRADES } from '../../run/data/upgrades';
 import type { RunState } from '../../run/runState';
 import { maxHpOf } from '../../run/upgrades';
 import { hex } from '../render/palette';
+import { className } from './classInfo';
 import { el, noFocus } from './dom';
 
 export const PERSONALITY_CYCLE: Personality[] = ['steadfast', 'aggressive', 'guerrilla'];
@@ -34,7 +35,7 @@ export function partyPanel(run: RunState, opts: PartyPanelOptions = {}): HTMLEle
     portrait.style.background = hex(def.color);
     const info = el('div', 'party-info');
     const name = el('div', 'party-name');
-    name.append(el('span', '', `${slot + 1}. ${def.name}`));
+    name.append(el('span', '', `${slot + 1}. ${className(h.classId)}`));
     const tag = el('span', `personality ${h.personality}`, PERSONALITY_LABEL[h.personality]);
     if (opts.onPersonality && !h.dead) {
       noFocus(tag);

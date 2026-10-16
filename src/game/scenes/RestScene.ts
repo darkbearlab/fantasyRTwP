@@ -1,4 +1,7 @@
 import { HEROES } from '../../sim/data/heroes';
+import { SKILLS } from '../../sim/data/skills';
+import { swapOptions, swapSkill } from '../../run/classes';
+import { className } from '../ui/classInfo';
 import { ECONOMY } from '../../run/data/economy';
 import { canRecruit, canRevive, leaveNode, restCamp, restRecruit, restRevive, restTrain } from '../../run/progression';
 import { hex } from '../render/palette';
@@ -10,11 +13,13 @@ import { firstEmptySlot } from '../../run/runState';
 import { DomScene } from './DomScene';
 
 type Mode = 'menu' | 'revive' | 'train';
+type Tab = 'rest' | 'skills';
 
 /** 休息（SPEC_SLICE2 §5）：紮營／救人／訓練 三選一，另可額外招募 */
 export class RestScene extends DomScene {
   protected screenClass = 'panel-screen';
   private mode: Mode = 'menu';
+  private tab: Tab = 'rest';
 
   constructor() {
     super('Rest');
@@ -31,6 +36,26 @@ export class RestScene extends DomScene {
       this.mode = 'menu';
       this.rebuild();
     };
+    const tabs = el('div', 'tabs');
+    const tabBtn = (t: Tab, label: string) => {
+      const b = button(label, `tab${this.tab === t ? ' active' : ''}`, () => {
+        this.tab = t;
+        this.rebuild();
+      });
+      tabs.appendChild(b);
+    };
+    tabBtn('rest', '休息');
+    tabBtn('skills', '技能（不佔三選一）');
+    box.appendChild(tabs);
+    if (this.tab === 'skills') {
+      box.appendChild(this.skillsTab(run, (r) => {
+        setRun(this, r);
+        this.rebuild();
+      }));
+      box.appendChild(button(p.used ? '繼續上路' : '不休息，繼續上路', p.used ? 'primary' : '', () => advance(this, leaveNode(getRun(this)))));
+      this.root.appendChild(box);
+      return;
+    }
 
     if (!p.used) {
       if (this.mode === 'menu') {
@@ -68,7 +93,7 @@ export class RestScene extends DomScene {
     else
       for (const cls of p.recruitCandidates) {
         const d = HEROES[cls];
-        const b = button(`${d.letter} ${d.name}`, 'recruit-btn', () => set(restRecruit(getRun(this), cls)), !canRecruit(run));
+        const b = button(`${d.letter} ${className(cls)}`, 'recruit-btn', () => set(restRecruit(getRun(this), cls)), !canRecruit(run));
         b.style.borderColor = hex(d.color);
         recRow.appendChild(b);
       }
@@ -78,5 +103,42 @@ export class RestScene extends DomScene {
     box.appendChild(partyPanel(run));
     box.appendChild(button(p.used ? '繼續上路' : '不休息，繼續上路', p.used ? 'primary' : '', () => advance(this, leaveNode(getRun(this)))));
     this.root.appendChild(box);
+  }
+
+  /** 技能分頁（SPEC_SLICE3 §1.1）：第 1 欄專用技能固定，第 2、3 欄從同系共用池替換 */
+  private skillsTab(run: ReturnType<typeof getRun>, set: (r: ReturnType<typeof getRun>) => void): HTMLElement {
+    const box = el('div', 'skill-tab');
+    box.appendChild(el('div', 'meta', '第 1 欄是專用技能，不能替換；第 2、3 欄可以換成同系的共用技能，免費、不限次數。'));
+    run.party.forEach((h, slot) => {
+      if (!h || h.dead) return;
+      const row = el('div', 'skill-row');
+      const d = HEROES[h.classId];
+      const name = el('div', 'skill-hero', `${slot + 1}. ${className(h.classId)}`);
+      name.style.color = hex(d.color);
+      row.appendChild(name);
+      h.skills.forEach((sk, idx) => {
+        const cell = el('div', 'skill-slot');
+        cell.appendChild(el('div', 'skill-key', ['Q', 'E', 'R'][idx]));
+        if (idx === 0) {
+          cell.appendChild(el('div', 'skill-fixed', `🔒 ${SKILLS[sk].name}`));
+        } else {
+          const sel = el('select', 'skill-select');
+          for (const id of [sk, ...swapOptions(h.classId, h.skills, idx)]) {
+            const o = el('option', '', SKILLS[id].name);
+            o.value = id;
+            o.selected = id === sk;
+            sel.appendChild(o);
+          }
+          sel.disabled = sel.options.length <= 1;
+          sel.addEventListener('change', () => set(swapSkill(getRun(this), slot, idx, sel.value)));
+          cell.appendChild(sel);
+        }
+        cell.title = SKILLS[sk].description;
+        cell.appendChild(el('div', 'skill-desc', SKILLS[sk].description));
+        row.appendChild(cell);
+      });
+      box.appendChild(row);
+    });
+    return box;
   }
 }
