@@ -9,6 +9,13 @@ export type ProjectileKind = 'arrow' | 'bolt' | 'fireball' | 'missile' | 'frost'
  * 之後的隨從系統會依此決定吸收權重與抗性。
  */
 export type DamageType = 'melee' | 'projectile' | 'spell' | 'area';
+/**
+ * 英雄閒置性格（決定沒有指令時的行為）：
+ * - steadfast 堅守：附近有敵人就自動普攻，受駐守點限制
+ * - aggressive 好戰：看到一定距離內的敵人就主動衝出去打，並且一路追擊（無視駐守點）
+ * - guerrilla 游擊：敵人靠近就往反方向逃跑，不會自動攻擊（要玩家下指令才接戰）
+ */
+export type Personality = 'steadfast' | 'aggressive' | 'guerrilla';
 
 export interface UnitDef {
   id: string;
@@ -36,6 +43,8 @@ export interface UnitDef {
   projectileKind?: ProjectileKind;
   /** 普攻的傷害類型；省略時近戰為 melee、遠程為 projectile */
   attackDamageType?: DamageType;
+  /** 閒置性格（英雄用；省略為 steadfast） */
+  personality?: Personality;
   /** 技能 id，依序對應快捷鍵 */
   skills: string[];
   ai?: EnemyArchetype;

@@ -5,6 +5,11 @@ import type { ZocMode } from '../../sim/simConfig';
 import type { Unit } from '../../sim/unit';
 import { UnitState } from '../../sim/unit';
 import { beginSkill } from '../input/targeting';
+import { PERSONALITY_LABEL } from '../../sim/ai/idleBehavior';
+import type { Personality } from '../../sim/data/types';
+
+/** 點擊性格標籤時的切換順序 */
+const PERSONALITY_CYCLE: Personality[] = ['steadfast', 'aggressive', 'guerrilla'];
 import { hex } from '../render/palette';
 import type { BattleSession, DebugFlags } from '../session';
 import type { BattleScene } from './BattleScene';
@@ -24,6 +29,7 @@ interface CardRefs {
   hpFill: HTMLElement;
   hpText: HTMLElement;
   state: HTMLElement;
+  personality: HTMLElement;
   bar: HTMLElement;
   skills: { btn: HTMLElement; cd: HTMLElement; cdText: HTMLElement; skillId: string }[];
 }
@@ -257,6 +263,15 @@ export class UIScene extends Phaser.Scene {
       const info = el('div', 'info');
       const nameRow = el('div', 'name-row');
       nameRow.append(el('span', 'name', u.def.name));
+      const personality = el('span', 'personality');
+      personality.title = '閒置性格（點擊切換）\n堅守：附近有敵人就自動普攻，不離開駐守點\n好戰：看到敵人就衝出去打，一路追擊\n游擊：敵人靠近就逃跑，要下指令才會接戰';
+      noFocus(personality);
+      personality.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        if (u.dead) return;
+        this.cur().enqueue({ type: 'setPersonality', unitId: u.id, personality: PERSONALITY_CYCLE[(PERSONALITY_CYCLE.indexOf(u.personality) + 1) % PERSONALITY_CYCLE.length] });
+      });
+      nameRow.append(personality);
       const state = el('span', 'state');
       nameRow.append(state);
       const hp = el('div', 'hp');
@@ -293,7 +308,7 @@ export class UIScene extends Phaser.Scene {
       });
       root.addEventListener('dblclick', () => this.battle.centerOnUnit(u.id));
       this.heroBar.appendChild(root);
-      this.cards.push({ unit: u, root, hpFill, hpText, state, bar, skills });
+      this.cards.push({ unit: u, root, hpFill, hpText, state, personality, bar, skills });
     }
   }
 
@@ -335,6 +350,11 @@ export class UIScene extends Phaser.Scene {
       if (u.rooted && !u.dead) label += '・定身';
       if (u.guardPoint && !u.dead && u.state === UnitState.Idle) label = '駐守中';
       c.state.textContent = label;
+      const pTxt = PERSONALITY_LABEL[u.personality];
+      if (c.personality.textContent !== pTxt) {
+        c.personality.textContent = pTxt;
+        c.personality.className = `personality ${u.personality}`;
+      }
       const a = u.action;
       if (a && (a.phase === 'windup' || a.phase === 'recovery')) {
         c.bar.style.width = `${u.actionProgress * 100}%`;
