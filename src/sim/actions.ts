@@ -11,6 +11,7 @@ import type { Projectile, World } from './world';
 import { edgeDistance } from './zoc';
 import { T_SHALLOW } from './terrain';
 import { TERRAIN } from './data/terrain';
+import { COMBOS } from './data/combos';
 
 /** 打斷造成的硬直秒數 */
 export const INTERRUPT_STUN = 0.5;
@@ -24,9 +25,14 @@ export interface ActionRequest {
   point?: { x: number; y: number };
 }
 
+/** 行動條速度：攻擊速度 × 全域倍率 × 詛咒減速 */
+export function actionRate(world: World, u: Unit): number {
+  return u.def.attackSpeed * world.config.actionSpeedMult * (u.curseTime > 0 ? 1 - u.curseSlow : 1);
+}
+
 export function startAction(world: World, u: Unit, req: ActionRequest): void {
   const windup = req.kind === 'attack' ? u.def.windup : SKILLS[req.skillId!].windup;
-  const ticks = secondsToTicks(windup / (u.def.attackSpeed * world.config.actionSpeedMult));
+  const ticks = secondsToTicks(windup / actionRate(world, u));
   u.action = {
     kind: req.kind,
     skillId: req.skillId,
@@ -43,7 +49,7 @@ export function startAction(world: World, u: Unit, req: ActionRequest): void {
 }
 
 export function enterRecovery(world: World, u: Unit, seconds: number): void {
-  const ticks = secondsToTicks(seconds / (u.def.attackSpeed * world.config.actionSpeedMult));
+  const ticks = secondsToTicks(seconds / actionRate(world, u));
   if (!u.action) return;
   u.action.phase = 'recovery';
   u.action.ticksLeft = ticks;
@@ -53,8 +59,9 @@ export function enterRecovery(world: World, u: Unit, seconds: number): void {
 /** 準備時間結束的那一個節拍：效果生效 */
 export function finishWindup(world: World, u: Unit): void {
   const a = u.action!;
-  // 攻擊或施法會暴露草叢中的位置
+  // 攻擊或施法會暴露草叢中的位置，並解除煙霧彈的隱匿
   u.revealTime = TERRAIN.revealAfterAttack;
+  u.stealthTime = 0;
   if (a.kind === 'attack') {
     const t = world.getUnit(a.targetId!);
     if (!t || t.dead) {
@@ -69,7 +76,7 @@ export function finishWindup(world: World, u: Unit): void {
       }
       strike(world, u, t, { melee: true, mult: 1, damageType: basicDamageType(u.def) });
     } else {
-      world.spawnProjectile(u, u.def.projectileKind ?? 'arrow', u.def.projectileSpeed ?? 20, { type: 'strike', melee: false, mult: 1, damageType: basicDamageType(u.def) }, { unit: t });
+      world.spawnProjectile(u, u.def.projectileKind ?? 'arrow', u.def.projectileSpeed ?? 20, { type: 'strike', melee: false, mult: 1, damageType: basicDamageType(u.def), arc: u.def.arcAttack }, { unit: t });
     }
     if (!u.dead && u.action) enterRecovery(world, u, u.def.recovery);
     return;
@@ -109,7 +116,11 @@ function applySkillEffect(world: World, u: Unit, def: SkillDef, t: Unit | undefi
     case 'strike':
       if (!t || t.dead) return false;
       if (eff.melee) {
-        strike(world, u, t, { melee: true, damageType: eff.damageType ?? 'melee', mult: eff.mult, accBonus: eff.accBonus, flatDamage: eff.flatDamage, interrupts: eff.interrupts, stun: eff.stun, knockback: eff.knockback, skillId: def.id });
+        strike(world, u, t, {
+          melee: true, damageType: eff.damageType ?? 'melee', mult: eff.mult, accBonus: eff.accBonus, flatDamage: eff.flatDamage,
+          interrupts: eff.interrupts, stun: eff.stun, knockback: eff.knockback, skillId: def.id,
+          shatters: eff.shatters, behindMult: eff.behindMult, critVsStunned: eff.critVsStunned, wallStun: eff.wallStun,
+        });
       } else {
         world.spawnProjectile(
           u,
@@ -150,10 +161,12 @@ function applySkillEffect(world: World, u: Unit, def: SkillDef, t: Unit | undefi
     case 'bless':
       for (const a of world.units) {
         if (a.dead || a.team !== u.team || dist(a.pos, u.pos) > eff.radius) continue;
-        a.blessTime = eff.duration;
-        a.blessAccuracy = eff.accuracy;
-        a.blessDefense = eff.defense;
-        world.emit({ type: 'status', unitId: a.id, text: '祝福' });
+        // 祝福與戰吼共用同一組增益：重疊時各項取較高者
+        const active = a.blessTime > 0;
+        a.blessTime = Math.max(active ? a.blessTime : 0, eff.duration);
+        a.blessAccuracy = Math.max(active ? a.blessAccuracy : 0, eff.accuracy);
+        a.blessDefense = Math.max(active ? a.blessDefense : 0, eff.defense);
+        world.emit({ type: 'status', unitId: a.id, text: def.name });
       }
       return false;
     case 'cone': {
@@ -190,10 +203,63 @@ function applySkillEffect(world: World, u: Unit, def: SkillDef, t: Unit | undefi
       }
       return false;
     }
+    case 'whirlwind':
+      world.emit({ type: 'aoe', sourceId: u.id, point: { ...u.pos }, radius: eff.radius, skillId: def.id });
+      for (const t of [...world.units]) {
+        if (t.dead || t.team === u.team || dist(t.pos, u.pos) > eff.radius + t.radius) continue;
+        strike(world, u, t, { melee: true, damageType: 'melee', mult: eff.mult, shatters: eff.shatters, skillId: def.id });
+        if (u.dead) break;
+      }
+      return false;
+    case 'curse':
+      if (!t || t.dead) return false;
+      world.spawnProjectile(u, eff.projectileKind ?? 'curse', eff.projectileSpeed ?? 20, { type: 'curse', duration: eff.duration, actionSlow: eff.actionSlow, damageTakenPct: eff.damageTakenPct, skillId: def.id }, { unit: t });
+      return false;
+    case 'smoke':
+      u.stealthTime = eff.duration;
+      u.revealTime = 0;
+      world.emit({ type: 'aoe', sourceId: u.id, point: { ...u.pos }, radius: 1.2, skillId: def.id });
+      world.emit({ type: 'status', unitId: u.id, text: '煙霧' });
+      return false;
+    case 'zone':
+      if (!point) return false;
+      world.zones.push({ point: { ...point }, radius: eff.radius, time: eff.duration, moveMult: eff.moveMult, team: u.team, skillId: def.id });
+      world.emit({ type: 'aoe', sourceId: u.id, point: { ...point }, radius: eff.radius, skillId: def.id });
+      return false;
+    case 'aoeHeal':
+      if (!point) return false;
+      if (eff.projectileSpeed) world.spawnProjectile(u, eff.projectileKind ?? 'flask', eff.projectileSpeed, { type: 'aoeHeal', skillId: def.id }, { point });
+      else healArea(world, u, point, def);
+      return false;
     case 'charge':
     case 'tumble':
       return true;
   }
+}
+
+/** 範圍治療：範圍內的友軍各自恢復 */
+function healArea(world: World, src: Unit, point: { x: number; y: number }, def: SkillDef): void {
+  const eff = def.effect;
+  if (eff.kind !== 'aoeHeal') return;
+  world.emit({ type: 'aoe', sourceId: src.id, point: { ...point }, radius: eff.radius, skillId: def.id });
+  for (const a of world.units) {
+    if (a.dead || a.team !== src.team || dist(a.pos, point) > eff.radius + a.radius * 0.5) continue;
+    const amount = Math.min(eff.amount, a.maxHp - a.hp);
+    if (amount <= 0) continue;
+    a.hp += amount;
+    src.stats.healing += amount;
+    world.emit({ type: 'heal', sourceId: src.id, targetId: a.id, amount });
+  }
+}
+
+/** 攻擊者是否在目標背後（夾角大於 COMBOS.behindAngleDeg） */
+export function isBehind(src: Unit, target: Unit): boolean {
+  const dx = src.pos.x - target.pos.x;
+  const dy = src.pos.y - target.pos.y;
+  const len = Math.hypot(dx, dy);
+  if (len < 1e-6) return false;
+  const cos = (Math.cos(target.facing) * dx + Math.sin(target.facing) * dy) / len;
+  return cos < Math.cos((COMBOS.behindAngleDeg * Math.PI) / 180);
 }
 
 /** 衝刺階段（衝鋒、翻滾）：無視控制區 */
@@ -246,7 +312,9 @@ export function basicDamageType(def: UnitDef): DamageType {
 
 /** 造成傷害的總倍率：單位自身（強化、增益）× 我方傷害倍率設定 */
 export function damageMultOf(world: World, u: Unit): number {
-  return u.outgoingDamageMult * (u.team === 'hero' ? world.config.heroDamageMult : 1);
+  // 狂戰士：生命越低傷害越高
+  const lowHp = u.def.lowHpDamageBonus ? 1 + u.def.lowHpDamageBonus * (1 - Math.max(0, u.hp) / u.maxHp) : 1;
+  return u.outgoingDamageMult * lowHp * (u.team === 'hero' ? world.config.heroDamageMult : 1);
 }
 
 export interface StrikeParams {
@@ -262,6 +330,14 @@ export interface StrikeParams {
   interrupts?: boolean;
   stun?: number;
   knockback?: number;
+  /** 碎冰：定身中的目標額外傷害並解除定身 */
+  shatters?: boolean;
+  /** 從背後攻擊的傷害倍率 */
+  behindMult?: number;
+  /** 暈眩中的目標必定爆擊 */
+  critVsStunned?: boolean;
+  /** 擊退撞牆時額外暈眩 */
+  wallStun?: boolean;
   skillId?: string;
   freeAttack?: boolean;
 }
@@ -291,20 +367,39 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): voi
       if (srcHigh) terrainMult = TERRAIN.highDamageMult;
     }
   }
-  const { result } = rollHit(world.rng, accuracy, defense);
+  // 背刺暈眩中的目標：必定爆擊（不做命中判定）
+  const forcedCrit = !!p.critVsStunned && target.stunTime > 0;
+  const result = forcedCrit ? 'crit' : rollHit(world.rng, accuracy, defense).result;
   if (result === 'miss') {
     world.emit({ type: 'miss', sourceId: src.id, targetId: target.id, skillId: p.skillId, freeAttack: p.freeAttack });
     if (target.team === 'enemy') world.triggerAggro();
     return;
   }
   const crit = result === 'crit';
-  const base = rollDamage(world.rng, p.flatDamage ?? src.def.damage, p.mult * damageMultOf(world, src) * terrainMult);
+  let comboMult = 1;
+  if (p.melee) {
+    const behind = isBehind(src, target);
+    if (behind && p.behindMult) comboMult *= p.behindMult;
+    else if (behind && !p.skillId && src.def.backstabMult) comboMult *= src.def.backstabMult;
+    if (p.shatters && target.rootTime > 0) {
+      comboMult *= COMBOS.shatterMult;
+      target.rootTime = 0;
+      world.emit({ type: 'status', unitId: target.id, text: '碎冰' });
+    }
+  }
+  const base = rollDamage(world.rng, p.flatDamage ?? src.def.damage, p.mult * damageMultOf(world, src) * terrainMult * comboMult);
   const final = applyArmor(base * (crit ? CRIT_MULT : 1), target.armor);
   applyDamage(world, target, final, p.damageType, src, { crit, skillId: p.skillId, freeAttack: p.freeAttack });
   if (target.dead) return;
   if (p.interrupts) interrupt(world, src, target);
   if (p.stun) applyStun(world, target, p.stun);
-  if (p.knockback) knockback(world, src, target, p.knockback);
+  if (p.knockback) {
+    const hitWall = knockback(world, src, target, p.knockback);
+    if (hitWall && p.wallStun && !target.dead) {
+      world.emit({ type: 'status', unitId: target.id, text: '撞牆' });
+      applyStun(world, target, COMBOS.wallStunSeconds);
+    }
+  }
 }
 
 /**
@@ -320,6 +415,8 @@ export function applyDamage(
   opts: { crit?: boolean; skillId?: string; freeAttack?: boolean } = {},
 ): void {
   const { crit = false, skillId, freeAttack } = opts;
+  // 衰弱詛咒：受到傷害增加
+  if (target.curseTime > 0) amount = Math.round(amount * (1 + target.curseVuln));
   const dealt = Math.min(amount, target.hp);
   target.hp -= amount;
   src.stats.damageDealt += dealt;
@@ -368,22 +465,28 @@ export function applyStun(world: World, t: Unit, seconds: number): void {
   world.emit({ type: 'status', unitId: t.id, text: '暈眩' });
 }
 
-export function knockback(world: World, src: Unit, t: Unit, distance: number): void {
+/** 擊退；回傳 true 表示途中撞到障礙物 */
+export function knockback(world: World, src: Unit, t: Unit, distance: number): boolean {
   let dir = norm(sub(t.pos, src.pos));
   if (dir.x === 0 && dir.y === 0) dir = { x: Math.cos(src.facing), y: Math.sin(src.facing) };
   const grid = world.navFor(t);
   const from = { x: t.pos.x, y: t.pos.y };
   let cur = from;
   const steps = Math.ceil(distance / 0.1);
+  let hitWall = false;
   for (let i = 1; i <= steps; i++) {
     const d = Math.min(distance, i * 0.1);
     const np = { x: from.x + dir.x * d, y: from.y + dir.y * d };
-    if (!grid.isWalkable(np)) break;
+    if (!grid.isWalkable(np)) {
+      hitWall = true;
+      break;
+    }
     cur = np;
   }
   t.pos = cur;
   t.path = null;
   world.emit({ type: 'knockback', unitId: t.id, from, to: { ...cur } });
+  return hitWall;
 }
 
 /** 範圍傷害（火球、獄火）：不做命中判定，友軍傷害倍率見設定 */
@@ -402,6 +505,12 @@ export function explode(world: World, src: Unit, point: { x: number; y: number }
     const dmg = rollDamage(world.rng, eff.damage, mult);
     applyDamage(world, u, applyArmor(dmg, u.armor), 'area', src, { skillId: def.id });
     if (!u.dead && eff.interrupts) interrupt(world, src, u);
+    if (!u.dead && eff.burns) {
+      if (u.burnTime <= 0) u.burnTick = 1;
+      u.burnTime = Math.max(u.burnTime, TERRAIN.burnDuration);
+      u.burnSourceId = src.id;
+      world.emit({ type: 'status', unitId: u.id, text: '燃燒' });
+    }
   }
 }
 
@@ -419,6 +528,18 @@ export function resolveProjectilePayload(world: World, src: Unit, p: Projectile,
       break;
     case 'aoe':
       explode(world, src, p.point!, SKILLS[pl.skillId]);
+      break;
+    case 'curse':
+      if (target && !target.dead) {
+        target.curseTime = pl.duration;
+        target.curseSlow = pl.actionSlow;
+        target.curseVuln = pl.damageTakenPct;
+        world.emit({ type: 'status', unitId: target.id, text: '詛咒' });
+        if (target.team === 'enemy') world.triggerAggro();
+      }
+      break;
+    case 'aoeHeal':
+      healArea(world, src, p.point!, SKILLS[pl.skillId]);
       break;
     case 'root':
       if (target && !target.dead) {

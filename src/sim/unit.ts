@@ -75,6 +75,12 @@ export class Unit {
   burnTime = 0;
   burnTick = 0;
   burnSourceId = -1;
+  /** 衰弱詛咒：行動條變慢比例、受到傷害增加比例 */
+  curseTime = 0;
+  curseSlow = 0;
+  curseVuln = 0;
+  /** 煙霧彈：隱匿、無視控制區（秒） */
+  stealthTime = 0;
   /** 這場戰鬥已不能再用的技能（一次性、被打斷就失去） */
   spentSkills: string[] = [];
   /** 暫時的傷害增益（頭目戰吼等） */

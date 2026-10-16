@@ -11,7 +11,8 @@ import { T_BRUSH, T_HEDGE, T_HIGH, T_SHALLOW } from '../../sim/terrain';
 import { bakeGraphics } from '../render/bake';
 import { DebugOverlay } from '../render/debugOverlay';
 import { Fx } from '../render/fx';
-import { COLORS, FONT, PROJECTILE_STYLE } from '../render/palette';
+import { AOE_STYLE, COLORS, FONT, PROJECTILE_STYLE } from '../render/palette';
+import type { SkillDef } from '../../sim/data/types';
 import { UnitView } from '../render/unitView';
 import { InputController } from '../input/inputController';
 import { targetingDef, validSkillTarget } from '../input/targeting';
@@ -22,6 +23,7 @@ import type { RunState } from '../../run/runState';
 import { createRun } from '../../run/runState';
 
 const PX = GAME_CONFIG.pxPerMeter;
+const STATUS_COLOR: Record<string, string> = { 暈眩: '#ffe066', 定身: '#a6e3ff', 燃燒: '#ff9a4a', 詛咒: '#d59af0' };
 
 /** 戰鬥場景：固定節拍推進 sim、插值渲染、把 SimEvent 轉成飄字與戰鬥紀錄 */
 export class BattleScene extends Phaser.Scene {
@@ -378,11 +380,13 @@ export class BattleScene extends Phaser.Scene {
         }
         case 'aoe': {
           const src = w.getUnit(ev.sourceId)!;
-          const color = src.team === 'hero' ? 0xff8c1a : 0xff2a2a;
+          const st = ev.skillId ? AOE_STYLE[ev.skillId] : undefined;
+          const color = st?.color ?? (src.team === 'hero' ? 0xff8c1a : 0xff2a2a);
           this.fx.burst(ev.point, ev.radius, color, 550);
-          this.fx.ring(ev.point, ev.radius, 0xffd27a, 500, 0.4, 5);
-          this.cameras.main.shake(120, 0.004);
-          s.addLog(`${L(src.id)} 的「${skillName(ev.skillId)}」爆炸`, src.team);
+          this.fx.ring(ev.point, ev.radius, st?.ring ?? 0xffd27a, 500, 0.4, 5);
+          if (st?.shake ?? true) this.cameras.main.shake(120, 0.004);
+          const kind = ev.skillId ? SKILLS[ev.skillId]?.effect.kind : undefined;
+          if (kind === 'aoe' || kind === 'cone') s.addLog(`${L(src.id)} 的「${skillName(ev.skillId)}」爆炸`, src.team);
           break;
         }
         case 'knockback':
@@ -459,10 +463,6 @@ export class BattleScene extends Phaser.Scene {
   private updateConcealment(): void {
     const w = this.session.world;
     this.hiddenIds.clear();
-    if (!w.terrain.any) {
-      for (const v of this.views.values()) v.setConcealment('normal');
-      return;
-    }
     for (const v of this.views.values()) {
       const u = v.unit;
       if (u.dead) {
@@ -474,8 +474,8 @@ export class BattleScene extends Phaser.Scene {
         if (hidden) this.hiddenIds.add(u.id);
         v.setConcealment(hidden ? 'hidden' : 'normal');
       } else {
-        const inBrush = w.terrain.has(u.pos, T_BRUSH);
-        v.setConcealment(inBrush ? (w.visibleToTeam(u, 'enemy') ? 'brush' : 'concealed') : 'normal');
+        const hideable = u.stealthTime > 0 || w.terrain.has(u.pos, T_BRUSH);
+        v.setConcealment(hideable ? (w.visibleToTeam(u, 'enemy') ? 'brush' : 'concealed') : 'normal');
       }
     }
     const s = this.session;
@@ -501,6 +501,14 @@ export class BattleScene extends Phaser.Scene {
         if (u.dead || !u.def.projectsZoc) continue;
         if ((u.team === 'hero' && selected.has(u.id)) || (u.team === 'enemy' && s.hoverUnitId === u.id)) zoc(u);
       }
+    }
+    // 地面區域（沼澤）
+    for (const z of w.zones) {
+      const fade = Math.min(1, z.time / 1.5);
+      g.fillStyle(0x5a6a22, 0.28 * fade);
+      g.fillCircle(z.point.x * PX, z.point.y * PX, z.radius * PX);
+      g.lineStyle(2, 0xa5b84a, 0.6 * fade);
+      g.strokeCircle(z.point.x * PX, z.point.y * PX, z.radius * PX);
     }
     // 駐守點：小菱形；選取中的英雄另外畫出駐守範圍
     for (const u of w.units) {
@@ -606,7 +614,7 @@ export class BattleScene extends Phaser.Scene {
         g.strokeCircle(p.x, p.y, r + 9);
       }
       // 狀態文字：暈眩／定身
-      const label = u.state === UnitState.Stunned ? '暈眩' : u.rooted ? '定身' : '';
+      const label = u.state === UnitState.Stunned ? '暈眩' : u.rooted ? '定身' : u.burnTime > 0 ? '燃燒' : u.curseTime > 0 ? '詛咒' : '';
       if (label) {
         let t = st;
         if (!t) {
@@ -614,7 +622,7 @@ export class BattleScene extends Phaser.Scene {
           t.setStroke('#000000', 3);
           this.statusTexts.set(u.id, t);
         }
-        t.setText(label).setColor(label === '定身' ? '#a6e3ff' : '#ffe066').setPosition(p.x, p.y + r + 9).setVisible(true);
+        t.setText(label).setColor(STATUS_COLOR[label] ?? '#ffe066').setPosition(p.x, p.y + r + 9).setVisible(true);
       } else st?.setVisible(false);
     }
   }
@@ -706,10 +714,10 @@ export class BattleScene extends Phaser.Scene {
           g.lineStyle(2.5, COLORS.ghostSkill, 0.9);
           if (tp) {
             g.lineBetween(from.x, from.y, tp.x, tp.y);
-            const r = def.effect.kind === 'aoe' ? def.effect.radius * PX : 10;
+            const r = (effectRadius(def) ?? 10 / PX) * PX;
             g.strokeCircle(tp.x, tp.y, r);
           } else {
-            const r = def.effect.kind === 'bless' ? def.effect.radius * PX : 14;
+            const r = (effectRadius(def) ?? 14 / PX) * PX;
             g.strokeCircle(from.x, from.y, r);
           }
           break;
@@ -734,7 +742,7 @@ export class BattleScene extends Phaser.Scene {
     g.lineStyle(1.5, COLORS.targeting, 0.6);
     g.lineBetween(from.x, from.y, ptr.x, ptr.y);
     if (def.target === 'ground') {
-      const r = def.effect.kind === 'aoe' ? def.effect.radius * PX : 0.4 * PX;
+      const r = (effectRadius(def) ?? 0.4) * PX;
       g.fillStyle(COLORS.targeting, 0.18);
       g.fillCircle(ptr.x, ptr.y, r);
       g.lineStyle(2, COLORS.targeting, 0.9);
@@ -785,6 +793,21 @@ function quickRun(seed: number, encounterId: string, layer: number): RunState {
   r.currentNodeId = node.id;
   r.phase = { kind: 'battle', nodeId: node.id, encounterId, fromEvent: false };
   return r;
+}
+
+/** 技能的效果半徑（預覽圈用） */
+function effectRadius(def: SkillDef): number | undefined {
+  const e = def.effect;
+  switch (e.kind) {
+    case 'aoe':
+    case 'zone':
+    case 'aoeHeal':
+    case 'bless':
+    case 'whirlwind':
+      return e.radius;
+    default:
+      return undefined;
+  }
 }
 
 function randomSeed(): number {

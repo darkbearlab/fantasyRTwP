@@ -62,10 +62,14 @@ export type ProjectilePayload =
       interrupts?: boolean;
       stun?: number;
       knockback?: number;
+      shatters?: boolean;
+      arc?: boolean;
       skillId?: string;
     }
   | { type: 'aoe'; skillId: string }
-  | { type: 'root'; duration: number; skillId: string };
+  | { type: 'root'; duration: number; skillId: string }
+  | { type: 'curse'; duration: number; actionSlow: number; damageTakenPct: number; skillId: string }
+  | { type: 'aoeHeal'; skillId: string };
 
 export interface Projectile {
   id: number;
@@ -117,6 +121,8 @@ export class World implements ZocContext {
   readonly terrain: TerrainGrid;
   /** 燃燒中的格子：格子索引 → 狀態 */
   readonly fire = new Map<number, { time: number; spread: number; sourceId: number }>();
+  /** 地面區域效果（沼澤）：對施放者的敵人減速 */
+  zones: { point: Vec; radius: number; time: number; moveMult: number; team: Team; skillId: string }[] = [];
   private nextUnitId = 1;
   private navGrids = new Map<number, NavGrid>();
   private queue: Command[] = [];
@@ -203,6 +209,19 @@ export class World implements ZocContext {
     return m;
   }
 
+  /** 移動倍率：地形 × 敵方區域效果（沼澤） */
+  moveMultFor(u: Unit): number {
+    let m = this.moveMultAt(u.pos);
+    for (const z of this.zones) if (z.team !== u.team && dist(z.point, u.pos) <= z.radius + u.radius * 0.5) m = Math.min(m, z.moveMult);
+    return m;
+  }
+
+  private updateZones(): void {
+    if (this.zones.length === 0) return;
+    for (const z of this.zones) z.time -= DT;
+    this.zones = this.zones.filter((z) => z.time > 0);
+  }
+
   /** 普攻射程：遠程單位站在高地上射程增加 */
   attackRange(u: Unit): number {
     return u.def.range + (!u.isMelee && this.onHigh(u) ? TERRAIN.highRangeBonus : 0);
@@ -220,7 +239,10 @@ export class World implements ZocContext {
    */
   canTarget(viewer: Unit, target: Unit): boolean {
     if (target.dead) return false;
-    if (viewer.team === target.team || !this.terrain.any) return true;
+    if (viewer.team === target.team) return true;
+    // 煙霧彈：貼近才看得到
+    if (target.stealthTime > 0) return dist(viewer.pos, target.pos) <= TERRAIN.brushRevealDistance;
+    if (!this.terrain.any) return true;
     const patch = this.terrain.patchAt(target.pos);
     if (patch < 0 || target.revealTime > 0) return true;
     if (this.terrain.patchAt(viewer.pos) === patch) return true;
@@ -331,6 +353,7 @@ export class World implements ZocContext {
     for (const u of this.units) this.updateUnit(u);
     this.updateProjectiles();
     this.updateFire();
+    this.updateZones();
     separateUnits(this.units, (u) => this.navFor(u));
     this.checkEnd();
     this.tick++;
@@ -490,6 +513,8 @@ export class World implements ZocContext {
   private tickTimers(u: Unit): void {
     if (u.dead) return;
     if (u.revealTime > 0) u.revealTime = Math.max(0, u.revealTime - DT);
+    if (u.curseTime > 0) u.curseTime = Math.max(0, u.curseTime - DT);
+    if (u.stealthTime > 0) u.stealthTime = Math.max(0, u.stealthTime - DT);
     if (u.burnTime > 0) {
       u.burnTime = Math.max(0, u.burnTime - DT);
       u.burnTick -= DT;
@@ -605,7 +630,7 @@ export class World implements ZocContext {
           this.setOrder(u, null);
           break;
         }
-        const inRange = edgeDistance(u, t) <= this.attackRange(u) + RANGE_TOLERANCE && (u.isMelee || this.canSee(u, t));
+        const inRange = edgeDistance(u, t) <= this.attackRange(u) + RANGE_TOLERANCE && (u.isMelee || u.def.arcAttack || this.canSee(u, t));
         const guard = o.leashed ? u.guardPoint : null;
         if (guard && !inRange && !withinLeash(this, u, t, guard)) {
           // 目標跑出駐守範圍：放棄，走回駐守點
@@ -749,7 +774,8 @@ export class World implements ZocContext {
     }
     u.repathTimer -= DT;
 
-    const speed = (opts.speed ?? u.def.moveSpeed) * this.moveMultAt(u.pos);
+    const speed = (opts.speed ?? u.def.moveSpeed) * this.moveMultFor(u);
+    const ignoreZoc = opts.ignoreZoc || u.def.ignoresZoc || u.stealthTime > 0;
     let step = speed * DT;
     let moved = false;
     // 一個節拍內可能經過多個路徑點
@@ -765,7 +791,7 @@ export class World implements ZocContext {
         to = { x: u.pos.x + ((wp.x - u.pos.x) / d) * step, y: u.pos.y + ((wp.y - u.pos.y) / d) * step };
         used = step;
       }
-      if (!opts.ignoreZoc) {
+      if (!ignoreZoc) {
         const blocker = pinBlocker(this, u, u.pos, to);
         if (blocker) return moved ? 'moving' : 'pinned';
       }
@@ -773,7 +799,7 @@ export class World implements ZocContext {
         u.path = null;
         break;
       }
-      if (!opts.ignoreZoc) {
+      if (!ignoreZoc) {
         for (const e of disengagedFrom(this, u, u.pos, to)) freeAttack(this, e, u);
         if (u.dead) return 'moving';
       }

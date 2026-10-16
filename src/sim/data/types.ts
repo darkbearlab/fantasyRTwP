@@ -3,7 +3,7 @@ import type { Vec } from '../math';
 export type Team = 'hero' | 'enemy';
 export type EnemyArchetype = 'brute' | 'skirmisher' | 'archer' | 'caster' | 'boss';
 /** 投射物外觀種類（畫面層據此決定顏色大小） */
-export type ProjectileKind = 'arrow' | 'bolt' | 'fireball' | 'missile' | 'frost';
+export type ProjectileKind = 'arrow' | 'bolt' | 'fireball' | 'missile' | 'frost' | 'flask' | 'curse';
 /**
  * 傷害類型（SPEC §19.6）：切片 1 尚無抗性，但每筆傷害都帶類型，
  * 之後的隨從系統會依此決定吸收權重與抗性。
@@ -51,6 +51,14 @@ export interface UnitDef {
   skillMods?: Record<string, { cooldownMult?: number; charges?: number }>;
   /** 閒置性格（英雄用；省略為 steadfast） */
   personality?: Personality;
+  /** 生命越低傷害越高：生命 0 時傷害 +此值（狂戰士 0.5） */
+  lowHpDamageBonus?: number;
+  /** 從目標背後普攻的傷害倍率（盜賊） */
+  backstabMult?: number;
+  /** 普攻為拋物線：不需視線、不受掩體影響（煉金術士） */
+  arcAttack?: boolean;
+  /** 無視控制區（攻城兵） */
+  ignoresZoc?: boolean;
   /** 技能 id，依序對應快捷鍵 */
   skills: string[];
   ai?: EnemyArchetype;
@@ -71,6 +79,14 @@ export type SkillEffect =
       interrupts?: boolean;
       stun?: number;
       knockback?: number;
+      /** 近戰重擊：定身中的目標「碎冰」（SPEC_SLICE3 §1.6） */
+      shatters?: boolean;
+      /** 從目標背後攻擊的傷害倍率（背刺） */
+      behindMult?: number;
+      /** 暈眩中的目標必定爆擊（背刺） */
+      critVsStunned?: boolean;
+      /** 擊退撞到障礙物時額外暈眩（聖光震擊） */
+      wallStun?: boolean;
       projectileSpeed?: number;
       projectileKind?: ProjectileKind;
     }
@@ -82,6 +98,8 @@ export type SkillEffect =
       interrupts?: boolean;
       /** 會點燃草叢 */
       ignites?: boolean;
+      /** 命中的單位開始燃燒（火焰瓶） */
+      burns?: boolean;
       projectileSpeed?: number;
       projectileKind?: ProjectileKind;
     }
@@ -93,6 +111,16 @@ export type SkillEffect =
   | { kind: 'cone'; radius: number; angle: number; damage: [number, number]; friendlyFire: boolean }
   /** 戰吼：召喚援軍，並讓全體友軍暫時提高傷害 */
   | { kind: 'warcry'; summon: { enemy: string; count: number }; damageBuff: number; duration: number }
+  /** 旋風斬：打周圍所有敵人（每個目標各自命中判定） */
+  | { kind: 'whirlwind'; radius: number; mult: number; shatters?: boolean }
+  /** 衰弱詛咒：目標行動條變慢、受到傷害增加 */
+  | { kind: 'curse'; duration: number; actionSlow: number; damageTakenPct: number; projectileSpeed?: number; projectileKind?: ProjectileKind }
+  /** 煙霧彈：一段時間內無視控制區、敵人看不到（貼近除外） */
+  | { kind: 'smoke'; duration: number }
+  /** 地面區域：敵人在範圍內移動變慢（沼澤） */
+  | { kind: 'zone'; radius: number; duration: number; moveMult: number }
+  /** 範圍治療（治療藥瓶） */
+  | { kind: 'aoeHeal'; radius: number; amount: number; projectileSpeed?: number; projectileKind?: ProjectileKind }
   | { kind: 'charge'; speedMult: number; maxDuration: number }
   | { kind: 'tumble'; speed: number };
 

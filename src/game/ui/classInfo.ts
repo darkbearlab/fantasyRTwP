@@ -35,3 +35,15 @@ export function classCard(classId: string, opts: { selected?: boolean; dim?: boo
   }
   return card;
 }
+
+/** 精簡的職業標籤（組隊結果用） */
+export function classChip(classId: string, tag?: string): HTMLElement {
+  const d = HEROES[classId];
+  const chip = el('div', 'class-chip');
+  chip.style.borderColor = hex(d.color);
+  const portrait = el('div', 'portrait small', d.letter);
+  portrait.style.background = hex(d.color);
+  chip.append(portrait, el('span', 'class-name', d.name));
+  if (tag) chip.appendChild(el('span', 'class-tag', tag));
+  return chip;
+}

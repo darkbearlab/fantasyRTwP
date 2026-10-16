@@ -37,6 +37,17 @@ export const PROJECTILE_STYLE: Record<string, { color: number; size: number }> =
   fireball: { color: 0xff8c1a, size: 7 },
   missile: { color: 0x7af0ff, size: 4 },
   frost: { color: 0xbfe9ff, size: 4.5 },
+  flask: { color: 0xa8e05a, size: 5 },
+  curse: { color: 0xb05ad8, size: 4 },
+};
+
+/** 範圍效果的爆發顏色（依技能）；沒有列出的用預設（我方橘、敵方紅） */
+export const AOE_STYLE: Record<string, { color: number; ring: number; shake: boolean }> = {
+  whirlwind: { color: 0xe8e8e8, ring: 0xffffff, shake: false },
+  smokeBomb: { color: 0x9aa0a6, ring: 0xc8ccd2, shake: false },
+  swamp: { color: 0x6b7a2a, ring: 0xa5b84a, shake: false },
+  healFlask: { color: 0x4cd964, ring: 0xb8ffb0, shake: false },
+  firebomb: { color: 0xff6a1a, ring: 0xffd27a, shake: true },
 };
 
 export const FONT = '"Noto Sans TC", "Microsoft JhengHei", "PingFang TC", "Heiti TC", sans-serif';

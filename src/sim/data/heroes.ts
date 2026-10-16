@@ -30,6 +30,35 @@ export const HEROES: Record<string, UnitDef> = {
     projectsZoc: true,
     skills: ['heal', 'bless', 'holySmite'],
   },
+  // ── 切片 3 第一批變體（SPEC_SLICE3 §1.4） ──
+  berserker: {
+    id: 'berserker', name: '狂戰士', letter: 'Z', color: 0xd35400, team: 'hero',
+    maxHp: 125, armor: 4, accuracy: 32, defense: 32, damage: [11, 17],
+    range: 0.3, windup: 0.45, recovery: 0.8, attackSpeed: 1, moveSpeed: 3.2, radius: 0.4,
+    projectsZoc: false, lowHpDamageBonus: 0.5, personality: 'aggressive',
+    skills: ['whirlwind', 'charge', 'shieldBash'],
+  },
+  rogue: {
+    id: 'rogue', name: '盜賊', letter: 'T', color: 0x2c9c8a, team: 'hero',
+    maxHp: 85, armor: 2, accuracy: 40, defense: 36, damage: [8, 13],
+    range: 0.3, windup: 0.4, recovery: 0.8, attackSpeed: 1, moveSpeed: 3.8, radius: 0.4,
+    projectsZoc: false, backstabMult: 1.5,
+    skills: ['backstab', 'smokeBomb', 'tumble'],
+  },
+  hexer: {
+    id: 'hexer', name: '咒術師', letter: 'H', color: 0x7d3c98, team: 'hero',
+    maxHp: 65, armor: 0, accuracy: 32, defense: 22, damage: [5, 9],
+    range: 10, windup: 0.6, recovery: 1.0, attackSpeed: 1, moveSpeed: 3.0, radius: 0.4,
+    projectsZoc: false, projectileSpeed: 18, projectileKind: 'curse', attackDamageType: 'spell', personality: 'guerrilla',
+    skills: ['curse', 'iceBind', 'swamp'],
+  },
+  alchemist: {
+    id: 'alchemist', name: '煉金術士', letter: 'Y', color: 0x8fbf3a, team: 'hero',
+    maxHp: 85, armor: 2, accuracy: 28, defense: 28, damage: [6, 10],
+    range: 8, windup: 0.6, recovery: 1.0, attackSpeed: 1, moveSpeed: 3.0, radius: 0.4,
+    projectsZoc: false, projectileSpeed: 14, projectileKind: 'flask', arcAttack: true, personality: 'guerrilla',
+    skills: ['firebomb', 'healFlask', 'bless'],
+  },
 };
 
 /** 英雄欄位順序（決定快捷鍵列） */
