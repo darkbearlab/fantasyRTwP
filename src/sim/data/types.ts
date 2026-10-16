@@ -1,7 +1,7 @@
 import type { Vec } from '../math';
 
 export type Team = 'hero' | 'enemy';
-export type EnemyArchetype = 'brute' | 'skirmisher' | 'archer' | 'caster' | 'boss';
+export type EnemyArchetype = 'brute' | 'skirmisher' | 'archer' | 'caster' | 'boss' | 'siege' | 'bomber' | 'lurker';
 /** 投射物外觀種類（畫面層據此決定顏色大小） */
 export type ProjectileKind = 'arrow' | 'bolt' | 'fireball' | 'missile' | 'frost' | 'flask' | 'curse';
 /**
@@ -59,6 +59,8 @@ export interface UnitDef {
   arcAttack?: boolean;
   /** 無視控制區（攻城兵） */
   ignoresZoc?: boolean;
+  /** 戰鬥開始時隱匿，第一次攻擊才現身（潛行者） */
+  startsHidden?: boolean;
   /** 技能 id，依序對應快捷鍵 */
   skills: string[];
   ai?: EnemyArchetype;
@@ -121,7 +123,8 @@ export type SkillEffect =
   | { kind: 'zone'; radius: number; duration: number; moveMult: number }
   /** 範圍治療（治療藥瓶） */
   | { kind: 'aoeHeal'; radius: number; amount: number; projectileSpeed?: number; projectileKind?: ProjectileKind }
-  | { kind: 'charge'; speedMult: number; maxDuration: number }
+  /** 衝鋒（knockback：抵達時的攻擊附帶擊退，攻城兵的撞擊） */
+  | { kind: 'charge'; speedMult: number; maxDuration: number; knockback?: number }
   | { kind: 'tumble'; speed: number };
 
 export interface SkillDef {

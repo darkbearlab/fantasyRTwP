@@ -26,7 +26,7 @@ export function enemyThink(world: World, u: Unit): void {
   if (heroes.length === 0) return;
 
   // 被牽制時：先處理牽制自己的英雄
-  const pinners = u.def.ai === 'boss' ? [] : pinnersAt(world, u);
+  const pinners = u.def.ai === 'boss' || u.def.ignoresZoc ? [] : pinnersAt(world, u);
   if (pinners.length > 0) {
     attack(world, u, nearest(u, pinners));
     return;
@@ -81,6 +81,46 @@ export function enemyThink(world: World, u: Unit): void {
         world.issueOrder(u, { type: 'skill', skillId: 'sweep', point: { x: t.pos.x, y: t.pos.y } });
         return;
       }
+      attack(world, u, t);
+      return;
+    }
+    case 'siege': {
+      // 撞擊：衝向有一段距離的英雄
+      const t = nearest(u, heroes);
+      const d = edgeDistance(u, t);
+      if (u.skillReady('ram') && u.def.skills.includes('ram') && d > 2.5 && d <= SKILLS.ram.range && world.canSee(u, t)) {
+        world.issueOrder(u, { type: 'skill', skillId: 'ram', targetId: t.id });
+        return;
+      }
+      attack(world, u, t);
+      return;
+    }
+    case 'bomber': {
+      // 拋物線：不需視線；被近身就後退
+      const threat = heroes.find((h) => edgeDistance(u, h) < ARCHER_THREAT_RANGE);
+      if (threat && u.retreatCooldown <= 0) {
+        const p = retreatPoint(world, u, heroes);
+        if (p) {
+          u.retreatCooldown = ARCHER_RETREAT_COOLDOWN;
+          world.issueOrder(u, { type: 'move', point: p });
+          return;
+        }
+      }
+      if (u.def.skills.includes('bomb') && u.skillReady('bomb')) {
+        const inRange = heroes.filter((h) => dist(u.pos, h.pos) <= SKILLS.bomb.range);
+        const p = inRange.length ? bestClusterPoint(u, inRange, SKILLS.bomb) : null;
+        if (p) {
+          world.issueOrder(u, { type: 'skill', skillId: 'bomb', point: p });
+          return;
+        }
+      }
+      attack(world, u, nearest(u, heroes));
+      return;
+    }
+    case 'lurker': {
+      // 優先攻擊後排：不產生控制區的英雄中生命最低者
+      const back = heroes.filter((h) => !h.def.projectsZoc);
+      const t = back.length ? [...back].sort((a, b) => a.hp - b.hp || dist(u.pos, a.pos) - dist(u.pos, b.pos))[0] : nearest(u, heroes);
       attack(world, u, t);
       return;
     }

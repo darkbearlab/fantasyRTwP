@@ -46,6 +46,10 @@ const list: EncounterDef[] = [
     enemies: [E('brute', 29, 10), E('brute', 29, 14), E('archer', 34, 7), E('archer', 34, 17), E('caster', 37, 12)] },
   { id: 'marshVillage', name: '沼澤村落', map: 'marsh01', tier: 'battle', minLayer: 2, maxLayer: 5, difficulty: 2,
     enemies: [E('brute', 27, 9.5), E('brute', 27, 14.5), E('archer', 30, 9), E('archer', 30, 15), E('caster', 37, 12), E('skirmisher', 38, 3)] },
+  { id: 'forestStalkers', name: '林間潛行者', map: 'forest01', tier: 'battle', minLayer: 2, maxLayer: 5, difficulty: 2,
+    enemies: [E('brute', 29, 10), E('brute', 29, 14), E('archer', 34, 12), E('lurker', 25.5, 21), E('lurker', 14, 2)] },
+  { id: 'marshAmbush', name: '沼澤伏擊', map: 'marsh01', tier: 'battle', minLayer: 2, maxLayer: 5, difficulty: 2,
+    enemies: [E('brute', 27, 10), E('brute', 27, 14), E('bomber', 32, 12), E('lurker', 30, 21), E('lurker', 37.5, 3)] },
   // ── 後期（6–7 名）──
   { id: 'passHold', name: '隘口之戰', map: 'arena01', tier: 'battle', minLayer: 4, maxLayer: 7, difficulty: 3,
     enemies: [E('brute', 31.5, 10.5), E('brute', 31.5, 12.5), E('brute', 32, 14.5), E('skirmisher', 34, 17), E('archer', 35, 9.5), E('archer', 35, 15), E('caster', 37, 12.5)] },
@@ -55,6 +59,10 @@ const list: EncounterDef[] = [
     enemies: [E('brute', 25, 10.5), E('brute', 25, 12.5), E('brute', 26, 14.5), E('archer', 31, 8), E('archer', 31, 16), E('caster', 35, 12), E('skirmisher', 3, 21.5)] },
   { id: 'hillGarrison', name: '高地守軍', map: 'hill01', tier: 'battle', minLayer: 4, maxLayer: 7, difficulty: 3,
     enemies: [E('brute', 23.5, 10), E('brute', 23.5, 14), E('brute', 30, 8), E('archer', 28, 7.5), E('archer', 31, 12), E('archer', 28, 16.5), E('caster', 30.5, 10)] },
+  { id: 'hillSiege', name: '攻上丘陵', map: 'hill01', tier: 'battle', minLayer: 3, maxLayer: 6, difficulty: 3,
+    enemies: [E('siege', 23.5, 12), E('siege', 23.5, 9.5), E('bomber', 28, 8), E('bomber', 28, 16), E('archer', 30.5, 12), E('lurker', 36, 12)] },
+  { id: 'passSiege', name: '攻城隊', map: 'arena01', tier: 'battle', minLayer: 4, maxLayer: 7, difficulty: 3,
+    enemies: [E('siege', 31.5, 11), E('siege', 31.5, 13.5), E('brute', 32, 9), E('bomber', 35, 12), E('archer', 35, 9.5), E('archer', 35, 15), E('lurker', 38.5, 22.5)] },
   // ── 精英：一般組合＋1 名隊長 ──
   { id: 'passCaptain', name: '隘口守將', map: 'arena01', tier: 'elite', minLayer: 3, maxLayer: 7, difficulty: 3,
     enemies: [E('brute', 31.5, 12, true), E('brute', 31.5, 9.5), E('brute', 32, 14.5), E('archer', 35, 9.5), E('archer', 35, 15)] },
@@ -68,6 +76,8 @@ const list: EncounterDef[] = [
     enemies: [E('caster', 33, 12, true), E('brute', 27, 10), E('brute', 27, 14), E('archer', 30, 7.5), E('skirmisher', 30, 20.5)] },
   { id: 'hillCaptain', name: '哨站隊長', map: 'hill01', tier: 'elite', minLayer: 3, maxLayer: 7, difficulty: 4,
     enemies: [E('archer', 30, 11, true), E('brute', 23.5, 10), E('brute', 23.5, 14), E('archer', 27, 7.5), E('skirmisher', 36, 11)] },
+  { id: 'siegeCaptain', name: '破城隊長', map: 'bridge01', tier: 'elite', minLayer: 3, maxLayer: 7, difficulty: 4,
+    enemies: [E('siege', 25, 12, true), E('brute', 25, 10), E('brute', 25, 14.5), E('bomber', 31, 9), E('bomber', 31, 15)] },
   // ── 頭目 ──
   { id: 'warlord', name: '戰爭領主', map: 'boss01', tier: 'boss', minLayer: 1, maxLayer: 99, difficulty: 5,
     enemies: [E('warlord', 33, 12), E('brute', 30.5, 9.5), E('brute', 30.5, 14.5), E('archer', 35, 6.5), E('archer', 35, 17.5)] },

@@ -20,6 +20,7 @@ import {
 } from '../src/run/progression';
 import type { RunState } from '../src/run/runState';
 import { createRun, livingHeroes } from '../src/run/runState';
+import { rollParty } from '../src/run/classes';
 import { maxHpOf } from '../src/run/upgrades';
 import { HeroScript } from './heroScript';
 
@@ -87,8 +88,13 @@ export function stepRun(r: RunState, scripted = true): RunState {
   }
 }
 
-export function playRun(seed: number, opts: { layers?: number; scripted?: boolean } = {}): RunState {
-  let r = createRun(seed, { layers: opts.layers });
+/** 自動遠征的隊伍：random＝4 名都隨機（SPEC_SLICE3 §8，預設）；fixed＝四個 Archetype */
+export function autoParty(seed: number, mode: 'random' | 'fixed' = 'random'): string[] | undefined {
+  return mode === 'random' ? rollParty(seed, []) : undefined;
+}
+
+export function playRun(seed: number, opts: { layers?: number; scripted?: boolean; party?: 'random' | 'fixed' } = {}): RunState {
+  let r = createRun(seed, { layers: opts.layers, party: autoParty(seed, opts.party) });
   for (let guard = 0; guard < 500 && r.phase.kind !== 'ended'; guard++) r = stepRun(r, opts.scripted ?? true);
   return r;
 }
