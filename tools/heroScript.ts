@@ -28,12 +28,36 @@ export class HeroScript {
     const send = (c: Command) => w.enqueue(c);
     const ready = (u: Unit, s: string) => u.skillReady(s) && u.state !== UnitState.Windup && !u.dead;
     const telegraphing = enemies.find((e) => e.action?.phase === 'windup' && e.action.skillId && SKILLS[e.action.skillId].telegraph);
+    const backline = heroes.filter((u) => u.def.id !== 'warrior');
+    const mage = heroes.find((u) => u.def.id === 'mage');
+    /** 正在近戰攻擊後排的敵人 */
+    const divers = enemies.filter((e) => e.isMelee && e.order?.type === 'attack' && backline.some((b) => b.id === (e.order as { targetId: number }).targetId && edgeDistance(b, e) < 3));
+    /** 遠程目標優先序：衝進後排的近戰 → 術士／弓手 → 最近 */
+    const pickTarget = (h: Unit, list: Unit[]): Unit => {
+      const d = list.filter((e) => divers.includes(e));
+      if (d.length) return nearest(h, d);
+      const r = list.filter((e) => e.def.ai === 'caster' || e.def.ai === 'archer');
+      if (r.length) return nearest(h, r);
+      return nearest(h, list);
+    };
 
     for (const h of heroes) {
       if (h.action?.phase === 'windup' && h.action.kind === 'skill') continue;
       switch (h.def.id) {
         case 'warrior': {
           const adj = enemies.filter((e) => edgeDistance(h, e) <= 1.0);
+          // 開打後替法師套上守護
+          if (w.enemyAggro && mage && ready(h, 'guard') && dist(h.pos, mage.pos) <= 5 && enemies.some((e) => dist(e.pos, mage.pos) < 8)) {
+            send({ type: 'skill', unitId: h.id, skillId: 'guard', targetId: mage.id });
+            break;
+          }
+          // 沒人貼著戰士、卻有敵人衝進後排：過去救人
+          if (adj.length === 0 && divers.length > 0) {
+            const t = nearest(h, divers);
+            if (ready(h, 'charge') && edgeDistance(h, t) > 3 && edgeDistance(h, t) <= SKILLS.charge.range && w.canSee(h, t)) send({ type: 'skill', unitId: h.id, skillId: 'charge', targetId: t.id });
+            else send({ type: 'attack', unitIds: [h.id], targetId: t.id });
+            break;
+          }
           if (adj.length > 0) {
             const caster = adj.find((e) => e.action?.phase === 'windup');
             if (caster && ready(h, 'shieldBash')) send({ type: 'skill', unitId: h.id, skillId: 'shieldBash', targetId: caster.id });
@@ -66,13 +90,19 @@ export class HeroScript {
               break;
             }
           }
-          const threat = enemies.find((e) => edgeDistance(h, e) < 1.5);
+          const threat = enemies.find((e) => e.isMelee && edgeDistance(h, e) < 2.5);
           if (threat && h.def.id === 'mage' && ready(h, 'iceBind')) {
             send({ type: 'skill', unitId: h.id, skillId: 'iceBind', targetId: threat.id });
             break;
           }
+          // 血少又被近身：往後撤
+          if (threat && h.hp < h.maxHp * 0.5 && h.order?.type !== 'move') {
+            const away = { x: h.pos.x - (threat.pos.x - h.pos.x) * 2, y: h.pos.y - (threat.pos.y - h.pos.y) * 2 };
+            send({ type: 'move', unitIds: [h.id], point: away });
+            break;
+          }
           if (visible.length > 0) {
-            const t = visible.find((e) => e.def.ai === 'caster') ?? nearest(h, visible);
+            const t = pickTarget(h, visible);
             if (h.def.id === 'ranger' && ready(h, 'aimedShot') && !threat) send({ type: 'skill', unitId: h.id, skillId: 'aimedShot', targetId: t.id });
             else send({ type: 'attack', unitIds: [h.id], targetId: t.id });
           } else if (w.enemyAggro && !enemies.some((e) => e.def.ai === 'brute' && dist(e.pos, choke) < 8)) {
@@ -92,6 +122,13 @@ export class HeroScript {
           const near = heroes.filter((a) => dist(a.pos, h.pos) <= 6).length;
           if (ready(h, 'bless') && near >= 3 && enemies.some((e) => dist(e.pos, choke) < 6)) {
             send({ type: 'skill', unitId: h.id, skillId: 'bless' });
+            break;
+          }
+          // 把衝進後排的敵人震開
+          const diver = divers.find((e) => edgeDistance(h, e) < 4);
+          if (diver) {
+            if (ready(h, 'holySmite') && edgeDistance(h, diver) < 1) send({ type: 'skill', unitId: h.id, skillId: 'holySmite', targetId: diver.id });
+            else send({ type: 'attack', unitIds: [h.id], targetId: diver.id });
             break;
           }
           const threat = enemies.find((e) => edgeDistance(h, e) < 3 && dist(e.pos, choke) > 2);

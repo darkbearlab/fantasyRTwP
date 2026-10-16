@@ -50,7 +50,8 @@ export function createBattleFromRun(run: RunState, config?: Partial<SimConfig>, 
   const enc = currentEncounter(run);
   const map = MAPS[enc.map];
   if (!map) throw new Error(`未知的地圖：${enc.map}`);
-  const layer = run.phase.kind === 'battle' ? run.map.nodes[run.phase.nodeId].layer : 1;
+  // 頭目戰的數值是為最後一層設計的，不再套用層數成長
+  const layer = enc.tier === 'boss' ? 1 : run.phase.kind === 'battle' ? run.map.nodes[run.phase.nodeId].layer : 1;
   const spawns: UnitSpawn[] = [];
   // 出生位置依存活英雄數量排列；heroSlot 沿用隊伍欄位，數字鍵不會錯位
   livingHeroes(run).forEach(({ slot, hero }, i) => {

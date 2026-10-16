@@ -70,7 +70,7 @@ export const SKILLS: Record<string, SkillDef> = {
   sweep: {
     id: 'sweep', name: '橫掃', description: '前方扇形範圍攻擊，準備 1.5 秒，可打斷',
     target: 'ground', range: 3, windup: 1.5, recovery: 1.0, cooldown: 7, requiresLos: false, telegraph: true,
-    effect: { kind: 'cone', radius: 3.6, angle: 110, damage: [18, 26], friendlyFire: false },
+    effect: { kind: 'cone', radius: 3.6, angle: 110, damage: [14, 20], friendlyFire: false },
   },
   warcry: {
     id: 'warcry', name: '戰吼', description: '召喚 3 名蠻兵，全體敵人 10 秒內傷害 +20%；準備 2.0 秒，被打斷就不能再用',

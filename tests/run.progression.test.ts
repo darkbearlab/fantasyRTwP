@@ -85,7 +85,7 @@ describe('遠征狀態（SPEC_SLICE2 §3、§11-2/3）', () => {
 
   it('敵人數值隨層數成長；隊長強化', () => {
     expect(enemyDef('brute', 1).maxHp).toBe(105);
-    expect(enemyDef('brute', 6).maxHp).toBe(Math.round(105 * 1.4));
+    expect(enemyDef('brute', 6).maxHp).toBe(Math.round(105 * (1 + ECONOMY.layerScaling * 5)));
     const cap = enemyDef('brute', 1, true);
     expect(cap.maxHp).toBe(Math.round(105 * 2.5));
     expect(cap.name).toBe('隊長蠻兵');
