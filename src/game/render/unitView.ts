@@ -11,6 +11,29 @@ const ISO = GAME_CONFIG.iso;
 /** normal：一般；brush：在草叢裡但敵人看得到；concealed：我方躲在草叢中（半透明）；hidden：對我方隱藏的敵人 */
 export type Concealment = 'normal' | 'brush' | 'concealed' | 'hidden';
 
+/** 角色外觀的共同介面（色塊 UnitView／Flare 素材 FlareView） */
+export interface UnitVisual {
+  readonly unit: Unit;
+  readonly container: Phaser.GameObjects.Container;
+  /** 身高（公尺） */
+  readonly height: number;
+  /** 腳下中心的畫面座標與世界座標（插值後） */
+  x: number;
+  y: number;
+  wx: number;
+  wy: number;
+  readonly visible: boolean;
+  update(alpha: number, selected: boolean, hovered: boolean, simTime?: number): void;
+  head(): { x: number; y: number };
+  bodyBounds(): { x: number; y: number; w: number; h: number };
+  hitTest(px: number, py: number): boolean;
+  drawOutline(g: Phaser.GameObjects.Graphics): void;
+  setConcealment(c: Concealment): void;
+  /** 被打中（Flare 版播放受擊動作） */
+  onHit?(simTime: number): void;
+  destroy(): void;
+}
+
 /** 物件層的深度基準（地面層 < 10；物件層 = 基準 + depthOf；覆蓋層 > 1000） */
 export const OBJECT_DEPTH_BASE = 100;
 export const DEAD_DEPTH = 6;
@@ -20,7 +43,7 @@ export const DEAD_DEPTH = 6;
  * - iso：腳下 2:1 橢圓（面向短線）＋直立長方形身體＋字母
  * - topdown：原本的圓形色塊＋字母＋面向短線
  */
-export class UnitView {
+export class UnitView implements UnitVisual {
   readonly container: Phaser.GameObjects.Container;
   private foot: Phaser.GameObjects.Graphics;
   private body: Phaser.GameObjects.Graphics;

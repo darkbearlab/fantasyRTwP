@@ -1306,3 +1306,32 @@ body {
 .class-chip .class-name {
   font-size: 13px;
 }
+
+/* 製作人員名單 */
+.credits-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.credits-panel {
+  background: #171a20;
+  border: 2px solid #4a5160;
+  border-radius: 12px;
+  padding: 18px 26px;
+  width: 640px;
+  max-height: 640px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.credits-names {
+  color: #c8d0dc;
+  line-height: 1.6;
+}

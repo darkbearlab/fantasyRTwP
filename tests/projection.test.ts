@@ -31,3 +31,19 @@ describe('畫面投影（等角／正俯視）', () => {
     setProjection('iso');
   });
 });
+
+describe('Flare 8 方向換算', () => {
+  it('世界面向經等角投影後換算成最接近的螢幕方向', async () => {
+    const { flareDir } = await import('../src/game/render/art');
+    setProjection('iso');
+    // 世界 +x 在螢幕上是右下（東南）、+y 是左下（西南）、(+x,+y) 是正下方（南）
+    expect(flareDir(0)).toBe(3);
+    expect(flareDir(Math.PI / 2)).toBe(1);
+    expect(flareDir(Math.PI / 4)).toBe(2);
+    expect(flareDir(Math.PI)).toBe(7);
+    expect(flareDir(-Math.PI / 2)).toBe(5);
+    expect(flareDir((-3 * Math.PI) / 4)).toBe(6);
+    expect(flareDir(-Math.PI / 4)).toBe(4);
+    expect(flareDir((3 * Math.PI) / 4)).toBe(0);
+  });
+});

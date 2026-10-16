@@ -1,0 +1,46 @@
+{
+  "$comment": "Flare 美術試裝的對應與縮放（畫面層設定，不屬於 sim）。tools/importFlare.py 讀這個檔產生 public/assets/flare/；遊戲也讀它決定每個單位用哪些圖層。heightM 要與 visual.ts 的身高一致；scale 留空則由匯入腳本依 heightM 自動計算。",
+  "heightPxPerM": 32,
+  "anims": ["stance", "run", "swing", "cast", "shoot", "block", "hit", "die", "critdie"],
+  "heroSets": {
+    "male": { "heightM": 1.8, "scaleFrom": "head_short" },
+    "female": { "heightM": 1.8, "scaleFrom": "head_long" }
+  },
+  "heroes": {
+    "warrior": { "set": "male", "layers": ["plate_boots", "plate_greaves", "plate_cuirass", "plate_gauntlets", "head_short", "plate_helm", "longsword", "kite_shield"] },
+    "ranger": { "set": "male", "layers": ["leather_boots", "leather_pants", "leather_chest", "leather_gloves", "head_short", "leather_hood", "longbow"] },
+    "mage": { "set": "male", "layers": ["mage_boots", "mage_skirt", "mage_vest", "mage_sleeves", "head_short", "mage_hood", "greatstaff"] },
+    "cleric": { "set": "female", "layers": ["chain_boots", "chain_greaves", "chain_cuirass", "chain_gloves", "head_long", "chain_coif", "mace", "buckler"] },
+    "berserker": { "set": "male", "layers": ["leather_boots", "plate_greaves", "default_chest", "plate_gauntlets", "head_bald", "greatsword"] },
+    "rogue": { "set": "female", "layers": ["leather_boots", "leather_pants", "leather_chest", "leather_gloves", "head_long", "leather_hood", "dagger"] },
+    "hexer": { "set": "female", "layers": ["mage_boots_alt1", "mage_skirt_alt1", "mage_vest_alt1", "mage_sleeves_alt1", "head_long", "mage_hood_alt1", "wand"] },
+    "alchemist": { "set": "male", "layers": ["cloth_sandals", "cloth_pants", "cloth_shirt", "cloth_gloves", "head_short", "slingshot"] }
+  },
+  "enemySheets": {
+    "skeleton": { "heightM": 2.0 },
+    "goblin_elite": { "heightM": 1.7 },
+    "skeleton_archer": { "heightM": 1.8 },
+    "skeleton_mage": { "heightM": 1.8 },
+    "minotaur": { "heightM": 3.0 },
+    "zombie": { "heightM": 2.2 },
+    "goblin": { "heightM": 1.7 },
+    "skeleton_weak": { "heightM": 1.6 }
+  },
+  "enemies": {
+    "brute": "skeleton",
+    "skirmisher": "goblin_elite",
+    "archer": "skeleton_archer",
+    "caster": "skeleton_mage",
+    "warlord": "minotaur",
+    "siege": "zombie",
+    "bomber": "goblin",
+    "lurker": "skeleton_weak"
+  },
+  "tiles": {
+    "tileset": "tileset_dungeon",
+    "floor": [16, 17, 18, 19, 36, 37, 38],
+    "fancy": [32, 33, 34, 35],
+    "tileW": 64,
+    "tileH": 32
+  }
+}

@@ -3,6 +3,7 @@ import { randomRunSeed, startNewRun, switchTo } from '../runFlow';
 import { DomScene } from './DomScene';
 import { ENCOUNTERS } from '../../run/data/encounters';
 import { MAPS } from '../../sim/data/maps';
+import { CREDITS } from '../credits';
 
 /** 標題（SPEC_SLICE2 §10.1）：開始遠征、可輸入種子 */
 export class TitleScene extends DomScene {
@@ -48,7 +49,26 @@ export class TitleScene extends DomScene {
     );
     quickRow.append(sel, layerSel, quick);
     box.append(seedRow, start, quickRow);
+    const creditsRow = el('div', 'btn-row center');
+    creditsRow.appendChild(button('製作人員', 'small', () => this.showCredits()));
+    box.appendChild(creditsRow);
     box.appendChild(el('div', 'title-hint', '操作：1–4 選人（連按跳鏡頭）、Tab 切換、Q E R 技能、右鍵移動／攻擊、空白鍵暫停、WASD 鏡頭'));
     this.root.appendChild(box);
+  }
+
+  /** 製作人員名單（含 Flare 美術貢獻者，CC-BY-SA 3.0 署名） */
+  private showCredits(): void {
+    const overlay = el('div', 'credits-overlay');
+    const panel = el('div', 'panel credits-panel');
+    panel.append(el('h2', '', '製作人員'));
+    for (const line of CREDITS.game) panel.append(el('div', '', line));
+    const f = CREDITS.flare;
+    panel.append(el('div', 'step-title', f.title), el('div', 'meta', f.note), el('div', 'meta', f.source));
+    panel.append(el('div', 'step-title', 'Art'), el('div', 'credits-names', f.art.join('、')));
+    panel.append(el('div', 'step-title', 'Additional Art'), el('div', 'credits-names', f.additional.join('、')));
+    panel.append(button('關閉', 'small', () => overlay.remove()));
+    overlay.appendChild(panel);
+    overlay.addEventListener('click', (e) => e.target === overlay && overlay.remove());
+    this.root.appendChild(overlay);
   }
 }

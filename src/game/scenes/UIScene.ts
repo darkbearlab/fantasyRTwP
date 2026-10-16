@@ -14,6 +14,8 @@ import type { Personality } from '../../sim/data/types';
 const PERSONALITY_CYCLE: Personality[] = ['steadfast', 'aggressive', 'guerrilla'];
 import { hex } from '../render/palette';
 import { getProjection, setProjection } from '../render/projection';
+import { getArt, setArt } from '../render/art';
+import type { ArtMode } from '../render/art';
 import type { ProjectionMode } from '../render/projection';
 import type { BattleSession, DebugFlags } from '../session';
 import type { BattleScene } from './BattleScene';
@@ -175,6 +177,25 @@ export class UIScene extends Phaser.Scene {
     this.debugInputs.push({ sync: () => document.activeElement !== proj && (proj.value = getProjection()) });
     projRow.appendChild(proj);
     p.appendChild(projRow);
+
+    const artRow = el('div', 'row');
+    artRow.appendChild(el('span', 'lbl', '美術'));
+    const artSel = el('select');
+    for (const [v, t] of [
+      ['flare', 'Flare 素材（等角）'],
+      ['blocks', '色塊'],
+    ]) {
+      const o = el('option', '', t);
+      o.value = v;
+      artSel.appendChild(o);
+    }
+    artSel.addEventListener('change', () => {
+      setArt(artSel.value as ArtMode);
+      artSel.blur();
+    });
+    this.debugInputs.push({ sync: () => document.activeElement !== artSel && (artSel.value = getArt()) });
+    artRow.appendChild(artSel);
+    p.appendChild(artRow);
 
     const speedRow = el('div', 'row');
     speedRow.appendChild(el('span', 'lbl', '時間倍率'));

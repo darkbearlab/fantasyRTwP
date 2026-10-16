@@ -1,0 +1,2680 @@
+{
+ "sheets": {
+  "male_cloth_gloves": {
+   "png": "male_cloth_gloves.png",
+   "json": "male_cloth_gloves.json",
+   "scale": 0.4144,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "male_cloth_pants": {
+   "png": "male_cloth_pants.png",
+   "json": "male_cloth_pants.json",
+   "scale": 0.4144,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "male_cloth_sandals": {
+   "png": "male_cloth_sandals.png",
+   "json": "male_cloth_sandals.json",
+   "scale": 0.4144,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "male_cloth_shirt": {
+   "png": "male_cloth_shirt.png",
+   "json": "male_cloth_shirt.json",
+   "scale": 0.4144,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "male_default_chest": {
+   "png": "male_default_chest.png",
+   "json": "male_default_chest.json",
+   "scale": 0.4144,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "male_greatstaff": {
+   "png": "male_greatstaff.png",
+   "json": "male_greatstaff.json",
+   "scale": 0.4144,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "male_greatsword": {
+   "png": "male_greatsword.png",
+   "json": "male_greatsword.json",
+   "scale": 0.4144,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "male_head_bald": {
+   "png": "male_head_bald.png",
+   "json": "male_head_bald.json",
+   "scale": 0.4144,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "male_head_short": {
+   "png": "male_head_short.png",
+   "json": "male_head_short.json",
+   "scale": 0.4144,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "male_kite_shield": {
+   "png": "male_kite_shield.png",
+   "json": "male_kite_shield.json",
+   "scale": 0.4144,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "male_leather_boots": {
+   "png": "male_leather_boots.png",
+   "json": "male_leather_boots.json",
+   "scale": 0.4144,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "male_leather_chest": {
+   "png": "male_leather_chest.png",
+   "json": "male_leather_chest.json",
+   "scale": 0.4144,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "male_leather_gloves": {
+   "png": "male_leather_gloves.png",
+   "json": "male_leather_gloves.json",
+   "scale": 0.4144,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "male_leather_hood": {
+   "png": "male_leather_hood.png",
+   "json": "male_leather_hood.json",
+   "scale": 0.4144,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "male_leather_pants": {
+   "png": "male_leather_pants.png",
+   "json": "male_leather_pants.json",
+   "scale": 0.4144,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "male_longbow": {
+   "png": "male_longbow.png",
+   "json": "male_longbow.json",
+   "scale": 0.4144,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "male_longsword": {
+   "png": "male_longsword.png",
+   "json": "male_longsword.json",
+   "scale": 0.4144,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "male_mage_boots": {
+   "png": "male_mage_boots.png",
+   "json": "male_mage_boots.json",
+   "scale": 0.4144,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "male_mage_hood": {
+   "png": "male_mage_hood.png",
+   "json": "male_mage_hood.json",
+   "scale": 0.4144,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "male_mage_skirt": {
+   "png": "male_mage_skirt.png",
+   "json": "male_mage_skirt.json",
+   "scale": 0.4144,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "male_mage_sleeves": {
+   "png": "male_mage_sleeves.png",
+   "json": "male_mage_sleeves.json",
+   "scale": 0.4144,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "male_mage_vest": {
+   "png": "male_mage_vest.png",
+   "json": "male_mage_vest.json",
+   "scale": 0.4144,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "male_plate_boots": {
+   "png": "male_plate_boots.png",
+   "json": "male_plate_boots.json",
+   "scale": 0.4144,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "male_plate_cuirass": {
+   "png": "male_plate_cuirass.png",
+   "json": "male_plate_cuirass.json",
+   "scale": 0.4144,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "male_plate_gauntlets": {
+   "png": "male_plate_gauntlets.png",
+   "json": "male_plate_gauntlets.json",
+   "scale": 0.4144,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "male_plate_greaves": {
+   "png": "male_plate_greaves.png",
+   "json": "male_plate_greaves.json",
+   "scale": 0.4144,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "male_plate_helm": {
+   "png": "male_plate_helm.png",
+   "json": "male_plate_helm.json",
+   "scale": 0.4144,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "male_slingshot": {
+   "png": "male_slingshot.png",
+   "json": "male_slingshot.json",
+   "scale": 0.4144,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "female_buckler": {
+   "png": "female_buckler.png",
+   "json": "female_buckler.json",
+   "scale": 0.3972,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "female_chain_boots": {
+   "png": "female_chain_boots.png",
+   "json": "female_chain_boots.json",
+   "scale": 0.3972,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "female_chain_coif": {
+   "png": "female_chain_coif.png",
+   "json": "female_chain_coif.json",
+   "scale": 0.3972,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "female_chain_cuirass": {
+   "png": "female_chain_cuirass.png",
+   "json": "female_chain_cuirass.json",
+   "scale": 0.3972,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "female_chain_gloves": {
+   "png": "female_chain_gloves.png",
+   "json": "female_chain_gloves.json",
+   "scale": 0.3972,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "female_chain_greaves": {
+   "png": "female_chain_greaves.png",
+   "json": "female_chain_greaves.json",
+   "scale": 0.3972,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "female_dagger": {
+   "png": "female_dagger.png",
+   "json": "female_dagger.json",
+   "scale": 0.3972,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "female_head_long": {
+   "png": "female_head_long.png",
+   "json": "female_head_long.json",
+   "scale": 0.3972,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "female_leather_boots": {
+   "png": "female_leather_boots.png",
+   "json": "female_leather_boots.json",
+   "scale": 0.3972,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "female_leather_chest": {
+   "png": "female_leather_chest.png",
+   "json": "female_leather_chest.json",
+   "scale": 0.3972,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "female_leather_gloves": {
+   "png": "female_leather_gloves.png",
+   "json": "female_leather_gloves.json",
+   "scale": 0.3972,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "female_leather_hood": {
+   "png": "female_leather_hood.png",
+   "json": "female_leather_hood.json",
+   "scale": 0.3972,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "female_leather_pants": {
+   "png": "female_leather_pants.png",
+   "json": "female_leather_pants.json",
+   "scale": 0.3972,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "female_mace": {
+   "png": "female_mace.png",
+   "json": "female_mace.json",
+   "scale": 0.3972,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "female_mage_boots_alt1": {
+   "png": "female_mage_boots_alt1.png",
+   "json": "female_mage_boots_alt1.json",
+   "scale": 0.3972,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "female_mage_hood_alt1": {
+   "png": "female_mage_hood_alt1.png",
+   "json": "female_mage_hood_alt1.json",
+   "scale": 0.3972,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "female_mage_skirt_alt1": {
+   "png": "female_mage_skirt_alt1.png",
+   "json": "female_mage_skirt_alt1.json",
+   "scale": 0.3972,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "female_mage_sleeves_alt1": {
+   "png": "female_mage_sleeves_alt1.png",
+   "json": "female_mage_sleeves_alt1.json",
+   "scale": 0.3972,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "female_mage_vest_alt1": {
+   "png": "female_mage_vest_alt1.png",
+   "json": "female_mage_vest_alt1.json",
+   "scale": 0.3972,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "female_wand": {
+   "png": "female_wand.png",
+   "json": "female_wand.json",
+   "scale": 0.3972,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "enemy_skeleton": {
+   "png": "enemy_skeleton.png",
+   "json": "enemy_skeleton.json",
+   "scale": 0.3855,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 533,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 533,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "back_forth"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    },
+    "critdie": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "enemy_goblin_elite": {
+   "png": "enemy_goblin_elite.png",
+   "json": "enemy_goblin_elite.json",
+   "scale": 0.4387,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 3,
+     "duration": 300,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 533,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 200,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "critdie": {
+     "frames": 8,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "enemy_skeleton_archer": {
+   "png": "enemy_skeleton_archer.png",
+   "json": "enemy_skeleton_archer.json",
+   "scale": 0.3291,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 533,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 533,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "back_forth"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    },
+    "critdie": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "enemy_skeleton_mage": {
+   "png": "enemy_skeleton_mage.png",
+   "json": "enemy_skeleton_mage.json",
+   "scale": 0.331,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 533,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 533,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "back_forth"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    },
+    "critdie": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "enemy_minotaur": {
+   "png": "enemy_minotaur.png",
+   "json": "enemy_minotaur.json",
+   "scale": 0.4638,
+   "anims": {
+    "stance": {
+     "frames": 8,
+     "duration": 1600,
+     "type": "looped"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 8,
+     "duration": 1066,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 8,
+     "duration": 800,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 8,
+     "duration": 800,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 8,
+     "duration": 266,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 3,
+     "duration": 200,
+     "type": "back_forth"
+    },
+    "die": {
+     "frames": 8,
+     "duration": 1066,
+     "type": "back_forth"
+    },
+    "critdie": {
+     "frames": 8,
+     "duration": 1066,
+     "type": "play_once"
+    }
+   }
+  },
+  "enemy_zombie": {
+   "png": "enemy_zombie.png",
+   "json": "enemy_zombie.json",
+   "scale": 0.4601,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 533,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 800,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 533,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 200,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "critdie": {
+     "frames": 8,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "enemy_goblin": {
+   "png": "enemy_goblin.png",
+   "json": "enemy_goblin.json",
+   "scale": 0.6253,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 800,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 3,
+     "duration": 300,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 533,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 200,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "play_once"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "critdie": {
+     "frames": 8,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  },
+  "enemy_skeleton_weak": {
+   "png": "enemy_skeleton_weak.png",
+   "json": "enemy_skeleton_weak.json",
+   "scale": 0.3084,
+   "anims": {
+    "stance": {
+     "frames": 4,
+     "duration": 533,
+     "type": "back_forth"
+    },
+    "run": {
+     "frames": 8,
+     "duration": 533,
+     "type": "looped"
+    },
+    "swing": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "cast": {
+     "frames": 4,
+     "duration": 400,
+     "type": "play_once"
+    },
+    "shoot": {
+     "frames": 4,
+     "duration": 533,
+     "type": "play_once"
+    },
+    "block": {
+     "frames": 2,
+     "duration": 66,
+     "type": "play_once"
+    },
+    "hit": {
+     "frames": 2,
+     "duration": 133,
+     "type": "back_forth"
+    },
+    "die": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    },
+    "critdie": {
+     "frames": 6,
+     "duration": 800,
+     "type": "play_once"
+    }
+   }
+  }
+ },
+ "tiles": {
+  "png": "tiles.png",
+  "json": "tiles.json"
+ }
+}
