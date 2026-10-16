@@ -3,14 +3,16 @@ import { GAME_CONFIG } from '../../config';
 import type { Vec } from '../../sim/math';
 import type { Unit } from '../../sim/unit';
 import type { BattleSession } from '../session';
+import { screenToGround } from '../render/projection';
 import { beginSkill, confirmTargeting } from './targeting';
-
-const PX = GAME_CONFIG.pxPerMeter;
 
 export interface InputHost {
   scene: Phaser.Scene;
   session(): BattleSession;
-  unitAt(p: Vec): Unit | undefined;
+  /** 畫面空間（相機世界 px）的單位點選判定 */
+  unitAtScreen(x: number, y: number): Unit | undefined;
+  /** 單位腳下中心的畫面座標（框選用） */
+  footScreen(u: Unit): Vec;
   centerOn(unitId: number): void;
 }
 
@@ -19,7 +21,7 @@ export interface InputHost {
  * sim 與渲染都不直接處理輸入，之後接觸控只要再寫一個 controller。
  */
 export class InputController {
-  /** 框選：起點（世界 px） */
+  /** 框選：起點（相機世界 px＝投影後的畫面座標） */
   dragStart: { x: number; y: number } | null = null;
   dragNow: { x: number; y: number } | null = null;
   private panLast: { x: number; y: number } | null = null;
@@ -55,9 +57,10 @@ export class InputController {
     return this.host.session();
   }
 
-  private toMeters(p: Phaser.Input.Pointer): Vec {
+  /** 指標在相機世界中的畫面座標 */
+  private toScreen(p: Phaser.Input.Pointer): Vec {
     const w = p.positionToCamera(this.host.scene.cameras.main) as Phaser.Math.Vector2;
-    return { x: w.x / PX, y: w.y / PX };
+    return { x: w.x, y: w.y };
   }
 
   private now(): number {
@@ -70,8 +73,10 @@ export class InputController {
       this.panLast = { x: p.x, y: p.y };
       return;
     }
-    const m = this.toMeters(p);
-    const unit = this.host.unitAt(m);
+    const sp = this.toScreen(p);
+    const m = screenToGround(sp.x, sp.y);
+    // 點到角色優先於地面
+    const unit = this.host.unitAtScreen(sp.x, sp.y);
     if (p.rightButtonDown()) {
       if (s.targeting) {
         s.targeting = null;
@@ -85,15 +90,15 @@ export class InputController {
         confirmTargeting(s, m, unit, this.now());
         return;
       }
-      this.dragStart = { x: m.x * PX, y: m.y * PX };
-      this.dragNow = { ...this.dragStart };
+      this.dragStart = { ...sp };
+      this.dragNow = { ...sp };
     }
   }
 
   private onMove(p: Phaser.Input.Pointer): void {
     this.pointerSeen = true;
-    const m = this.toMeters(p);
-    const u = this.host.unitAt(m);
+    const sp = this.toScreen(p);
+    const u = this.host.unitAtScreen(sp.x, sp.y);
     this.session.hoverUnitId = u ? u.id : null;
     if (this.panLast && p.middleButtonDown()) {
       const cam = this.host.scene.cameras.main;
@@ -101,7 +106,7 @@ export class InputController {
       cam.scrollY -= (p.y - this.panLast.y) / cam.zoom;
       this.panLast = { x: p.x, y: p.y };
     }
-    if (this.dragStart) this.dragNow = { x: m.x * PX, y: m.y * PX };
+    if (this.dragStart) this.dragNow = { ...sp };
   }
 
   private onUp(p: Phaser.Input.Pointer): void {
@@ -115,17 +120,22 @@ export class InputController {
     const shift = !!(p.event as MouseEvent | undefined)?.shiftKey;
     const heroes = s.world.units.filter((u) => u.team === 'hero' && !u.dead);
     if (Math.hypot(b.x - a.x, b.y - a.y) > 6) {
-      // 框選
-      const x0 = Math.min(a.x, b.x) / PX;
-      const x1 = Math.max(a.x, b.x) / PX;
-      const y0 = Math.min(a.y, b.y) / PX;
-      const y1 = Math.max(a.y, b.y) / PX;
-      const inBox = heroes.filter((u) => u.pos.x >= x0 && u.pos.x <= x1 && u.pos.y >= y0 && u.pos.y <= y1).sort((p1, p2) => p1.heroSlot - p2.heroSlot);
+      // 框選：比對腳下中心投影後的畫面座標
+      const x0 = Math.min(a.x, b.x);
+      const x1 = Math.max(a.x, b.x);
+      const y0 = Math.min(a.y, b.y);
+      const y1 = Math.max(a.y, b.y);
+      const inBox = heroes
+        .filter((u) => {
+          const f = this.host.footScreen(u);
+          return f.x >= x0 && f.x <= x1 && f.y >= y0 && f.y <= y1;
+        })
+        .sort((p1, p2) => p1.heroSlot - p2.heroSlot);
       if (shift) for (const u of inBox) if (!s.selection.includes(u.id)) s.selection.push(u.id);
       if (!shift) s.selection = inBox.map((u) => u.id);
       return;
     }
-    const unit = this.host.unitAt({ x: a.x / PX, y: a.y / PX });
+    const unit = this.host.unitAtScreen(a.x, a.y);
     if (unit && unit.team === 'hero' && !unit.dead) this.selectHero(unit.id, shift);
     else if (!shift) s.selection = [];
   }
