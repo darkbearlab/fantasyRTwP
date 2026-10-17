@@ -1,0 +1,87 @@
+{
+ "cell": 192,
+ "origin": [
+  96,
+  135
+ ],
+ "px_per_meter": 53.3,
+ "dirs": [
+  "W",
+  "NW",
+  "N",
+  "NE",
+  "E",
+  "SE",
+  "S",
+  "SW"
+ ],
+ "anims": {
+  "attack_high": {
+   "frames": 8,
+   "loop": false
+  },
+  "block_idle": {
+   "frames": 4,
+   "loop": true
+  },
+  "cast": {
+   "frames": 8,
+   "loop": false
+  },
+  "death": {
+   "frames": 8,
+   "loop": false
+  },
+  "death_back": {
+   "frames": 8,
+   "loop": false
+  },
+  "hit": {
+   "frames": 6,
+   "loop": false
+  },
+  "idle": {
+   "frames": 8,
+   "loop": true
+  },
+  "power_slash": {
+   "frames": 8,
+   "loop": false
+  },
+  "run": {
+   "frames": 8,
+   "loop": true
+  },
+  "slash": {
+   "frames": 8,
+   "loop": false
+  },
+  "slash_combo": {
+   "frames": 12,
+   "loop": false
+  },
+  "walk": {
+   "frames": 8,
+   "loop": true
+  },
+  "warcry": {
+   "frames": 10,
+   "loop": false
+  }
+ },
+ "files": {
+  "attack_high": "attack_high.png",
+  "block_idle": "block_idle.png",
+  "cast": "cast.png",
+  "death": "death.png",
+  "death_back": "death_back.png",
+  "hit": "hit.png",
+  "idle": "idle.png",
+  "power_slash": "power_slash.png",
+  "run": "run.png",
+  "slash": "slash.png",
+  "slash_combo": "slash_combo.png",
+  "walk": "walk.png",
+  "warcry": "warcry.png"
+ }
+}

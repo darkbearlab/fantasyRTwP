@@ -1,0 +1,82 @@
+{
+ "cell": 192,
+ "origin": [
+  96,
+  135
+ ],
+ "px_per_meter": 53.3,
+ "dirs": [
+  "W",
+  "NW",
+  "N",
+  "NE",
+  "E",
+  "SE",
+  "S",
+  "SW"
+ ],
+ "anims": {
+  "aim": {
+   "frames": 4,
+   "loop": true
+  },
+  "cast": {
+   "frames": 10,
+   "loop": false
+  },
+  "death": {
+   "frames": 8,
+   "loop": false
+  },
+  "death_back": {
+   "frames": 8,
+   "loop": false
+  },
+  "dodge_back": {
+   "frames": 8,
+   "loop": false
+  },
+  "draw": {
+   "frames": 8,
+   "loop": false
+  },
+  "hit": {
+   "frames": 6,
+   "loop": false
+  },
+  "idle": {
+   "frames": 8,
+   "loop": true
+  },
+  "kick": {
+   "frames": 8,
+   "loop": false
+  },
+  "run": {
+   "frames": 8,
+   "loop": true
+  },
+  "shoot": {
+   "frames": 6,
+   "loop": false
+  },
+  "walk": {
+   "frames": 8,
+   "loop": true
+  }
+ },
+ "files": {
+  "aim": "aim.png",
+  "cast": "cast.png",
+  "death": "death.png",
+  "death_back": "death_back.png",
+  "dodge_back": "dodge_back.png",
+  "draw": "draw.png",
+  "hit": "hit.png",
+  "idle": "idle.png",
+  "kick": "kick.png",
+  "run": "run.png",
+  "shoot": "shoot.png",
+  "walk": "walk.png"
+ }
+}

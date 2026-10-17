@@ -1,0 +1,87 @@
+{
+ "cell": 192,
+ "origin": [
+  96,
+  135
+ ],
+ "px_per_meter": 53.3,
+ "dirs": [
+  "W",
+  "NW",
+  "N",
+  "NE",
+  "E",
+  "SE",
+  "S",
+  "SW"
+ ],
+ "anims": {
+  "area": {
+   "frames": 12,
+   "loop": false
+  },
+  "attack": {
+   "frames": 10,
+   "loop": false
+  },
+  "attack2h": {
+   "frames": 12,
+   "loop": false
+  },
+  "block": {
+   "frames": 4,
+   "loop": true
+  },
+  "cast": {
+   "frames": 10,
+   "loop": false
+  },
+  "cast2h": {
+   "frames": 10,
+   "loop": false
+  },
+  "death": {
+   "frames": 8,
+   "loop": false
+  },
+  "death_back": {
+   "frames": 8,
+   "loop": false
+  },
+  "hit": {
+   "frames": 6,
+   "loop": false
+  },
+  "idle": {
+   "frames": 8,
+   "loop": true
+  },
+  "run": {
+   "frames": 8,
+   "loop": true
+  },
+  "sweep": {
+   "frames": 10,
+   "loop": false
+  },
+  "walk": {
+   "frames": 8,
+   "loop": true
+  }
+ },
+ "files": {
+  "area": "area.png",
+  "attack": "attack.png",
+  "attack2h": "attack2h.png",
+  "block": "block.png",
+  "cast": "cast.png",
+  "cast2h": "cast2h.png",
+  "death": "death.png",
+  "death_back": "death_back.png",
+  "hit": "hit.png",
+  "idle": "idle.png",
+  "run": "run.png",
+  "sweep": "sweep.png",
+  "walk": "walk.png"
+ }
+}
