@@ -1,0 +1,104 @@
+{
+ "cell": 192,
+ "origin": [
+  96,
+  135
+ ],
+ "px_per_meter": 53.3,
+ "dirs": [
+  "W",
+  "NW",
+  "N",
+  "NE",
+  "E",
+  "SE",
+  "S",
+  "SW"
+ ],
+ "characters": {
+  "warrior": {
+   "anims": [
+    "attack_high",
+    "block_idle",
+    "cast",
+    "death",
+    "death_back",
+    "hit",
+    "idle",
+    "power_slash",
+    "run",
+    "slash",
+    "slash_combo",
+    "walk",
+    "warcry"
+   ]
+  },
+  "cleric": {
+   "anims": [
+    "attack_high",
+    "block_idle",
+    "cast",
+    "death",
+    "death_back",
+    "hit",
+    "idle",
+    "power_slash",
+    "run",
+    "slash",
+    "slash_combo",
+    "walk",
+    "warcry"
+   ]
+  },
+  "ranger": {
+   "anims": [
+    "aim",
+    "cast",
+    "death",
+    "death_back",
+    "dodge_back",
+    "draw",
+    "hit",
+    "idle",
+    "kick",
+    "run",
+    "shoot",
+    "walk"
+   ]
+  },
+  "mage": {
+   "anims": [
+    "area",
+    "attack",
+    "attack2h",
+    "block",
+    "cast",
+    "cast2h",
+    "death",
+    "death_back",
+    "hit",
+    "idle",
+    "run",
+    "sweep",
+    "walk"
+   ]
+  },
+  "sorceress": {
+   "anims": [
+    "area",
+    "attack",
+    "attack2h",
+    "block",
+    "cast",
+    "cast2h",
+    "death",
+    "death_back",
+    "hit",
+    "idle",
+    "run",
+    "sweep",
+    "walk"
+   ]
+  }
+ }
+}
