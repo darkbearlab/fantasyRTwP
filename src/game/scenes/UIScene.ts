@@ -15,6 +15,7 @@ const PERSONALITY_CYCLE: Personality[] = ['steadfast', 'aggressive', 'guerrilla'
 import { hex } from '../render/palette';
 import { getProjection, setProjection } from '../render/projection';
 import { DIR_SETTINGS, getArt, setArt } from '../render/art';
+import { H3D, H3D_SETTINGS } from '../render/heroes3d';
 import type { ArtMode, DirMode } from '../render/art';
 import type { ProjectionMode } from '../render/projection';
 import type { BattleSession, DebugFlags } from '../session';
@@ -183,6 +184,7 @@ export class UIScene extends Phaser.Scene {
     artRow.appendChild(el('span', 'lbl', '美術'));
     const artSel = el('select');
     for (const [v, t] of [
+      ['heroes3d', '3D 英雄＋Flare（等角）'],
       ['flare', 'Flare 素材（等角）'],
       ['blocks', '色塊'],
     ]) {
@@ -197,6 +199,23 @@ export class UIScene extends Phaser.Scene {
     this.debugInputs.push({ sync: () => document.activeElement !== artSel && (artSel.value = getArt()) });
     artRow.appendChild(artSel);
     p.appendChild(artRow);
+
+    // heroes3d：法師外觀（mage／sorceress）
+    const lookRow = el('div', 'row');
+    lookRow.appendChild(el('span', 'lbl', '法師外觀'));
+    const lookSel = el('select');
+    for (const v of H3D.mageLooks) {
+      const o = el('option', '', v === 'mage' ? '灰袍法師（mage）' : v === 'sorceress' ? '咒術師（sorceress）' : v);
+      o.value = v;
+      lookSel.appendChild(o);
+    }
+    lookSel.addEventListener('change', () => {
+      H3D_SETTINGS.mageLook = lookSel.value;
+      lookSel.blur();
+    });
+    this.debugInputs.push({ sync: () => document.activeElement !== lookSel && (lookSel.value = H3D_SETTINGS.mageLook) });
+    lookRow.appendChild(lookSel);
+    p.appendChild(lookRow);
 
     // 方向對照：換算方式與整體偏移，可以邊看邊調
     const dirRow = el('div', 'row');

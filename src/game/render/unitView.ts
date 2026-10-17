@@ -11,7 +11,7 @@ const ISO = GAME_CONFIG.iso;
 /** normal：一般；brush：在草叢裡但敵人看得到；concealed：我方躲在草叢中（半透明）；hidden：對我方隱藏的敵人 */
 export type Concealment = 'normal' | 'brush' | 'concealed' | 'hidden';
 
-/** 角色外觀的共同介面（色塊 UnitView／Flare 素材 FlareView） */
+/** 角色外觀的共同介面（色塊 UnitView／Flare 素材 FlareView／自製 3D 英雄 Hero3DView） */
 export interface UnitVisual {
   readonly unit: Unit;
   readonly container: Phaser.GameObjects.Container;
@@ -30,7 +30,7 @@ export interface UnitVisual {
   drawOutline(g: Phaser.GameObjects.Graphics): void;
   setConcealment(c: Concealment): void;
   /** 被打中（Flare 版播放受擊動作） */
-  onHit?(simTime: number): void;
+  onHit?(simTime: number, from?: { x: number; y: number }): void;
   destroy(): void;
 }
 

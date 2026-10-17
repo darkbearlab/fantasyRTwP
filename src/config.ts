@@ -53,8 +53,13 @@ export const GAME_CONFIG = {
   iso: { tileW: 64, tileH: 32, heightPxPerM: 32 },
   /** 等角畫面的旋轉（逆時針，0 或 90 度）：90 = 世界 +x 朝螢幕右上，玩家（地圖左側）往右上進攻 */
   isoRotation: 90 as 0 | 90,
-  /** 角色與地板的美術：blocks＝色塊（預設保留）；flare＝Flare 等角素材試裝（只在等角投影下生效，除錯面板可即時切換） */
-  art: 'flare' as 'blocks' | 'flare',
+  /**
+   * 角色與地板的美術（只在等角投影下生效，除錯面板可即時切換）：
+   * blocks＝色塊；flare＝Flare 等角素材試裝；heroes3d＝自製 3D 預渲染英雄（沒有素材的英雄、敵人與地板沿用 Flare）
+   */
+  art: 'heroes3d' as 'blocks' | 'flare' | 'heroes3d',
+  /** heroes3d 的縮放（素材約 53.3 px／公尺；32/53.3 ≈ 0.6，但素材是半蹲姿勢且有俯角縮短，對齊身高方塊約 0.75） */
+  heroes3dScale: 0.75,
   /** 每幀最多推進幾個節拍（避免切回分頁時暴衝） */
   maxStepsPerFrame: 8,
   edgeScrollMargin: 12,

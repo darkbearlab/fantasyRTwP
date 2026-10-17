@@ -69,9 +69,17 @@ npm run autorun -- --runs 100 --fixed  # 同上，但隊伍固定為四個 Arche
 
 ## 美術試裝：Flare 等角素材
 
-`config.art = 'flare'`（預設）時，等角戰鬥中的英雄、敵人與地板改用 [Flare](https://github.com/flareteam/flare-game) 的素材；除錯面板「美術」可即時切回色塊。
+`config.art = 'flare'` 時，等角戰鬥中的英雄、敵人與地板改用 [Flare](https://github.com/flareteam/flare-game) 的素材；除錯面板「美術」可即時切回色塊。
 素材授權為 **CC-BY-SA 3.0**（見 [ASSET_LICENSES.md](ASSET_LICENSES.md)），標題畫面「製作人員」列出美術貢獻者。
 重新產生素材：依 `tools/importFlare.py` 開頭說明 sparse checkout flare-game 後執行 `python3 tools/importFlare.py <路徑>`（需要 Pillow）；對應與縮放在 `src/game/render/flareArt.json`。
+
+## 美術試裝：自製 3D 預渲染英雄（heroes3d）
+
+`config.art = 'heroes3d'`（預設）時，戰士、遊俠、法師、牧師改用 `public/assets/heroes3d/` 的自製 sprite（格式見該資料夾的 README.md）；
+沒有素材的英雄（狂戰士、盜賊、咒術師、煉金術士）、敵人與地板沿用 Flare。除錯面板「美術」可切回 Flare 或色塊，「法師外觀」可切換 mage／sorceress。
+- 縮放：`config.heroes3dScale`（預設 0.75，對齊身高方塊）；個別角色的倍率在 `src/game/render/heroes3dArt.json` 的 `scaleMul`
+- 動作對應、各動作「最用力（生效）」的影格（`peaks`）、替代順序、暫不使用的動作（`avoid`）都在 `heroes3dArt.json`
+- 節奏：準備期間依進度播到 peak 的前一格，生效那一刻剛好是 peak，恢復期間播完剩下的影格（`src/game/render/heroes3dAnim.ts`）
 
 ## 部署到 GitHub Pages
 

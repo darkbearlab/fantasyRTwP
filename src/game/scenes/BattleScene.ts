@@ -16,7 +16,9 @@ import type { SkillDef } from '../../sim/data/types';
 import { OBJECT_DEPTH_BASE, UnitView } from '../render/unitView';
 import type { UnitVisual } from '../render/unitView';
 import { FlareView } from '../render/flareView';
-import { DIR_NAMES, FLARE, FLARE_TILES, displayFacing, ensureFlareLoaded, flareDir, getArt, useFlare } from '../render/art';
+import { DIR_NAMES, FLARE, FLARE_TILES, displayFacing, ensureFlareLoaded, flareDir, getArt, useFlare, wantsFlare } from '../render/art';
+import { Hero3DView } from '../render/hero3dView';
+import { ensureHeroes3dLoaded, h3dCharFor, heroes3dLoaded } from '../render/heroes3d';
 import type { ArtMode } from '../render/art';
 import {
   depthOf,
@@ -76,6 +78,8 @@ export class BattleScene extends Phaser.Scene {
   private builtArt: ArtMode = getArt();
   /** 目前畫面是否真的用 Flare 素材建立（素材還沒載入時先用色塊） */
   private builtFlare = false;
+  /** 目前畫面是否用 heroes3d 畫英雄（素材還沒載入時先用 Flare／色塊） */
+  private builtH3d = false;
   /** 每幀記錄鏡頭中心對應的地面點（切換投影時保持鏡頭位置） */
   private lastCenterGround: Vec = { x: 0, y: 0 };
   /** 被高障礙物擋住的角色輪廓（最上層） */
@@ -163,6 +167,7 @@ export class BattleScene extends Phaser.Scene {
     this.builtMode = getProjection();
     this.builtArt = getArt();
     this.builtFlare = useFlare(this);
+    this.builtH3d = this.useH3d();
     this.drawMap();
     if (isIso()) this.buildObstacleBlocks();
     for (const u of this.session.world.units) this.views.set(u.id, this.makeView(u));
@@ -180,18 +185,25 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private makeView(u: Unit): UnitVisual {
+    if (this.builtH3d && u.team === 'hero' && h3dCharFor(u.def.id)) return new Hero3DView(this, u);
     return this.builtFlare ? new FlareView(this, u) : new UnitView(this, u);
+  }
+
+  /** heroes3d：需要 Flare（敵人、地板）與 heroes3d 素材都已載入 */
+  private useH3d(): boolean {
+    return getArt() === 'heroes3d' && useFlare(this) && heroes3dLoaded(this);
   }
 
   /** 除錯面板切換投影或美術：重建畫面物件，鏡頭對準同一個地面點 */
   private checkProjection(): void {
-    const wantFlare = getArt() === 'flare' && isIso();
+    const wantFlare = wantsFlare();
+    if (getArt() === 'heroes3d' && isIso() && !heroes3dLoaded(this)) ensureHeroes3dLoaded(this);
     if (wantFlare && !useFlare(this)) {
       // Flare 素材第一次使用時才載入；載入完成前先維持目前的畫面
       ensureFlareLoaded(this, () => undefined);
       if (getProjection() === this.builtMode) return;
     }
-    if (getProjection() === this.builtMode && getArt() === this.builtArt && this.builtFlare === useFlare(this)) return;
+    if (getProjection() === this.builtMode && getArt() === this.builtArt && this.builtFlare === useFlare(this) && this.builtH3d === this.useH3d()) return;
     const center = this.lastCenterGround;
     this.destroyWorld();
     this.buildWorld();
@@ -520,7 +532,7 @@ export class BattleScene extends Phaser.Scene {
         case 'hit': {
           const t = w.getUnit(ev.targetId)!;
           const src = w.getUnit(ev.sourceId)!;
-          this.views.get(t.id)?.onHit?.(w.time);
+          this.views.get(t.id)?.onHit?.(w.time, src.pos);
           this.fx.text(t.pos, ev.crit ? `${ev.damage}!` : `${ev.damage}`, ev.crit ? '#ffd23f' : '#ffffff', ev.crit ? 24 : 16, 34, 900, this.headZ(t));
           s.addLog(
             `${L(src.id)} → ${L(t.id)}：${ev.damage}${ev.crit ? '（爆擊）' : ''}${ev.skillId ? `〔${skillName(ev.skillId)}〕` : ''}${ev.freeAttack ? '〔脫離攻擊〕' : ''}`,
