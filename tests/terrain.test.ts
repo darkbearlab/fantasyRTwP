@@ -174,9 +174,9 @@ describe('切片 3 新地圖（SPEC_SLICE3 §4）', () => {
     const hill = MAPS.hill01;
     const g = NavGrid.fromMap(hill, 0.5, 0.5);
     const t = new TerrainGrid(hill);
-    expect(t.has({ x: 27, y: 14 }, T_HIGH)).toBe(true);
-    expect(findPath(g, hill.heroSpawns[0], { x: 27, y: 14 })).not.toBeNull();
-    expect(new TerrainGrid(MAPS.marsh01).has({ x: 19, y: 15 }, T_SHALLOW)).toBe(true);
+    expect(t.has({ x: 32.4, y: 26 }, T_HIGH)).toBe(true);
+    expect(findPath(g, hill.heroSpawns[0], { x: 32.4, y: 26 })).not.toBeNull();
+    expect(new TerrainGrid(MAPS.marsh01).has({ x: 22.8, y: 27 }, T_SHALLOW)).toBe(true);
   });
 });
 

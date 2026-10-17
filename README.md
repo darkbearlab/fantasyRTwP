@@ -63,6 +63,10 @@ npm run autorun -- --runs 100 --fixed  # 同上，但隊伍固定為四個 Arche
 投影只在畫面層（`src/game/render/projection.ts`），sim 仍然用公尺的平面座標；除錯面板可即時切回正俯視比較。
 投影參數在 `src/config.ts`（`projection`、`iso`），角色身高與障礙物高度在 `src/game/render/visual.ts`。
 
+等角畫面預設逆時針轉 90 度（`config.isoRotation = 90`）：世界 +x（英雄 → 敵人的方向）朝螢幕右上，玩家以「往右上進攻」為主；設成 0 可回到原本的方向。
+
+所有戰鬥地圖在規則層都是 48 × 48 公尺的正方形：原本的配置橫向拉開 1.2 倍（雙方起始距離更遠）、置中後上下補地帶，並在中間與上下兩側補上依主題而定的小型地形（岩石、樹叢、草叢、矮籬、淺水、石柱），每塊都確認不會擋住出生點之間的通路。
+
 ## 美術試裝：Flare 等角素材
 
 `config.art = 'flare'`（預設）時，等角戰鬥中的英雄、敵人與地板改用 [Flare](https://github.com/flareteam/flare-game) 的素材；除錯面板「美術」可即時切回色塊。
