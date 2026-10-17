@@ -12,7 +12,7 @@
 | `mage/` | 灰袍老法師 | 三叉嵌晶杖 | idle walk run cast attack sweep cast2h area attack2h block hit death death_back |
 | `sorceress/` | 吉普賽風咒術師（女） | 短魔杖 | 同法師 |
 
-⚠️ `ranger/` 已知動作中有穿模，之後會重做；先可當占位使用。
+`ranger/` 的長弓不畫弓弦（直弦在多個角度會切過身體）；拉弓時右手處會顯示箭，瞄準時頭會轉向弓的方向。
 
 ## 圖檔格式
 - 每個動作一張 PNG（256 色調色盤＋透明）：**列＝方向（8 列）、欄＝影格**。

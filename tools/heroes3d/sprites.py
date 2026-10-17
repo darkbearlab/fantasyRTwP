@@ -1,6 +1,6 @@
 # 用法: python3 -I sprites.py anim_name fbx_path nframes [dirs=all] [preview]
 import bpy,addon_utils,sys,math,os,json,time
-from mathutils import Vector,Matrix
+from mathutils import Vector,Matrix,Quaternion
 addon_utils.enable('bl_ext.user_default.mpfb', default_set=True)
 S='/tmp/claude-0/-home-claude/b1eaca21-4d49-5728-9ba6-a80e5d69cacd/scratchpad/mh'
 name,fbx,nf=sys.argv[1],sys.argv[2],int(sys.argv[3])
@@ -105,7 +105,9 @@ if BOW:
         nock=sum([W_@P_['mixamorig:RightHand'+n].head for n in ('Index2','Middle2','Ring2')],Vector())/3
         # 弦拉開的距離 = 右手到原本弦線的距離
         ab=tipB-tipT; t_=max(0,min(1,(nock-tipT).dot(ab)/ab.length_squared)); off=(nock-(tipT+ab*t_)).length
-        drawn=off>0.07 and not os.environ.get('NOARROW')
+        bn=(mw.to_3x3()@Vector((0,1,0))).normalized(); plane_d=abs((nock-grip).dot(bn))
+        if os.environ.get('DBGBOW'): print('BOWDBG',f,round(off,3),round(plane_d,3),round((nock-grip).length,3))
+        drawn=off>0.07 and plane_d<0.25 and (nock-grip).length<0.95 and not os.environ.get('NOARROW')
         strobj.hide_render=drawn; segA.hide_render=not drawn; segB.hide_render=not drawn; arrow.hide_render=not drawn
         for ch in arrow.children: ch.hide_render=not drawn
         rt=bpy.data.objects.get('root')
@@ -114,6 +116,32 @@ if BOW:
         if drawn:
             place(segA,tipT,nock); place(segB,nock,tipB)
             dirv=(grip-nock).normalized(); q=Vector((0,0,1)).rotation_difference(dirv); arrow.matrix_world=Matrix.LocRotScale(nock,q,None)
+        bpy.context.view_layer.update()
+# ---- 頭部瞄準（HEADAIM=權重）：頭頸轉向「頭→弓把」方向 ----
+HA=float(os.environ.get('HEADAIM','0') or 0)
+if HA>0 and bpy.data.objects.get('Bow'):
+    BOWO=bpy.data.objects['Bow']
+    _hb=rig.data.bones['mixamorig:Head']; FWD_L=(_hb.matrix_local.to_3x3().inverted()@(rig.matrix_world.to_3x3().inverted()@Vector((0,-1,0)))).normalized()
+    _pose5=pose_at
+    def pose_at(f):
+        _pose5(f)
+        W_=rig.matrix_world
+        for bn_,w in (('mixamorig:Neck',0.35*HA),('mixamorig:Head',0.8*HA)):
+            hp=rig.pose.bones['mixamorig:Head']; cur=((W_@hp.matrix).to_3x3()@FWD_L).normalized()
+            hpos=W_@hp.head; want=(BOWO.matrix_world.translation-hpos); want.z*=0.4; want.normalize()
+            q=cur.rotation_difference(want); ang=q.angle
+            if ang<1e-4: continue
+            q=Quaternion(q.axis,min(ang,math.radians(80))*w)
+            pb=rig.pose.bones[bn_]; Mw=W_@pb.matrix
+            R=Matrix.Translation(Mw.translation)@q.to_matrix().to_4x4()@Matrix.Translation(-Mw.translation)
+            pb.matrix=W_.inverted()@(R@Mw); bpy.context.view_layer.update()
+# ---- 不畫弓弦（NOSTRING=1）----
+if os.environ.get('NOSTRING'):
+    _pose4=pose_at
+    def pose_at(f):
+        _pose4(f)
+        for o_ in bpy.data.objects:
+            if o_.type=='MESH' and o_.data.materials and o_.data.materials[0] and o_.data.materials[0].name.startswith('bowstring'): o_.hide_render=True
         bpy.context.view_layer.update()
 # 渲染設定
 sc.render.engine='CYCLES'; sc.cycles.samples=int(os.environ.get('SAMPLES','16')); sc.cycles.use_denoising=True

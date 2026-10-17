@@ -319,7 +319,12 @@ for w in C['weapons']:
         # 背後：右肩上方開口，斜向左下
         sp2=headw('mixamorig:Spine2'); nk=headw('mixamorig:Neck')
         back=Vector((0,1,0))   # 角色面向 -Y，背後是 +Y
-        cen=sp2.lerp(nk,0.15)+back*0.16+Vector((-0.05,0,0))
+        # 貼背：從胸口往背後打射線，找到布甲背面，箭袋中心離表面約一個箭袋半徑
+        from mathutils.bvhtree import BVHTree
+        dg=bpy.context.evaluated_depsgraph_get(); topo=[o for o in bpy.data.objects if 'fisherman' in o.name and o.type=='MESH'][0]
+        bv_=BVHTree.FromObject(topo,dg); tmw=topo.matrix_world; o0=sp2.lerp(nk,0.15)+Vector((-0.05,0,0))
+        far_=o0+back*0.5; loc_,_,_,_=bv_.ray_cast(tmw.inverted()@far_,(tmw.inverted().to_3x3()@(-back)).normalized(),0.6)
+        cen=((tmw@loc_) if loc_ else o0+back*0.12)+back*0.045
         axis=Vector((-0.45,0.15,1)).normalized()   # 往右上（角色右手 = -X）
         attach(q,'mixamorig:Spine2',basis(axis,back,cen))
         # 斜背帶：右肩 → 左腰，沿身體前方
