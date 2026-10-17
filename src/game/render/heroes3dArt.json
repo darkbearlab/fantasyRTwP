@@ -1,0 +1,65 @@
+{
+  "$comment": "自製 3D 預渲染英雄（美術試裝，畫面層設定，不屬於 sim）。素材格式見 public/assets/heroes3d/README.md。heroes：英雄 def.id → 素材角色；peaks：每個動作「最用力（生效）」的影格；attack：普攻的動作計畫；skills：技能 id → 動作（'@attack' = 用該角色的普攻計畫）；kinds：沒列在 skills 的技能依效果種類；fallback：角色缺少某動作時的替代順序；fps：循環／自然播放的速度。",
+  "heroes": { "warrior": "warrior", "ranger": "ranger", "mage": "mage", "cleric": "cleric" },
+  "mageLooks": ["mage", "sorceress"],
+  "$avoid": "暫不使用的動作（素材問題：根位移沒鎖住，角色會跑出格子）",
+  "avoid": { "warrior": ["attack_high", "slash_combo"] },
+  "scaleMul": { "warrior": 1, "cleric": 1, "ranger": 1, "mage": 1, "sorceress": 1 },
+  "fps": { "idle": 8, "walk": 12, "run": 14, "block_idle": 6, "block": 6, "aim": 8, "hit": 18, "death": 12, "death_back": 12, "default": 12 },
+  "peaks": {
+    "slash": 4, "power_slash": 5, "attack_high": 4, "slash_combo": 6, "kick": 4, "warcry": 5,
+    "attack": 5, "attack2h": 6, "sweep": 5, "cast": 6, "cast2h": 6, "area": 7,
+    "shoot": 1, "block_idle": 0, "block": 0, "dodge_back": 3
+  },
+  "attack": {
+    "warrior": { "anim": "slash" },
+    "cleric": { "anim": "slash" },
+    "ranger": { "pre": [["draw", 0.55], ["aim", 0.45]], "anim": "shoot" },
+    "mage": { "anim": "attack" },
+    "sorceress": { "anim": "attack" }
+  },
+  "skills": {
+    "guard": "block_idle",
+    "shieldBash": "kick",
+    "holySmite": "power_slash",
+    "battleCry": "warcry",
+    "aimedShot": "@attack",
+    "stunArrow": "@attack",
+    "fireball": "cast",
+    "iceBind": "cast2h",
+    "arcaneMissile": "attack",
+    "heal": "cast",
+    "bless": "cast",
+    "whirlwind": "slash_combo",
+    "backstab": "power_slash",
+    "swamp": "area",
+    "curse": "cast2h"
+  },
+  "kinds": {
+    "guard": "block_idle", "warcry": "warcry", "whirlwind": "slash_combo", "cone": "sweep",
+    "aoe": "area", "zone": "area", "root": "cast2h", "curse": "cast2h",
+    "heal": "cast", "aoeHeal": "cast", "bless": "cast", "smoke": "cast",
+    "charge": "run", "tumble": "run"
+  },
+  "fallback": {
+    "kick": ["attack_high", "power_slash", "attack2h", "slash", "attack"],
+    "power_slash": ["attack_high", "attack2h", "slash", "attack"],
+    "attack_high": ["power_slash", "attack2h", "slash", "attack"],
+    "slash_combo": ["sweep", "slash", "attack"],
+    "sweep": ["slash_combo", "slash", "attack"],
+    "slash": ["attack", "cast"],
+    "attack": ["slash", "cast"],
+    "attack2h": ["power_slash", "attack", "slash"],
+    "warcry": ["cast", "area"],
+    "cast2h": ["cast", "area"],
+    "area": ["cast2h", "cast"],
+    "cast": ["cast2h", "attack"],
+    "block_idle": ["block", "idle"],
+    "block": ["block_idle", "idle"],
+    "shoot": ["attack", "slash"],
+    "run": ["walk", "idle"],
+    "walk": ["run", "idle"],
+    "death_back": ["death"],
+    "hit": ["idle"]
+  }
+}
