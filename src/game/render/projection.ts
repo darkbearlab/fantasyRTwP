@@ -35,10 +35,27 @@ export const isIso = (): boolean => mode === 'iso';
 const ISO = GAME_CONFIG.iso;
 const PX = GAME_CONFIG.pxPerMeter;
 
+let rotation: 0 | 90 = GAME_CONFIG.isoRotation;
+
+export function getIsoRotation(): 0 | 90 {
+  return rotation;
+}
+
+/** 等角畫面旋轉（測試與除錯用） */
+export function setIsoRotation(r: 0 | 90): void {
+  rotation = r;
+}
+
+/** 世界座標 → 等角投影前的格子座標 (u, v)：旋轉 90 度（逆時針）時 u = y、v = −x */
+function toUV(x: number, y: number): Pt {
+  return rotation === 90 ? { x: y, y: -x } : { x, y };
+}
+
 /** 世界座標（公尺）→ 畫面座標（相機世界 px） */
 export function worldToScreen(x: number, y: number, z = 0): Pt {
   if (mode === 'topdown') return { x: x * PX, y: y * PX };
-  return { x: (x - y) * (ISO.tileW / 2), y: (x + y) * (ISO.tileH / 2) - z * ISO.heightPxPerM };
+  const { x: u, y: v } = toUV(x, y);
+  return { x: (u - v) * (ISO.tileW / 2), y: (u + v) * (ISO.tileH / 2) - z * ISO.heightPxPerM };
 }
 
 /** 畫面座標 → 地面（z = 0）的世界座標（公尺） */
@@ -46,12 +63,16 @@ export function screenToGround(sx: number, sy: number): Pt {
   if (mode === 'topdown') return { x: sx / PX, y: sy / PX };
   const a = sx / (ISO.tileW / 2);
   const b = sy / (ISO.tileH / 2);
-  return { x: (a + b) / 2, y: (b - a) / 2 };
+  const u = (a + b) / 2;
+  const v = (b - a) / 2;
+  return rotation === 90 ? { x: -v, y: u } : { x: u, y: v };
 }
 
-/** 繪製深度：越大越前面（畫在越上層） */
+/** 繪製深度：越大越前面（畫在越上層），即畫面上越靠下 */
 export function depthOf(x: number, y: number): number {
-  return mode === 'topdown' ? y : x + y;
+  if (mode === 'topdown') return y;
+  const { x: u, y: v } = toUV(x, y);
+  return u + v;
 }
 
 /** 高度 z 公尺在畫面上的像素（topdown 為 0） */

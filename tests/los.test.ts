@@ -29,7 +29,7 @@ describe('視線（SPEC §9）', () => {
   });
 
   it('牆會遮擋視線；隘口可以看穿', () => {
-    expect(canSeeCircle(sight, { x: 16, y: 5 }, 0.4, { x: 24, y: 5 }, 0.4)).toBe(false);
-    expect(canSeeCircle(sight, { x: 16, y: 12 }, 0.4, { x: 24, y: 12 }, 0.4)).toBe(true);
+    expect(canSeeCircle(sight, { x: 19.2, y: 17 }, 0.4, { x: 28.8, y: 17 }, 0.4)).toBe(false);
+    expect(canSeeCircle(sight, { x: 19.2, y: 24 }, 0.4, { x: 28.8, y: 24 }, 0.4)).toBe(true);
   });
 });

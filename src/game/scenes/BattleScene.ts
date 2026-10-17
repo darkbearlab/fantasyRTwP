@@ -259,18 +259,22 @@ export class BattleScene extends Phaser.Scene {
     const inSpawn = (x: number, y: number) =>
       xs.length > 0 && x >= Math.min(...xs) - 1.5 && x <= Math.max(...xs) + 1.5 && y >= Math.min(...ys) - 1.5 && y <= Math.max(...ys) + 1.5;
     const T = FLARE.tiles;
-    for (let cy = 0; cy < map.height; cy++) {
-      for (let cx = 0; cx < map.width; cx++) {
-        // 決定論的雜湊，同一張地圖每次都一樣
-        const h = ((cx * 73856093) ^ (cy * 19349663) ^ map.id.length * 83492791) >>> 0;
-        const list = inSpawn(cx + 0.5, cy + 0.5) ? T.fancy : T.floor;
-        const name = `tile/${list[h % list.length]}`;
-        const fr = this.textures.getFrame(FLARE_TILES, name);
-        if (!fr) continue;
-        const p = worldToScreen(cx + 0.5, cy + 0.5);
-        rt.drawFrame(FLARE_TILES, name, p.x - fr.pivotX * fr.width - (b.x - pad), p.y - fr.pivotY * fr.height - (b.y - pad));
-      }
+    // 依深度（畫面由後往前）排序；批次繪製，避免每張磚都清空一次繪圖管線
+    const cells: { cx: number; cy: number }[] = [];
+    for (let cy = 0; cy < map.height; cy++) for (let cx = 0; cx < map.width; cx++) cells.push({ cx, cy });
+    cells.sort((a, c) => depthOf(a.cx + 0.5, a.cy + 0.5) - depthOf(c.cx + 0.5, c.cy + 0.5));
+    rt.beginDraw();
+    for (const { cx, cy } of cells) {
+      // 決定論的雜湊，同一張地圖每次都一樣
+      const h = ((cx * 73856093) ^ (cy * 19349663) ^ map.id.length * 83492791) >>> 0;
+      const list = inSpawn(cx + 0.5, cy + 0.5) ? T.fancy : T.floor;
+      const name = `tile/${list[h % list.length]}`;
+      const fr = this.textures.getFrame(FLARE_TILES, name);
+      if (!fr) continue;
+      const p = worldToScreen(cx + 0.5, cy + 0.5);
+      rt.batchDrawFrame(FLARE_TILES, name, p.x - fr.pivotX * fr.width - (b.x - pad), p.y - fr.pivotY * fr.height - (b.y - pad));
     }
+    rt.endDraw();
     this.worldObjects.push(rt);
   }
 
@@ -305,9 +309,20 @@ export class BattleScene extends Phaser.Scene {
       g.lineStyle(1, darken(color, 0.45), 0.9);
       g.strokePath();
     };
-    // 看得到的兩個側面：+x 面與 +y 面；最後畫頂面
-    poly([P(x + w, y, 0), P(x + w, y + d, 0), P(x + w, y + d, h), P(x + w, y, h)], darken(color, 0.8));
-    poly([P(x, y + d, 0), P(x + w, y + d, 0), P(x + w, y + d, h), P(x, y + d, h)], darken(color, 0.62));
+    // 側面：外法線投影後朝螢幕下方的面才看得到（依投影旋轉而定）；朝右的面較亮。最後畫頂面
+    const o = worldToScreen(0, 0);
+    const faces: { n: [number, number]; a: [number, number]; b: [number, number] }[] = [
+      { n: [1, 0], a: [x + w, y], b: [x + w, y + d] },
+      { n: [0, 1], a: [x, y + d], b: [x + w, y + d] },
+      { n: [-1, 0], a: [x, y], b: [x, y + d] },
+      { n: [0, -1], a: [x, y], b: [x + w, y] },
+    ];
+    for (const f of faces) {
+      const ns = worldToScreen(f.n[0], f.n[1]);
+      if (ns.y - o.y <= 0) continue;
+      const shade = ns.x - o.x > 0 ? 0.8 : 0.62;
+      poly([P(f.a[0], f.a[1], 0), P(f.b[0], f.b[1], 0), P(f.b[0], f.b[1], h), P(f.a[0], f.a[1], h)], darken(color, shade));
+    }
     poly([P(x, y, h), P(x + w, y, h), P(x + w, y + d, h), P(x, y + d, h)], lighten(color, 1.2));
     const depth = depthOf(x + w / 2, y + d / 2);
     g.setDepth(OBJECT_DEPTH_BASE + depth);

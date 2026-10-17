@@ -51,6 +51,8 @@ export const GAME_CONFIG = {
   projection: 'iso' as 'iso' | 'topdown',
   /** 等角投影：1 公尺見方的地面 = TILE_W × TILE_H 的菱形；高度 1 m = HEIGHT_PX_PER_M px */
   iso: { tileW: 64, tileH: 32, heightPxPerM: 32 },
+  /** 等角畫面的旋轉（逆時針，0 或 90 度）：90 = 世界 +x 朝螢幕右上，玩家（地圖左側）往右上進攻 */
+  isoRotation: 90 as 0 | 90,
   /** 角色與地板的美術：blocks＝色塊（預設保留）；flare＝Flare 等角素材試裝（只在等角投影下生效，除錯面板可即時切換） */
   art: 'flare' as 'blocks' | 'flare',
   /** 每幀最多推進幾個節拍（避免切回分頁時暴衝） */

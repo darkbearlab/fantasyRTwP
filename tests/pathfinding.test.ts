@@ -39,16 +39,16 @@ describe('尋路（SPEC §8）', () => {
   });
 
   it('從英雄區到敵人區的最短路走隘口', () => {
-    const path = findPath(grid, { x: 5, y: 12 }, { x: 35, y: 12 })!;
-    const crossing = path.find((p) => p.x > 19 && p.x < 21)!;
-    expect(crossing.y).toBeGreaterThan(10.5);
-    expect(crossing.y).toBeLessThan(13.5);
+    const path = findPath(grid, { x: 6, y: 24 }, { x: 42, y: 24 })!;
+    const crossing = path.find((p) => p.x > 22.8 && p.x < 25.2)!;
+    expect(crossing.y).toBeGreaterThan(22.5);
+    expect(crossing.y).toBeLessThan(25.5);
   });
 
   it('禁止斜穿牆角', () => {
-    // 柱子 (12,6)-(13.5,7.5) 的角落附近，路徑相鄰點不可斜切障礙
-    const path = findPath(grid, { x: 11, y: 5 }, { x: 14.5, y: 8.5 })!;
-    let prev = { x: 11, y: 5 };
+    // 柱子 (14.4,18)-(16.2,19.5) 的角落附近，路徑相鄰點不可斜切障礙
+    const path = findPath(grid, { x: 13.2, y: 17 }, { x: 17.2, y: 20.5 })!;
+    let prev = { x: 13.2, y: 17 };
     for (const p of path) {
       expect(lineWalkable(grid, prev, p)).toBe(true);
       prev = p;
