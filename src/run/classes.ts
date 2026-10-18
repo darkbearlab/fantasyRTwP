@@ -7,9 +7,12 @@ import type { RunState } from './runState';
 import { cloneRun, livingHeroes } from './runState';
 import { rngFor } from './seed';
 
-/** 組隊：picks 為玩家自選（最多 partyPicks 名），其餘由遠征種子隨機補滿 */
-export function rollParty(seed: number, picks: string[]): string[] {
-  if (picks.length > ECONOMY.partyPicks) throw new Error(`最多自選 ${ECONOMY.partyPicks} 名`);
+/**
+ * 組隊：picks 為玩家自選（最多 maxPicks 名），不足隊伍人數的由遠征種子隨機補滿。
+ * 主要遠征目前四名全自選；隨機補位留給之後有隨機隊員的模式（傳入較小的 maxPicks）。
+ */
+export function rollParty(seed: number, picks: string[], maxPicks = ECONOMY.partyPicks): string[] {
+  if (picks.length > maxPicks) throw new Error(`最多自選 ${maxPicks} 名`);
   for (const id of picks) if (!CLASSES[id]) throw new Error(`未知的職業：${id}`);
   if (!ECONOMY.allowDuplicateClasses && new Set(picks).size !== picks.length) throw new Error('不能選重複的職業');
   const rng = rngFor(seed, 'party');

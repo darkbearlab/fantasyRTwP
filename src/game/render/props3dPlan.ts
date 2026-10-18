@@ -83,7 +83,7 @@ export function planProps(map: MapDef): PropPlacement[] {
   const out: PropPlacement[] = [];
   const seed = mapSeed(map.id);
   const O = PROPS3D.obstacle;
-  const pools = O.mapPools[map.id] ?? O.pools;
+  const pools = O.mapPools[map.id] ?? (map.theme ? O.mapPools[map.theme] : undefined) ?? O.pools;
   map.obstacles.forEach((r, i) => {
     if (!obstacleUsesProp(map, r)) return;
     const big = Math.max(r.w, r.h);

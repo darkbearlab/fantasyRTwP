@@ -94,7 +94,7 @@ export function autoParty(seed: number, mode: 'random' | 'fixed' = 'random'): st
 }
 
 export function playRun(seed: number, opts: { layers?: number; scripted?: boolean; party?: 'random' | 'fixed' } = {}): RunState {
-  let r = createRun(seed, { layers: opts.layers, party: autoParty(seed, opts.party) });
+  let r = createRun(seed, { layers: opts.layers, party: autoParty(seed, opts.party), style: 'tactical' });
   for (let guard = 0; guard < 500 && r.phase.kind !== 'ended'; guard++) r = stepRun(r, opts.scripted ?? true);
   return r;
 }

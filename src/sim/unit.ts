@@ -88,6 +88,11 @@ export class Unit {
   damageBuffTime = 0;
 
   path: Vec[] | null = null;
+  /** 移動卡住判定：目前最接近目標的距離、沒有進展的秒數 */
+  stallBest = Infinity;
+  stallTime = 0;
+  /** 由哪一波生成（怪群模式；頭目關卡的勝利判定用） */
+  waveId?: string;
   pathIndex = 0;
   pathGoal: Vec | null = null;
   repathTimer = 0;

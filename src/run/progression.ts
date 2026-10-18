@@ -8,6 +8,7 @@ import { ENCOUNTERS } from './data/encounters';
 import { EVENTS } from './data/events';
 import { UPGRADES } from './data/upgrades';
 import type { BattleOutcome } from './battle';
+import { encounterFor, levelEncounterId, runStyle } from './battle';
 import type { MapNode } from './mapGen';
 import type { HeroRecord, RunState } from './runState';
 import { cloneRun, firstEmptySlot, livingHeroes } from './runState';
@@ -25,6 +26,8 @@ export function availableNodes(run: RunState): MapNode[] {
 /** 依節點類型與層數抽遭遇 */
 export function pickEncounter(run: RunState, node: MapNode): string {
   const tier = node.type === 'elite' ? 'elite' : node.type === 'boss' ? 'boss' : 'battle';
+  // 大型關卡：每個節點各自生成（編號只記節點類型）
+  if (runStyle(run) === 'horde') return levelEncounterId(tier);
   const pool = Object.values(ENCOUNTERS).filter((e) => e.tier === tier && node.layer >= e.minLayer && node.layer <= e.maxLayer);
   if (pool.length === 0) throw new Error(`第 ${node.layer} 層沒有可用的${tier}遭遇`);
   const rng = rngFor(run.seed, 'encounter', node.id);
@@ -127,7 +130,7 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
   r.stats.goldEarned += gold;
   const rng = rngFor(r.seed, 'reward', nodeId, fromEvent ? 'event' : 'node');
   const options = rollUpgrades(rng, elite ? ECONOMY.eliteRewardChoices : ECONOMY.rewardChoices, elite);
-  r.journal.push(`第 ${node.layer} 層：${ENCOUNTERS[run.phase.encounterId].name}勝利（${outcome.time.toFixed(0)} 秒），獲得 ${gold} 金幣。`);
+  r.journal.push(`第 ${node.layer} 層：${encounterFor(run, nodeId, run.phase.encounterId).name}勝利（${outcome.time.toFixed(0)} 秒），獲得 ${gold} 金幣。`);
   r.phase = { kind: 'reward', nodeId, options, elite, gold };
   return r;
 }

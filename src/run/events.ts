@@ -11,6 +11,7 @@ import { cloneRun, firstEmptySlot, livingHeroes } from './runState';
 import { grantUpgrade, maxHpOf, recruitInto } from './upgrades';
 import { recruitPool } from './classes';
 import { rngFor } from './seed';
+import { levelEncounterId, runStyle } from './battle';
 
 export function conditionMet(run: RunState, c: EventCondition | undefined): boolean {
   if (!c) return true;
@@ -63,7 +64,8 @@ export function chooseEventOption(run: RunState, index: number): RunState {
   }
   const text = [outcome.text, ...notes].join('\n');
   r.journal.push(`【${ev.title}】${opt.label}：${outcome.text}`);
-  if (battle) r.phase = { kind: 'battle', nodeId, encounterId: battle, fromEvent: true };
+  // 大型關卡的遠征：事件戰鬥也改成生成的（較小的）關卡
+  if (battle) r.phase = { kind: 'battle', nodeId, encounterId: runStyle(r) === 'horde' ? levelEncounterId('event') : battle, fromEvent: true };
   else r.phase = { kind: 'event', nodeId, eventId: ev.id, resolved: true, resultText: text };
   return r;
 }

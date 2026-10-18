@@ -2,7 +2,7 @@
  * 遭遇組合（SPEC_SLICE2 §7.2）：使用的地圖、敵人與出生位置、難度。
  * 依「節點類型＋層數」從池中抽選；數值隨層數成長在 run/battle.ts 處理。
  */
-import type { HordeSetup } from '../../sim/data/types';
+import type { HordeSetup, MapDef } from '../../sim/data/types';
 
 /** horde：怪群試作（SPEC_SLICE4），只出現在快速戰鬥，不進遠征的遭遇池 */
 export type EncounterTier = 'battle' | 'elite' | 'boss' | 'event' | 'horde';
@@ -28,6 +28,8 @@ export interface EncounterDef {
   enemies: EncounterEnemy[];
   /** 怪群模式：生成點、波次與勝利目標（地圖的 spawners 會一併加入） */
   horde?: HordeSetup;
+  /** 程序生成的關卡自帶地圖（map 欄位只是編號） */
+  mapDef?: MapDef;
 }
 
 const E = (enemy: string, x: number, y: number, captain = false): EncounterEnemy => ({ enemy, x, y, captain: captain || undefined });

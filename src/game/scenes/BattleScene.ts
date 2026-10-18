@@ -191,7 +191,7 @@ export class BattleScene extends Phaser.Scene {
     if (this.session.autoPause.battleStart) this.session.setPaused(true, '戰鬥開始');
     if (this.session.mode === 'run') {
       const enc = currentEncounter(getRun(this));
-      this.session.addLog(`${enc.name}（${this.session.world.map.name}）`, 'sys');
+      this.session.addLog(enc.mapDef ? enc.name : `${enc.name}（${this.session.world.map.name}）`, 'sys');
     } else this.session.addLog(`戰鬥開始（種子 ${seed}）`, 'sys');
 
     if (!this.scene.isActive('UI')) this.scene.launch('UI');

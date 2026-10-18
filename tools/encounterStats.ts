@@ -9,7 +9,7 @@ const N = Number(process.argv[2] ?? 20);
 for (const e of Object.values(ENCOUNTERS)) {
   let wins = 0, deaths = 0, hpLeft = 0, time = 0;
   for (let s = 1; s <= N; s++) {
-    const r = createRun(s);
+    const r = createRun(s, { style: 'tactical' });
     const L = Number(process.env.LAYER ?? 0) || Math.min(e.minLayer, 7);
     const node = r.map.nodes.find((n) => n.layer === L)!;
     r.currentNodeId = node.id;

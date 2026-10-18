@@ -15,8 +15,8 @@ export const ECONOMY = {
   recruitCost: 100,
   /** 招募時抽幾名候選 */
   recruitCandidates: 2,
-  /** 組隊：玩家自選幾名，其餘隨機（SPEC_SLICE3 §1.2） */
-  partyPicks: 2,
+  /** 組隊：玩家自選幾名，其餘隨機（Alan：主要遠征改成四名全自選；隨機隊員留給之後的模式，改回 2 即可） */
+  partyPicks: 4,
   /** 隊伍（組隊、招募）是否允許重複職業（SPEC_SLICE3 §9-3） */
   allowDuplicateClasses: false,
   /** 越晚加入越強：招募時獲得 floor(層數 / lateJoinLayersPerUpgrade) 個隨機強化（SPEC_SLICE3 §1.3、§9-4） */

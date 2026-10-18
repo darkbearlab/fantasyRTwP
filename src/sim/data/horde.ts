@@ -23,6 +23,15 @@ export const HORDE = {
   directorInterval: 0.25,
 };
 
+/**
+ * 怪群模式的敵人生命倍率（Alan：精英與戰爭領主的生命要下降；佔位值）。
+ * 雜兵與巢穴不受影響；bossMult 依 def.id 覆蓋 eliteMult。
+ */
+export const HORDE_ENEMY_HP = {
+  eliteMult: 0.6,
+  bossMult: { warlord: 0.4 } as Record<string, number>,
+};
+
 // ───────────── 第 2 階段：英雄端（SPEC_SLICE4 §3、§4） ─────────────
 
 /** 怪群遭遇建立戰鬥時套用的設定（佔位值） */

@@ -74,17 +74,24 @@ describe('職業體系（SPEC_SLICE3 §1、§7-3/4）', () => {
     expect(() => swapSkill(createRun(3), 0, 1, 'charge')).toThrow();
   });
 
-  it('組隊：自選 2 名＋隨機 2 名，不重複；同種子結果相同', () => {
+  it('組隊：主要遠征四名全自選，順序照點選順序', () => {
+    expect(ECONOMY.partyPicks).toBe(ECONOMY.partySize);
+    expect(rollParty(1, ['cleric', 'warrior', 'mage', 'ranger'])).toEqual(['cleric', 'warrior', 'mage', 'ranger']);
+    expect(() => rollParty(1, ['cleric', 'warrior', 'mage', 'ranger', 'rogue'])).toThrow();
+    expect(() => rollParty(1, ['cleric', 'cleric', 'mage', 'ranger'])).toThrow();
+  });
+
+  it('隨機補位（留給之後的模式）：自選 2 名＋隨機 2 名，不重複；同種子結果相同', () => {
     for (let seed = 1; seed <= 50; seed++) {
-      const p = rollParty(seed, ['mage', 'cleric']);
+      const p = rollParty(seed, ['mage', 'cleric'], 2);
       expect(p.length).toBe(ECONOMY.partySize);
       expect(p.slice(0, 2)).toEqual(['mage', 'cleric']);
       expect(new Set(p).size).toBe(p.length);
       for (const id of p) expect(CLASSES[id]).toBeDefined();
-      expect(rollParty(seed, ['mage', 'cleric'])).toEqual(p);
+      expect(rollParty(seed, ['mage', 'cleric'], 2)).toEqual(p);
     }
-    expect(() => rollParty(1, ['mage', 'mage'])).toThrow();
-    expect(() => rollParty(1, ['mage', 'cleric', 'warrior'])).toThrow();
+    expect(() => rollParty(1, ['mage', 'mage'], 2)).toThrow();
+    expect(() => rollParty(1, ['mage', 'cleric', 'warrior'], 2)).toThrow();
     const r = createRun(9, { party: rollParty(9, ['ranger']) });
     expect(r.party[0]!.classId).toBe('ranger');
   });

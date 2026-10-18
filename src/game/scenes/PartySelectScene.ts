@@ -7,7 +7,7 @@ import { classCard, classChip } from '../ui/classInfo';
 import { advance, switchTo } from '../runFlow';
 import { DomScene } from './DomScene';
 
-/** 組隊（SPEC_SLICE3 §1.2、§5）：自選 2 名，其餘由遠征種子隨機補上 */
+/** 組隊（SPEC_SLICE3 §1.2、§5）：自選 partyPicks 名（目前 4 名全自選），不足隊伍人數的由遠征種子隨機補上 */
 export class PartySelectScene extends DomScene {
   protected screenClass = 'panel-screen';
   private seed = 1;
@@ -25,7 +25,8 @@ export class PartySelectScene extends DomScene {
     }
     const need = ECONOMY.partyPicks;
     const box = el('div', 'panel wide');
-    box.append(el('h2', '', '組隊'), el('div', 'meta', `選 ${need} 名英雄，另外 ${ECONOMY.partySize - need} 名隨機加入。（種子 ${this.seed}）`));
+    const rest = ECONOMY.partySize - need;
+    box.append(el('h2', '', '組隊'), el('div', 'meta', `選 ${need} 名英雄${rest > 0 ? `，另外 ${rest} 名隨機加入` : ''}。點選順序就是隊伍順序（數字鍵 1–${ECONOMY.partySize}）。（種子 ${this.seed}）`));
     const grid = el('div', 'class-grid');
     for (const id of CLASS_ORDER) {
       const selected = this.picks.includes(id);
