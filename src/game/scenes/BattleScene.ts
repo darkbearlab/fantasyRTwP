@@ -630,10 +630,13 @@ export class BattleScene extends Phaser.Scene {
         case 'spawn': {
           const u = w.getUnit(ev.unitId)!;
           this.views.set(u.id, this.makeView(u));
-          s.registerUnit(u, '援軍');
-          this.fx.ring(u.pos, 1.2, 0xff6b6b, 500);
+          s.registerUnit(u, ev.waveId ? '' : '援軍');
+          if (!ev.waveId) this.fx.ring(u.pos, 1.2, 0xff6b6b, 500);
           break;
         }
+        case 'waveStart':
+          s.addLog(`敵人湧上來了！（${ev.waveId}）`, 'enemy');
+          break;
         case 'warcry': {
           const u = w.getUnit(ev.unitId)!;
           this.fx.ring(u.pos, 6, 0xff2a2a, 900, 0.1, 8);

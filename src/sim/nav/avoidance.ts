@@ -1,5 +1,9 @@
 import type { Unit } from '../unit';
 import type { NavGrid } from './grid';
+import { SpatialHash } from './spatial';
+
+/** 候選配對的額外查詢距離（推擠中位置會小幅改變） */
+const PAIR_MARGIN = 0.5;
 
 /**
  * 單位避讓（SPEC §8-5）：重疊的單位互相推開，推開後不得進入不可走格子。
@@ -7,11 +11,18 @@ import type { NavGrid } from './grid';
  * - 敵對：移動中的單位撞到靜止的敵人時，由移動者退回（不能推開敵人）。
  */
 export function separateUnits(units: readonly Unit[], gridFor: (u: Unit) => NavGrid): void {
-  const alive = units.filter((u) => !u.dead);
-  for (let i = 0; i < alive.length; i++) {
-    for (let j = i + 1; j < alive.length; j++) {
-      const a = alive[i];
-      const b = alive[j];
+  // 空間分格篩選候選（SPEC_SLICE4 §8）；配對順序與兩兩檢查相同（依陣列順序 i < j），結果維持決定論
+  let maxR = 0;
+  for (const u of units) if (!u.dead && u.radius > maxR) maxR = u.radius;
+  const hash = new SpatialHash(2);
+  hash.rebuild(units);
+  for (let i = 0; i < units.length; i++) {
+    const a = units[i];
+    if (a.dead) continue;
+    for (const j of hash.queryIndices(a.pos.x, a.pos.y, a.radius + maxR + PAIR_MARGIN)) {
+      if (j <= i) continue;
+      const b = units[j];
+      if (b.dead) continue;
       let dx = b.pos.x - a.pos.x;
       let dy = b.pos.y - a.pos.y;
       let d = Math.hypot(dx, dy);
@@ -44,6 +55,14 @@ export function separateUnits(units: readonly Unit[], gridFor: (u: Unit) => NavG
           wb = moverIsA ? 0 : 1;
         }
       }
+      // 不會被推開的單位（巢穴）：對方承受全部推力
+      if (a.def.immovable) {
+        wb += wa;
+        wa = 0;
+      } else if (b.def.immovable) {
+        wa += wb;
+        wb = 0;
+      }
       pushUnit(a, -dx * overlap * wa, -dy * overlap * wa, gridFor(a));
       pushUnit(b, dx * overlap * wb, dy * overlap * wb, gridFor(b));
     }
@@ -52,6 +71,7 @@ export function separateUnits(units: readonly Unit[], gridFor: (u: Unit) => NavG
 
 function pushUnit(u: Unit, px: number, py: number, grid: NavGrid): void {
   if (px === 0 && py === 0) return;
+  if (u.def.immovable) return;
   const np = { x: u.pos.x + px, y: u.pos.y + py };
   if (grid.isWalkable(np)) {
     u.pos = np;

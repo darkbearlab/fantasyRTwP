@@ -34,7 +34,7 @@ export class TitleScene extends DomScene {
     opt0.value = '';
     sel.appendChild(opt0);
     for (const e of Object.values(ENCOUNTERS)) {
-      const o = el('option', '', `${e.name}（${MAPS[e.map].name}・${e.tier === 'boss' ? '頭目' : e.tier === 'elite' ? '精英' : e.tier === 'event' ? '事件' : '戰鬥'}）`);
+      const o = el('option', '', `${e.name}（${MAPS[e.map].name}・${e.tier === 'boss' ? '頭目' : e.tier === 'elite' ? '精英' : e.tier === 'event' ? '事件' : e.tier === 'horde' ? '怪群' : '戰鬥'}）`);
       o.value = e.id;
       sel.appendChild(o);
     }

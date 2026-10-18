@@ -4,7 +4,10 @@ import { DT, NAV_CELL, RANGE_TOLERANCE } from './constants';
 import { ENEMIES } from './data/enemies';
 import { HEROES } from './data/heroes';
 import { SKILLS } from './data/skills';
-import type { DamageType, MapDef, Personality, ProjectileKind, SkillDef, Team, UnitDef } from './data/types';
+import type { DamageType, HordeSetup, MapDef, Personality, ProjectileKind, SkillDef, SpawnerDef, Team, UnitDef, WaveDef } from './data/types';
+import { HORDE } from './data/horde';
+import { FlowField } from './nav/flowField';
+import { hordeThink } from './ai/hordeAI';
 import type { SimEvent } from './events';
 import { canSeeCircle, canSeePoint, clearLine, segmentClear } from './los';
 import type { Vec } from './math';
@@ -49,6 +52,8 @@ export interface WorldOptions {
   idleBehavior?: IdleBehavior;
   /** 戰鬥中召喚的敵人定義（遠征會套上層數成長） */
   enemyDefFor?: (enemyId: string) => UnitDef;
+  /** 怪群模式：生成點、波次、勝利目標（SPEC_SLICE4 §2） */
+  horde?: HordeSetup;
 }
 
 export type ProjectilePayload =
@@ -101,6 +106,8 @@ export interface MoveOptions {
 }
 
 const AVOID_ZOC_COST = 20;
+/** 雜兵直線移動受阻時嘗試的偏轉角 */
+const STEER_TURNS = [0, Math.PI / 4, Math.PI / 2, -Math.PI / 4, -Math.PI / 2];
 
 /**
  * 戰鬥模擬世界。純 TypeScript，以固定節拍推進；只吃 Command、只吐 SimEvent。
@@ -133,6 +140,14 @@ export class World implements ZocContext {
   private events: SimEvent[] = [];
   private nextProjectileId = 1;
   private unitById = new Map<number, Unit>();
+  /** 怪群模式（SPEC_SLICE4） */
+  readonly horde: HordeSetup | null;
+  private spawners = new Map<string, SpawnerDef>();
+  /** 生成點 → 巢穴單位 id */
+  readonly nestBySpawner = new Map<string, number>();
+  private waveState: { def: WaveDef; fired: boolean; repeatsLeft: number; nextAt: number }[] = [];
+  private flow: FlowField | null = null;
+  private flowTick = -Infinity;
 
   constructor(opts: WorldOptions) {
     this.seed = opts.seed;
@@ -157,6 +172,14 @@ export class World implements ZocContext {
       u.aiTimer = this.rng.range(0, 0.4);
       this.units.push(u);
       this.unitById.set(u.id, u);
+    }
+    this.horde = opts.horde ?? null;
+    if (this.horde) {
+      for (const s of this.horde.spawners) {
+        this.spawners.set(s.id, s);
+        if (s.nest) this.nestBySpawner.set(s.id, this.spawnUnit(this.enemyDefFor('nest'), { x: s.x, y: s.y }).id);
+      }
+      this.waveState = this.horde.waves.map((def) => ({ def, fired: false, repeatsLeft: 0, nextAt: 0 }));
     }
   }
 
@@ -370,6 +393,7 @@ export class World implements ZocContext {
     }
     for (const p of this.projectiles) p.prevPos = { x: p.pos.x, y: p.pos.y };
 
+    this.updateWaves();
     this.updateAggro();
     for (const u of this.units) this.tickTimers(u);
     for (const u of this.units) this.updateUnit(u);
@@ -600,7 +624,10 @@ export class World implements ZocContext {
       return;
     }
 
-    if (u.team === 'enemy') enemyThink(this, u);
+    if (u.team === 'enemy') {
+      if (u.def.ai === 'horde') hordeThink(this, u);
+      else if (u.def.ai !== 'nest') enemyThink(this, u);
+    }
     else if (!u.order) {
       const o = (this.idleBehavior ?? IDLE_BEHAVIORS[u.personality]).decide(this, u);
       if (o?.type === 'move' && !this.idleBehavior && u.personality === 'guerrilla') this.emit({ type: 'notice', unitId: u.id, text: '逃跑！' });
@@ -865,7 +892,7 @@ export class World implements ZocContext {
   }
 
   /** 戰鬥中生成單位（援軍）；位置不可走時找最近的可走點 */
-  spawnUnit(def: UnitDef, pos: Vec, byId?: number): Unit {
+  spawnUnit(def: UnitDef, pos: Vec, byId?: number, waveId?: string): Unit {
     const grid = this.navGrid(def.radius);
     let p = pos;
     if (!grid.isWalkable(p)) {
@@ -877,8 +904,126 @@ export class World implements ZocContext {
     u.aiTimer = 0;
     this.units.push(u);
     this.unitById.set(u.id, u);
-    this.emit({ type: 'spawn', unitId: u.id, byId });
+    this.emit({ type: 'spawn', unitId: u.id, byId, waveId });
     return u;
+  }
+
+  // ───────────── 怪群模式：流場、直線移動、波次（SPEC_SLICE4） ─────────────
+
+  /** 流場的下一步（往最近的英雄）；每 HORDE.flowInterval 節拍重算一次 */
+  flowNext(p: Vec): Vec | null {
+    if (!this.flow) this.flow = new FlowField(NavGrid.fromMap(this.map, HORDE.flowCell, HORDE.flowRadius));
+    if (this.tick - this.flowTick >= HORDE.flowInterval) {
+      this.flowTick = this.tick;
+      this.flow.compute(this.units.filter((h) => h.team === 'hero' && !h.dead && h.stealthTime <= 0).map((h) => h.pos));
+    }
+    return this.flow.nextPoint(p);
+  }
+
+  /** 流場距離（格；測試與除錯用） */
+  flowDistanceAt(p: Vec): number {
+    this.flowNext(p);
+    return this.flow!.distanceAt(p);
+  }
+
+  /** 朝某點直線走一個節拍（雜兵用，不尋路）；控制區、不可走格、脫離攻擊照常處理 */
+  stepToward(u: Unit, goal: Vec, stopDist = 0): MoveResult {
+    if (u.rooted) return 'rooted';
+    const d = dist(u.pos, goal);
+    if (d <= stopDist + 1e-6) return 'arrived';
+    const speed = u.def.moveSpeed * this.config.moveSpeedMult * this.moveMultFor(u);
+    const step = Math.min(speed * DT, d - stopDist);
+    const dx = (goal.x - u.pos.x) / d;
+    const dy = (goal.y - u.pos.y) / d;
+    const grid = this.navFor(u);
+    // 直走不通時嘗試偏轉 45°、90°（貼牆、繞角）；先試上次成功的那一側，避免在牆角左右來回
+    let to: Vec | null = null;
+    for (const base of STEER_TURNS) {
+      const turn = base * u.steerSign;
+      const c = Math.cos(turn);
+      const sn = Math.sin(turn);
+      const p = { x: u.pos.x + (dx * c - dy * sn) * step, y: u.pos.y + (dx * sn + dy * c) * step };
+      if (grid.isWalkable(p)) {
+        to = p;
+        if (turn !== 0) u.steerSign = turn > 0 ? 1 : -1;
+        break;
+      }
+    }
+    if (!to) return 'nopath';
+    const ignoreZoc = u.def.ignoresZoc || u.stealthTime > 0;
+    if (!ignoreZoc) {
+      if (pinBlocker(this, u, u.pos, to)) return 'pinned';
+      for (const e of disengagedFrom(this, u, u.pos, to)) freeAttack(this, e, u);
+      if (u.dead) return 'moving';
+    }
+    u.facing = Math.atan2(to.y - u.pos.y, to.x - u.pos.x);
+    u.pos = to;
+    u.movedThisTick = true;
+    return dist(u.pos, goal) <= stopDist + 1e-6 ? 'arrived' : 'moving';
+  }
+
+  /** 存活的敵人（不含巢穴） */
+  private liveEnemyCount(): number {
+    let n = 0;
+    for (const u of this.units) if (u.team === 'enemy' && !u.dead && u.def.ai !== 'nest') n++;
+    return n;
+  }
+
+  private waveFired(id: string): boolean {
+    return this.waveState.some((s) => s.def.id === id && s.fired);
+  }
+
+  private updateWaves(): void {
+    if (!this.horde) return;
+    for (const st of this.waveState) {
+      if (!st.fired) {
+        if (!this.waveTriggered(st.def)) continue;
+        st.fired = true;
+        st.repeatsLeft = st.def.repeat?.times ?? 0;
+        st.nextAt = this.time + (st.def.repeat?.interval ?? 0);
+        this.spawnWave(st.def);
+      } else if (st.repeatsLeft !== 0 && this.time >= st.nextAt - 1e-9) {
+        if (st.repeatsLeft > 0) st.repeatsLeft--;
+        st.nextAt += st.def.repeat!.interval;
+        this.spawnWave(st.def);
+      }
+    }
+  }
+
+  private waveTriggered(w: WaveDef): boolean {
+    const t = w.trigger;
+    switch (t.type) {
+      case 'start':
+        return true;
+      case 'time':
+        return this.time >= t.t - 1e-9;
+      case 'area':
+        return this.units.some((h) => h.team === 'hero' && !h.dead && h.pos.x >= t.rect.x && h.pos.x <= t.rect.x + t.rect.w && h.pos.y >= t.rect.y && h.pos.y <= t.rect.y + t.rect.h);
+      case 'remaining':
+        return (!t.after || this.waveFired(t.after)) && this.liveEnemyCount() <= t.count;
+    }
+  }
+
+  private spawnWave(w: WaveDef): void {
+    let any = false;
+    for (const sp of w.spawns) {
+      const s = this.spawners.get(sp.spawner);
+      if (!s) continue;
+      // 巢穴被摧毀：這個生成點不再生成
+      const nestId = this.nestBySpawner.get(s.id);
+      if (nestId !== undefined && this.getUnit(nestId)?.dead) continue;
+      const def = this.enemyDefFor(sp.enemy);
+      for (let k = 0; k < sp.count; k++) {
+        const a = this.rng.range(0, Math.PI * 2);
+        const r = Math.sqrt(this.rng.next()) * s.radius;
+        const u = this.spawnUnit(def, { x: s.x + Math.cos(a) * r, y: s.y + Math.sin(a) * r }, undefined, w.id);
+        u.aiTimer = this.rng.range(0, HORDE.retargetInterval);
+        any = true;
+      }
+    }
+    if (!any) return;
+    this.emit({ type: 'waveStart', waveId: w.id });
+    this.triggerAggro();
   }
 
   // ───────────── 投射物 ─────────────
@@ -938,10 +1083,31 @@ export class World implements ZocContext {
   private checkEnd(): void {
     if (this.result) return;
     const heroAlive = this.units.some((u) => u.team === 'hero' && !u.dead);
-    const enemyAlive = this.units.some((u) => u.team === 'enemy' && !u.dead);
-    if (!enemyAlive) this.result = 'hero';
-    else if (!heroAlive) this.result = 'enemy';
+    if (this.horde) {
+      if (!heroAlive) this.result = 'enemy';
+      else if (this.objectiveMet()) this.result = 'hero';
+    } else {
+      const enemyAlive = this.units.some((u) => u.team === 'enemy' && !u.dead);
+      if (!enemyAlive) this.result = 'hero';
+      else if (!heroAlive) this.result = 'enemy';
+    }
     if (this.result) this.emit({ type: 'battleEnd', winner: this.result });
+  }
+
+  /** 怪群模式的勝利目標（SPEC_SLICE4 §2） */
+  private objectiveMet(): boolean {
+    const obj = this.horde!.objective;
+    switch (obj.type) {
+      case 'clear':
+        // 沒有存活敵人（巢穴也要摧毀），而且所有波次都已出現完畢
+        return !this.units.some((u) => u.team === 'enemy' && !u.dead) && this.waveState.every((s) => s.fired && s.repeatsLeft === 0);
+      case 'nests':
+        return [...this.nestBySpawner.values()].every((id) => this.getUnit(id)?.dead);
+      case 'exit': {
+        const r = obj.rect;
+        return this.units.every((h) => h.team !== 'hero' || h.dead || (h.pos.x >= r.x && h.pos.x <= r.x + r.w && h.pos.y >= r.y && h.pos.y <= r.y + r.h));
+      }
+    }
   }
 
   /** 決定論測試用：完整狀態字串 */
