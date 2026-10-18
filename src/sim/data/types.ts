@@ -1,7 +1,9 @@
 import type { Vec } from '../math';
 
 export type Team = 'hero' | 'enemy';
-export type EnemyArchetype = 'brute' | 'skirmisher' | 'archer' | 'caster' | 'boss' | 'siege' | 'bomber' | 'lurker';
+export type EnemyArchetype = 'brute' | 'skirmisher' | 'archer' | 'caster' | 'boss' | 'siege' | 'bomber' | 'lurker' | 'horde' | 'nest';
+/** 敵人層級（SPEC_SLICE4 §1）：雜兵大量、簡單；精英少量、有完整 AI。省略視為 elite */
+export type UnitTier = 'fodder' | 'elite';
 /** 投射物外觀種類（畫面層據此決定顏色大小） */
 export type ProjectileKind = 'arrow' | 'bolt' | 'fireball' | 'missile' | 'frost' | 'flask' | 'curse';
 /**
@@ -64,6 +66,10 @@ export interface UnitDef {
   /** 技能 id，依序對應快捷鍵 */
   skills: string[];
   ai?: EnemyArchetype;
+  /** 敵人層級（省略為 elite） */
+  tier?: UnitTier;
+  /** 不會被推開（巢穴） */
+  immovable?: boolean;
 }
 
 export type SkillTarget = 'enemy' | 'ally' | 'allyOrSelf' | 'ground' | 'self';
@@ -185,4 +191,47 @@ export interface MapDef {
   terrain?: TerrainRect[];
   /** 援軍進場位置（頭目戰吼） */
   summonPoints?: Vec[];
+  /** 怪群模式的生成點（SPEC_SLICE4 §2）；遭遇也可以自帶 */
+  spawners?: SpawnerDef[];
+}
+
+// ───────────── 怪群模式：生成點、波次、目標（SPEC_SLICE4 §2） ─────────────
+
+export interface SpawnerDef {
+  id: string;
+  x: number;
+  y: number;
+  /** 生成時在此半徑內散開 */
+  radius: number;
+  /** 有巢穴：戰鬥開始時在此放一個巢穴，巢穴被摧毀後這個生成點不再生成 */
+  nest?: boolean;
+}
+
+export type WaveTrigger =
+  | { type: 'start' }
+  /** 戰鬥開始後第 t 秒 */
+  | { type: 'time'; t: number }
+  /** 任一存活英雄進入區域 */
+  | { type: 'area'; rect: Rect }
+  /** 存活敵人（不含巢穴）剩下 count 名以下；after：指定的波次已出現後才開始判定 */
+  | { type: 'remaining'; count: number; after?: string };
+
+export interface WaveDef {
+  id: string;
+  trigger: WaveTrigger;
+  spawns: { spawner: string; enemy: string; count: number }[];
+  /** 觸發後重複出現：每 interval 秒一次，共 times 次（-1 = 直到戰鬥結束） */
+  repeat?: { interval: number; times: number };
+}
+
+export type Objective =
+  | { type: 'clear' }
+  | { type: 'nests' }
+  /** 所有存活英雄進入出口區域 */
+  | { type: 'exit'; rect: Rect };
+
+export interface HordeSetup {
+  spawners: SpawnerDef[];
+  waves: WaveDef[];
+  objective: Objective;
 }

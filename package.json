@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.sim.json",
     "test": "vitest run",
     "autobattle": "tsx tools/autobattle.ts",
-    "autorun": "tsx tools/autorun.ts"
+    "autorun": "tsx tools/autorun.ts",
+    "perf": "tsx tools/perf.ts"
   },
   "dependencies": {
     "phaser": "3.90.0"

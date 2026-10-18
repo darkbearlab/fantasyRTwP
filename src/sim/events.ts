@@ -17,6 +17,8 @@ export type SimEvent =
   | { type: 'knockback'; unitId: number; from: Vec; to: Vec }
   | { type: 'notice'; unitId: number; text: string }
   | { type: 'aggro' }
-  | { type: 'spawn'; unitId: number; byId?: number }
+  | { type: 'spawn'; unitId: number; byId?: number; waveId?: string }
+  /** 怪群模式：一波敵人出現（SPEC_SLICE4 §2） */
+  | { type: 'waveStart'; waveId: string }
   | { type: 'warcry'; unitId: number }
   | { type: 'battleEnd'; winner: Team };

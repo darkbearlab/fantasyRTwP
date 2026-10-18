@@ -2,7 +2,10 @@
  * 遭遇組合（SPEC_SLICE2 §7.2）：使用的地圖、敵人與出生位置、難度。
  * 依「節點類型＋層數」從池中抽選；數值隨層數成長在 run/battle.ts 處理。
  */
-export type EncounterTier = 'battle' | 'elite' | 'boss' | 'event';
+import type { HordeSetup } from '../../sim/data/types';
+
+/** horde：怪群試作（SPEC_SLICE4），只出現在快速戰鬥，不進遠征的遭遇池 */
+export type EncounterTier = 'battle' | 'elite' | 'boss' | 'event' | 'horde';
 
 export interface EncounterEnemy {
   enemy: string;
@@ -23,6 +26,8 @@ export interface EncounterDef {
   /** 顯示用難度等級 1–5 */
   difficulty: number;
   enemies: EncounterEnemy[];
+  /** 怪群模式：生成點、波次與勝利目標（地圖的 spawners 會一併加入） */
+  horde?: HordeSetup;
 }
 
 const E = (enemy: string, x: number, y: number, captain = false): EncounterEnemy => ({ enemy, x, y, captain: captain || undefined });
@@ -81,6 +86,29 @@ const list: EncounterDef[] = [
   // ── 頭目 ──
   { id: 'warlord', name: '戰爭領主', map: 'boss01', tier: 'boss', minLayer: 1, maxLayer: 99, difficulty: 5,
     enemies: [E('warlord', 39.6, 24), E('brute', 36.6, 21.5), E('brute', 36.6, 26.5), E('archer', 42, 18.5), E('archer', 42, 29.5)] },
+  // ── 怪群試作（SPEC_SLICE4）：先在現有地圖上驗證波次與效能 ──
+  { id: 'hordePass', name: '怪群試作：隘口', map: 'arena01', tier: 'horde', minLayer: 1, maxLayer: 99, difficulty: 3,
+    enemies: [],
+    horde: {
+      spawners: [
+        { id: 'east', x: 42, y: 24, radius: 2.5 },
+        { id: 'north', x: 36, y: 4, radius: 2 },
+        { id: 'south', x: 36, y: 44, radius: 2 },
+        { id: 'nestNE', x: 44, y: 8, radius: 2, nest: true },
+        { id: 'nestSE', x: 44, y: 40, radius: 2, nest: true },
+        { id: 'rear', x: 3, y: 40, radius: 1.5 },
+      ],
+      waves: [
+        { id: 'w1', trigger: { type: 'start' }, spawns: [{ spawner: 'east', enemy: 'thrall', count: 10 }] },
+        { id: 'w2', trigger: { type: 'time', t: 12 }, spawns: [{ spawner: 'north', enemy: 'skitter', count: 5 }, { spawner: 'south', enemy: 'skitter', count: 5 }] },
+        { id: 'w3', trigger: { type: 'remaining', count: 6, after: 'w2' },
+          spawns: [{ spawner: 'east', enemy: 'thrall', count: 10 }, { spawner: 'east', enemy: 'slinger', count: 4 }, { spawner: 'east', enemy: 'brute', count: 1 }] },
+        { id: 'w4', trigger: { type: 'area', rect: { x: 26, y: 0, w: 22, h: 48 } }, spawns: [{ spawner: 'rear', enemy: 'skitter', count: 6 }] },
+        { id: 'nests', trigger: { type: 'time', t: 20 }, repeat: { interval: 15, times: 2 },
+          spawns: [{ spawner: 'nestNE', enemy: 'thrall', count: 4 }, { spawner: 'nestSE', enemy: 'thrall', count: 4 }] },
+      ],
+      objective: { type: 'clear' },
+    } },
   // ── 事件遭遇 ──
   { id: 'ambush', name: '埋伏', map: 'forest01', tier: 'event', minLayer: 1, maxLayer: 99, difficulty: 2,
     enemies: [E('skirmisher', 36, 31), E('skirmisher', 36, 17), E('archer', 42, 24)] },

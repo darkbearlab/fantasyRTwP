@@ -97,6 +97,10 @@ export class Unit {
 
   aiTimer = 0;
   retreatCooldown = 0;
+  /** 雜兵目前追擊的英雄（-1 = 無） */
+  hordeTargetId = -1;
+  /** 雜兵貼牆時偏好的偏轉方向（1 / -1），避免在牆角左右來回 */
+  steerSign = 1;
 
   stats: UnitStats = { damageDealt: 0, damageTaken: 0, healing: 0, kills: 0 };
 

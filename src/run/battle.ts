@@ -59,8 +59,11 @@ export function createBattleFromRun(run: RunState, config?: Partial<SimConfig>, 
     spawns.push({ defId: hero.classId, def, pos: map.heroSpawns[i % map.heroSpawns.length], heroSlot: slot, hp: hero.hp, personality: hero.personality });
   });
   for (const e of enc.enemies) spawns.push({ defId: e.enemy, def: enemyDef(e.enemy, layer, e.captain), pos: { x: e.x, y: e.y } });
+  // 怪群模式：地圖與遭遇的生成點合併，戰鬥模式自動設成 horde
+  const horde = enc.horde ? { ...enc.horde, spawners: [...(map.spawners ?? []), ...enc.horde.spawners] } : undefined;
+  const cfg = horde ? { ...config, battleStyle: 'horde' as const } : config;
   // 戰鬥中召喚的援軍也套用層數成長
-  return new World({ seed, map, spawns, config, enemyDefFor: (id) => enemyDef(id, layer) });
+  return new World({ seed, map, spawns, config: cfg, enemyDefFor: (id) => enemyDef(id, layer), horde });
 }
 
 export interface BattleOutcome {

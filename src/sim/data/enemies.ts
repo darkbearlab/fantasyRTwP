@@ -55,6 +55,36 @@ export const ENEMIES: Record<string, UnitDef> = {
     projectsZoc: false, startsHidden: true,
     skills: [],
   },
+  // ── 切片 4 怪群試作：雜兵（SPEC_SLICE4 §1.1；名稱與數值皆為佔位） ──
+  thrall: {
+    id: 'thrall', name: '屍僕', letter: 't', color: 0x8a6d5a, team: 'enemy', ai: 'horde', tier: 'fodder',
+    maxHp: 12, armor: 0, accuracy: 20, defense: 10, damage: [3, 5],
+    range: 0.3, windup: 0.6, recovery: 0.9, attackSpeed: 1, moveSpeed: 2.6, radius: 0.35,
+    projectsZoc: false,
+    skills: [],
+  },
+  skitter: {
+    id: 'skitter', name: '竄行者', letter: 'k', color: 0xa0784a, team: 'enemy', ai: 'horde', tier: 'fodder',
+    maxHp: 8, armor: 0, accuracy: 25, defense: 15, damage: [2, 4],
+    range: 0.3, windup: 0.4, recovery: 0.7, attackSpeed: 1, moveSpeed: 3.9, radius: 0.32,
+    projectsZoc: false,
+    skills: [],
+  },
+  slinger: {
+    id: 'slinger', name: '投石兵', letter: 'g', color: 0x9a8f6a, team: 'enemy', ai: 'horde', tier: 'fodder',
+    maxHp: 8, armor: 0, accuracy: 20, defense: 10, damage: [3, 4],
+    range: 6, windup: 0.8, recovery: 1.2, attackSpeed: 1, moveSpeed: 2.6, radius: 0.35,
+    projectsZoc: false, projectileSpeed: 16, projectileKind: 'bolt',
+    skills: [],
+  },
+  /** 巢穴：不會動、不會攻擊；被摧毀後所屬生成點停止生成 */
+  nest: {
+    id: 'nest', name: '巢穴', letter: 'N', color: 0x5a3a2a, team: 'enemy', ai: 'nest',
+    maxHp: 150, armor: 2, accuracy: 0, defense: 0, damage: [0, 0],
+    range: 0, windup: 1, recovery: 1, attackSpeed: 1, moveSpeed: 0, radius: 0.9,
+    projectsZoc: false, immovable: true,
+    skills: [],
+  },
   /** 頭目：戰爭領主（SPEC_SLICE2 §7.3） */
   warlord: {
     id: 'warlord', name: '戰爭領主', letter: 'L', color: 0x7a0d0d, team: 'enemy', ai: 'boss',

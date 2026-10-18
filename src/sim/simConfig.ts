@@ -3,8 +3,12 @@
  * 執行中只能透過 `setConfig` 指令修改（畫面層不得直接改 sim）。
  */
 export type ZocMode = 'pin' | 'disengage' | 'off';
+/** 戰鬥模式（SPEC_SLICE4）：tactical＝原本的戰術戰鬥；horde＝怪群試作 */
+export type BattleStyle = 'tactical' | 'horde';
 
 export interface SimConfig {
+  /** 戰鬥模式（怪群遭遇會自動設成 horde） */
+  battleStyle: BattleStyle;
   /** 控制區模式（SPEC §7） */
   zocMode: ZocMode;
   /**
@@ -39,6 +43,7 @@ export interface SimConfig {
 }
 
 export const DEFAULT_SIM_CONFIG: SimConfig = {
+  battleStyle: 'tactical',
   zocMode: 'pin',
   zocEngagedException: true,
   zocRange: 1.0,
