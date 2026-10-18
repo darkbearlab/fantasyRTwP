@@ -1,4 +1,7 @@
 import { ENCOUNTERS } from '../../run/data/encounters';
+import { LEVEL_PREFIX } from '../../run/battle';
+import type { LevelTier } from '../../run/levelGen';
+import { levelDifficulty } from '../../run/levelGen';
 import type { MapNode } from '../../run/mapGen';
 import { NODE_ICON, NODE_LABEL } from '../../run/mapGen';
 import { availableNodes, chooseNode, pickEncounter, setHeroPersonality } from '../../run/progression';
@@ -98,8 +101,10 @@ export class MapScene extends DomScene {
       b.addEventListener('mouseenter', () => {
         let text = `<b>${NODE_LABEL[n.type]}</b>（第 ${n.layer} 層）<br>${NODE_DESC[n.type]}`;
         if (n.type === 'battle' || n.type === 'elite' || n.type === 'boss') {
-          const enc = ENCOUNTERS[pickEncounter(run, n)];
-          text += `<br>難度 ${'★'.repeat(enc.difficulty)}${'☆'.repeat(Math.max(0, 5 - enc.difficulty))}`;
+          const id = pickEncounter(run, n);
+          // 大型關卡進場時才生成；預覽只算難度
+          const difficulty = id.startsWith(LEVEL_PREFIX) ? levelDifficulty(n.type as LevelTier, n.layer) : ENCOUNTERS[id].difficulty;
+          text += `<br>難度 ${'★'.repeat(difficulty)}${'☆'.repeat(Math.max(0, 5 - difficulty))}`;
         }
         tip.innerHTML = text;
         tip.style.left = `${p.x + 36}px`;

@@ -2,6 +2,7 @@ import { button, el } from '../ui/dom';
 import { randomRunSeed, startNewRun, switchTo } from '../runFlow';
 import { DomScene } from './DomScene';
 import { ENCOUNTERS } from '../../run/data/encounters';
+import { levelEncounterId } from '../../run/battle';
 import { MAPS } from '../../sim/data/maps';
 import { CREDITS } from '../credits';
 
@@ -33,6 +34,12 @@ export class TitleScene extends DomScene {
     const opt0 = el('option', '', '隘口之戰（切片 1）');
     opt0.value = '';
     sel.appendChild(opt0);
+    // 遠征的大型關卡（每次依種子生成）
+    for (const [tier, label] of [['battle', '探索'], ['elite', '精英'], ['boss', '最終決戰'], ['event', '突發']] as const) {
+      const o = el('option', '', `大型關卡：${label}（依種子生成）`);
+      o.value = levelEncounterId(tier);
+      sel.appendChild(o);
+    }
     for (const e of Object.values(ENCOUNTERS)) {
       const o = el('option', '', `${e.name}（${MAPS[e.map].name}・${e.tier === 'boss' ? '頭目' : e.tier === 'elite' ? '精英' : e.tier === 'event' ? '事件' : e.tier === 'horde' ? '怪群' : '戰鬥'}）`);
       o.value = e.id;

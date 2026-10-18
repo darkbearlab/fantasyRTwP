@@ -195,6 +195,8 @@ export interface MapDef {
   spawners?: SpawnerDef[];
   /** 可互動的地圖物件（門、拉桿；SPEC_SLICE4 §15.1） */
   interactables?: InteractableDef[];
+  /** 主題（生成的關卡用；畫面依主題挑地形物件） */
+  theme?: string;
 }
 
 // ───────────── 互動物件（SPEC_SLICE4 §15.1：通用的「互動 → 觸發動作」） ─────────────
@@ -251,7 +253,8 @@ export type WaveTrigger =
 export interface WaveDef {
   id: string;
   trigger: WaveTrigger;
-  spawns: { spawner: string; enemy: string; count: number }[];
+  /** captain：精英隊長（生命、傷害提高） */
+  spawns: { spawner: string; enemy: string; count: number; captain?: boolean }[];
   /** 觸發後重複出現：每 interval 秒一次，共 times 次（-1 = 直到戰鬥結束） */
   repeat?: { interval: number; times: number };
 }
@@ -286,7 +289,9 @@ export type Objective =
   | { type: 'clear' }
   | { type: 'nests' }
   /** 所有存活英雄進入出口區域 */
-  | { type: 'exit'; rect: Rect };
+  | { type: 'exit'; rect: Rect }
+  /** 擊倒指定波次的所有敵人（頭目關卡：wave 出現後全滅即勝利） */
+  | { type: 'kill'; wave: string };
 
 export interface HordeSetup {
   spawners: SpawnerDef[];

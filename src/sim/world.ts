@@ -58,7 +58,7 @@ export interface WorldOptions {
   defs?: Record<string, UnitDef>;
   idleBehavior?: IdleBehavior;
   /** 戰鬥中召喚的敵人定義（遠征會套上層數成長） */
-  enemyDefFor?: (enemyId: string) => UnitDef;
+  enemyDefFor?: (enemyId: string, captain?: boolean) => UnitDef;
   /** 怪群模式：生成點、波次、勝利目標（SPEC_SLICE4 §2） */
   horde?: HordeSetup;
 }
@@ -118,6 +118,8 @@ export interface MoveOptions {
 }
 
 const AVOID_ZOC_COST = 20;
+/** 移動指令連續這麼多秒沒有進展就放棄 */
+const MOVE_STALL_TIME = 1.5;
 /** 雜兵直線移動受阻時嘗試的偏轉角 */
 const STEER_TURNS = [0, Math.PI / 4, Math.PI / 2, -Math.PI / 4, -Math.PI / 2];
 
@@ -141,7 +143,7 @@ export class World implements ZocContext {
   /** 指定時所有英雄都用這個閒置行為（測試用）；否則依各英雄的性格 */
   idleBehavior: IdleBehavior | null;
 
-  readonly enemyDefFor: (enemyId: string) => UnitDef;
+  readonly enemyDefFor: (enemyId: string, captain?: boolean) => UnitDef;
   /** 戰術地形（草叢會被燒掉，所以每場戰鬥各一份） */
   readonly terrain: TerrainGrid;
   /** 燃燒中的格子：格子索引 → 狀態 */
@@ -649,6 +651,20 @@ export class World implements ZocContext {
     u.path = null;
     u.pathGoal = null;
     u.pinnedNotified = false;
+    u.stallBest = Infinity;
+    u.stallTime = 0;
+  }
+
+  /** 移動卡住（被敵人堵在牆角等）：離目標的距離連續 MOVE_STALL_TIME 秒沒有縮短 */
+  private moveStalled(u: Unit, goal: Vec): boolean {
+    const d = dist(u.pos, goal);
+    if (d < u.stallBest - 0.05) {
+      u.stallBest = d;
+      u.stallTime = 0;
+      return false;
+    }
+    u.stallTime += DT;
+    return u.stallTime >= MOVE_STALL_TIME;
   }
 
   // ───────────── 每節拍更新 ─────────────
@@ -787,6 +803,8 @@ export class World implements ZocContext {
         if (r === 'arrived' && o.fromPlayer) u.guardPoint = { x: u.pos.x, y: u.pos.y };
         if (r === 'arrived' || r === 'nopath') this.setOrder(u, null);
         else if (r === 'pinned') this.stopPinned(u);
+        // 卡住走不到（例如逃跑時被敵人堵住）：放棄這個移動，交回閒置行為重新判斷
+        else if (this.moveStalled(u, o.point)) this.setOrder(u, null);
         break;
       }
       case 'follow': {
@@ -1211,11 +1229,12 @@ export class World implements ZocContext {
       // 巢穴被摧毀：這個生成點不再生成
       const nestId = this.nestBySpawner.get(s.id);
       if (nestId !== undefined && this.getUnit(nestId)?.dead) continue;
-      const def = this.enemyDefFor(sp.enemy);
+      const def = this.enemyDefFor(sp.enemy, sp.captain);
       for (let k = 0; k < sp.count; k++) {
         const a = this.rng.range(0, Math.PI * 2);
         const r = Math.sqrt(this.rng.next()) * s.radius;
         const u = this.spawnUnit(def, { x: s.x + Math.cos(a) * r, y: s.y + Math.sin(a) * r }, undefined, w.id);
+        u.waveId = w.id;
         u.aiTimer = this.rng.range(0, HORDE.retargetInterval);
         any = true;
       }
@@ -1305,6 +1324,8 @@ export class World implements ZocContext {
         return !this.units.some((u) => u.team === 'enemy' && !u.dead) && this.waveState.every((s) => s.fired && s.repeatsLeft === 0) && (!this.director || this.director.exhausted);
       case 'nests':
         return [...this.nestBySpawner.values()].every((id) => this.getUnit(id)?.dead);
+      case 'kill':
+        return this.waveFired(obj.wave) && !this.units.some((u) => u.waveId === obj.wave && !u.dead);
       case 'exit': {
         const r = obj.rect;
         return this.units.every((h) => h.team !== 'hero' || h.dead || (h.pos.x >= r.x && h.pos.x <= r.x + r.w && h.pos.y >= r.y && h.pos.y <= r.y + r.h));

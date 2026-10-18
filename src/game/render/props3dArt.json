@@ -111,6 +111,22 @@
           "wooden_barrels_01",
           "namaqualand_boulder_02"
         ]
+      },
+      "mine": {
+        "small": [
+          "boulder_01",
+          "wooden_crate_01"
+        ],
+        "medium": [
+          "boulder_01",
+          "namaqualand_boulder_02",
+          "wooden_crate_01"
+        ],
+        "large": [
+          "rock_moss_set_01",
+          "wooden_barrels_01",
+          "namaqualand_boulder_02"
+        ]
       }
     },
     "skipMaps": [
