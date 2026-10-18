@@ -39,8 +39,8 @@ describe('美術試裝 heroes3d（畫面層，不影響 sim）', () => {
     expect(h3dFrame('ranger', act('recovery', 0))).toEqual({ anim: 'shoot', frame: peakOf('ranger', 'shoot') });
   });
 
-  it('四個基本職業的所有技能都對應到該角色真的有的動作（不會退回待機）', () => {
-    for (const heroId of ['warrior', 'ranger', 'mage', 'cleric']) {
+  it('四個基本職業與咒術師的所有技能都對應到該角色真的有的動作（不會退回待機）', () => {
+    for (const heroId of ['warrior', 'ranger', 'mage', 'cleric', 'hexer']) {
       const char = H3D.heroes[heroId];
       const skills = new Set([CLASSES[heroId].signature, ...LINES[CLASSES[heroId].line].pool]);
       for (const sk of skills) {

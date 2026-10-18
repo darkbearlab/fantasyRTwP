@@ -75,8 +75,8 @@ npm run autorun -- --runs 100 --fixed  # 同上，但隊伍固定為四個 Arche
 
 ## 美術試裝：自製 3D 預渲染英雄（heroes3d）
 
-`config.art = 'heroes3d'`（預設）時，戰士、遊俠、法師、牧師改用 `public/assets/heroes3d/` 的自製 sprite（格式見該資料夾的 README.md）；
-沒有素材的英雄（狂戰士、盜賊、咒術師、煉金術士）、敵人與地板沿用 Flare。除錯面板「美術」可切回 Flare 或色塊，「法師外觀」可切換 mage／sorceress。
+`config.art = 'heroes3d'`（預設）時，戰士、遊俠、法師、牧師、咒術師（sorceress）改用 `public/assets/heroes3d/` 的自製 sprite（格式見該資料夾的 README.md）；
+沒有素材的英雄（狂戰士、盜賊、煉金術士）、敵人與地板沿用 Flare。除錯面板「美術」可切回 Flare 或色塊，「法師外觀」可切換 mage／sorceress。
 - 縮放：`config.heroes3dScale`（預設 0.75，對齊身高方塊）；個別角色的倍率在 `src/game/render/heroes3dArt.json` 的 `scaleMul`
 - 動作對應、各動作「最用力（生效）」的影格（`peaks`）、替代順序、暫不使用的動作（`avoid`）都在 `heroes3dArt.json`
 - 節奏：準備期間依進度播到 peak 的前一格，生效那一刻剛好是 peak，恢復期間播完剩下的影格（`src/game/render/heroes3dAnim.ts`）
