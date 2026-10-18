@@ -1,3 +1,4 @@
+import { HORDE_TAUNT } from './data/horde';
 import type { SimConfig } from './simConfig';
 import { SKILLS } from './data/skills';
 import type { Unit } from './unit';
@@ -53,6 +54,8 @@ export function isEngagedWithOthers(ctx: ZocContext, e: Unit, x: Unit): boolean 
 export function zoneActiveFor(ctx: ZocContext, e: Unit, x: Unit): boolean {
   if (e.dead || x.dead || !e.def.projectsZoc || e.team === x.team) return false;
   if (ctx.config.zocMode === 'off') return false;
+  // 怪群模式：有嘲諷光環的英雄（戰士），控制區對雜兵無效——雜兵可以從旁邊流過去（SPEC_SLICE4 §4）
+  if (ctx.config.battleStyle === 'horde' && x.def.tier === 'fodder' && HORDE_TAUNT[e.def.id]) return false;
   if (ctx.config.zocEngagedException && isEngagedWithOthers(ctx, e, x)) return false;
   return true;
 }

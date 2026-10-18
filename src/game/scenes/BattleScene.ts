@@ -901,6 +901,12 @@ export class BattleScene extends Phaser.Scene {
         case 'stop':
           for (const id of c.unitIds) ghost.set(id, null);
           break;
+        case 'attackMove': {
+          const us = c.unitIds.map((id) => w.getUnit(id)!).filter((u) => u && !u.dead);
+          const pts = w.formationPoints(us, c.point);
+          us.forEach((u, i) => ghost.set(u.id, { type: 'attackMove', point: pts[i] }));
+          break;
+        }
         default:
           break;
       }
@@ -935,6 +941,11 @@ export class BattleScene extends Phaser.Scene {
           if (tp) groundLine(g, from, tp, 2, COLORS.ghostFollow, 0.7);
           break;
         }
+        case 'attackMove':
+          // 攻擊移動：紅色的移動線
+          groundLine(g, from, o.point, 2, COLORS.ghostAttack, 0.85);
+          groundCircle(g, o.point.x, o.point.y, 0.25, { stroke: COLORS.ghostAttack, strokeAlpha: 0.85, width: 2 });
+          break;
         case 'skill': {
           const def = SKILLS[o.skillId];
           let tp: Vec | null = null;

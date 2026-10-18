@@ -2,6 +2,7 @@
  * 遠征 ↔ 戰鬥的介面（SPEC_SLICE2 §10.2）：由 RunState 建立 World、把戰鬥結果寫回。
  */
 import { ENEMIES } from '../sim/data/enemies';
+import { HORDE_CONFIG } from '../sim/data/horde';
 import { MAPS } from '../sim/data/maps';
 import type { Personality, UnitDef } from '../sim/data/types';
 import type { SimConfig } from '../sim/simConfig';
@@ -61,7 +62,7 @@ export function createBattleFromRun(run: RunState, config?: Partial<SimConfig>, 
   for (const e of enc.enemies) spawns.push({ defId: e.enemy, def: enemyDef(e.enemy, layer, e.captain), pos: { x: e.x, y: e.y } });
   // 怪群模式：地圖與遭遇的生成點合併，戰鬥模式自動設成 horde
   const horde = enc.horde ? { ...enc.horde, spawners: [...(map.spawners ?? []), ...enc.horde.spawners] } : undefined;
-  const cfg = horde ? { ...config, battleStyle: 'horde' as const } : config;
+  const cfg = horde ? { ...config, ...HORDE_CONFIG } : config;
   // 戰鬥中召喚的援軍也套用層數成長
   return new World({ seed, map, spawns, config: cfg, enemyDefFor: (id) => enemyDef(id, layer), horde });
 }

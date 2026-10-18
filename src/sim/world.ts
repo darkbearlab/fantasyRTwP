@@ -8,6 +8,8 @@ import type { DamageType, HordeSetup, MapDef, Personality, ProjectileKind, Skill
 import { HORDE } from './data/horde';
 import { FlowField } from './nav/flowField';
 import { hordeThink } from './ai/hordeAI';
+import { autocastOrder, canAutocast } from './ai/autocast';
+import { AUTOCAST_INTERVAL } from './data/autocast';
 import type { SimEvent } from './events';
 import { canSeeCircle, canSeePoint, clearLine, segmentClear } from './los';
 import type { Vec } from './math';
@@ -26,7 +28,7 @@ import { DEFAULT_SIM_CONFIG } from './simConfig';
 import { Unit } from './unit';
 import type { ZocContext } from './zoc';
 import { disengagedFrom, edgeDistance, pinBlocker, zoneDistance } from './zoc';
-import { applyDamage, finishWindup, freeAttack, resolveProjectilePayload, startAction, tickDash } from './actions';
+import { applyDamage, finishWindup, freeAttack, resolveProjectilePayload, skillCooldownOf, startAction, tickDash } from './actions';
 import type { IdleBehavior } from './ai/idleBehavior';
 import { IDLE_BEHAVIORS, leashedApproachPoint, returnToGuard, withinLeash } from './ai/idleBehavior';
 import { enemyThink } from './ai/enemyAI';
@@ -70,6 +72,11 @@ export type ProjectilePayload =
       shatters?: boolean;
       arc?: boolean;
       skillId?: string;
+      /** 怪群模式的普攻（命中後套用該英雄的普攻效果） */
+      basic?: boolean;
+      /** 穿透：還能再穿幾名、已經打過的單位 */
+      pierceLeft?: number;
+      hitIds?: number[];
     }
   | { type: 'aoe'; skillId: string }
   | { type: 'root'; duration: number; skillId: string }
@@ -458,6 +465,22 @@ export class World implements ZocContext {
         if (u) u.personality = cmd.personality;
         break;
       }
+      case 'attackMove': {
+        const units = this.liveUnits(cmd.unitIds);
+        const points = this.formationPoints(units, cmd.point);
+        units.forEach((u, i) => {
+          u.guardPoint = null;
+          this.issueOrder(u, { type: 'attackMove', point: points[i] });
+        });
+        break;
+      }
+      case 'setAutocast': {
+        const u = this.getUnit(cmd.unitId);
+        if (!u || !u.def.skills.includes(cmd.skillId) || !canAutocast(cmd.skillId)) break;
+        if (cmd.on) u.autocast.add(cmd.skillId);
+        else u.autocast.delete(cmd.skillId);
+        break;
+      }
     }
   }
 
@@ -519,7 +542,7 @@ export class World implements ZocContext {
 
   setOrder(u: Unit, order: Order | null): void {
     if (order?.type === 'skill') {
-      if (u.order?.type === 'attack') u.resumeOrder = u.order;
+      if (u.order?.type === 'attack' || u.order?.type === 'attackMove') u.resumeOrder = u.order;
     } else {
       u.resumeOrder = null;
     }
@@ -587,7 +610,7 @@ export class World implements ZocContext {
         // 冷卻完成：回復一次使用；還沒滿就繼續回復下一次
         const max = u.maxCharges(k);
         u.charges[k] = Math.min(max, (u.charges[k] ?? 0) + 1);
-        if (u.charges[k] < max) u.cooldowns[k] = u.skillCooldown(k, SKILLS[k].cooldown);
+        if (u.charges[k] < max) u.cooldowns[k] = skillCooldownOf(this, u, k);
       }
     }
   }
@@ -627,6 +650,14 @@ export class World implements ZocContext {
     if (u.team === 'enemy') {
       if (u.def.ai === 'horde') hordeThink(this, u);
       else if (u.def.ai !== 'nest') enemyThink(this, u);
+    } else if (u.autocast.size > 0 && (!u.order || u.order.type === 'attack' || u.order.type === 'attackMove')) {
+      // 技能自動施放：玩家正在移動或施放其他技能時不搶指令
+      u.autocastTimer -= DT;
+      if (u.autocastTimer <= 0) {
+        u.autocastTimer = AUTOCAST_INTERVAL;
+        const o = autocastOrder(this, u);
+        if (o) this.setOrder(u, o);
+      }
     }
     else if (!u.order) {
       const o = (this.idleBehavior ?? IDLE_BEHAVIORS[u.personality]).decide(this, u);
@@ -698,7 +729,49 @@ export class World implements ZocContext {
       case 'skill':
         this.executeSkillOrder(u, o);
         break;
+      case 'attackMove':
+        this.executeAttackMove(u, o);
+        break;
     }
+  }
+
+  /** 攻擊移動（SPEC_SLICE4 §3.1b）：途中接戰射程附近的敵人，打完繼續走 */
+  private executeAttackMove(u: Unit, o: Extract<Order, { type: 'attackMove' }>): void {
+    let t = o.targetId !== undefined ? this.getUnit(o.targetId) : undefined;
+    if (!t || t.dead || !this.canTarget(u, t)) {
+      t = this.acquireTarget(u, this.attackRange(u) + this.config.attackMoveRange);
+      o.targetId = t?.id;
+    }
+    if (t) {
+      const inRange = edgeDistance(u, t) <= this.attackRange(u) + RANGE_TOLERANCE && (u.isMelee || u.def.arcAttack || this.canSee(u, t));
+      if (inRange) {
+        startAction(this, u, { kind: 'attack', targetId: t.id });
+        return;
+      }
+      const r = this.approachUnit(u, t, u.isMelee);
+      if (r !== 'pinned' && r !== 'nopath') return;
+      // 接近不了：放棄這個目標，繼續往目標點走
+      o.targetId = undefined;
+    }
+    const r = this.moveAlong(u, o.point);
+    if (r === 'arrived') u.guardPoint = { x: u.pos.x, y: u.pos.y };
+    if (r === 'arrived' || r === 'nopath') this.setOrder(u, null);
+    else if (r === 'pinned') this.stopPinned(u);
+  }
+
+  /** 最近的可攻擊敵人（邊緣距離 ≤ range；遠程需要視線） */
+  private acquireTarget(u: Unit, range: number): Unit | undefined {
+    let best: Unit | undefined;
+    let bestD = Infinity;
+    for (const e of this.units) {
+      if (e.dead || e.team === u.team || !this.canTarget(u, e)) continue;
+      const d = edgeDistance(u, e);
+      if (d > range || d >= bestD) continue;
+      if (!u.isMelee && !u.def.arcAttack && !this.canSee(u, e)) continue;
+      bestD = d;
+      best = e;
+    }
+    return best;
   }
 
   private executeSkillOrder(u: Unit, o: Extract<Order, { type: 'skill' }>): void {
@@ -1028,16 +1101,19 @@ export class World implements ZocContext {
 
   // ───────────── 投射物 ─────────────
 
-  spawnProjectile(src: Unit, kind: ProjectileKind, speed: number, payload: ProjectilePayload, target: { unit?: Unit; point?: Vec }): void {
+  /** from：發射位置（穿透的箭從上一個目標身上繼續飛）；省略為攻擊者位置 */
+  spawnProjectile(src: Unit, kind: ProjectileKind, speed: number, payload: ProjectilePayload, target: { unit?: Unit; point?: Vec }, from?: Vec): void {
     const arc = payload.type === 'strike' && !!payload.arc;
     const collides = !!target.unit && !arc && payload.type !== 'aoe' && payload.type !== 'aoeHeal';
+    const at = from ?? src.pos;
+    const atR = from ? 0 : src.radius;
     // 直射：從看得見的取樣點發射、瞄準對應的取樣點（與視線判定一致，不會一出手就撞牆）
-    const line = collides ? clearLine(this.sight, src.pos, src.radius, target.unit!.pos, target.unit!.radius) : null;
-    const start = line ? line.from : { x: src.pos.x, y: src.pos.y };
+    const line = collides ? clearLine(this.sight, at, atR, target.unit!.pos, target.unit!.radius) : null;
+    const start = line ? line.from : { x: at.x, y: at.y };
     this.projectiles.push({
       id: this.nextProjectileId++,
       sourceId: src.id,
-      origin: { x: src.pos.x, y: src.pos.y },
+      origin: { x: at.x, y: at.y },
       aim: line?.aim,
       collides,
       targetId: target.unit?.id,

@@ -30,6 +30,8 @@ export class InputController {
   /** 目前按住的按鍵（鏡頭移動用） */
   private held = new Set<string>();
   private lastSlotTap = { slot: -1, at: 0 };
+  /** 按了攻擊移動鍵，等待點擊目標點 */
+  attackMoveArmed = false;
 
   constructor(private host: InputHost) {
     const scene = host.scene;
@@ -82,10 +84,20 @@ export class InputController {
         s.targeting = null;
         return;
       }
+      const ctrl = !!(p.event as MouseEvent | undefined)?.ctrlKey;
+      if ((this.attackMoveArmed || ctrl) && !(unit && !unit.dead)) {
+        this.attackMove(m);
+        return;
+      }
+      this.attackMoveArmed = false;
       this.rightClick(m, unit);
       return;
     }
     if (p.leftButtonDown()) {
+      if (this.attackMoveArmed && !(unit && !unit.dead)) {
+        this.attackMove(m);
+        return;
+      }
       if (s.targeting) {
         confirmTargeting(s, m, unit, this.now());
         return;
@@ -164,6 +176,13 @@ export class InputController {
     }
   }
 
+  /** 攻擊移動（SPEC_SLICE4 §3.1b） */
+  private attackMove(m: Vec): void {
+    this.attackMoveArmed = false;
+    const ids = this.session.selectedUnits().map((u) => u.id);
+    if (ids.length) this.session.enqueue({ type: 'attackMove', unitIds: ids, point: m });
+  }
+
   private onKey(e: KeyboardEvent): void {
     const s = this.session;
     if (e.repeat) return;
@@ -176,6 +195,14 @@ export class InputController {
       if (!s.world.result) s.setPaused(!s.paused);
     } else if (K.cancel.includes(code)) {
       s.targeting = null;
+      this.attackMoveArmed = false;
+    } else if (K.attackMove.includes(code)) {
+      if (s.selectedUnits().length === 0) s.showToast('請先選取英雄（1–4）', this.now(), 1000);
+      else {
+        s.targeting = null;
+        this.attackMoveArmed = true;
+        s.showToast('攻擊移動：點擊目標地點', this.now(), 1200);
+      }
     } else if (K.stop.includes(code)) {
       const ids = s.selectedUnits().map((u) => u.id);
       if (ids.length) s.enqueue({ type: 'stop', unitIds: ids });

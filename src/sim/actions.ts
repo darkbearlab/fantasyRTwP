@@ -12,6 +12,8 @@ import { edgeDistance } from './zoc';
 import { T_SHALLOW } from './terrain';
 import { TERRAIN } from './data/terrain';
 import { COMBOS } from './data/combos';
+import type { BasicAttackStyle } from './data/horde';
+import { HORDE_ATTACKS, HORDE_CHAIN } from './data/horde';
 
 /** 打斷造成的硬直秒數 */
 export const INTERRUPT_STUN = 0.5;
@@ -25,14 +27,37 @@ export interface ActionRequest {
   point?: { x: number; y: number };
 }
 
-/** 行動條速度：攻擊速度 × 全域倍率 × 詛咒減速 */
-export function actionRate(world: World, u: Unit): number {
-  return u.def.attackSpeed * world.config.actionSpeedMult * (u.curseTime > 0 ? 1 - u.curseSlow : 1);
+/** 行動條速度：攻擊速度 × 全域倍率 × 詛咒減速（怪群模式的英雄普攻另外加速） */
+export function actionRate(world: World, u: Unit, kind?: 'attack' | 'skill'): number {
+  let r = u.def.attackSpeed * world.config.actionSpeedMult * (u.curseTime > 0 ? 1 - u.curseSlow : 1);
+  if (kind === 'attack' && u.team === 'hero') {
+    r *= world.config.basicAttackSpeedMult;
+    const style = hordeStyle(world, u);
+    // 狂戰士：生命越低攻速越快
+    if (style?.kind === 'cleave' && style.lowHpSpeed) r *= 1 + style.lowHpSpeed * (1 - Math.max(0, u.hp) / u.maxHp);
+  }
+  return r;
+}
+
+/** 怪群模式的普攻效果（只對英雄、只在 horde 模式） */
+export function hordeStyle(world: World, u: Unit): BasicAttackStyle | undefined {
+  if (world.config.battleStyle !== 'horde' || u.team !== 'hero') return undefined;
+  return HORDE_ATTACKS[u.def.id];
+}
+
+/** 技能冷卻（個別修飾 × 全域倍率） */
+export function skillCooldownOf(world: World, u: Unit, skillId: string): number {
+  return u.skillCooldown(skillId, SKILLS[skillId].cooldown) * world.config.skillCooldownMult;
 }
 
 export function startAction(world: World, u: Unit, req: ActionRequest): void {
   const windup = req.kind === 'attack' ? u.def.windup : SKILLS[req.skillId!].windup;
-  const ticks = secondsToTicks(windup / actionRate(world, u));
+  let ticks = secondsToTicks(windup / actionRate(world, u, req.kind));
+  // 擊殺重置／擊殺後立即射出：這一擊沒有準備時間
+  if (req.kind === 'attack' && u.attackResetPending) {
+    u.attackResetPending = false;
+    ticks = 1;
+  }
   u.action = {
     kind: req.kind,
     skillId: req.skillId,
@@ -49,8 +74,8 @@ export function startAction(world: World, u: Unit, req: ActionRequest): void {
 }
 
 export function enterRecovery(world: World, u: Unit, seconds: number): void {
-  const ticks = secondsToTicks(seconds / actionRate(world, u));
   if (!u.action) return;
+  const ticks = secondsToTicks(seconds / actionRate(world, u, u.action.kind));
   u.action.phase = 'recovery';
   u.action.ticksLeft = ticks;
   u.action.ticksTotal = ticks;
@@ -74,11 +99,21 @@ export function finishWindup(world: World, u: Unit): void {
         u.action = null;
         return;
       }
-      strike(world, u, t, { melee: true, mult: 1, damageType: basicDamageType(u.def) });
+      const style = hordeStyle(world, u);
+      if (style) hordeMelee(world, u, t, style);
+      else strike(world, u, t, { melee: true, mult: 1, damageType: basicDamageType(u.def) });
     } else {
-      world.spawnProjectile(u, u.def.projectileKind ?? 'arrow', u.def.projectileSpeed ?? 20, { type: 'strike', melee: false, mult: 1, damageType: basicDamageType(u.def), arc: u.def.arcAttack }, { unit: t });
+      const style = hordeStyle(world, u);
+      world.spawnProjectile(
+        u,
+        u.def.projectileKind ?? 'arrow',
+        u.def.projectileSpeed ?? 20,
+        { type: 'strike', melee: false, mult: 1, damageType: basicDamageType(u.def), arc: u.def.arcAttack, basic: !!style, pierceLeft: style?.kind === 'pierce' ? style.maxTargets - 1 : undefined },
+        { unit: t },
+      );
     }
-    if (!u.dead && u.action) enterRecovery(world, u, u.def.recovery);
+    // 擊殺重置：不必等恢復
+    if (!u.dead && u.action) enterRecovery(world, u, u.attackResetPending ? 0 : u.def.recovery);
     return;
   }
 
@@ -86,7 +121,7 @@ export function finishWindup(world: World, u: Unit): void {
   if (def.oncePerBattle) u.spentSkills.push(def.id);
   // 消耗一次使用；若沒有正在回復的冷卻就開始計算（冷卻從生效那一刻開始）
   u.charges[def.id] = Math.max(0, (u.charges[def.id] ?? 1) - 1);
-  if ((u.cooldowns[def.id] ?? 0) <= 0) u.cooldowns[def.id] = u.skillCooldown(def.id, def.cooldown);
+  if ((u.cooldowns[def.id] ?? 0) <= 0) u.cooldowns[def.id] = skillCooldownOf(world, u, def.id);
   const target = a.targetId !== undefined ? world.getUnit(a.targetId) : undefined;
   const dash = applySkillEffect(world, u, def, target, a.point);
   if (u.dead || !u.action) return;
@@ -102,10 +137,169 @@ export function finishWindup(world: World, u: Unit): void {
   enterRecovery(world, u, def.recovery);
 }
 
+// ───────────── 怪群模式的普攻命中效果（SPEC_SLICE4 §3.1） ─────────────
+
+const DEG = Math.PI / 180;
+
+/** 近戰普攻：橫掃、聖鎚、刺擊 */
+function hordeMelee(world: World, u: Unit, t: Unit, style: BasicAttackStyle): void {
+  const base: StrikeParams = { melee: true, mult: 1, damageType: basicDamageType(u.def) };
+  switch (style.kind) {
+    case 'cleave': {
+      u.attackCount++;
+      const heavy = style.heavyEvery > 0 && u.attackCount % style.heavyEvery === 0;
+      const p: StrikeParams = heavy ? { ...base, mult: style.heavyMult, knockback: style.heavyKnockback, skillId: 'cleave' } : base;
+      const dir = Math.atan2(t.pos.y - u.pos.y, t.pos.x - u.pos.x);
+      const half = (style.angle / 2) * DEG;
+      const reach = u.def.range + MELEE_RELEASE_TOLERANCE;
+      const victims = [t];
+      for (const o of world.units) {
+        if (o === t || o.dead || o.team === u.team || edgeDistance(u, o) > reach) continue;
+        let da = Math.atan2(o.pos.y - u.pos.y, o.pos.x - u.pos.x) - dir;
+        while (da > Math.PI) da -= Math.PI * 2;
+        while (da < -Math.PI) da += Math.PI * 2;
+        if (Math.abs(da) <= half) victims.push(o);
+      }
+      if (heavy) world.emit({ type: 'aoe', sourceId: u.id, point: { ...u.pos }, radius: reach + u.radius, skillId: 'cleave' });
+      for (const v of victims) {
+        strike(world, u, v, p);
+        if (u.dead) break;
+      }
+      return;
+    }
+    case 'smite': {
+      if (strike(world, u, t, { ...base, knockback: style.knockback })) healLowestAlly(world, u, style.heal, style.healRadius);
+      return;
+    }
+    case 'reset':
+      strike(world, u, t, base);
+      if (t.dead) u.attackResetPending = true;
+      return;
+    default:
+      strike(world, u, t, base);
+  }
+}
+
+/** 聖鎚：為附近生命比例最低的隊友（含自己）回復 */
+function healLowestAlly(world: World, u: Unit, amount: number, radius: number): void {
+  let best: Unit | null = null;
+  for (const a of world.units) {
+    if (a.dead || a.team !== u.team || a.hp >= a.maxHp || dist(a.pos, u.pos) > radius) continue;
+    if (!best || a.hp / a.maxHp < best.hp / best.maxHp) best = a;
+  }
+  if (!best) return;
+  const healed = Math.min(amount, best.maxHp - best.hp);
+  best.hp += healed;
+  u.stats.healing += healed;
+  world.emit({ type: 'heal', sourceId: u.id, targetId: best.id, amount: healed });
+}
+
+/** 範圍濺射：不做命中判定、不傷友軍；push > 0 時把範圍內的雜兵推開 */
+function splashAround(world: World, src: Unit, point: { x: number; y: number }, exclude: Unit, radius: number, mult: number, push: number): void {
+  world.emit({ type: 'aoe', sourceId: src.id, point: { ...point }, radius, skillId: 'splash' });
+  for (const o of [...world.units]) {
+    if (o.dead || o.team === src.team || dist(o.pos, point) > radius + o.radius * 0.5) continue;
+    if (o !== exclude) {
+      const dmg = rollDamage(world.rng, src.def.damage, mult * damageMultOf(world, src));
+      applyDamage(world, o, applyArmor(dmg, o.armor), 'area', src, { skillId: 'splash' });
+    }
+    if (push > 0 && !o.dead && o.def.tier === 'fodder') knockbackFrom(world, src, point, o, push);
+  }
+}
+
+/** 遠程普攻命中後的效果：穿透、爆裂、咒彈、拋瓶 */
+function afterBasicRanged(world: World, src: Unit, target: Unit, hit: Unit | null, pl: Extract<Projectile['payload'], { type: 'strike' }>, origin: { x: number; y: number }): void {
+  const style = hordeStyle(world, src);
+  if (!style) return;
+  switch (style.kind) {
+    case 'pierce': {
+      // 擊殺：下一箭立即射出
+      if (target.dead && style.killRefire) {
+        src.attackResetPending = true;
+        if (src.action?.kind === 'attack' && src.action.phase === 'recovery') src.action.ticksLeft = 1;
+      }
+      if (!pl.pierceLeft || pl.pierceLeft <= 0) return;
+      // 沿著飛行方向往前找下一名敵人
+      const dir = norm(sub(target.pos, origin));
+      if (dir.x === 0 && dir.y === 0) return;
+      const hitIds = [...(pl.hitIds ?? []), target.id];
+      let next: Unit | null = null;
+      let bestT = Infinity;
+      for (const o of world.units) {
+        if (o.dead || o.team === src.team || hitIds.includes(o.id)) continue;
+        const rx = o.pos.x - target.pos.x;
+        const ry = o.pos.y - target.pos.y;
+        const along = rx * dir.x + ry * dir.y;
+        if (along <= 0 || along > style.reach) continue;
+        const perp = Math.abs(rx * dir.y - ry * dir.x);
+        if (perp > 0.5 + o.radius) continue;
+        if (along < bestT) {
+          bestT = along;
+          next = o;
+        }
+      }
+      if (!next) return;
+      world.spawnProjectile(src, src.def.projectileKind ?? 'arrow', src.def.projectileSpeed ?? 20, { ...pl, mult: pl.mult * style.falloff, pierceLeft: pl.pierceLeft - 1, hitIds }, { unit: next }, { ...target.pos });
+      return;
+    }
+    case 'blast':
+      splashAround(world, src, target.pos, target, style.radius, style.splashMult, style.push);
+      return;
+    case 'splash':
+      splashAround(world, src, target.pos, target, style.radius, style.splashMult, 0);
+      return;
+    case 'hex':
+      if (hit && !hit.dead) applyHex(hit, style.duration, style.actionSlow, style.damageTakenPct, style.spreadRadius);
+      return;
+    default:
+  }
+}
+
+function applyHex(t: Unit, duration: number, slow: number, vuln: number, spread: number): void {
+  if (t.curseTime <= 0 || t.curseVuln <= vuln) {
+    t.curseSlow = Math.max(t.curseTime > 0 ? t.curseSlow : 0, slow);
+    t.curseVuln = Math.max(t.curseTime > 0 ? t.curseVuln : 0, vuln);
+  }
+  t.curseTime = Math.max(t.curseTime, duration);
+  t.hexed = true;
+  t.hexSpread = spread;
+}
+
+/** 怪群模式的死亡連鎖：咒彈擴散、燃燒的雜兵爆開 */
+function deathChain(world: World, u: Unit): void {
+  if (world.config.battleStyle !== 'horde') return;
+  if (u.hexed) {
+    let best: Unit | null = null;
+    let bestD = Infinity;
+    for (const o of world.units) {
+      if (o.dead || o === u || o.team !== u.team) continue;
+      const d = dist(o.pos, u.pos);
+      if (d <= u.hexSpread && d < bestD) {
+        bestD = d;
+        best = o;
+      }
+    }
+    if (best) {
+      applyHex(best, Math.max(u.curseTime, 1), u.curseSlow, u.curseVuln, u.hexSpread);
+      world.emit({ type: 'status', unitId: best.id, text: '詛咒擴散' });
+    }
+  }
+  if (u.def.tier === 'fodder' && u.burnTime > 0) {
+    const src = world.getUnit(u.burnSourceId) ?? u;
+    world.emit({ type: 'aoe', sourceId: src.id, point: { ...u.pos }, radius: HORDE_CHAIN.burningDeathRadius, skillId: 'burnBurst' });
+    for (const o of [...world.units]) {
+      if (o.dead || o === u || o.team !== u.team || dist(o.pos, u.pos) > HORDE_CHAIN.burningDeathRadius + o.radius) continue;
+      applyDamage(world, o, HORDE_CHAIN.burningDeathDamage, 'area', src, { skillId: 'burn' });
+    }
+  }
+}
+
 /** 技能生效後的後續指令：對敵技能接著普攻該目標，否則恢復先前的普攻 */
 function afterSkill(world: World, u: Unit, def: SkillDef, target: Unit | undefined): void {
   const resume = u.resumeOrder;
-  if (def.target === 'enemy' && target && !target.dead) world.setOrder(u, { type: 'attack', targetId: target.id });
+  // 攻擊移動中放的技能：放完繼續攻擊移動
+  if (resume?.type === 'attackMove') world.setOrder(u, { ...resume, targetId: target && !target.dead && def.target === 'enemy' ? target.id : resume.targetId });
+  else if (def.target === 'enemy' && target && !target.dead) world.setOrder(u, { type: 'attack', targetId: target.id });
   else world.setOrder(u, resume && resume.type === 'attack' && !world.getUnit(resume.targetId)?.dead ? resume : null);
 }
 
@@ -342,9 +536,9 @@ export interface StrikeParams {
   freeAttack?: boolean;
 }
 
-/** 單體攻擊結算：命中判定 → 傷害 → 打斷／暈眩／擊退 */
-export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): void {
-  if (tgt.dead) return;
+/** 單體攻擊結算：命中判定 → 傷害 → 打斷／暈眩／擊退。回傳實際受到攻擊的單位（未命中為 null） */
+export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): Unit | null {
+  if (tgt.dead) return null;
   let target = tgt;
   // 守護：近戰攻擊有機率改由戰士承受
   if (p.melee && target.guardTime > 0 && target.guardedBy >= 0) {
@@ -379,7 +573,7 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): voi
   if (result === 'miss') {
     world.emit({ type: 'miss', sourceId: src.id, targetId: target.id, skillId: p.skillId, freeAttack: p.freeAttack });
     if (target.team === 'enemy') world.triggerAggro();
-    return;
+    return null;
   }
   const crit = result === 'crit';
   let comboMult = 1;
@@ -396,7 +590,7 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): voi
   const base = rollDamage(world.rng, p.flatDamage ?? src.def.damage, p.mult * damageMultOf(world, src) * terrainMult * comboMult);
   const final = applyArmor(base * (crit ? CRIT_MULT : 1), target.armor);
   applyDamage(world, target, final, p.damageType, src, { crit, skillId: p.skillId, freeAttack: p.freeAttack });
-  if (target.dead) return;
+  if (target.dead) return target;
   if (p.interrupts) interrupt(world, src, target);
   if (p.stun) applyStun(world, target, p.stun);
   if (p.knockback) {
@@ -406,6 +600,7 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): voi
       applyStun(world, target, COMBOS.wallStunSeconds);
     }
   }
+  return target;
 }
 
 /**
@@ -446,6 +641,7 @@ export function kill(world: World, u: Unit, killer?: Unit): void {
   world.slots.releaseTarget(u.id);
   if (killer && killer !== u) killer.stats.kills++;
   world.emit({ type: 'death', unitId: u.id, killerId: killer?.id });
+  deathChain(world, u);
 }
 
 /** 打斷：準備中的動作取消、不進冷卻，並硬直 0.5 秒 */
@@ -473,7 +669,12 @@ export function applyStun(world: World, t: Unit, seconds: number): void {
 
 /** 擊退；回傳 true 表示途中撞到障礙物 */
 export function knockback(world: World, src: Unit, t: Unit, distance: number): boolean {
-  let dir = norm(sub(t.pos, src.pos));
+  return knockbackFrom(world, src, src.pos, t, distance);
+}
+
+/** 從某點往外擊退（爆裂把雜兵推開也用這個）；怪群模式下撞到其他敵人時兩者都受傷 */
+export function knockbackFrom(world: World, src: Unit, from0: { x: number; y: number }, t: Unit, distance: number): boolean {
+  let dir = norm(sub(t.pos, from0));
   if (dir.x === 0 && dir.y === 0) dir = { x: Math.cos(src.facing), y: Math.sin(src.facing) };
   const grid = world.navFor(t);
   const from = { x: t.pos.x, y: t.pos.y };
@@ -492,6 +693,13 @@ export function knockback(world: World, src: Unit, t: Unit, distance: number): b
   t.pos = cur;
   t.path = null;
   world.emit({ type: 'knockback', unitId: t.id, from, to: { ...cur } });
+  if (world.config.battleStyle === 'horde' && cur !== from) {
+    const bumped = world.units.find((o) => o !== t && !o.dead && o.team === t.team && dist(o.pos, t.pos) < o.radius + t.radius);
+    if (bumped) {
+      applyDamage(world, bumped, HORDE_CHAIN.knockbackCollisionDamage, 'melee', src, { skillId: 'collide' });
+      if (!t.dead) applyDamage(world, t, HORDE_CHAIN.knockbackCollisionDamage, 'melee', src, { skillId: 'collide' });
+    }
+  }
   return hitWall;
 }
 
@@ -530,7 +738,10 @@ export function resolveProjectilePayload(world: World, src: Unit, p: Projectile,
   const pl = p.payload;
   switch (pl.type) {
     case 'strike':
-      if (target) strike(world, src, target, { ...pl, origin: p.origin });
+      if (target) {
+        const hit = strike(world, src, target, { ...pl, origin: p.origin });
+        if (pl.basic) afterBasicRanged(world, src, target, hit, pl, p.origin);
+      }
       break;
     case 'aoe':
       explode(world, src, p.point!, SKILLS[pl.skillId]);
