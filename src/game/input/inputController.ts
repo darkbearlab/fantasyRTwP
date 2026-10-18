@@ -6,6 +6,16 @@ import type { BattleSession } from '../session';
 import { screenToGround } from '../render/projection';
 import { beginSkill, confirmTargeting } from './targeting';
 import { decideDigit } from './chord';
+import { PERSONALITY_LABEL } from '../../sim/ai/idleBehavior';
+import type { Personality } from '../../sim/data/types';
+import { PERSONALITY_CYCLE } from '../ui/partyPanel';
+
+/** 切換性格時的一句話說明 */
+const PERSONALITY_HINT: Record<Personality, string> = {
+  steadfast: '附近有敵人就自動普攻，不離開駐守點',
+  aggressive: '看到敵人就衝出去打，一路追擊',
+  guerrilla: '敵人靠近就逃跑，要下指令才接戰',
+};
 
 export interface InputHost {
   scene: Phaser.Scene;
@@ -176,6 +186,22 @@ export class InputController {
     }
   }
 
+  /**
+   * 循環切換閒置性格（沒有收到指令時的遇敵反應）：以主要選取英雄的下一個性格為準，套用到所有已選英雄。
+   */
+  private cyclePersonality(): void {
+    const s = this.session;
+    const sel = s.selectedUnits();
+    const p = s.primary();
+    if (!p || sel.length === 0) {
+      s.showToast('請先選取英雄（1–4）', this.now(), 1000);
+      return;
+    }
+    const next = PERSONALITY_CYCLE[(PERSONALITY_CYCLE.indexOf(p.personality) + 1) % PERSONALITY_CYCLE.length];
+    for (const u of sel) s.enqueue({ type: 'setPersonality', unitId: u.id, personality: next });
+    s.showToast(`${sel.map((u) => u.def.name).join('、')}：${PERSONALITY_LABEL[next]}（${PERSONALITY_HINT[next]}）`, this.now(), 1600);
+  }
+
   /** 攻擊移動（SPEC_SLICE4 §3.1b） */
   private attackMove(m: Vec): void {
     this.attackMoveArmed = false;
@@ -197,6 +223,8 @@ export class InputController {
       s.targeting = null;
       s.chord = null;
       this.attackMoveArmed = false;
+    } else if (K.cyclePersonality.includes(code)) {
+      this.cyclePersonality();
     } else if (K.attackMove.includes(code)) {
       if (s.selectedUnits().length === 0) s.showToast('請先選取英雄（1–4）', this.now(), 1000);
       else {
