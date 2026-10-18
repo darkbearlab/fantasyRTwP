@@ -10,7 +10,11 @@ export type Command =
   | { type: 'skill'; unitId: number; skillId: string; targetId?: number; point?: Vec }
   | { type: 'stop'; unitIds: number[] }
   | { type: 'setConfig'; patch: Partial<SimConfig> }
-  | { type: 'setPersonality'; unitId: number; personality: Personality };
+  | { type: 'setPersonality'; unitId: number; personality: Personality }
+  /** 攻擊移動（SPEC_SLICE4 §3.1b）：往目標點移動，途中遇到敵人就攻擊 */
+  | { type: 'attackMove'; unitIds: number[]; point: Vec }
+  /** 技能自動施放開關（SPEC_SLICE4 §3.4） */
+  | { type: 'setAutocast'; unitId: number; skillId: string; on: boolean };
 
 /** 單位層級的指令（單位目前在做的事） */
 export type Order =
@@ -19,13 +23,16 @@ export type Order =
   /** leashed：閒置自動普攻，不得離開駐守點超過 heroLeashRange */
   | { type: 'attack'; targetId: number; leashed?: boolean }
   | { type: 'follow'; targetId: number }
-  | { type: 'skill'; skillId: string; targetId?: number; point?: Vec };
+  | { type: 'skill'; skillId: string; targetId?: number; point?: Vec }
+  /** targetId：途中接戰的目標（執行時填入） */
+  | { type: 'attackMove'; point: Vec; targetId?: number };
 
 export function sameOrder(a: Order | null, b: Order | null): boolean {
   if (a === null || b === null) return a === b;
   if (a.type !== b.type) return false;
   switch (a.type) {
-    case 'move': {
+    case 'move':
+    case 'attackMove': {
       const p = (b as typeof a).point;
       return Math.abs(p.x - a.point.x) < 0.05 && Math.abs(p.y - a.point.y) < 0.05;
     }

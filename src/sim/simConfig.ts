@@ -40,6 +40,12 @@ export interface SimConfig {
   enemyAggroRange: number;
   /** 戰鬥開始後幾秒，敵人無論如何都會開始進攻 */
   enemyAggroTime: number;
+  /** 英雄普攻準備＋恢復的速度倍率（怪群模式 1.6） */
+  basicAttackSpeedMult: number;
+  /** 技能冷卻倍率（怪群模式 0.6） */
+  skillCooldownMult: number;
+  /** 攻擊移動：途中自動接戰的距離（邊緣距離，公尺） */
+  attackMoveRange: number;
 }
 
 export const DEFAULT_SIM_CONFIG: SimConfig = {
@@ -59,4 +65,7 @@ export const DEFAULT_SIM_CONFIG: SimConfig = {
   // 拉開交戰：敵人開場不會立刻衝過來，給玩家部陣時間（Alan 決定方向；數值佔位）
   enemyAggroRange: 10,
   enemyAggroTime: 20,
+  basicAttackSpeedMult: 1,
+  skillCooldownMult: 1,
+  attackMoveRange: 6,
 };

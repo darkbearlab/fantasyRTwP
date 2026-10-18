@@ -40,6 +40,8 @@ export const GAME_CONFIG = {
     stop: ['KeyH'],
     cancel: ['Escape'],
     debug: ['Backquote'],
+    /** 攻擊移動：按下後下一次點擊地面（左鍵或右鍵）就是攻擊移動；也可以 Ctrl＋右鍵（A 已經是鏡頭鍵） */
+    attackMove: ['KeyF'],
   },
   /** 技能鍵在 UI 上顯示的字 */
   skillKeyLabels: ['Q', 'E', 'R'],

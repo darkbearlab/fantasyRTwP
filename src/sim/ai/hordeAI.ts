@@ -3,7 +3,7 @@
  * 不使用指令系統與 A*：遠處沿著共用流場移動，靠近目標且直線可走時直接衝過去。
  */
 import { RANGE_TOLERANCE } from '../constants';
-import { HORDE } from '../data/horde';
+import { HORDE, HORDE_TAUNT } from '../data/horde';
 import { dist } from '../math';
 import { startAction } from '../actions';
 import { lineWalkable } from '../nav/smooth';
@@ -31,10 +31,14 @@ export function hordeThink(world: World, u: Unit): void {
   world.stepToward(u, goal, near ? u.radius + t.radius : 0);
 }
 
-/** 被控制區牽制時先打牽制者；否則挑最近（看得到、可以當目標）的英雄 */
+/**
+ * 目標優先順序：牽制自己的英雄 → 嘲諷光環範圍內的英雄（戰士，SPEC_SLICE4 §4）→ 最近的英雄。
+ */
 function pickTarget(world: World, u: Unit): Unit | undefined {
   const pinners = u.def.ignoresZoc ? [] : pinnersAt(world, u);
-  const list = pinners.length > 0 ? pinners : world.units.filter((h) => h.team !== u.team && !h.dead && world.canTarget(u, h));
+  const visible = world.units.filter((h) => h.team !== u.team && !h.dead && world.canTarget(u, h));
+  const taunters = world.config.battleStyle === 'horde' ? visible.filter((h) => HORDE_TAUNT[h.def.id] && dist(u.pos, h.pos) <= HORDE_TAUNT[h.def.id] + h.radius) : [];
+  const list = pinners.length > 0 ? pinners : taunters.length > 0 ? taunters : visible;
   let best: Unit | undefined;
   let bestD = Infinity;
   for (const h of list) {

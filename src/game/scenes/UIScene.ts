@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_CONFIG } from '../../config';
+import { canAutocast } from '../../sim/ai/autocast';
+import { skillCooldownOf } from '../../sim/actions';
 import { SKILLS } from '../../sim/data/skills';
 import type { ZocMode } from '../../sim/simConfig';
 import type { Unit } from '../../sim/unit';
@@ -119,7 +121,7 @@ export class UIScene extends Phaser.Scene {
       const list = GAME_CONFIG.timeScales;
       s.timeScale = list[(list.indexOf(s.timeScale) + 1) % list.length];
     });
-    const hint = el('div', 'pill hint', '空白鍵 暫停　1–4 選人（連按跳鏡頭）　Tab 切換　Q E R 技能　右鍵 移動・攻擊・跟隨　WASD 鏡頭　H 停止　` 除錯');
+    const hint = el('div', 'pill hint', '空白鍵 暫停　1–4 選人（連按跳鏡頭）　Tab 切換　Q E R 技能（右鍵技能鈕：自動施放）　右鍵 移動・攻擊・跟隨　F＋點擊／Ctrl＋右鍵 攻擊移動　WASD 鏡頭　H 停止　` 除錯');
     top.append(this.timeEl, this.speedEl, hint);
     this.root.appendChild(top);
   }
@@ -437,7 +439,7 @@ export class UIScene extends Phaser.Scene {
         const btn = el('button', 'skill');
         btn.tabIndex = -1;
         noFocus(btn);
-        btn.title = `${def.name}（選取後按 ${GAME_CONFIG.skillKeyLabels[idx]}）\n準備 ${def.windup} 秒／恢復 ${def.recovery} 秒／冷卻 ${def.cooldown} 秒\n${def.description}`;
+        btn.title = `${def.name}（選取後按 ${GAME_CONFIG.skillKeyLabels[idx]}）\n準備 ${def.windup} 秒／恢復 ${def.recovery} 秒／冷卻 ${def.cooldown} 秒\n${def.description}${canAutocast(skillId) ? '\n右鍵：切換自動施放' : ''}`;
         const key = el('span', 'key', GAME_CONFIG.skillKeyLabels[idx] ?? '');
         const nm = el('span', 'sname', def.name);
         const cd = el('div', 'cd');
@@ -446,6 +448,13 @@ export class UIScene extends Phaser.Scene {
         btn.addEventListener('click', (ev) => {
           ev.stopPropagation();
           beginSkill(this.cur(), u.heroSlot, idx, this.time.now);
+        });
+        // 右鍵：切換自動施放（SPEC_SLICE4 §3.4）
+        btn.addEventListener('contextmenu', (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          if (u.dead || !canAutocast(skillId)) return;
+          this.cur().enqueue({ type: 'setAutocast', unitId: u.id, skillId, on: !u.autocast.has(skillId) });
         });
         skills.push({ btn, cd, cdText, key, skillId });
         skillsBox.appendChild(btn);
@@ -519,11 +528,12 @@ export class UIScene extends Phaser.Scene {
         const cd = u.cooldowns[sk.skillId] ?? 0;
         const ready = u.skillReady(sk.skillId);
         const maxCharges = u.maxCharges(sk.skillId);
-        sk.cd.style.height = ready ? '0' : `${(cd / u.skillCooldown(sk.skillId, def.cooldown)) * 100}%`;
+        sk.cd.style.height = ready ? '0' : `${(cd / skillCooldownOf(s.world, u, def.id)) * 100}%`;
         sk.cdText.textContent = !ready && cd > 0 ? cd.toFixed(cd < 10 ? 1 : 0) : maxCharges > 1 ? `×${u.charges[sk.skillId] ?? 0}` : '';
         sk.btn.classList.toggle('cooling', !ready);
         sk.btn.classList.toggle('targeting', s.targeting?.unitId === u.id && s.targeting.skillId === sk.skillId);
         sk.btn.classList.toggle('casting', u.action?.skillId === sk.skillId && u.action.phase === 'windup');
+        sk.btn.classList.toggle('autocast', u.autocast.has(sk.skillId));
       }
     }
 
