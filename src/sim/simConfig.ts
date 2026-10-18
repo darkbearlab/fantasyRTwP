@@ -46,6 +46,8 @@ export interface SimConfig {
   skillCooldownMult: number;
   /** 攻擊移動：途中自動接戰的距離（邊緣距離，公尺） */
   attackMoveRange: number;
+  /** 戰爭迷霧開關（只對啟用迷霧的怪群遭遇有效；除錯面板可以關掉比較） */
+  fogOfWar: boolean;
 }
 
 export const DEFAULT_SIM_CONFIG: SimConfig = {
@@ -68,4 +70,5 @@ export const DEFAULT_SIM_CONFIG: SimConfig = {
   basicAttackSpeedMult: 1,
   skillCooldownMult: 1,
   attackMoveRange: 6,
+  fogOfWar: true,
 };

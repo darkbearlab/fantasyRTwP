@@ -234,4 +234,6 @@ export interface HordeSetup {
   spawners: SpawnerDef[];
   waves: WaveDef[];
   objective: Objective;
+  /** 啟用視線與戰爭迷霧（SPEC_SLICE4 §6） */
+  fog?: boolean;
 }

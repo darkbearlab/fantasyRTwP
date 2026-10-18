@@ -18,6 +18,7 @@ import type { UnitVisual } from '../render/unitView';
 import { FlareView } from '../render/flareView';
 import { DIR_NAMES, FLARE, FLARE_TILES, displayFacing, ensureFlareLoaded, flareDir, getArt, useFlare, wantsFlare } from '../render/art';
 import { Hero3DView } from '../render/hero3dView';
+import { FOG_VISIBLE } from '../../sim/vision';
 import { ensureHeroes3dLoaded, h3dCharFor, heroes3dLoaded } from '../render/heroes3d';
 import type { ArtMode } from '../render/art';
 import {
@@ -34,7 +35,7 @@ import {
   worldToScreen,
 } from '../render/projection';
 import type { ProjectionMode } from '../render/projection';
-import { obstacleHeight, obstacleKind } from '../render/visual';
+import { VISUAL, obstacleHeight, obstacleKind } from '../render/visual';
 import { InputController } from '../input/inputController';
 import { targetingDef, validSkillTarget } from '../input/targeting';
 import { BattleSession, currentSimConfig } from '../session';
@@ -84,6 +85,9 @@ export class BattleScene extends Phaser.Scene {
   private lastCenterGround: Vec = { x: 0, y: 0 };
   /** 被高障礙物擋住的角色輪廓（最上層） */
   private occlusionG!: Phaser.GameObjects.Graphics;
+  /** 戰爭迷霧（SPEC_SLICE4 §6）：視野版本或開關改變時才重畫 */
+  private fogG!: Phaser.GameObjects.Graphics;
+  private fogDrawn = '';
 
   constructor() {
     super('Battle');
@@ -124,6 +128,8 @@ export class BattleScene extends Phaser.Scene {
     this.zoneG = this.add.graphics().setDepth(3);
     this.buildWorld();
     this.occlusionG = this.add.graphics().setDepth(950);
+    this.fogG = this.add.graphics().setDepth(900);
+    this.fogDrawn = '';
     this.overG = this.add.graphics().setDepth(1000);
     this.ghostG = this.add.graphics().setDepth(1100);
     this.coverText = this.add
@@ -671,6 +677,7 @@ export class BattleScene extends Phaser.Scene {
     const simTime = w.time + this.alpha * DT;
     for (const v of this.views.values()) v.update(this.alpha, selected.has(v.unit.id), s.hoverUnitId === v.unit.id, simTime);
     this.drawDynamicTerrain();
+    this.drawFog();
 
     this.drawZones(selected);
     this.drawSelfTelegraphs();
@@ -686,6 +693,32 @@ export class BattleScene extends Phaser.Scene {
     this.debugOverlay.update(s, (id) => this.wpos(w.getUnit(id)!));
     this.dim.setVisible(s.paused && !w.result);
     this.input.setDefaultCursor(s.targeting ? 'crosshair' : 'default');
+  }
+
+  /**
+   * 戰爭迷霧：未探索全黑、已探索但不在視野內半暗（看得到地形、看不到敵人）、視野內正常。
+   * 每一列把相同狀態的格子合併成一段再畫，減少多邊形數量。
+   */
+  private drawFog(): void {
+    const w = this.session.world;
+    const v = w.vision;
+    const key = v && w.fogActive ? `${v.version}:${this.builtMode}` : 'off';
+    if (key === this.fogDrawn) return;
+    this.fogDrawn = key;
+    const g = this.fogG;
+    g.clear();
+    if (!v || !w.fogActive) return;
+    const alpha = [VISUAL.fogUnexploredAlpha, VISUAL.fogExploredAlpha];
+    for (let cy = 0; cy < v.rows; cy++) {
+      let start = 0;
+      for (let cx = 1; cx <= v.cols; cx++) {
+        const prev = v.state[cy * v.cols + start];
+        const cur = cx < v.cols ? v.state[cy * v.cols + cx] : -1;
+        if (cur === prev) continue;
+        if (prev !== FOG_VISIBLE) groundRect(g, start * v.cell, cy * v.cell, (cx - start) * v.cell, v.cell, { fill: 0x05060a, fillAlpha: alpha[prev] });
+        start = cx;
+      }
+    }
   }
 
   /** 草叢隱匿：敵方被隱藏時不顯示；我方在草叢內半透明 */

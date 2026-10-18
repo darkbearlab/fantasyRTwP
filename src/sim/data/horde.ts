@@ -60,6 +60,16 @@ export const HORDE_ATTACKS: Record<string, BasicAttackStyle> = {
 /** 嘲諷光環半徑（SPEC_SLICE4 §4；Alan 決定只有戰士）。有光環的英雄，控制區在怪群模式對雜兵無效 */
 export const HORDE_TAUNT: Record<string, number> = { warrior: 4 };
 
+/** 視線與戰爭迷霧（SPEC_SLICE4 §6；佔位） */
+export const HORDE_VISION = {
+  /** 英雄視野半徑（公尺） */
+  heroSightRange: 12,
+  /** 迷霧格子大小（公尺） */
+  cell: 1,
+  /** 每幾節拍重算一次（6 節拍 = 0.2 秒） */
+  interval: 6,
+};
+
 /** 連鎖反應（SPEC_SLICE4 §3.3） */
 export const HORDE_CHAIN = {
   /** 被擊退的敵人撞到其他敵人時，兩者各受的傷害 */

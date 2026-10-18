@@ -109,6 +109,46 @@ const list: EncounterDef[] = [
       ],
       objective: { type: 'clear' },
     } },
+  // 摩瑞亞試作（SPEC_SLICE4 §5、§6）：96 × 96 m、四個區域之字形推進、戰爭迷霧、抵達東北角出口
+  { id: 'hordeMoria', name: '怪群試作：深淵礦坑', map: 'horde01', tier: 'horde', minLayer: 1, maxLayer: 99, difficulty: 4,
+    enemies: [],
+    horde: {
+      fog: true,
+      spawners: [
+        { id: 'gateA', x: 31, y: 70, radius: 2 },
+        { id: 'galleryN', x: 38, y: 30, radius: 2.5 },
+        { id: 'galleryE', x: 46, y: 58, radius: 2 },
+        { id: 'startN', x: 8, y: 32, radius: 2 },
+        { id: 'nestN', x: 66, y: 28, radius: 2, nest: true },
+        { id: 'nestS', x: 64, y: 60, radius: 2, nest: true },
+        { id: 'hallW', x: 55, y: 70, radius: 2 },
+        { id: 'trollDen', x: 66, y: 40, radius: 1 },
+        { id: 'finalS', x: 92, y: 60, radius: 2 },
+        { id: 'finalN', x: 82, y: 22, radius: 2 },
+        { id: 'pursuit', x: 70, y: 86, radius: 2.5 },
+      ],
+      waves: [
+        // 起點：門外的屍僕先湧進來
+        { id: '門外', trigger: { type: 'time', t: 4 }, spawns: [{ spawner: 'gateA', enemy: 'thrall', count: 8 }] },
+        // 進入長廊
+        { id: '長廊', trigger: { type: 'area', rect: { x: 25, y: 0, w: 25, h: 96 } },
+          spawns: [{ spawner: 'galleryN', enemy: 'thrall', count: 8 }, { spawner: 'galleryN', enemy: 'skitter', count: 4 }, { spawner: 'galleryE', enemy: 'thrall', count: 6 }, { spawner: 'galleryE', enemy: 'slinger', count: 3 }] },
+        // 長廊北段：背後偷襲＋蠻兵
+        { id: '背後', trigger: { type: 'area', rect: { x: 25, y: 0, w: 25, h: 45 } },
+          spawns: [{ spawner: 'startN', enemy: 'skitter', count: 6 }, { spawner: 'galleryN', enemy: 'brute', count: 2 }] },
+        // 巢穴大廳：巢穴持續補兵＋穴居巨怪（戰爭領主暫代）
+        { id: '巢穴', trigger: { type: 'area', rect: { x: 51, y: 0, w: 23, h: 96 } }, repeat: { interval: 8, times: 4 },
+          spawns: [{ spawner: 'nestN', enemy: 'thrall', count: 3 }, { spawner: 'nestS', enemy: 'thrall', count: 3 }] },
+        { id: '巨怪', trigger: { type: 'area', rect: { x: 51, y: 0, w: 23, h: 96 } },
+          spawns: [{ spawner: 'trollDen', enemy: 'warlord', count: 1 }, { spawner: 'hallW', enemy: 'thrall', count: 6 }] },
+        // 終段：前方攔截＋後方追兵一路追到出口
+        { id: '攔截', trigger: { type: 'area', rect: { x: 75, y: 0, w: 21, h: 96 } },
+          spawns: [{ spawner: 'finalS', enemy: 'thrall', count: 6 }, { spawner: 'finalN', enemy: 'slinger', count: 4 }, { spawner: 'finalN', enemy: 'siege', count: 1 }] },
+        { id: '追兵', trigger: { type: 'area', rect: { x: 75, y: 0, w: 21, h: 96 } }, repeat: { interval: 7, times: -1 },
+          spawns: [{ spawner: 'pursuit', enemy: 'thrall', count: 5 }, { spawner: 'pursuit', enemy: 'skitter', count: 3 }] },
+      ],
+      objective: { type: 'exit', rect: { x: 86, y: 0, w: 10, h: 9 } },
+    } },
   // ── 事件遭遇 ──
   { id: 'ambush', name: '埋伏', map: 'forest01', tier: 'event', minLayer: 1, maxLayer: 99, difficulty: 2,
     enemies: [E('skirmisher', 36, 31), E('skirmisher', 36, 17), E('archer', 42, 24)] },

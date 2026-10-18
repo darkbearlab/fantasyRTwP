@@ -80,3 +80,42 @@ for (let s = 1; s <= runs; s++) {
 }
 console.log(`=== 怪群遭遇 hordePass（${runs} 場，腳本 AI）===`);
 console.log(`勝率 ${((wins / runs) * 100).toFixed(0)}%　平均 ${(time / runs).toFixed(1)} 秒　擊殺 ${(kills / runs).toFixed(1)}（每分鐘 ${((kills / time) * 60).toFixed(1)}）　英雄承受傷害 ${(taken / runs).toFixed(0)}　陣亡 ${(deaths / runs).toFixed(2)}`);
+
+// 深淵礦坑（hordeMoria）：全隊沿路點攻擊移動到出口（腳本 AI 不會自己推進地圖）
+const ROUTE = [
+  { x: 20, y: 66.5 }, { x: 32, y: 66.5 }, { x: 47, y: 52 }, { x: 47, y: 30 }, { x: 51, y: 14.5 },
+  { x: 54, y: 30 }, { x: 54, y: 52 }, { x: 66, y: 76.5 }, { x: 76, y: 76.5 }, { x: 92, y: 60 }, { x: 92, y: 30 }, { x: 91, y: 4 },
+];
+const mRuns = Number(process.env.MORIA_RUNS ?? 5);
+let mWins = 0, mTime = 0, mKills = 0, mTaken = 0, mDeaths = 0, mMaxEnemies = 0;
+const mTimes: number[] = [];
+for (let s = 1; s <= mRuns; s++) {
+  const r = createRun(s);
+  const node = r.map.nodes.find((n) => n.layer === 1)!;
+  r.currentNodeId = node.id;
+  r.phase = { kind: 'battle', nodeId: node.id, encounterId: 'hordeMoria', fromEvent: false };
+  const w = createBattleFromRun(r);
+  let wp = 0;
+  while (!w.result && w.tick < 400 * TICK_RATE) {
+    const hs = w.units.filter((u) => u.team === 'hero' && !u.dead);
+    // 全員閒置（到達或卡住）就前往下一個路點
+    if (wp < ROUTE.length && hs.every((h) => !h.order && !h.action)) {
+      w.enqueue({ type: 'attackMove', unitIds: hs.map((h) => h.id), point: ROUTE[wp] });
+      wp++;
+    }
+    const t0 = performance.now();
+    w.step();
+    mTimes.push(performance.now() - t0);
+    mMaxEnemies = Math.max(mMaxEnemies, w.units.filter((u) => u.team === 'enemy' && !u.dead).length);
+  }
+  const o = battleOutcomeFromWorld(w);
+  if (o.won) mWins++;
+  mTime += o.time;
+  mKills += o.heroes.reduce((a, h) => a + h.kills, 0);
+  mTaken += o.heroes.reduce((a, h) => a + h.damageTaken, 0);
+  mDeaths += o.heroes.filter((h) => h.dead).length;
+}
+mTimes.sort((a, b) => a - b);
+console.log(`=== 深淵礦坑 hordeMoria（${mRuns} 場，沿路點攻擊移動）===`);
+console.log(`勝率 ${((mWins / mRuns) * 100).toFixed(0)}%　平均 ${(mTime / mRuns).toFixed(1)} 秒　擊殺 ${(mKills / mRuns).toFixed(1)}（每分鐘 ${((mKills / mTime) * 60).toFixed(1)}）　英雄承受傷害 ${(mTaken / mRuns).toFixed(0)}　陣亡 ${(mDeaths / mRuns).toFixed(2)}　同時最多敵人 ${mMaxEnemies}`);
+console.log(`每節拍：平均 ${(mTimes.reduce((a, b) => a + b, 0) / mTimes.length).toFixed(2)} ms、p95 ${mTimes[Math.floor(mTimes.length * 0.95)].toFixed(2)} ms、最大 ${mTimes[mTimes.length - 1].toFixed(2)} ms`);
