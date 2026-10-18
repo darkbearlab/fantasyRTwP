@@ -121,7 +121,7 @@ export class UIScene extends Phaser.Scene {
       const list = GAME_CONFIG.timeScales;
       s.timeScale = list[(list.indexOf(s.timeScale) + 1) % list.length];
     });
-    const hint = el('div', 'pill hint', '空白鍵 暫停　1–4 選人→再按 1–3 放技能　Tab 切換　Q E R 技能（右鍵技能鈕：自動施放）　右鍵 移動・攻擊・跟隨　F＋點擊／Ctrl＋右鍵 攻擊移動　WASD 鏡頭　H 停止　` 除錯');
+    const hint = el('div', 'pill hint', '空白鍵 暫停　1–4 選人→再按 1–3 放技能　Tab 切換　Q E R 技能（右鍵技能鈕：自動施放）　右鍵 移動・攻擊・跟隨　F＋點擊／Ctrl＋右鍵 攻擊移動　WASD 鏡頭　G 切換性格　H 停止　` 除錯');
     top.append(this.timeEl, this.speedEl, hint);
     this.root.appendChild(top);
   }
@@ -417,7 +417,7 @@ export class UIScene extends Phaser.Scene {
       if (cls?.variant) nameEl.title = `${u.def.name}（${LINES[cls.line].name}）`;
       nameRow.append(nameEl);
       const personality = el('span', 'personality');
-      personality.title = '閒置性格（點擊切換）\n堅守：附近有敵人就自動普攻，不離開駐守點\n好戰：看到敵人就衝出去打，一路追擊\n游擊：敵人靠近就逃跑，要下指令才會接戰';
+      personality.title = '閒置性格（點擊或按 G 切換）\n堅守：附近有敵人就自動普攻，不離開駐守點\n好戰：看到敵人就衝出去打，一路追擊\n游擊：敵人靠近就逃跑，要下指令才會接戰';
       noFocus(personality);
       personality.addEventListener('click', (ev) => {
         ev.stopPropagation();
