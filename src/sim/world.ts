@@ -5,7 +5,8 @@ import { ENEMIES } from './data/enemies';
 import { HEROES } from './data/heroes';
 import { SKILLS } from './data/skills';
 import type { DamageType, HordeSetup, MapDef, Personality, ProjectileKind, SkillDef, SpawnerDef, Team, UnitDef, WaveDef } from './data/types';
-import { HORDE } from './data/horde';
+import { HORDE, HORDE_VISION } from './data/horde';
+import { Vision } from './vision';
 import { FlowField } from './nav/flowField';
 import { hordeThink } from './ai/hordeAI';
 import { autocastOrder, canAutocast } from './ai/autocast';
@@ -154,6 +155,8 @@ export class World implements ZocContext {
   readonly nestBySpawner = new Map<string, number>();
   private waveState: { def: WaveDef; fired: boolean; repeatsLeft: number; nextAt: number }[] = [];
   private flow: FlowField | null = null;
+  /** 視線與戰爭迷霧（只有啟用迷霧的怪群遭遇才有） */
+  readonly vision: Vision | null = null;
   private flowTick = -Infinity;
 
   constructor(opts: WorldOptions) {
@@ -187,7 +190,21 @@ export class World implements ZocContext {
         if (s.nest) this.nestBySpawner.set(s.id, this.spawnUnit(this.enemyDefFor('nest'), { x: s.x, y: s.y }).id);
       }
       this.waveState = this.horde.waves.map((def) => ({ def, fired: false, repeatsLeft: 0, nextAt: 0 }));
+      if (this.horde.fog) {
+        this.vision = new Vision(this.map.width, this.map.height, HORDE_VISION.cell, this.sight);
+        this.updateVision();
+      }
     }
+  }
+
+  /** 戰爭迷霧是否生效（有迷霧資料且設定沒關掉） */
+  get fogActive(): boolean {
+    return !!this.vision && this.config.fogOfWar;
+  }
+
+  private updateVision(): void {
+    if (!this.vision) return;
+    this.vision.update(this.units.filter((u) => u.team === 'hero' && !u.dead).map((u) => ({ pos: u.pos, range: HORDE_VISION.heroSightRange })));
   }
 
   // ───────────── 公開查詢 ─────────────
@@ -274,6 +291,8 @@ export class World implements ZocContext {
   canTarget(viewer: Unit, target: Unit): boolean {
     if (target.dead) return false;
     if (viewer.team === target.team) return true;
+    // 戰爭迷霧：英雄看不到視野外的敵人（SPEC_SLICE4 §6）
+    if (viewer.team === 'hero' && this.fogActive && !this.vision!.isVisible(target.pos)) return false;
     // 煙霧彈：貼近才看得到
     if (target.stealthTime > 0) return dist(viewer.pos, target.pos) <= TERRAIN.brushRevealDistance;
     if (!this.terrain.any) return true;
@@ -400,6 +419,7 @@ export class World implements ZocContext {
     }
     for (const p of this.projectiles) p.prevPos = { x: p.pos.x, y: p.pos.y };
 
+    if (this.vision && this.tick % HORDE_VISION.interval === 0) this.updateVision();
     this.updateWaves();
     this.updateAggro();
     for (const u of this.units) this.tickTimers(u);

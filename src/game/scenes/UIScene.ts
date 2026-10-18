@@ -288,6 +288,7 @@ export class UIScene extends Phaser.Scene {
     p.appendChild(
       this.checkbox('近戰進行中時控制區失效', () => this.cur().simConfig.zocEngagedException, (v) => this.cur().setSimConfig({ zocEngagedException: v })),
     );
+    p.appendChild(this.checkbox('戰爭迷霧（怪群地圖）', () => this.cur().simConfig.fogOfWar, (v) => this.cur().setSimConfig({ fogOfWar: v })));
 
     const ffRow = el('div', 'row');
     ffRow.appendChild(el('span', 'lbl', '火球友軍傷害'));

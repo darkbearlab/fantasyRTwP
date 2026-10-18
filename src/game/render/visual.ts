@@ -41,6 +41,9 @@ export const VISUAL = {
   pillarMaps: ['boss01'],
   /** 被高障礙物擋住的角色：最上層輪廓的透明度 */
   occludedAlpha: 0.35,
+  /** 戰爭迷霧：未探索／已探索但不在視野內的遮罩透明度 */
+  fogUnexploredAlpha: 0.94,
+  fogExploredAlpha: 0.5,
 };
 
 export function unitHeight(def: UnitDef): number {
