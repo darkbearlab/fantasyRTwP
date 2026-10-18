@@ -29,19 +29,47 @@ export function recruitPool(run: RunState): string[] {
   return pool.length ? pool : CLASS_ORDER;
 }
 
-/** 技能欄是否合法：第 1 欄為專用技能，第 2、3 欄來自同系共用池且不重複 */
+/**
+ * 技能欄是否合法：一定帶著專用技能（位置不限，路線圖上可以調整順序），
+ * 其他兩欄來自同系共用池且不重複
+ */
 export function validLoadout(classId: string, skills: string[]): boolean {
   const c = CLASSES[classId];
-  if (!c || skills.length !== 3 || skills[0] !== c.signature) return false;
+  if (!c || skills.length !== 3 || !skills.includes(c.signature)) return false;
   if (new Set(skills).size !== 3) return false;
-  return skills.slice(1).every((s) => LINES[c.line].pool.includes(s));
+  return skills.filter((s) => s !== c.signature).every((s) => LINES[c.line].pool.includes(s));
 }
 
-/** 第 index 欄（1 或 2）可以換成哪些技能 */
+/** 第 index 欄可以換成哪些技能（專用技能那一欄不能換） */
 export function swapOptions(classId: string, skills: string[], index: number): string[] {
-  if (index !== 1 && index !== 2) return [];
   const c = CLASSES[classId];
+  if (index < 0 || index >= skills.length || skills[index] === c.signature) return [];
   return LINES[c.line].pool.filter((s) => !skills.includes(s));
+}
+
+/** 只能在路線圖上調整順序（戰鬥、事件、獎勵、休息進行中不行） */
+function assertOnMap(run: RunState): void {
+  if (run.phase.kind !== 'map') throw new Error('只能在路線圖上調整順序');
+}
+
+/** 調整英雄順序：交換兩個隊伍欄位（數字鍵 1–4 對應欄位） */
+export function swapHeroSlots(run: RunState, a: number, b: number): RunState {
+  assertOnMap(run);
+  if (a === b || a < 0 || b < 0 || a >= run.party.length || b >= run.party.length) return run;
+  const r = cloneRun(run);
+  [r.party[a], r.party[b]] = [r.party[b], r.party[a]];
+  return r;
+}
+
+/** 調整某名英雄的技能順序：交換兩欄（決定戰鬥中的技能快捷鍵順序） */
+export function swapSkillOrder(run: RunState, slot: number, a: number, b: number): RunState {
+  assertOnMap(run);
+  const h = run.party[slot];
+  if (!h || a === b || a < 0 || b < 0 || a >= h.skills.length || b >= h.skills.length) return run;
+  const r = cloneRun(run);
+  const s = r.party[slot]!.skills;
+  [s[a], s[b]] = [s[b], s[a]];
+  return r;
 }
 
 /** 休息節點替換技能欄（SPEC_SLICE3 §1.1：不佔三選一、可換任意次） */

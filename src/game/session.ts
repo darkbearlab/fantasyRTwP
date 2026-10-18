@@ -64,6 +64,8 @@ export class BattleSession {
   acc = 0;
   selection: number[] = [];
   targeting: Targeting | null = null;
+  /** 數字鍵二段式：剛用數字鍵選了哪名英雄、到什麼時候前再按數字就是放技能（畫面時間，毫秒） */
+  chord: { slot: number; until: number } | null = null;
   hoverUnitId: number | null = null;
   log: LogEntry[] = [];
   toast: { text: string; until: number } | null = null;

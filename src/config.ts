@@ -31,8 +31,13 @@ export const GAME_CONFIG = {
     cameraDown: ['KeyS', 'ArrowDown'],
     cameraLeft: ['KeyA', 'ArrowLeft'],
     cameraRight: ['KeyD', 'ArrowRight'],
-    /** 選取英雄欄位 1–4；連按兩下鏡頭移過去；Shift＋數字加選 */
+    /**
+     * 數字鍵二段式（Alan 試作）：第一下 1–4 選英雄，heroChordMs 內的第二下 1–n 放那名英雄的第 n 個技能；
+     * Shift＋數字加選（不進入二段式）
+     */
     selectSlot: ['Digit1', 'Digit2', 'Digit3', 'Digit4'],
+    /** 二段式第二下可以用的數字鍵（技能 1–9） */
+    skillDigits: ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9'],
     /** 主要選取英雄的技能 1–3 */
     skills: ['KeyQ', 'KeyE', 'KeyR'],
     cycleHero: ['Tab'],
@@ -45,8 +50,8 @@ export const GAME_CONFIG = {
   },
   /** 技能鍵在 UI 上顯示的字 */
   skillKeyLabels: ['Q', 'E', 'R'],
-  /** 數字鍵連按兩下的判定時間（毫秒） */
-  doubleTapMs: 350,
+  /** 數字鍵二段式：選英雄後，這段時間內再按數字就是放技能（毫秒） */
+  heroChordMs: 2000,
   /** 正俯視（topdown）模式的渲染比例：1 m = 32 px */
   pxPerMeter: 32,
   /** 畫面投影：iso＝2:1 等角（預設）；topdown＝原本的正俯視（除錯與比較用，除錯面板可即時切換） */

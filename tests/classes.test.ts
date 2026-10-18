@@ -4,11 +4,12 @@ import { HEROES } from '../src/sim/data/heroes';
 import { SKILLS } from '../src/sim/data/skills';
 import { ECONOMY } from '../src/run/data/economy';
 import { createBattleFromRun } from '../src/run/battle';
-import { recruitPool, rollParty, swapOptions, swapSkill, validLoadout } from '../src/run/classes';
+import { recruitPool, rollParty, swapHeroSlots, swapOptions, swapSkill, swapSkillOrder, validLoadout } from '../src/run/classes';
+import { decideDigit } from '../src/game/input/chord';
 import { availableNodes, chooseNode } from '../src/run/progression';
 import type { RunState } from '../src/run/runState';
 import { createRun, deserializeRun, newHero, serializeRun } from '../src/run/runState';
-import { lateJoinUpgradeCount, recruitInto } from '../src/run/upgrades';
+import { heroDef, lateJoinUpgradeCount, recruitInto } from '../src/run/upgrades';
 import { Rng } from '../src/sim/rng';
 
 function atRest(r: RunState): RunState {
@@ -32,12 +33,14 @@ describe('職業體系（SPEC_SLICE3 §1、§7-3/4）', () => {
     }
   });
 
-  it('技能欄驗證：第 1 欄固定、只接受同系技能、不重複', () => {
-    expect(validLoadout('warrior', ['shieldBash', 'guard', 'charge'])).toBe(false);
+  it('技能欄驗證：一定帶專用技能（位置可以在路線圖上調整）、只接受同系技能、不重複', () => {
+    // 專用技能不在第 1 欄也合法（Alan：技能順序可以調整）；沒有專用技能則不合法
+    expect(validLoadout('warrior', ['shieldBash', 'guard', 'charge'])).toBe(true);
+    expect(validLoadout('warrior', ['shieldBash', 'battleCry', 'charge'])).toBe(false);
     expect(validLoadout('warrior', ['guard', 'shieldBash', 'fireball'])).toBe(false);
     expect(validLoadout('warrior', ['guard', 'shieldBash', 'shieldBash'])).toBe(false);
     expect(validLoadout('warrior', ['guard', 'charge', 'shieldBash'])).toBe(true);
-    // 第 1 欄不能換；已裝備的不會出現在選項裡
+    // 專用技能那一欄不能換；已裝備的不會出現在選項裡
     expect(swapOptions('warrior', ['guard', 'shieldBash', 'charge'], 0)).toEqual([]);
     const opts = swapOptions('mage', ['fireball', 'iceBind', 'arcaneMissile'], 1);
     for (const o of opts) expect(LINES.mage.pool).toContain(o);
@@ -110,5 +113,62 @@ describe('職業體系（SPEC_SLICE3 §1、§7-3/4）', () => {
     const back = deserializeRun(JSON.stringify(old));
     expect(back.party[0]!.skills).toEqual(defaultLoadout('warrior'));
     expect(availableNodes(back).length).toBeGreaterThan(0);
+  });
+});
+
+describe('路線圖調整英雄與技能順序（Alan 要求）', () => {
+  const onMap = () => {
+    const r = createRun(11);
+    r.phase = { kind: 'map' };
+    return r;
+  };
+
+  it('交換英雄欄位；交換技能順序；專用技能可以在任何一欄', () => {
+    const r = onMap();
+    const [a, b] = [r.party[0]!.classId, r.party[1]!.classId];
+    const r2 = swapHeroSlots(r, 0, 1);
+    expect(r2.party[0]!.classId).toBe(b);
+    expect(r2.party[1]!.classId).toBe(a);
+    // 原本的狀態不變
+    expect(r.party[0]!.classId).toBe(a);
+    const before = [...r.party[0]!.skills];
+    const r3 = swapSkillOrder(r, 0, 0, 2);
+    expect(r3.party[0]!.skills).toEqual([before[2], before[1], before[0]]);
+    expect(validLoadout(r3.party[0]!.classId, r3.party[0]!.skills)).toBe(true);
+    // 戰鬥中的技能順序跟著改
+    expect(heroDef(r3.party[0]!).skills).toEqual(r3.party[0]!.skills);
+  });
+
+  it('專用技能那一欄不能替換（不論在第幾欄）；其他欄可以', () => {
+    const r = onMap();
+    const h = r.party[0]!;
+    const sig = CLASSES[h.classId].signature;
+    const moved = swapSkillOrder(r, 0, 0, 2).party[0]!.skills;
+    expect(swapOptions(h.classId, moved, moved.indexOf(sig))).toEqual([]);
+    expect(swapOptions(h.classId, moved, 0).length).toBeGreaterThan(0);
+  });
+
+  it('只能在路線圖上調整', () => {
+    const r = onMap();
+    r.phase = { kind: 'battle', nodeId: 0, encounterId: 'passScouts', fromEvent: false };
+    expect(() => swapHeroSlots(r, 0, 1)).toThrow();
+    expect(() => swapSkillOrder(r, 0, 0, 1)).toThrow();
+  });
+});
+
+describe('數字鍵二段式（Alan 試作）', () => {
+  const skills = () => 3;
+  it('第一下選英雄並開始二段式；時間內第二下放技能；逾時又變回選英雄', () => {
+    expect(decideDigit(null, 0, 2, false, 4, skills)).toEqual({ kind: 'select', slot: 2, startChord: true });
+    const chord = { slot: 2, until: 2000 };
+    expect(decideDigit(chord, 1500, 0, false, 4, skills)).toEqual({ kind: 'skill', slot: 2, index: 0 });
+    expect(decideDigit(chord, 1500, 2, false, 4, skills)).toEqual({ kind: 'skill', slot: 2, index: 2 });
+    expect(decideDigit(chord, 1500, 4, false, 4, skills)).toEqual({ kind: 'noSkill', slot: 2, index: 4 });
+    expect(decideDigit(chord, 2500, 0, false, 4, skills)).toEqual({ kind: 'select', slot: 0, startChord: true });
+  });
+
+  it('Shift＋數字是加選，不進入也不使用二段式；沒有英雄的數字（5 以上）在選人時無效', () => {
+    expect(decideDigit({ slot: 1, until: 9999 }, 0, 3, true, 4, skills)).toEqual({ kind: 'select', slot: 3, startChord: false });
+    expect(decideDigit(null, 0, 6, false, 4, skills)).toEqual({ kind: 'none' });
   });
 });
