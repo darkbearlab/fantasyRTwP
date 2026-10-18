@@ -1,0 +1,133 @@
+{
+  "_說明": "props3d 地形物件的外觀設定（只影響畫面；sim 的格子、碰撞、規則不變）。scale 是各物件的顯示縮放（素材尺寸不準時在這裡調）",
+  "groundScale": 0.85,
+  "props": {
+    "boulder_01": {
+      "scale": 1
+    },
+    "namaqualand_boulder_02": {
+      "scale": 1
+    },
+    "rock_moss_set_01": {
+      "scale": 0.85
+    },
+    "tree_stump_01": {
+      "scale": 1
+    },
+    "dead_tree_trunk": {
+      "scale": 1.35
+    },
+    "_dead_tree_trunk": "倒木的 scale 是每根的長度倍率：越大每根越長越粗、根數越少（依矮籬長度平均分段）",
+    "root_cluster_01": {
+      "scale": 1
+    },
+    "shrub_02": {
+      "scale": 1
+    },
+    "stone_fire_pit": {
+      "scale": 1
+    },
+    "wooden_barrels_01": {
+      "scale": 1,
+      "fitMin": 0.7
+    },
+    "wooden_crate_01": {
+      "scale": 1,
+      "fitMax": 1.4
+    },
+    "_fitMax": "fitMin／fitMax：單一物件的縮放下限／上限（例如木箱放太大會像大箱子）"
+  },
+  "obstacle": {
+    "_說明": "小型、近似方形的障礙物（巨石、樹木的占位方塊）換成物件；長條的牆、懸崖、深水、柱子維持方塊",
+    "maxSize": 3.5,
+    "maxAspect": 2,
+    "smallMax": 1.3,
+    "mediumMax": 2.3,
+    "fitMul": 1.15,
+    "fitMin": 0.45,
+    "fitMax": 2.2,
+    "pools": {
+      "small": [
+        "boulder_01",
+        "tree_stump_01"
+      ],
+      "medium": [
+        "boulder_01",
+        "namaqualand_boulder_02",
+        "tree_stump_01"
+      ],
+      "large": [
+        "rock_moss_set_01",
+        "root_cluster_01",
+        "namaqualand_boulder_02"
+      ]
+    },
+    "mapPools": {
+      "marsh01": {
+        "small": [
+          "boulder_01",
+          "wooden_crate_01",
+          "tree_stump_01"
+        ],
+        "medium": [
+          "boulder_01",
+          "namaqualand_boulder_02",
+          "wooden_crate_01"
+        ],
+        "large": [
+          "wooden_barrels_01",
+          "rock_moss_set_01",
+          "namaqualand_boulder_02"
+        ]
+      },
+      "ruins01": {
+        "small": [
+          "boulder_01",
+          "wooden_crate_01"
+        ],
+        "medium": [
+          "boulder_01",
+          "namaqualand_boulder_02",
+          "wooden_crate_01"
+        ],
+        "large": [
+          "wooden_barrels_01",
+          "rock_moss_set_01",
+          "namaqualand_boulder_02"
+        ]
+      },
+      "horde01": {
+        "small": [
+          "boulder_01",
+          "wooden_crate_01"
+        ],
+        "medium": [
+          "boulder_01",
+          "namaqualand_boulder_02",
+          "wooden_crate_01"
+        ],
+        "large": [
+          "rock_moss_set_01",
+          "wooden_barrels_01",
+          "namaqualand_boulder_02"
+        ]
+      }
+    },
+    "skipMaps": [
+      "boss01"
+    ],
+    "_pools": "依障礙物大小（長邊 ≤ smallMax／≤ mediumMax／其餘）挑物件；mapPools 依地圖主題覆蓋（戶外不放木箱木桶）"
+  },
+  "hedge": {
+    "_說明": "矮籬（掩體）畫成倒木；素材偏細，疊 rows 根、間隔 rowGap 公尺",
+    "prop": "dead_tree_trunk",
+    "rows": 2,
+    "rowGap": 0.22
+  },
+  "brush": {
+    "_說明": "草叢畫成灌木；size＝每叢的寬度（公尺），spacing＝間隔；燒掉的格子會隱藏",
+    "prop": "shrub_02",
+    "size": 2.6,
+    "spacing": 2.2
+  }
+}
