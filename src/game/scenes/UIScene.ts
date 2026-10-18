@@ -121,7 +121,7 @@ export class UIScene extends Phaser.Scene {
       const list = GAME_CONFIG.timeScales;
       s.timeScale = list[(list.indexOf(s.timeScale) + 1) % list.length];
     });
-    const hint = el('div', 'pill hint', '空白鍵 暫停　1–4 選人（連按跳鏡頭）　Tab 切換　Q E R 技能（右鍵技能鈕：自動施放）　右鍵 移動・攻擊・跟隨　F＋點擊／Ctrl＋右鍵 攻擊移動　WASD 鏡頭　H 停止　` 除錯');
+    const hint = el('div', 'pill hint', '空白鍵 暫停　1–4 選人→再按 1–3 放技能　Tab 切換　Q E R 技能（右鍵技能鈕：自動施放）　右鍵 移動・攻擊・跟隨　F＋點擊／Ctrl＋右鍵 攻擊移動　WASD 鏡頭　H 停止　` 除錯');
     top.append(this.timeEl, this.speedEl, hint);
     this.root.appendChild(top);
   }
@@ -524,6 +524,13 @@ export class UIScene extends Phaser.Scene {
         c.bar.style.width = `${u.actionProgress * 100}%`;
         c.bar.className = `actbar ${a.phase}`;
       } else c.bar.style.width = '0';
+      // 數字鍵二段式：剛用數字選了這名英雄，技能鈕顯示 1–n
+      const chord = !!s.chord && s.chord.slot === u.heroSlot && this.time.now <= s.chord.until;
+      c.root.classList.toggle('chord', chord);
+      c.skills.forEach((sk, idx) => {
+        const label = chord ? String(idx + 1) : (GAME_CONFIG.skillKeyLabels[idx] ?? '');
+        if (sk.key.textContent !== label) sk.key.textContent = label;
+      });
       for (const sk of c.skills) {
         const def = SKILLS[sk.skillId];
         const cd = u.cooldowns[sk.skillId] ?? 0;

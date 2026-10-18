@@ -1,4 +1,5 @@
 import { HEROES } from '../../sim/data/heroes';
+import { CLASSES } from '../../sim/data/classes';
 import { SKILLS } from '../../sim/data/skills';
 import { swapOptions, swapSkill } from '../../run/classes';
 import { className } from '../ui/classInfo';
@@ -108,7 +109,7 @@ export class RestScene extends DomScene {
   /** 技能分頁（SPEC_SLICE3 §1.1）：第 1 欄專用技能固定，第 2、3 欄從同系共用池替換 */
   private skillsTab(run: ReturnType<typeof getRun>, set: (r: ReturnType<typeof getRun>) => void): HTMLElement {
     const box = el('div', 'skill-tab');
-    box.appendChild(el('div', 'meta', '第 1 欄是專用技能，不能替換；第 2、3 欄可以換成同系的共用技能，免費、不限次數。'));
+    box.appendChild(el('div', 'meta', '🔒 專用技能不能替換；其他兩欄可以換成同系的共用技能，免費、不限次數。技能順序在路線圖上調整。'));
     run.party.forEach((h, slot) => {
       if (!h || h.dead) return;
       const row = el('div', 'skill-row');
@@ -118,8 +119,8 @@ export class RestScene extends DomScene {
       row.appendChild(name);
       h.skills.forEach((sk, idx) => {
         const cell = el('div', 'skill-slot');
-        cell.appendChild(el('div', 'skill-key', ['Q', 'E', 'R'][idx]));
-        if (idx === 0) {
+        cell.appendChild(el('div', 'skill-key', `${idx + 1}／${['Q', 'E', 'R'][idx]}`));
+        if (sk === CLASSES[h.classId].signature) {
           cell.appendChild(el('div', 'skill-fixed', `🔒 ${SKILLS[sk].name}`));
         } else {
           const sel = el('select', 'skill-select');

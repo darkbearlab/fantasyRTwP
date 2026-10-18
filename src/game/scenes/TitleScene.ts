@@ -52,7 +52,7 @@ export class TitleScene extends DomScene {
     const creditsRow = el('div', 'btn-row center');
     creditsRow.appendChild(button('製作人員', 'small', () => this.showCredits()));
     box.appendChild(creditsRow);
-    box.appendChild(el('div', 'title-hint', '操作：1–4 選人（連按跳鏡頭）、Tab 切換、Q E R 技能、右鍵移動／攻擊、空白鍵暫停、WASD 鏡頭'));
+    box.appendChild(el('div', 'title-hint', '操作：1–4 選人、選人後 2 秒內再按 1–3 放該英雄的技能、Tab 切換、Q E R 技能、右鍵移動／攻擊、空白鍵暫停、WASD 鏡頭'));
     this.root.appendChild(box);
   }
 

@@ -1,4 +1,5 @@
 import { HEROES } from '../../sim/data/heroes';
+import { SKILLS } from '../../sim/data/skills';
 import { PERSONALITY_LABEL } from '../../sim/ai/idleBehavior';
 import type { Personality } from '../../sim/data/types';
 import { UPGRADES } from '../../run/data/upgrades';
@@ -17,6 +18,10 @@ export interface PartyPanelOptions {
   onPick?: (slot: number) => void;
   pickable?: (slot: number) => boolean;
   highlight?: number;
+  /** 路線圖：調整英雄順序（和上一／下一欄交換） */
+  onSwapHero?: (a: number, b: number) => void;
+  /** 路線圖：調整技能順序（第 a、b 欄交換） */
+  onSwapSkill?: (slot: number, a: number, b: number) => void;
 }
 
 /** 隊伍面板：頭像、生命條、陣亡標記、性格、強化 */
@@ -53,11 +58,47 @@ export function partyPanel(run: RunState, opts: PartyPanelOptions = {}): HTMLEle
     if (h.hp / max < 0.3) fill.classList.add('low');
     hp.append(fill, el('span', 'hptext', h.dead ? '陣亡' : `${h.hp} / ${max}`));
     info.append(name, hp);
+    // 技能順序（戰鬥中「選人後再按數字」與 Q E R 的對應）；路線圖上可以調整
+    if (opts.onSwapSkill || opts.onSwapHero) {
+      const skills = el('div', 'party-skills');
+      h.skills.forEach((sk, i) => {
+        if (i > 0 && opts.onSwapSkill) {
+          const left = el('button', 'order-btn', '◀');
+          left.title = '和前一個技能交換順序';
+          noFocus(left);
+          left.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            opts.onSwapSkill!(slot, i - 1, i);
+          });
+          skills.appendChild(left);
+        }
+        skills.appendChild(el('span', 'party-skill', `${i + 1} ${SKILLS[sk]?.name ?? sk}`));
+      });
+      info.appendChild(skills);
+    }
     if (h.upgrades.length) {
       const ups = el('div', 'party-ups', h.upgrades.map((u) => UPGRADES[u.id]?.name ?? u.id).join('・'));
       info.appendChild(ups);
     }
     row.append(portrait, info);
+    if (opts.onSwapHero) {
+      const box2 = el('div', 'order-col');
+      for (const [label, other, tip] of [
+        ['▲', slot - 1, '往上移（數字鍵變小）'],
+        ['▼', slot + 1, '往下移（數字鍵變大）'],
+      ] as const) {
+        const b = el('button', 'order-btn', label);
+        b.title = tip;
+        noFocus(b);
+        b.disabled = other < 0 || other >= run.party.length;
+        b.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          opts.onSwapHero!(slot, other);
+        });
+        box2.appendChild(b);
+      }
+      row.appendChild(box2);
+    }
     if (h.dead) row.classList.add('dead');
     if (opts.highlight === slot) row.classList.add('picked');
     if (opts.onPick && (!opts.pickable || opts.pickable(slot))) {

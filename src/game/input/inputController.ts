@@ -5,6 +5,7 @@ import type { Unit } from '../../sim/unit';
 import type { BattleSession } from '../session';
 import { screenToGround } from '../render/projection';
 import { beginSkill, confirmTargeting } from './targeting';
+import { decideDigit } from './chord';
 
 export interface InputHost {
   scene: Phaser.Scene;
@@ -29,7 +30,6 @@ export class InputController {
   private pointerSeen = false;
   /** 目前按住的按鍵（鏡頭移動用） */
   private held = new Set<string>();
-  private lastSlotTap = { slot: -1, at: 0 };
   /** 按了攻擊移動鍵，等待點擊目標點 */
   attackMoveArmed = false;
 
@@ -195,6 +195,7 @@ export class InputController {
       if (!s.world.result) s.setPaused(!s.paused);
     } else if (K.cancel.includes(code)) {
       s.targeting = null;
+      s.chord = null;
       this.attackMoveArmed = false;
     } else if (K.attackMove.includes(code)) {
       if (s.selectedUnits().length === 0) s.showToast('請先選取英雄（1–4）', this.now(), 1000);
@@ -211,8 +212,8 @@ export class InputController {
     } else if (K.cycleHero.includes(code)) {
       e.preventDefault();
       this.cycleHero();
-    } else if (K.selectSlot.includes(code)) {
-      this.selectSlot(K.selectSlot.indexOf(code), e.shiftKey);
+    } else if (K.skillDigits.includes(code)) {
+      this.digit(K.skillDigits.indexOf(code), e.shiftKey);
     } else if (K.skills.includes(code)) {
       e.preventDefault();
       const p = s.primary();
@@ -221,7 +222,36 @@ export class InputController {
     }
   }
 
-  /** 數字鍵選取英雄欄位；連按兩下鏡頭移過去 */
+  /**
+   * 數字鍵二段式：第一下選英雄（1–4），時間內的第二下放那名英雄的第 n 個技能。
+   * Shift＋數字照舊是加選，不進入二段式。
+   */
+  digit(n: number, shift: boolean): void {
+    const s = this.session;
+    const now = this.now();
+    const a = decideDigit(s.chord, now, n, shift, GAME_CONFIG.keys.selectSlot.length, (slot) => s.heroBySlot(slot)?.def.skills.length ?? 0);
+    s.chord = null;
+    switch (a.kind) {
+      case 'skill':
+        beginSkill(s, a.slot, a.index, now);
+        break;
+      case 'noSkill': {
+        const hero = s.heroBySlot(a.slot);
+        if (hero) s.showToast(`${hero.def.name}沒有第 ${a.index + 1} 個技能`, now, 1000);
+        break;
+      }
+      case 'select': {
+        this.selectSlot(a.slot, shift);
+        const u = s.heroBySlot(a.slot);
+        if (a.startChord && u && !u.dead) s.chord = { slot: a.slot, until: now + GAME_CONFIG.heroChordMs };
+        break;
+      }
+      case 'none':
+        break;
+    }
+  }
+
+  /** 數字鍵選取英雄欄位（二段式下不再用連按兩下移動鏡頭；改用雙擊英雄卡片） */
   selectSlot(slot: number, shift: boolean): void {
     const s = this.session;
     const u = s.heroBySlot(slot);
@@ -229,16 +259,12 @@ export class InputController {
       s.showToast(u ? `${u.def.name}已陣亡` : '這個欄位沒有英雄', this.now(), 1000);
       return;
     }
-    const now = this.now();
-    const double = this.lastSlotTap.slot === slot && now - this.lastSlotTap.at <= GAME_CONFIG.doubleTapMs;
-    this.lastSlotTap = { slot, at: now };
     s.targeting = null;
     if (shift) {
       // 加選；已選的話移到最後，成為主要選取
       s.selection = s.selection.filter((id) => id !== u.id);
       s.selection.push(u.id);
     } else s.selection = [u.id];
-    if (double) this.host.centerOn(u.id);
   }
 
   /** Tab：主要選取切換到下一名存活英雄（只選他一人） */

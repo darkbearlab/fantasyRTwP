@@ -4,6 +4,7 @@ import { NODE_ICON, NODE_LABEL } from '../../run/mapGen';
 import { availableNodes, chooseNode, pickEncounter, setHeroPersonality } from '../../run/progression';
 import { el, noFocus } from '../ui/dom';
 import { partyPanel } from '../ui/partyPanel';
+import { swapHeroSlots, swapSkillOrder } from '../../run/classes';
 import { advance, getRun, setRun } from '../runFlow';
 import { DomScene } from './DomScene';
 
@@ -31,6 +32,14 @@ export class MapScene extends DomScene {
       partyPanel(run, {
         onPersonality: (slot, p) => {
           setRun(this, setHeroPersonality(getRun(this), slot, p));
+          this.rebuild();
+        },
+        onSwapHero: (a, b) => {
+          setRun(this, swapHeroSlots(getRun(this), a, b));
+          this.rebuild();
+        },
+        onSwapSkill: (slot, a, b) => {
+          setRun(this, swapSkillOrder(getRun(this), slot, a, b));
           this.rebuild();
         },
       }),
