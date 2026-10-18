@@ -121,7 +121,7 @@ export class UIScene extends Phaser.Scene {
       const list = GAME_CONFIG.timeScales;
       s.timeScale = list[(list.indexOf(s.timeScale) + 1) % list.length];
     });
-    const hint = el('div', 'pill hint', '空白鍵 暫停　1–4 選人→再按 1–3 放技能　Tab 切換　Q E R 技能（右鍵技能鈕：自動施放）　右鍵 移動・攻擊・跟隨　F＋點擊／Ctrl＋右鍵 攻擊移動　WASD 鏡頭　G 切換性格　H 停止　` 除錯');
+    const hint = el('div', 'pill hint', '空白鍵 暫停　1–4 選人→再按 1–3 放技能　Tab 切換　右鍵技能鈕 自動施放　右鍵 移動・攻擊・跟隨　F＋點擊／Ctrl＋右鍵 攻擊移動　WASD 鏡頭　G 切換性格　H 停止　` 除錯');
     top.append(this.timeEl, this.speedEl, hint);
     this.root.appendChild(top);
   }
@@ -408,8 +408,7 @@ export class UIScene extends Phaser.Scene {
       // 欄位編號（數字鍵）與主要選取標籤
       const slotKey = el('span', 'slot-key', String(u.heroSlot + 1));
       portrait.appendChild(slotKey);
-      const qer = el('span', 'qer-tag', GAME_CONFIG.skillKeyLabels.join(' '));
-      root.appendChild(qer);
+      if (GAME_CONFIG.skillKeyLabels.length > 0) root.appendChild(el('span', 'qer-tag', GAME_CONFIG.skillKeyLabels.join(' ')));
       const info = el('div', 'info');
       const nameRow = el('div', 'name-row');
       const nameEl = el('span', 'name', u.def.name);
@@ -440,8 +439,8 @@ export class UIScene extends Phaser.Scene {
         const btn = el('button', 'skill');
         btn.tabIndex = -1;
         noFocus(btn);
-        btn.title = `${def.name}（選取後按 ${GAME_CONFIG.skillKeyLabels[idx]}）\n準備 ${def.windup} 秒／恢復 ${def.recovery} 秒／冷卻 ${def.cooldown} 秒\n${def.description}${canAutocast(skillId) ? '\n右鍵：切換自動施放' : ''}`;
-        const key = el('span', 'key', GAME_CONFIG.skillKeyLabels[idx] ?? '');
+        btn.title = `${def.name}（${GAME_CONFIG.skillKeyLabels[idx] ? `選取後按 ${GAME_CONFIG.skillKeyLabels[idx]}` : `按 ${u.heroSlot + 1} 再按 ${idx + 1}`}）\n準備 ${def.windup} 秒／恢復 ${def.recovery} 秒／冷卻 ${def.cooldown} 秒\n${def.description}${canAutocast(skillId) ? '\n右鍵：切換自動施放' : ''}`;
+        const key = el('span', 'key', GAME_CONFIG.skillKeyLabels[idx] ?? String(idx + 1));
         const nm = el('span', 'sname', def.name);
         const cd = el('div', 'cd');
         const cdText = el('span', 'cdtext');
@@ -528,7 +527,7 @@ export class UIScene extends Phaser.Scene {
       const chord = !!s.chord && s.chord.slot === u.heroSlot && this.time.now <= s.chord.until;
       c.root.classList.toggle('chord', chord);
       c.skills.forEach((sk, idx) => {
-        const label = chord ? String(idx + 1) : (GAME_CONFIG.skillKeyLabels[idx] ?? '');
+        const label = chord ? String(idx + 1) : (GAME_CONFIG.skillKeyLabels[idx] ?? String(idx + 1));
         if (sk.key.textContent !== label) sk.key.textContent = label;
       });
       for (const sk of c.skills) {

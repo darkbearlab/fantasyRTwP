@@ -38,8 +38,8 @@ export const GAME_CONFIG = {
     selectSlot: ['Digit1', 'Digit2', 'Digit3', 'Digit4'],
     /** 二段式第二下可以用的數字鍵（技能 1–9） */
     skillDigits: ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9'],
-    /** 主要選取英雄的技能 1–3 */
-    skills: ['KeyQ', 'KeyE', 'KeyR'],
+    /** 主要選取英雄的技能 1–3（Alan：先關掉，改用數字鍵二段式；要恢復就填回 ['KeyQ', 'KeyE', 'KeyR']） */
+    skills: [] as string[],
     cycleHero: ['Tab'],
     pause: ['Space'],
     stop: ['KeyH'],
@@ -50,8 +50,8 @@ export const GAME_CONFIG = {
     /** 循環切換已選英雄的閒置性格（堅守 → 好戰 → 游擊）；也可以點英雄卡上的性格標籤 */
     cyclePersonality: ['KeyG'],
   },
-  /** 技能鍵在 UI 上顯示的字 */
-  skillKeyLabels: ['Q', 'E', 'R'],
+  /** 技能鍵在 UI 上顯示的字（和 keys.skills 對應；空的時候技能鈕顯示二段式的數字） */
+  skillKeyLabels: [] as string[],
   /** 數字鍵二段式：選英雄後，這段時間內再按數字就是放技能（毫秒） */
   heroChordMs: 2000,
   /** 正俯視（topdown）模式的渲染比例：1 m = 32 px */

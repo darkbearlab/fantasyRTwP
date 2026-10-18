@@ -152,6 +152,9 @@ const list: EncounterDef[] = [
           spawns: [{ spawner: 'nestN', enemy: 'thrall', count: 3 }, { spawner: 'nestS', enemy: 'thrall', count: 3 }] },
         { id: '巨怪', trigger: { type: 'area', rect: { x: 51, y: 0, w: 23, h: 96 } },
           spawns: [{ spawner: 'trollDen', enemy: 'warlord', count: 1 }, { spawner: 'hallW', enemy: 'thrall', count: 4 }] },
+        // 絞盤（SPEC_SLICE4 §15.1）：拉下打開往終段的鐵柵門，但聲音引來一波敵人
+        { id: '警報', trigger: { type: 'interact', id: 'lever3' },
+          spawns: [{ spawner: 'hallW', enemy: 'thrall', count: 5 }, { spawner: 'pursuit', enemy: 'skitter', count: 3 }] },
         { id: '攔截', trigger: { type: 'area', rect: { x: 75, y: 0, w: 21, h: 96 } },
           spawns: [{ spawner: 'finalN', enemy: 'slinger', count: 3 }, { spawner: 'finalN', enemy: 'siege', count: 1 }] },
         { id: '追兵', trigger: { type: 'area', rect: { x: 75, y: 0, w: 21, h: 96 } }, repeat: { interval: 9, times: -1 },

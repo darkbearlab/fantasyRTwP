@@ -95,6 +95,8 @@ for (let s = 1; s <= mRuns; s++) {
   r.currentNodeId = node.id;
   r.phase = { kind: 'battle', nodeId: node.id, encounterId: 'hordeMoria', fromEvent: false };
   const w = createBattleFromRun(r);
+  // 腳本 AI 不會開門：開場直接把門全部打開
+  for (const d of w.interactables.list) if (d.def.kind === 'door') w.setDoor(d, true);
   let wp = 0;
   while (!w.result && w.tick < 400 * TICK_RATE) {
     const hs = w.units.filter((u) => u.team === 'hero' && !u.dead);

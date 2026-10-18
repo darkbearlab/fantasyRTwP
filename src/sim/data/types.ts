@@ -193,6 +193,36 @@ export interface MapDef {
   summonPoints?: Vec[];
   /** 怪群模式的生成點（SPEC_SLICE4 §2）；遭遇也可以自帶 */
   spawners?: SpawnerDef[];
+  /** 可互動的地圖物件（門、拉桿；SPEC_SLICE4 §15.1） */
+  interactables?: InteractableDef[];
+}
+
+// ───────────── 互動物件（SPEC_SLICE4 §15.1：通用的「互動 → 觸發動作」） ─────────────
+
+/** door：關著時擋路、擋視線與投射物；lever：拉下後觸發動作（之後的寶箱、道具沿用同一套） */
+export type InteractableKind = 'door' | 'lever';
+
+/** 互動後執行的動作；波次可以用觸發條件 { type: 'interact' } 接在互動後面 */
+export type InteractAction = { type: 'openDoor' | 'closeDoor' | 'toggleDoor'; door: string };
+
+export interface InteractableDef {
+  id: string;
+  kind: InteractableKind;
+  /** 名稱（戰鬥紀錄、滑鼠提示） */
+  name?: string;
+  /** 範圍（門：關著時擋住的矩形；拉桿：底座） */
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** 門的初始狀態（預設關著） */
+  open?: boolean;
+  /** 只能互動一次（預設：拉桿是、門不是） */
+  once?: boolean;
+  /** 上鎖：玩家不能直接開關，只能被其他物件的動作打開（例如拉桿） */
+  locked?: boolean;
+  /** 互動後的動作；門省略時是切換自己 */
+  actions?: InteractAction[];
 }
 
 // ───────────── 怪群模式：生成點、波次、目標（SPEC_SLICE4 §2） ─────────────
@@ -214,7 +244,9 @@ export type WaveTrigger =
   /** 任一存活英雄進入區域 */
   | { type: 'area'; rect: Rect }
   /** 存活敵人（不含巢穴）剩下 count 名以下；after：指定的波次已出現後才開始判定 */
-  | { type: 'remaining'; count: number; after?: string };
+  | { type: 'remaining'; count: number; after?: string }
+  /** 有英雄和指定的互動物件互動過（拉桿、開門；SPEC_SLICE4 §15.1） */
+  | { type: 'interact'; id: string };
 
 export interface WaveDef {
   id: string;
