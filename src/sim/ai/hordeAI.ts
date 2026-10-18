@@ -4,6 +4,7 @@
  */
 import { RANGE_TOLERANCE } from '../constants';
 import { HORDE, HORDE_TAUNT } from '../data/horde';
+import type { Vec } from '../math';
 import { dist } from '../math';
 import { startAction } from '../actions';
 import { lineWalkable } from '../nav/smooth';
@@ -26,9 +27,41 @@ export function hordeThink(world: World, u: Unit): void {
     return;
   }
   const grid = world.navFor(u);
-  const near = dist(u.pos, t.pos) <= HORDE.directChaseRange + t.radius && lineWalkable(grid, u.pos, t.pos);
+  const d = dist(u.pos, t.pos);
+  // 包圍：近戰雜兵靠近後繞向目標周圍分配到的角度，不再全部從同一側撞上去
+  if (u.isMelee && d <= HORDE.encircleRange + t.radius && lineWalkable(grid, u.pos, t.pos)) {
+    world.stepToward(u, encirclePoint(u, t, d), 0);
+    return;
+  }
+  u.encircleAngle = null;
+  const near = d <= HORDE.directChaseRange + t.radius && lineWalkable(grid, u.pos, t.pos);
   const goal = near ? t.pos : (world.flowNext(u.pos) ?? t.pos);
   world.stepToward(u, goal, near ? u.radius + t.radius : 0);
+}
+
+/** 每次最多繞多少角度（弧度）：沿圓弧逼近，不會直接穿過目標 */
+const ORBIT_STEP = 0.8;
+
+/**
+ * 包圍的下一個目標點。進入包圍距離時決定一次自己的角度（接近方向 ± 依編號分散），
+ * 之後沿著目標周圍的圓弧往那個角度繞，同時逐漸縮短距離。
+ */
+function encirclePoint(u: Unit, t: Unit, d: number): Vec {
+  const cur = Math.atan2(u.pos.y - t.pos.y, u.pos.x - t.pos.x);
+  if (u.encircleAngle === null || u.encircleTargetId !== t.id) {
+    // 黃金比例分散：同一群的雜兵自然地散到兩側
+    const k = (u.id * 0.6180339887) % 1;
+    u.encircleAngle = cur + (k * 2 - 1) * HORDE.encircleSpread * (Math.PI / 180);
+    u.encircleTargetId = t.id;
+  }
+  let delta = u.encircleAngle - cur;
+  while (delta > Math.PI) delta -= Math.PI * 2;
+  while (delta < -Math.PI) delta += Math.PI * 2;
+  const next = cur + Math.max(-ORBIT_STEP, Math.min(ORBIT_STEP, delta));
+  const ring = t.radius + u.radius + 0.1;
+  // 還沒繞到位時保持一點距離（避免卡在目標身上），繞到位才貼上去
+  const r = Math.abs(delta) > 0.3 ? Math.max(ring + 0.6, d - 1) : ring;
+  return { x: t.pos.x + Math.cos(next) * r, y: t.pos.y + Math.sin(next) * r };
 }
 
 /**

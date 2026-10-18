@@ -4,9 +4,10 @@ import { DT, NAV_CELL, RANGE_TOLERANCE } from './constants';
 import { ENEMIES } from './data/enemies';
 import { HEROES } from './data/heroes';
 import { SKILLS } from './data/skills';
-import type { DamageType, HordeSetup, MapDef, Personality, ProjectileKind, SkillDef, SpawnerDef, Team, UnitDef, WaveDef } from './data/types';
+import type { DamageType, HordeSetup, MapDef, Personality, ProjectileKind, SkillDef, SpawnerDef, Team, UnitDef, WaveDef, WaveTrigger } from './data/types';
 import { HORDE, HORDE_VISION } from './data/horde';
 import { Vision } from './vision';
+import { Director } from './director';
 import { FlowField } from './nav/flowField';
 import { hordeThink } from './ai/hordeAI';
 import { autocastOrder, canAutocast } from './ai/autocast';
@@ -157,6 +158,8 @@ export class World implements ZocContext {
   private flow: FlowField | null = null;
   /** 視線與戰爭迷霧（只有啟用迷霧的怪群遭遇才有） */
   readonly vision: Vision | null = null;
+  /** 自動出怪（只有設定了 director 的怪群遭遇才有） */
+  readonly director: Director | null = null;
   private flowTick = -Infinity;
 
   constructor(opts: WorldOptions) {
@@ -190,6 +193,7 @@ export class World implements ZocContext {
         if (s.nest) this.nestBySpawner.set(s.id, this.spawnUnit(this.enemyDefFor('nest'), { x: s.x, y: s.y }).id);
       }
       this.waveState = this.horde.waves.map((def) => ({ def, fired: false, repeatsLeft: 0, nextAt: 0 }));
+      if (this.horde.director) this.director = new Director(this.horde.director);
       if (this.horde.fog) {
         this.vision = new Vision(this.map.width, this.map.height, HORDE_VISION.cell, this.sight);
         this.updateVision();
@@ -421,6 +425,7 @@ export class World implements ZocContext {
 
     if (this.vision && this.tick % HORDE_VISION.interval === 0) this.updateVision();
     this.updateWaves();
+    this.director?.update(this);
     this.updateAggro();
     for (const u of this.units) this.tickTimers(u);
     for (const u of this.units) this.updateUnit(u);
@@ -1084,7 +1089,11 @@ export class World implements ZocContext {
   }
 
   private waveTriggered(w: WaveDef): boolean {
-    const t = w.trigger;
+    return this.triggerMet(w.trigger);
+  }
+
+  /** 觸發條件是否成立（波次與自動出怪的階段共用） */
+  triggerMet(t: WaveTrigger): boolean {
     switch (t.type) {
       case 'start':
         return true;
@@ -1196,7 +1205,7 @@ export class World implements ZocContext {
     switch (obj.type) {
       case 'clear':
         // 沒有存活敵人（巢穴也要摧毀），而且所有波次都已出現完畢
-        return !this.units.some((u) => u.team === 'enemy' && !u.dead) && this.waveState.every((s) => s.fired && s.repeatsLeft === 0);
+        return !this.units.some((u) => u.team === 'enemy' && !u.dead) && this.waveState.every((s) => s.fired && s.repeatsLeft === 0) && (!this.director || this.director.exhausted);
       case 'nests':
         return [...this.nestBySpawner.values()].every((id) => this.getUnit(id)?.dead);
       case 'exit': {
