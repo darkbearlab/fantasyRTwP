@@ -17,3 +17,9 @@
 - 人物與衣物素材：MakeHuman 社群素材包的 **CC0** 版本（不需署名）；武器、盾、首飾等為本專案自製。
 - 動作來源 Adobe Mixamo：渲染出的 sprite 可在商業遊戲中使用；Mixamo 的 FBX 原檔不散布、不放進 repo。
 - 渲染後的圖檔隨本專案使用，不受 CC-BY-SA 影響（未使用任何 Flare 素材）。
+
+## 自製 3D 預渲染地形物件（`public/assets/props3d/`）
+
+- 原始模型：[Poly Haven](https://polyhaven.com/models) 實景掃描模型，授權 **CC0**（可商用、不需署名）。
+- 以 Blender 渲染成單張圖（相機與 `heroes3d` 相同），細節見 `public/assets/props3d/README.md`。
+- 原始模型檔不放進 repo。
