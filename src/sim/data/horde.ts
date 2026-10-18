@@ -12,6 +12,15 @@ export const HORDE = {
   retargetInterval: 0.5,
   /** 離目標這麼近且直線可走時，不看流場、直接走向目標（公尺） */
   directChaseRange: 4,
+  /** 包圍：離目標這麼近時，每隻雜兵繞向目標周圍分配到的角度（公尺） */
+  encircleRange: 7,
+  /** 包圍：相對於接近方向的最大偏轉（度）；每隻依編號分散在 ±此值之間 */
+  encircleSpread: 110,
+  /** 自動出怪：候選方向數、出現位置的路徑距離不得超過直線距離的幾倍（避免出現在牆後很遠的地方） */
+  directorDirections: 12,
+  directorMaxPathFactor: 2.2,
+  /** 自動出怪的檢查間隔（秒） */
+  directorInterval: 0.25,
 };
 
 // ───────────── 第 2 階段：英雄端（SPEC_SLICE4 §3、§4） ─────────────

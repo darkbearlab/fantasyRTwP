@@ -224,6 +224,32 @@ export interface WaveDef {
   repeat?: { interval: number; times: number };
 }
 
+/**
+ * 自動出怪（Alan 回饋：敵人要小群、密集、從四面八方來）：
+ * 依隊伍附近的敵人數量自動補一小群，出現在隊伍周圍、視野外的位置，而且刻意分散方向。
+ * 壓力有起伏：累積 → 高峰 → 喘息，循環。stages：觸發後套用該階段的目標數量（後觸發的覆蓋先觸發的）。
+ */
+export interface DirectorDef {
+  /** 會出現的雜兵與權重 */
+  enemies: { enemy: string; weight: number }[];
+  /** 每群幾隻 [最少, 最多] */
+  packSize: [number, number];
+  /** 出現位置與最近英雄的距離 [最近, 最遠]（公尺） */
+  spawnDistance: [number, number];
+  /** 每群之間至少間隔幾秒 */
+  cooldown: number;
+  /** 計算「附近敵人」的半徑（公尺，以隊伍中心為準） */
+  nearbyRadius: number;
+  /** 全場存活雜兵上限 */
+  maxAlive: number;
+  /** 總共最多出幾隻（省略 = 不限；目標為 clear 時必須設定） */
+  budget?: number;
+  /** 壓力循環秒數：累積（目標從 low 漲到 high）、高峰（維持 high）、喘息（目標 0，不補怪） */
+  cycle: { buildUp: number; peak: number; relax: number };
+  /** 各階段：觸發後附近敵人目標數量在 [low, high] 之間依壓力循環變化；budget：這個階段最多出幾隻（省略 = 不限） */
+  stages: { trigger: WaveTrigger; low: number; high: number; budget?: number }[];
+}
+
 export type Objective =
   | { type: 'clear' }
   | { type: 'nests' }
@@ -236,4 +262,6 @@ export interface HordeSetup {
   objective: Objective;
   /** 啟用視線與戰爭迷霧（SPEC_SLICE4 §6） */
   fog?: boolean;
+  /** 自動出怪 */
+  director?: DirectorDef;
 }

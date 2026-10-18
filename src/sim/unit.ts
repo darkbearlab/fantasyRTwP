@@ -101,6 +101,9 @@ export class Unit {
   hordeTargetId = -1;
   /** 雜兵貼牆時偏好的偏轉方向（1 / -1），避免在牆角左右來回 */
   steerSign = 1;
+  /** 包圍時分配到的角度（弧度）與對象；null = 尚未進入包圍 */
+  encircleAngle: number | null = null;
+  encircleTargetId = -1;
   /** 怪群模式普攻：累計次數（重擊）、下一擊立即出手（擊殺重置） */
   attackCount = 0;
   attackResetPending = false;
