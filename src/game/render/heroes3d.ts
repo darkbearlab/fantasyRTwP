@@ -9,6 +9,7 @@ import ranger from '../../../public/assets/heroes3d/ranger/sprites.json';
 import sorceress from '../../../public/assets/heroes3d/sorceress/sprites.json';
 import warrior from '../../../public/assets/heroes3d/warrior/sprites.json';
 import art from './heroes3dArt.json';
+import { queueProps3d } from './props3d';
 
 export interface H3DSheet {
   cell: number;
@@ -88,6 +89,7 @@ export function ensureHeroes3dLoaded(scene: Phaser.Scene): void {
   if (loading || failed || heroes3dLoaded(scene)) return;
   loading = true;
   queueHeroes3d(scene.load, scene);
+  queueProps3d(scene.load, scene);
   scene.load.once('loaderror', () => (failed = true));
   scene.load.once('complete', () => (loading = false));
   scene.load.start();

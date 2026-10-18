@@ -19,6 +19,8 @@ import { FlareView } from '../render/flareView';
 import { DIR_NAMES, FLARE, FLARE_TILES, displayFacing, ensureFlareLoaded, flareDir, getArt, useFlare, wantsFlare } from '../render/art';
 import { Hero3DView } from '../render/hero3dView';
 import { InteractablesView, drawBox } from '../render/interactView';
+import { p3dKey, props3dLoaded } from '../render/props3d';
+import { PROP_META, PROPS3D, obstacleUsesProp, planProps } from '../render/props3dPlan';
 import type { InteractableState } from '../../sim/interact';
 import { FOG_VISIBLE } from '../../sim/vision';
 import { ensureHeroes3dLoaded, h3dCharFor, heroes3dLoaded } from '../render/heroes3d';
@@ -97,6 +99,10 @@ export class BattleScene extends Phaser.Scene {
   private builtFlare = false;
   /** 目前畫面是否用 heroes3d 畫英雄（素材還沒載入時先用 Flare／色塊） */
   private builtH3d = false;
+  /** 目前畫面是否用 props3d 畫地形物件（heroes3d 模式且素材已載入） */
+  private builtProps = false;
+  /** 草叢上的灌木（燒掉的格子要隱藏） */
+  private brushProps: { img: Phaser.GameObjects.Image; x: number; y: number }[] = [];
   /** 每幀記錄鏡頭中心對應的地面點（切換投影時保持鏡頭位置） */
   private lastCenterGround: Vec = { x: 0, y: 0 };
   /** 被高障礙物擋住的角色輪廓（最上層） */
@@ -200,8 +206,10 @@ export class BattleScene extends Phaser.Scene {
     this.builtArt = getArt();
     this.builtFlare = useFlare(this);
     this.builtH3d = this.useH3d();
+    this.builtProps = this.useProps();
     this.drawMap();
     if (isIso()) this.buildObstacleBlocks();
+    if (this.builtProps) this.buildProps();
     this.interactView = new InteractablesView(this, this.session.world);
     for (const u of this.session.world.units) this.views.set(u.id, this.makeView(u));
     this.debugOverlay = new DebugOverlay(this, this.session.world);
@@ -212,6 +220,7 @@ export class BattleScene extends Phaser.Scene {
     for (const o of this.worldObjects) o.destroy();
     this.worldObjects = [];
     this.blocks = [];
+    this.brushProps = [];
     for (const v of this.views.values()) v.destroy();
     this.views.clear();
     this.debugOverlay.destroy();
@@ -221,6 +230,11 @@ export class BattleScene extends Phaser.Scene {
   private makeView(u: Unit): UnitVisual {
     if (this.builtH3d && u.team === 'hero' && h3dCharFor(u.def.id)) return new Hero3DView(this, u);
     return this.builtFlare ? new FlareView(this, u) : new UnitView(this, u);
+  }
+
+  /** props3d：heroes3d 模式（等角）且物件素材已載入 */
+  private useProps(): boolean {
+    return this.useH3d() && isIso() && props3dLoaded(this);
   }
 
   /** heroes3d：需要 Flare（敵人、地板）與 heroes3d 素材都已載入 */
@@ -237,7 +251,7 @@ export class BattleScene extends Phaser.Scene {
       ensureFlareLoaded(this, () => undefined);
       if (getProjection() === this.builtMode) return;
     }
-    if (getProjection() === this.builtMode && getArt() === this.builtArt && this.builtFlare === useFlare(this) && this.builtH3d === this.useH3d()) return;
+    if (getProjection() === this.builtMode && getArt() === this.builtArt && this.builtFlare === useFlare(this) && this.builtH3d === this.useH3d() && this.builtProps === this.useProps()) return;
     const center = this.lastCenterGround;
     this.destroyWorld();
     this.buildWorld();
@@ -277,8 +291,9 @@ export class BattleScene extends Phaser.Scene {
         groundRect(g, r.x, r.y, r.w, r.h, { fill: 0x1d3f5c });
         continue;
       }
-      // 等角模式的障礙物是立體方塊（物件層）；地面只畫陰影
+      // 等角模式的障礙物是立體方塊（物件層）；地面只畫陰影（props3d 物件自帶影子）
       if (isIso()) {
+        if (this.builtProps && obstacleUsesProp(map, r)) continue;
         groundRect(g, r.x, r.y, r.w, r.h, { fill: 0x15171b, fillAlpha: 0.6 });
         continue;
       }
@@ -328,6 +343,7 @@ export class BattleScene extends Phaser.Scene {
   private buildObstacleBlocks(): void {
     const map = this.session.world.map;
     for (const r of map.obstacles) {
+      if (this.builtProps && obstacleUsesProp(map, r)) continue;
       const kind = obstacleKind(map, r);
       const h = obstacleHeight(kind);
       if (h <= 0) continue;
@@ -338,6 +354,36 @@ export class BattleScene extends Phaser.Scene {
           const d = Math.min(1, r.y + r.h - y);
           this.addBlock(x, y, w, d, h, base);
         }
+      }
+    }
+  }
+
+  /**
+   * props3d 地形物件（只是外觀）：小型障礙物換成石頭、樹樁、木箱、木桶；矮籬畫成倒木；草叢畫成灌木。
+   * 地面原點對齊物件位置，依原點的深度排序；高的物件加入遮擋判定（被擋住的角色畫輪廓）。
+   */
+  private buildProps(): void {
+    const map = this.session.world.map;
+    const o = worldToScreen(0, 0);
+    for (const p of planProps(map)) {
+      const m = PROP_META[p.prop];
+      const s = worldToScreen(p.x, p.y);
+      const img = this.add.image(s.x, s.y, p3dKey(p.prop)).setOrigin(m.origin[0] / m.w, m.origin[1] / m.h).setScale(PROPS3D.groundScale * p.scale);
+      if (p.axis) {
+        // 倒木素材沿畫面「左上 → 右下」；矮籬方向相反時左右翻轉
+        const a = worldToScreen(p.axis === 'x' ? 1 : 0, p.axis === 'y' ? 1 : 0);
+        img.setFlipX((a.x - o.x) * (a.y - o.y) < 0);
+      }
+      const depth = depthOf(p.x, p.y);
+      img.setDepth(OBJECT_DEPTH_BASE + depth);
+      this.worldObjects.push(img);
+      if (p.kind === 'brush') this.brushProps.push({ img, x: p.x, y: p.y });
+      if (p.kind === 'obstacle' && p.height >= 0.8) {
+        // 遮擋範圍依物件實際尺寸（圖片含透明邊與影子，用外框會誤判）：底面菱形的上半＋高度
+        const fp = ((m.size_m[0] + m.size_m[1]) / 2) * p.scale;
+        const halfW = (fp * GAME_CONFIG.iso.tileW) / 2 / 2;
+        const top = s.y - (fp * GAME_CONFIG.iso.tileH) / 2 / 2 - p.height * GAME_CONFIG.iso.heightPxPerM;
+        this.blocks.push({ depth, h: p.height, x0: s.x - halfW, x1: s.x + halfW, y0: top, y1: s.y });
       }
     }
   }
@@ -396,6 +442,7 @@ export class BattleScene extends Phaser.Scene {
     const c = t.cell;
     if (t.version !== this.brushVersion) {
       this.brushVersion = t.version;
+      for (const b of this.brushProps) b.img.setVisible(t.has(b, T_BRUSH));
       const g = this.brushG;
       g.clear();
       for (let i = 0; i < t.flags.length; i++) {

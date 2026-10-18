@@ -107,6 +107,15 @@ npm run perf                      # 怪群效能：80 名敵人時每節拍的 s
 - 動作對應、各動作「最用力（生效）」的影格（`peaks`）、替代順序、暫不使用的動作（`avoid`）都在 `heroes3dArt.json`
 - 節奏：準備期間依進度播到 peak 的前一格，生效那一刻剛好是 peak，恢復期間播完剩下的影格（`src/game/render/heroes3dAnim.ts`）
 
+### 地形物件（props3d）
+
+heroes3d 模式下，地圖上的地形物件改用 `public/assets/props3d/` 的自製物件（格式見該資料夾的 README.md）。**只換外觀**，格子、碰撞、規則仍由地圖資料決定：
+- 小型、近似方形的障礙物 → 石頭、樹樁、木箱、木桶堆、苔石組、樹根土坑（依大小與地圖主題挑選；戶外地圖不放木箱木桶）
+- 矮籬（掩體）→ 兩排倒木；草叢（隱匿）→ 灌木，燒掉的格子會隱藏
+- 長條的牆、懸崖、深水、頭目戰的柱子還沒有自製物件，維持方塊
+- 物件依地面原點的深度排序；高的物件會遮住後面的角色（畫輪廓）
+- 對應、縮放（`scale`、`fitMin`／`fitMax`）、各地圖的物件池都在 `src/game/render/props3dArt.json`
+
 ## 部署到 GitHub Pages
 
 `.github/workflows/deploy.yml` 會在 `main` 有新提交時跑測試、打包並部署。第一次使用需要到

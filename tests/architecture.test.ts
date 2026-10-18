@@ -23,4 +23,8 @@ describe('架構紅線（AGENTS.md）', () => {
   it('src/sim、src/run 不使用 Math.random()', () => {
     for (const f of simFiles) expect(readFileSync(f, 'utf8'), f).not.toMatch(/Math\.random/);
   });
+
+  it('src/sim、src/run 不引用畫面素材（props3d、heroes3d 圖檔與外觀設定）', () => {
+    for (const f of simFiles) expect(readFileSync(f, 'utf8'), f).not.toMatch(/props3d|heroes3d|assets\//);
+  });
 });
