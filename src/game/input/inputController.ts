@@ -9,6 +9,7 @@ import { decideDigit } from './chord';
 import { PERSONALITY_LABEL } from '../../sim/ai/idleBehavior';
 import type { Personality } from '../../sim/data/types';
 import { PERSONALITY_CYCLE } from '../ui/partyPanel';
+import type { InteractableState } from '../../sim/interact';
 
 /** 切換性格時的一句話說明 */
 const PERSONALITY_HINT: Record<Personality, string> = {
@@ -25,6 +26,8 @@ export interface InputHost {
   /** 單位腳下中心的畫面座標（框選用） */
   footScreen(u: Unit): Vec;
   centerOn(unitId: number): void;
+  /** 畫面空間的互動物件點選判定（門、拉桿） */
+  objectAtScreen(x: number, y: number): InteractableState | undefined;
 }
 
 /**
@@ -100,7 +103,9 @@ export class InputController {
         return;
       }
       this.attackMoveArmed = false;
-      this.rightClick(m, unit);
+      const obj = unit && !unit.dead ? undefined : this.host.objectAtScreen(sp.x, sp.y);
+      if (obj) this.interact(obj);
+      else this.rightClick(m, unit);
       return;
     }
     if (p.leftButtonDown()) {
@@ -122,6 +127,8 @@ export class InputController {
     const sp = this.toScreen(p);
     const u = this.host.unitAtScreen(sp.x, sp.y);
     this.session.hoverUnitId = u ? u.id : null;
+    const obj = u ? undefined : this.host.objectAtScreen(sp.x, sp.y);
+    this.session.hoverObjectId = obj ? obj.def.id : null;
     if (this.panLast && p.middleButtonDown()) {
       const cam = this.host.scene.cameras.main;
       cam.scrollX -= (p.x - this.panLast.x) / cam.zoom;
@@ -184,6 +191,17 @@ export class InputController {
     } else {
       s.enqueue({ type: 'move', unitIds: ids, point: m });
     }
+  }
+
+  /** 右鍵互動物件：主要選取的英雄走過去開門／拉動（SPEC_SLICE4 §15.1） */
+  private interact(obj: InteractableState): void {
+    const s = this.session;
+    const p = s.primary();
+    if (!p) {
+      s.showToast('請先選取英雄（1–4）', this.now(), 1000);
+      return;
+    }
+    s.enqueue({ type: 'interact', unitId: p.id, objectId: obj.def.id });
   }
 
   /**

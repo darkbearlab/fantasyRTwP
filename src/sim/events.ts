@@ -21,4 +21,8 @@ export type SimEvent =
   /** 怪群模式：一波敵人出現（SPEC_SLICE4 §2） */
   | { type: 'waveStart'; waveId: string }
   | { type: 'warcry'; unitId: number }
+  /** 英雄和地圖物件互動（SPEC_SLICE4 §15.1） */
+  | { type: 'interact'; unitId: number; objectId: string }
+  /** 門打開或關上；blocked：想關門但門口有人 */
+  | { type: 'door'; objectId: string; open: boolean; blocked?: boolean }
   | { type: 'battleEnd'; winner: Team };

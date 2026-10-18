@@ -4,7 +4,10 @@ import { DT, NAV_CELL, RANGE_TOLERANCE } from './constants';
 import { ENEMIES } from './data/enemies';
 import { HEROES } from './data/heroes';
 import { SKILLS } from './data/skills';
-import type { DamageType, HordeSetup, MapDef, Personality, ProjectileKind, SkillDef, SpawnerDef, Team, UnitDef, WaveDef, WaveTrigger } from './data/types';
+import type { DamageType, HordeSetup, InteractAction, MapDef, Personality, ProjectileKind, Rect, SkillDef, SpawnerDef, Team, UnitDef, WaveDef, WaveTrigger } from './data/types';
+import { INTERACT } from './data/interact';
+import type { InteractableState } from './interact';
+import { Interactables, approachPoint, distToRect, inInteractRange, rectOf } from './interact';
 import { HORDE, HORDE_VISION } from './data/horde';
 import { Vision } from './vision';
 import { Director } from './director';
@@ -127,6 +130,8 @@ export class World implements ZocContext {
   readonly rng: Rng;
   readonly seed: number;
   readonly sight: NavGrid;
+  /** 互動物件（門、拉桿；SPEC_SLICE4 §15.1） */
+  readonly interactables: Interactables;
   readonly slots = new SlotManager();
   readonly units: Unit[] = [];
   projectiles: Projectile[] = [];
@@ -167,8 +172,9 @@ export class World implements ZocContext {
     this.map = opts.map;
     this.config = { ...DEFAULT_SIM_CONFIG, ...(opts.config ?? {}) };
     this.rng = new Rng(opts.seed);
-    // 視線格子只算會遮擋視線的障礙物（河水擋路不擋視線）
-    this.sight = new NavGrid(opts.map.width, opts.map.height, NAV_CELL, 0, opts.map.obstacles.filter((o) => o.blocksSight !== false));
+    this.interactables = new Interactables(opts.map.interactables ?? []);
+    // 視線格子只算會遮擋視線的障礙物（河水擋路不擋視線）；關著的門也擋
+    this.sight = new NavGrid(opts.map.width, opts.map.height, NAV_CELL, 0, this.sightBlockers());
     this.enemyDefFor = opts.enemyDefFor ?? ((id) => ENEMIES[id]);
     this.terrain = new TerrainGrid(opts.map);
     this.idleBehavior = opts.idleBehavior ?? null;
@@ -239,7 +245,7 @@ export class World implements ZocContext {
     const key = Math.ceil(radius * 10 - 1e-6) / 10;
     let g = this.navGrids.get(key);
     if (!g) {
-      g = NavGrid.fromMap(this.map, NAV_CELL, key);
+      g = new NavGrid(this.map.width, this.map.height, NAV_CELL, key, this.blockers());
       this.navGrids.set(key, g);
     }
     return g;
@@ -247,6 +253,61 @@ export class World implements ZocContext {
 
   navFor(u: Unit): NavGrid {
     return this.navGrid(u.radius);
+  }
+
+  /** 擋路的障礙物：地圖障礙物＋關著的門 */
+  blockers(): Rect[] {
+    return [...this.map.obstacles, ...this.interactables.closedDoors()];
+  }
+
+  /** 擋視線的障礙物：地圖上擋視線的障礙物＋關著的門 */
+  sightBlockers(): Rect[] {
+    return [...this.map.obstacles.filter((o) => o.blocksSight !== false), ...this.interactables.closedDoors()];
+  }
+
+  // ───────────── 互動物件（SPEC_SLICE4 §15.1） ─────────────
+
+  /** 英雄和物件互動：記錄次數、執行動作（開關門、拉桿）；波次可以用 { type: 'interact' } 觸發 */
+  interact(u: Unit, s: InteractableState): void {
+    if (!this.interactables.usable(s)) return;
+    s.uses++;
+    if (s.def.kind === 'lever') {
+      s.open = true;
+      this.interactables.version++;
+    }
+    this.emit({ type: 'interact', unitId: u.id, objectId: s.def.id });
+    for (const a of this.interactables.actionsOf(s)) this.runInteractAction(a);
+  }
+
+  private runInteractAction(a: InteractAction): void {
+    const door = this.interactables.get(a.door);
+    if (!door || door.def.kind !== 'door') return;
+    const open = a.type === 'openDoor' ? true : a.type === 'closeDoor' ? false : !door.open;
+    this.setDoor(door, open);
+  }
+
+  /** 開關門；門口有單位時關不上（回傳是否成功） */
+  setDoor(door: InteractableState, open: boolean): boolean {
+    if (door.open === open) return true;
+    const r = rectOf(door.def);
+    if (!open && this.units.some((u) => !u.dead && distToRect(u.pos, r) < u.radius + INTERACT.closeClearance)) {
+      this.emit({ type: 'door', objectId: door.def.id, open: door.open, blocked: true });
+      return false;
+    }
+    door.open = open;
+    this.interactables.version++;
+    // 原地重算門附近的格子：導航、視線、流場（迷霧與投射物都引用同一份視線格子）
+    const block = this.blockers();
+    for (const g of this.navGrids.values()) g.refresh(r, block);
+    this.sight.refresh(r, this.sightBlockers());
+    if (this.flow) {
+      this.flow.grid.refresh(r, block);
+      this.flowTick = -Infinity;
+    }
+    // 路徑可能穿過剛關上的門，或剛打開的門有捷徑：全部重新尋路
+    for (const u of this.units) u.path = null;
+    this.emit({ type: 'door', objectId: door.def.id, open });
+    return true;
   }
 
   // ───────────── 地形 ─────────────
@@ -497,6 +558,18 @@ export class World implements ZocContext {
           u.guardPoint = null;
           this.issueOrder(u, { type: 'attackMove', point: points[i] });
         });
+        break;
+      }
+      case 'interact': {
+        const u = this.getUnit(cmd.unitId);
+        const s = this.interactables.get(cmd.objectId);
+        if (!u || u.dead || u.team !== 'hero' || !s) break;
+        if (!this.interactables.usable(s)) {
+          this.emit({ type: 'notice', unitId: u.id, text: s.def.locked ? '上鎖了' : '已經用過了' });
+          break;
+        }
+        u.guardPoint = null;
+        this.issueOrder(u, { type: 'interact', objectId: s.def.id });
         break;
       }
       case 'setAutocast': {
@@ -757,7 +830,29 @@ export class World implements ZocContext {
       case 'attackMove':
         this.executeAttackMove(u, o);
         break;
+      case 'interact':
+        this.executeInteract(u, o);
+        break;
     }
+  }
+
+  /** 互動指令：走到物件旁邊再互動 */
+  private executeInteract(u: Unit, o: Extract<Order, { type: 'interact' }>): void {
+    const s = this.interactables.get(o.objectId);
+    if (!s || !this.interactables.usable(s)) {
+      this.setOrder(u, null);
+      return;
+    }
+    if (inInteractRange(u, s.def)) {
+      this.setOrder(u, null);
+      u.guardPoint = { x: u.pos.x, y: u.pos.y };
+      this.interact(u, s);
+      return;
+    }
+    if (!o.point) o.point = approachPoint(u, s.def);
+    const r = this.moveAlong(u, o.point, { stopDist: 0.05 });
+    if (r === 'pinned') this.stopPinned(u);
+    else if (r === 'nopath' || (r === 'arrived' && !inInteractRange(u, s.def))) this.setOrder(u, null);
   }
 
   /** 攻擊移動（SPEC_SLICE4 §3.1b）：途中接戰射程附近的敵人，打完繼續走 */
@@ -1010,7 +1105,7 @@ export class World implements ZocContext {
 
   /** 流場的下一步（往最近的英雄）；每 HORDE.flowInterval 節拍重算一次 */
   flowNext(p: Vec): Vec | null {
-    if (!this.flow) this.flow = new FlowField(NavGrid.fromMap(this.map, HORDE.flowCell, HORDE.flowRadius));
+    if (!this.flow) this.flow = new FlowField(new NavGrid(this.map.width, this.map.height, HORDE.flowCell, HORDE.flowRadius, this.blockers()));
     if (this.tick - this.flowTick >= HORDE.flowInterval) {
       this.flowTick = this.tick;
       this.flow.compute(this.units.filter((h) => h.team === 'hero' && !h.dead && h.stealthTime <= 0).map((h) => h.pos));
@@ -1103,6 +1198,8 @@ export class World implements ZocContext {
         return this.units.some((h) => h.team === 'hero' && !h.dead && h.pos.x >= t.rect.x && h.pos.x <= t.rect.x + t.rect.w && h.pos.y >= t.rect.y && h.pos.y <= t.rect.y + t.rect.h);
       case 'remaining':
         return (!t.after || this.waveFired(t.after)) && this.liveEnemyCount() <= t.count;
+      case 'interact':
+        return (this.interactables.get(t.id)?.uses ?? 0) > 0;
     }
   }
 
@@ -1222,6 +1319,7 @@ export class World implements ZocContext {
       rng: this.rng.state,
       units: this.units.map((u) => [u.id, u.pos.x, u.pos.y, u.hp, u.state, u.order, u.action, u.stunTime, u.cooldowns, u.charges]),
       projectiles: this.projectiles.map((p) => [p.id, p.pos.x, p.pos.y]),
+      doors: this.interactables.list.map((d) => [d.def.id, d.open, d.uses]),
       result: this.result,
     });
   }

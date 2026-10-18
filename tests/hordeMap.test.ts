@@ -106,4 +106,20 @@ describe('怪群地圖 horde01（SPEC_SLICE4 §5）', () => {
     run(w, 2);
     expect(w.result).toBe('hero');
   });
+
+  it('hordeMoria 的門與絞盤（SPEC_SLICE4 §15.1）：石門關著；鐵柵門上鎖，拉動絞盤才打開，而且會引來「警報」波次', () => {
+    const r = createRun(3);
+    const node = r.map.nodes.find((n) => n.layer === 1)!;
+    r.currentNodeId = node.id;
+    r.phase = { kind: 'battle', nodeId: node.id, encounterId: 'hordeMoria', fromEvent: false };
+    const w = createBattleFromRun(r);
+    expect(w.interactables.get('gate2')!.open).toBe(false);
+    expect(w.interactables.get('gate3')!.def.locked).toBe(true);
+    const heroes = w.units.filter((u) => u.team === 'hero');
+    for (const h of heroes) h.pos = { x: 62, y: 88.5 };
+    w.enqueue({ type: 'interact', unitId: heroes[0].id, objectId: 'lever3' });
+    const evs = run(w, 3 * 30);
+    expect(w.interactables.get('gate3')!.open).toBe(true);
+    expect(evs.some((e) => e.type === 'waveStart' && e.waveId === '警報')).toBe(true);
+  });
 });

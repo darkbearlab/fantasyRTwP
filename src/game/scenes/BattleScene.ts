@@ -11,13 +11,15 @@ import { T_BRUSH, T_HEDGE, T_HIGH, T_SHALLOW } from '../../sim/terrain';
 import { bakeGraphics } from '../render/bake';
 import { DebugOverlay } from '../render/debugOverlay';
 import { Fx } from '../render/fx';
-import { AOE_STYLE, COLORS, FONT, PROJECTILE_STYLE, darken, lighten } from '../render/palette';
+import { AOE_STYLE, COLORS, FONT, PROJECTILE_STYLE } from '../render/palette';
 import type { SkillDef } from '../../sim/data/types';
 import { OBJECT_DEPTH_BASE, UnitView } from '../render/unitView';
 import type { UnitVisual } from '../render/unitView';
 import { FlareView } from '../render/flareView';
 import { DIR_NAMES, FLARE, FLARE_TILES, displayFacing, ensureFlareLoaded, flareDir, getArt, useFlare, wantsFlare } from '../render/art';
 import { Hero3DView } from '../render/hero3dView';
+import { InteractablesView, drawBox } from '../render/interactView';
+import type { InteractableState } from '../../sim/interact';
 import { FOG_VISIBLE } from '../../sim/vision';
 import { ensureHeroes3dLoaded, h3dCharFor, heroes3dLoaded } from '../render/heroes3d';
 import type { ArtMode } from '../render/art';
@@ -43,6 +45,20 @@ import { battleSeed, createBattleFromRun, currentEncounter } from '../../run/bat
 import { getRun } from '../runFlow';
 import type { RunState } from '../../run/runState';
 import { createRun } from '../../run/runState';
+
+/** 互動物件的名稱（沒有名稱時依種類） */
+function objectName(o: InteractableState): string {
+  return o.def.name ?? (o.def.kind === 'door' ? '門' : '拉桿');
+}
+
+/** 滑鼠提示的第二行 */
+function objectHint(usable: boolean, o: InteractableState): string {
+  if (o.def.kind === 'door') {
+    if (o.def.locked) return o.open ? '（已打開）' : '（上鎖，要找別的機關）';
+    return o.open ? '右鍵：關門' : '右鍵：開門';
+  }
+  return usable ? '右鍵：拉動' : '（已經拉過了）';
+}
 
 const STATUS_COLOR: Record<string, string> = { 暈眩: '#ffe066', 定身: '#a6e3ff', 燃燒: '#ff9a4a', 詛咒: '#d59af0' };
 
@@ -88,6 +104,9 @@ export class BattleScene extends Phaser.Scene {
   /** 戰爭迷霧（SPEC_SLICE4 §6）：視野版本或開關改變時才重畫 */
   private fogG!: Phaser.GameObjects.Graphics;
   private fogDrawn = '';
+  /** 互動物件（門、拉桿）的外觀與滑鼠提示 */
+  private interactView!: InteractablesView;
+  private objectLabel!: Phaser.GameObjects.Text;
 
   constructor() {
     super('Battle');
@@ -138,6 +157,12 @@ export class BattleScene extends Phaser.Scene {
       .setStroke('#000000', 3)
       .setDepth(1200)
       .setVisible(false);
+    this.objectLabel = this.add
+      .text(0, 0, '', { fontFamily: FONT, fontSize: '13px', color: '#ffe9a8', align: 'center' })
+      .setOrigin(0.5, 1)
+      .setStroke('#000000', 3)
+      .setDepth(1200)
+      .setVisible(false);
     this.fx = new Fx(this);
     // 暫停時的變暗層：scrollFactor 0 仍會跟著鏡頭縮放（以畫面中心縮放），做成三倍大，縮小到最小倍率也能蓋滿畫面
     this.dim = this.add
@@ -154,6 +179,7 @@ export class BattleScene extends Phaser.Scene {
       unitAtScreen: (x, y) => this.unitAtScreen(x, y),
       footScreen: (u) => this.footScreen(u),
       centerOn: (id) => this.centerOnUnit(id),
+      objectAtScreen: (x, y) => this.interactView.objectAtScreen(x, y),
     });
 
     if (this.session.autoPause.battleStart) this.session.setPaused(true, '戰鬥開始');
@@ -176,6 +202,7 @@ export class BattleScene extends Phaser.Scene {
     this.builtH3d = this.useH3d();
     this.drawMap();
     if (isIso()) this.buildObstacleBlocks();
+    this.interactView = new InteractablesView(this, this.session.world);
     for (const u of this.session.world.units) this.views.set(u.id, this.makeView(u));
     this.debugOverlay = new DebugOverlay(this, this.session.world);
     this.brushVersion = -1;
@@ -188,6 +215,7 @@ export class BattleScene extends Phaser.Scene {
     for (const v of this.views.values()) v.destroy();
     this.views.clear();
     this.debugOverlay.destroy();
+    this.interactView.destroy();
   }
 
   private makeView(u: Unit): UnitVisual {
@@ -316,38 +344,10 @@ export class BattleScene extends Phaser.Scene {
 
   private addBlock(x: number, y: number, w: number, d: number, h: number, color: number): void {
     const g = this.add.graphics();
-    const P = (px: number, py: number, pz: number) => worldToScreen(px, py, pz);
-    const poly = (pts: { x: number; y: number }[], fill: number) => {
-      g.fillStyle(fill, 1);
-      g.beginPath();
-      g.moveTo(pts[0].x, pts[0].y);
-      for (let i = 1; i < pts.length; i++) g.lineTo(pts[i].x, pts[i].y);
-      g.closePath();
-      g.fillPath();
-      g.lineStyle(1, darken(color, 0.45), 0.9);
-      g.strokePath();
-    };
-    // 側面：外法線投影後朝螢幕下方的面才看得到（依投影旋轉而定）；朝右的面較亮。最後畫頂面
-    const o = worldToScreen(0, 0);
-    const faces: { n: [number, number]; a: [number, number]; b: [number, number] }[] = [
-      { n: [1, 0], a: [x + w, y], b: [x + w, y + d] },
-      { n: [0, 1], a: [x, y + d], b: [x + w, y + d] },
-      { n: [-1, 0], a: [x, y], b: [x, y + d] },
-      { n: [0, -1], a: [x, y], b: [x + w, y] },
-    ];
-    for (const f of faces) {
-      const ns = worldToScreen(f.n[0], f.n[1]);
-      if (ns.y - o.y <= 0) continue;
-      const shade = ns.x - o.x > 0 ? 0.8 : 0.62;
-      poly([P(f.a[0], f.a[1], 0), P(f.b[0], f.b[1], 0), P(f.b[0], f.b[1], h), P(f.a[0], f.a[1], h)], darken(color, shade));
-    }
-    poly([P(x, y, h), P(x + w, y, h), P(x + w, y + d, h), P(x, y + d, h)], lighten(color, 1.2));
+    const b = drawBox(g, x, y, w, d, h, color);
     const depth = depthOf(x + w / 2, y + d / 2);
     g.setDepth(OBJECT_DEPTH_BASE + depth);
-    const pts = [P(x, y, 0), P(x + w, y, 0), P(x + w, y + d, 0), P(x, y + d, 0), P(x, y, h), P(x + w, y, h), P(x + w, y + d, h), P(x, y + d, h)];
-    const xs = pts.map((p) => p.x);
-    const ys = pts.map((p) => p.y);
-    this.blocks.push({ depth, h, x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) });
+    this.blocks.push({ depth, h, ...b });
     this.worldObjects.push(g);
   }
 
@@ -643,6 +643,21 @@ export class BattleScene extends Phaser.Scene {
         case 'waveStart':
           s.addLog(`敵人湧上來了！（${ev.waveId}）`, 'enemy');
           break;
+        case 'interact': {
+          const obj = w.interactables.get(ev.objectId);
+          if (obj?.def.kind === 'lever') s.addLog(`${L(ev.unitId)} 拉動了${objectName(obj)}`, 'sys');
+          break;
+        }
+        case 'door': {
+          const obj = w.interactables.get(ev.objectId);
+          if (!obj) break;
+          if (ev.blocked) {
+            s.showToast(`${objectName(obj)}：門口有人，關不上`, this.time.now, 1400);
+            break;
+          }
+          s.addLog(`${objectName(obj)}${ev.open ? '打開了' : '關上了'}`, 'sys');
+          break;
+        }
         case 'warcry': {
           const u = w.getUnit(ev.unitId)!;
           this.fx.ring(u.pos, 6, 0xff2a2a, 900, 0.1, 8);
@@ -677,6 +692,7 @@ export class BattleScene extends Phaser.Scene {
     const simTime = w.time + this.alpha * DT;
     for (const v of this.views.values()) v.update(this.alpha, selected.has(v.unit.id), s.hoverUnitId === v.unit.id, simTime);
     this.drawDynamicTerrain();
+    this.drawInteractables();
     this.drawFog();
 
     this.drawZones(selected);
@@ -693,6 +709,19 @@ export class BattleScene extends Phaser.Scene {
     this.debugOverlay.update(s, (id) => this.wpos(w.getUnit(id)!));
     this.dim.setVisible(s.paused && !w.result);
     this.input.setDefaultCursor(s.targeting ? 'crosshair' : 'default');
+  }
+
+  /** 互動物件：狀態改變或滑鼠移上時重畫；滑鼠移上顯示名稱與右鍵提示 */
+  private drawInteractables(): void {
+    const s = this.session;
+    const obj = s.hoverObjectId ? s.world.interactables.get(s.hoverObjectId) : undefined;
+    this.interactView.update(obj ? obj.def.id : null);
+    if (!obj) {
+      this.objectLabel.setVisible(false);
+      return;
+    }
+    const p = this.interactView.labelPoint(obj);
+    this.objectLabel.setText(`${objectName(obj)}\n${objectHint(s.world.interactables.usable(obj), obj)}`).setPosition(p.x, p.y).setVisible(true);
   }
 
   /**
@@ -940,6 +969,9 @@ export class BattleScene extends Phaser.Scene {
           us.forEach((u, i) => ghost.set(u.id, { type: 'attackMove', point: pts[i] }));
           break;
         }
+        case 'interact':
+          ghost.set(c.unitId, { type: 'interact', objectId: c.objectId });
+          break;
         default:
           break;
       }
@@ -972,6 +1004,12 @@ export class BattleScene extends Phaser.Scene {
         case 'follow': {
           const tp = targetPos(o.targetId);
           if (tp) groundLine(g, from, tp, 2, COLORS.ghostFollow, 0.7);
+          break;
+        }
+        case 'interact': {
+          // 互動：移動線接到物件中心
+          const d = w.interactables.get(o.objectId)?.def;
+          if (d) groundLine(g, from, { x: d.x + d.w / 2, y: d.y + d.h / 2 }, 2, COLORS.ghostMove, 0.85);
           break;
         }
         case 'attackMove':

@@ -25,8 +25,14 @@ export class NavGrid {
     this.cols = Math.ceil(width / cell);
     this.rows = Math.ceil(height / cell);
     this.blocked = new Uint8Array(this.cols * this.rows);
-    for (let cy = 0; cy < this.rows; cy++) {
-      for (let cx = 0; cx < this.cols; cx++) {
+    this.fill(0, 0, this.cols - 1, this.rows - 1, obstacles);
+  }
+
+  /** 重算格子範圍 [cx0..cx1] × [cy0..cy1] 的阻擋狀態 */
+  private fill(cx0: number, cy0: number, cx1: number, cy1: number, obstacles: Rect[]): void {
+    const { cell, inflate, width, height } = this;
+    for (let cy = Math.max(0, cy0); cy <= Math.min(this.rows - 1, cy1); cy++) {
+      for (let cx = Math.max(0, cx0); cx <= Math.min(this.cols - 1, cx1); cx++) {
         const px = (cx + 0.5) * cell;
         const py = (cy + 0.5) * cell;
         let b = false;
@@ -44,6 +50,13 @@ export class NavGrid {
         this.blocked[cy * this.cols + cx] = b ? 1 : 0;
       }
     }
+  }
+
+  /** 障礙物變動（開關門）：原地重算 region 附近的格子，引用這張格子的系統不用換物件 */
+  refresh(region: Rect, obstacles: Rect[]): void {
+    const m = this.inflate + this.cell;
+    const c = this.cell;
+    this.fill(Math.floor((region.x - m) / c), Math.floor((region.y - m) / c), Math.floor((region.x + region.w + m) / c), Math.floor((region.y + region.h + m) / c), obstacles);
   }
 
   static fromMap(map: MapDef, cell: number, inflate: number): NavGrid {

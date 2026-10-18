@@ -385,5 +385,41 @@
    "x": 72,
    "y": 42
   }
+ ],
+ "interactables": [
+  {
+   "id": "gate2",
+   "kind": "door",
+   "name": "石門",
+   "x": 50,
+   "y": 12,
+   "w": 1,
+   "h": 5
+  },
+  {
+   "id": "gate3",
+   "kind": "door",
+   "name": "鐵柵門",
+   "x": 74,
+   "y": 74,
+   "w": 1,
+   "h": 5,
+   "locked": true
+  },
+  {
+   "id": "lever3",
+   "kind": "lever",
+   "name": "絞盤",
+   "x": 62,
+   "y": 90,
+   "w": 0.8,
+   "h": 0.8,
+   "actions": [
+    {
+     "type": "openDoor",
+     "door": "gate3"
+    }
+   ]
+  }
  ]
 }
