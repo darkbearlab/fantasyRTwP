@@ -118,6 +118,8 @@ export interface MoveOptions {
 }
 
 const AVOID_ZOC_COST = 20;
+/** 攻擊移動（目標點模式）：目標離開目標點超過接戰距離再多這麼遠就放棄 */
+const ATTACK_MOVE_LEASH = 2;
 /** 移動指令連續這麼多秒沒有進展就放棄 */
 const MOVE_STALL_TIME = 1.5;
 /** 雜兵直線移動受阻時嘗試的偏轉角 */
@@ -774,8 +776,10 @@ export class World implements ZocContext {
       }
     }
     else if (!u.order) {
-      const o = (this.idleBehavior ?? IDLE_BEHAVIORS[u.personality]).decide(this, u);
-      if (o?.type === 'move' && !this.idleBehavior && u.personality === 'guerrilla') this.emit({ type: 'notice', unitId: u.id, text: '逃跑！' });
+      // 沉穩節奏（Alan）：性格一律是堅守
+      const personality = this.config.battleStyle === 'deliberate' ? 'steadfast' : u.personality;
+      const o = (this.idleBehavior ?? IDLE_BEHAVIORS[personality]).decide(this, u);
+      if (o?.type === 'move' && !this.idleBehavior && personality === 'guerrilla') this.emit({ type: 'notice', unitId: u.id, text: '逃跑！' });
       if (o) this.setOrder(u, o);
     }
     if (u.order) this.executeOrder(u);
@@ -876,8 +880,11 @@ export class World implements ZocContext {
   /** 攻擊移動（SPEC_SLICE4 §3.1b）：途中接戰射程附近的敵人，打完繼續走 */
   private executeAttackMove(u: Unit, o: Extract<Order, { type: 'attackMove' }>): void {
     let t = o.targetId !== undefined ? this.getUnit(o.targetId) : undefined;
+    const atPoint = this.config.attackMoveFocus === 'point';
+    // 目標點模式：目標離開目標點太遠就放棄（不會被拖著跑）
+    if (t && atPoint && dist(t.pos, o.point) - t.radius > this.config.attackMoveRange + ATTACK_MOVE_LEASH) t = undefined;
     if (!t || t.dead || !this.canTarget(u, t)) {
-      t = this.acquireTarget(u, this.attackRange(u) + this.config.attackMoveRange);
+      t = atPoint ? this.acquireNearPoint(u, o.point, this.config.attackMoveRange) : this.acquireTarget(u, this.attackRange(u) + this.config.attackMoveRange);
       o.targetId = t?.id;
     }
     if (t) {
@@ -895,6 +902,20 @@ export class World implements ZocContext {
     if (r === 'arrived') u.guardPoint = { x: u.pos.x, y: u.pos.y };
     if (r === 'arrived' || r === 'nopath') this.setOrder(u, null);
     else if (r === 'pinned') this.stopPinned(u);
+  }
+
+  /** 攻擊移動（目標點模式）：離目標點最近的敵人（距離 ≤ range），途中身邊的敵人不理會 */
+  private acquireNearPoint(u: Unit, point: Vec, range: number): Unit | undefined {
+    let best: Unit | undefined;
+    let bestD = Infinity;
+    for (const e of this.units) {
+      if (e.dead || e.team === u.team || !this.canTarget(u, e)) continue;
+      const d = dist(e.pos, point) - e.radius;
+      if (d > range || d >= bestD) continue;
+      bestD = d;
+      best = e;
+    }
+    return best;
   }
 
   /** 最近的可攻擊敵人（邊緣距離 ≤ range；遠程需要視線） */

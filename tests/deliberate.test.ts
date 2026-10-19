@@ -7,7 +7,8 @@ import { CLASSES } from '../src/sim/data/classes';
 import { DELIBERATE_PACE, deliberateConfig } from '../src/sim/data/deliberate';
 import { DEFAULT_SIM_CONFIG } from '../src/sim/simConfig';
 import { activeSkillIndex } from '../src/game/ui/mobileBar';
-import { makeWorld, run } from './helpers';
+import { OPEN_MAP, PASSIVE, makeWorld, run } from './helpers';
+import { World } from '../src/sim/world';
 
 describe('沉穩節奏（SPEC_SLICE5 §1）', () => {
   it('設定檔：移動、行動、冷卻依倍率變慢', () => {
@@ -51,5 +52,28 @@ describe('沉穩節奏（SPEC_SLICE5 §1）', () => {
     const r = createRun(5);
     const w = createBattleFromRun(chooseNode(r, r.map.layers[0][0]));
     for (const u of w.units.filter((x) => x.team === 'hero')) expect(u.def.skills[activeSkillIndex(u)]).toBe(CLASSES[u.def.id].signature);
+  });
+});
+
+describe('沉穩節奏的規則調整（Alan）', () => {
+  it('攻擊移動只打目標點附近的敵人：途中經過身邊的敵人不接戰，可以脫離', () => {
+    // 英雄從 (2,6) 往 (18,6) 攻擊移動；路邊 (6,7.5) 有一名敵人，目標點附近沒有敵人
+    const w = makeWorld([{ defId: 'warrior', pos: { x: 2, y: 6 } }, { defId: 'brute', pos: { x: 6, y: 7.5 } }], deliberateConfig());
+    w.enqueue({ type: 'attackMove', unitIds: [1], point: { x: 18, y: 6 } });
+    const evs = run(w, 20 * 30);
+    expect(evs.some((e) => e.type === 'actionStart' && e.unitId === 1 && e.targetId === 2)).toBe(false);
+    expect(w.getUnit(1)!.pos.x).toBeGreaterThan(16);
+    // 目標點就在敵人身上：會打它
+    const w2 = makeWorld([{ defId: 'warrior', pos: { x: 2, y: 6 } }, { defId: 'brute', pos: { x: 12, y: 6 } }], deliberateConfig());
+    w2.enqueue({ type: 'attackMove', unitIds: [1], point: { x: 12, y: 6 } });
+    expect(run(w2, 15 * 30).some((e) => e.type === 'hit' && e.sourceId === 1 && e.targetId === 2)).toBe(true);
+  });
+
+  it('沒有控制區；性格一律是堅守（游擊不會逃跑）', () => {
+    const c = deliberateConfig();
+    expect(c.zocMode).toBe('off');
+    const w = new World({ seed: 1, map: OPEN_MAP, spawns: [{ defId: 'ranger', pos: { x: 5, y: 6 }, personality: 'guerrilla' }, { defId: 'brute', pos: { x: 7, y: 6 } }], config: { ...PASSIVE, ...c, enemyAggroRange: 0 } });
+    const evs = run(w, 3 * 30);
+    expect(evs.some((e) => e.type === 'notice' && e.text === '逃跑！')).toBe(false);
   });
 });

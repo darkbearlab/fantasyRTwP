@@ -18,6 +18,9 @@ export const DELIBERATE_PACE = {
 export function deliberateConfig(base: SimConfig = DEFAULT_SIM_CONFIG): Partial<SimConfig> {
   return {
     battleStyle: 'deliberate',
+    // Alan：攻擊移動只打目標點附近的敵人（才能脫離）；取消控制區，改由敵人 AI 決定目標優先度
+    attackMoveFocus: 'point',
+    zocMode: 'off',
     moveSpeedMult: base.moveSpeedMult * DELIBERATE_PACE.move,
     actionSpeedMult: base.actionSpeedMult / DELIBERATE_PACE.actionTime,
     skillCooldownMult: base.skillCooldownMult * DELIBERATE_PACE.cooldown,
