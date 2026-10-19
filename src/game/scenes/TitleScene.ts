@@ -59,7 +59,16 @@ export class TitleScene extends DomScene {
     const creditsRow = el('div', 'btn-row center');
     creditsRow.appendChild(button('製作人員', 'small', () => this.showCredits()));
     box.appendChild(creditsRow);
-    box.appendChild(el('div', 'title-hint', '操作：1–4 選人、選人後 2 秒內再按 1–3 放該英雄的技能、Tab 切換、右鍵移動／攻擊、空白鍵暫停、WASD 鏡頭'));
+    const touch = window.matchMedia('(pointer: coarse)').matches;
+    box.appendChild(
+      el(
+        'div',
+        'title-hint',
+        touch
+          ? '操作：點英雄卡上的名字選人 → 點地圖攻擊移動；點卡片下半放技能；沙漏暫停；拖曳移動鏡頭、雙指縮放'
+          : '操作：點英雄卡名字選人 → 點地圖攻擊移動；點卡片下半（或 1–4 再按 1）放技能；空白鍵暫停；拖曳或 WASD 移動鏡頭',
+      ),
+    );
     this.root.appendChild(box);
   }
 

@@ -10,6 +10,17 @@ export abstract class DomScene extends Phaser.Scene {
     this.root = el('div', `screen interactive ${this.screenClass}`);
     uiRoot().appendChild(this.root);
     this.events.once('shutdown', () => this.root.remove());
+    // 視窗大小改變（手機轉向）：依新的版面重建
+    let last = `${this.scale.width}x${this.scale.height}`;
+    const onResize = () => {
+      // refresh() 也會發出 resize：尺寸真的變了才重建
+      const now = `${this.scale.width}x${this.scale.height}`;
+      if (now === last) return;
+      last = now;
+      this.rebuild();
+    };
+    this.scale.on('resize', onResize);
+    this.events.once('shutdown', () => this.scale.off('resize', onResize));
     this.build(data);
   }
 

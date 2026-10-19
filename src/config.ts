@@ -75,4 +75,6 @@ export const GAME_CONFIG = {
   cameraScrollSpeed: 700,
   /** 畫面下方英雄列高度（px），鏡頭邊界需要預留 */
   hudBottomHeight: 132,
+  /** 行動版直拿時下方 HUD（四張卡片＋沙漏）的高度（px） */
+  hudBottomHeightPortrait: 250,
 };

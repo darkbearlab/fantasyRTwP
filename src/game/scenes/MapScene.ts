@@ -55,15 +55,21 @@ export class MapScene extends DomScene {
     side.appendChild(journal);
 
     const area = el('div', 'map-area');
-    const W = 940;
-    const H = 640;
+    // 直拿（行動版）：路線圖改成由下往上推進，隊伍面板放在下面
+    const portrait = this.scale.width < this.scale.height;
+    const W = portrait ? this.scale.width - 24 : 940;
+    const H = portrait ? Math.max(560, this.scale.height - 140) : 640;
     const L = run.map.layerCount;
     const pos = (n: MapNode) => {
       const ids = run.map.layers[n.layer - 1];
+      const off = n.index - (ids.length - 1) / 2;
+      if (portrait) return { x: W / 2 + off * Math.min(130, W / 3.2), y: H - 40 - ((n.layer - 1) / (L - 1)) * (H - 80) };
       const x = 50 + ((n.layer - 1) / (L - 1)) * (W - 100);
-      const y = H / 2 + (n.index - (ids.length - 1) / 2) * 170;
+      const y = H / 2 + off * 170;
       return { x, y };
     };
+    area.style.width = `${W}px`;
+    area.style.height = `${H}px`;
     const avail = new Set(availableNodes(run).map((n) => n.id));
     const visited = new Set(run.path);
     const svgNS = 'http://www.w3.org/2000/svg';
@@ -98,7 +104,7 @@ export class MapScene extends DomScene {
       if (avail.has(n.id)) b.classList.add('available');
       else if (!visited.has(n.id)) b.classList.add('locked');
       noFocus(b);
-      b.addEventListener('mouseenter', () => {
+      const showTip = () => {
         let text = `<b>${NODE_LABEL[n.type]}</b>（第 ${n.layer} 層）<br>${NODE_DESC[n.type]}`;
         if (n.type === 'battle' || n.type === 'elite' || n.type === 'boss') {
           const id = pickEncounter(run, n);
@@ -110,12 +116,25 @@ export class MapScene extends DomScene {
         tip.style.left = `${p.x + 36}px`;
         tip.style.top = `${p.y - 20}px`;
         tip.classList.add('show');
+        tip.dataset.node = String(n.id);
+      };
+      // 只有真的滑鼠才用「移上」顯示說明（觸控點擊時瀏覽器也會補發滑鼠移入事件）
+      let touch = false;
+      b.addEventListener('pointerenter', (e) => e.pointerType === 'mouse' && showTip());
+      b.addEventListener('pointerleave', (e) => e.pointerType === 'mouse' && tip.classList.remove('show'));
+      b.addEventListener('pointerdown', (e) => (touch = e.pointerType !== 'mouse'));
+      // 觸控：第一下顯示說明，第二下才前往
+      b.addEventListener('click', () => {
+        if (touch && tip.dataset.node !== String(n.id)) {
+          showTip();
+          return;
+        }
+        if (avail.has(n.id)) advance(this, chooseNode(getRun(this), n.id));
       });
-      b.addEventListener('mouseleave', () => tip.classList.remove('show'));
-      if (avail.has(n.id)) b.addEventListener('click', () => advance(this, chooseNode(getRun(this), n.id)));
       area.appendChild(b);
     }
     area.appendChild(tip);
-    this.root.append(side, area);
+    if (portrait) this.root.append(area, side);
+    else this.root.append(side, area);
   }
 }

@@ -1,0 +1,9 @@
+{
+  "name": "fantasyRTwP",
+  "short_name": "fantasyRTwP",
+  "start_url": ".",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#15171b",
+  "theme_color": "#15171b"
+}

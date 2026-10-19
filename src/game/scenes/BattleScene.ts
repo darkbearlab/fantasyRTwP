@@ -177,6 +177,10 @@ export class BattleScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(3000)
       .setVisible(false);
+    // 視窗大小改變（手機轉向、調整瀏覽器）：變暗層跟著畫面大小
+    const onResize = (size: Phaser.Structs.Size) => this.dim.setPosition(size.width / 2, size.height / 2).setSize(size.width * 3, size.height * 3);
+    this.scale.on('resize', onResize);
+    this.events.once('shutdown', () => this.scale.off('resize', onResize));
 
     this.setupCamera();
     this.input2 = new InputController({
@@ -476,7 +480,7 @@ export class BattleScene extends Phaser.Scene {
     const cam = this.cameras.main;
     const b = mapScreenBounds(map.width, map.height);
     const pad = 96;
-    cam.setBounds(b.x - pad, b.y - pad - (isIso() ? 120 : 0), b.w + pad * 2, b.h + pad * 2 + (isIso() ? 120 : 0) + GAME_CONFIG.hudBottomHeight);
+    cam.setBounds(b.x - pad, b.y - pad - (isIso() ? 120 : 0), b.w + pad * 2, b.h + pad * 2 + (isIso() ? 120 : 0) + this.hudBottom());
   }
 
   private setupCamera(): void {
@@ -491,14 +495,20 @@ export class BattleScene extends Phaser.Scene {
         : { x: map.width / 2, y: map.height / 2 };
     } else start = map.landmarks?.cameraStart ?? { x: map.width / 2, y: map.height / 2 };
     const p = worldToScreen(start.x, start.y);
-    this.cameras.main.centerOn(p.x, p.y + GAME_CONFIG.hudBottomHeight / 2);
+    this.cameras.main.centerOn(p.x, p.y + this.hudBottom() / 2);
   }
 
-  centerOnUnit(id: number): void {
+  /** 畫面下方被 HUD 蓋住的高度：行動版直拿時是四張卡片＋沙漏 */
+  private hudBottom(): number {
+    if (this.session?.world.config.battleStyle === 'deliberate' && this.scale.width < this.scale.height) return GAME_CONFIG.hudBottomHeightPortrait;
+    return GAME_CONFIG.hudBottomHeight;
+  }
+
+    centerOnUnit(id: number): void {
     const u = this.session.world.getUnit(id);
     if (!u) return;
     const p = worldToScreen(u.pos.x, u.pos.y);
-    this.cameras.main.pan(p.x, p.y + GAME_CONFIG.hudBottomHeight / 2 / this.cameras.main.zoom, 250, 'Sine.easeInOut');
+    this.cameras.main.pan(p.x, p.y + this.hudBottom() / 2 / this.cameras.main.zoom, 250, 'Sine.easeInOut');
   }
 
   restartBattle(seed: number): void {
@@ -570,7 +580,7 @@ export class BattleScene extends Phaser.Scene {
     this.checkProjection();
     this.render();
     const cam = this.cameras.main;
-    this.lastCenterGround = screenToGround(cam.midPoint.x, cam.midPoint.y - GAME_CONFIG.hudBottomHeight / 2 / cam.zoom);
+    this.lastCenterGround = screenToGround(cam.midPoint.x, cam.midPoint.y - this.hudBottom() / 2 / cam.zoom);
   }
 
   // ───────────── 事件 → 飄字／紀錄／自動暫停 ─────────────

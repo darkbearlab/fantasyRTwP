@@ -1583,3 +1583,135 @@ body {
 .m-skill.targeting {
   box-shadow: inset 0 0 0 3px #ffd23f;
 }
+
+/* ───────────── 行動版（SPEC_SLICE5 §8、S5-6）───────────── */
+html,
+body {
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+/* 畫布上的手勢（拖曳鏡頭、捏合縮放）由遊戲處理，不讓瀏覽器捲動或縮放頁面 */
+#game,
+#game canvas {
+  touch-action: none;
+}
+/* 按鈕：取消雙擊縮放的延遲 */
+#ui button,
+#ui .interactive {
+  touch-action: manipulation;
+}
+
+/* 精簡版面：舞台的邏輯高度不足（手機橫拿） */
+#stage.compact .screen {
+  overflow: auto;
+  touch-action: pan-x pan-y;
+}
+#stage.compact .panel-screen {
+  align-items: flex-start;
+  padding: 8px 0;
+}
+#stage.compact .panel-screen > .panel {
+  max-height: none;
+}
+#stage.compact .title-box h1 {
+  font-size: 44px;
+}
+#stage.compact .title-box {
+  gap: 8px;
+  padding: 12px 0;
+}
+#stage.compact .m-card {
+  width: 220px;
+  height: 112px;
+}
+#stage.compact .m-name,
+#stage.compact .m-skill .sname {
+  font-size: 18px;
+}
+#stage.compact .m-head,
+#stage.compact .m-skill {
+  gap: 4px;
+  padding: 4px 8px;
+}
+#stage.compact .m-pause {
+  width: 48px;
+  height: 48px;
+}
+#stage.compact .hud-root.mobile .log {
+  max-height: 55%;
+}
+
+/* 直拿（Alan：行動版以直拿為主，四張英雄卡片排在下緣、拇指點得到） */
+#stage.portrait .screen {
+  overflow: auto;
+  touch-action: pan-y;
+}
+#stage.portrait .panel-screen {
+  align-items: flex-start;
+  padding: 8px 0;
+}
+#stage.portrait .panel-screen > .panel,
+#stage.portrait .panel-screen > .panel.wide {
+  width: calc(100% - 16px);
+  max-height: none;
+  padding: 14px 14px 18px;
+}
+#stage.portrait .class-grid {
+  grid-template-columns: repeat(2, 1fr);
+}
+#stage.portrait .title-box h1 {
+  font-size: 40px;
+  letter-spacing: 3px;
+}
+#stage.portrait .title-box {
+  padding: 16px 12px;
+}
+#stage.portrait .title-hint {
+  max-width: 100%;
+}
+#stage.portrait .map-screen {
+  flex-direction: column;
+}
+#stage.portrait .map-area {
+  flex: none;
+  margin: 12px;
+}
+#stage.portrait .map-side {
+  width: auto;
+  border-right: none;
+  border-top: 1px solid #2c313b;
+}
+#stage.portrait .m-bar {
+  bottom: calc(8px + env(safe-area-inset-bottom));
+}
+#stage.portrait .m-cards {
+  width: 100%;
+  padding: 0 6px;
+  gap: 6px;
+}
+#stage.portrait .m-card {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  height: 156px;
+  border-radius: 12px;
+}
+#stage.portrait .m-head,
+#stage.portrait .m-skill {
+  padding: 6px;
+}
+#stage.portrait .m-name {
+  font-size: 17px;
+  text-align: center;
+}
+#stage.portrait .m-skill .sname {
+  font-size: 16px;
+}
+#stage.portrait .m-hp .hptext {
+  font-size: 10px;
+}
+#stage.portrait .hud-root.mobile .log {
+  width: calc(100% - 16px);
+  max-height: 45%;
+}
