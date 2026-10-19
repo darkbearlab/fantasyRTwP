@@ -20,6 +20,7 @@ interface MobileCard {
   fill: HTMLElement;
   hpFill: HTMLElement;
   hpText: HTMLElement;
+  status: HTMLElement;
   skillBtn: HTMLElement;
   skillName: HTMLElement;
   cdText: HTMLElement;
@@ -37,6 +38,24 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', text = ''):
 /** 沙漏圖示（SVG，顏色跟著 currentColor 變） */
 const HOURGLASS_SVG =
   '<svg viewBox="0 0 24 24" width="34" height="34" aria-hidden="true"><path fill="currentColor" d="M6 2h12v2h-1v3.2c0 1.4-.7 2.7-1.9 3.5L13.4 12l1.7 1.3c1.2.8 1.9 2.1 1.9 3.5V20h1v2H6v-2h1v-3.2c0-1.4.7-2.7 1.9-3.5L10.6 12 8.9 10.7C7.7 9.9 7 8.6 7 7.2V4H6V2zm3 2v3.2c0 .8.4 1.5 1 1.9L12 10.6l2-1.5c.6-.4 1-1.1 1-1.9V4H9zm3 9.4-2 1.5c-.6.4-1 1.1-1 1.9V20h6v-3.2c0-.8-.4-1.5-1-1.9l-2-1.5z"/></svg>';
+
+/** 英雄身上的狀態（SPEC_SLICE5 §14：技能效果要看得見） */
+const STATUS_ICONS: [(u: Unit) => boolean, string][] = [
+  [(u) => u.stunTime > 0, '💫'],
+  [(u) => u.rootTime > 0, '❄'],
+  [(u) => u.burnTime > 0, '🔥'],
+  [(u) => u.curseTime > 0, '☠'],
+  [(u) => u.blessTime > 0, '✨'],
+  [(u) => u.guardTime > 0, '🛡'],
+  [(u) => u.stealthTime > 0 && Number.isFinite(u.stealthTime), '🌫'],
+];
+
+function statusIcons(u: Unit): string {
+  if (u.dead) return '';
+  return STATUS_ICONS.filter(([on]) => on(u))
+    .map(([, icon]) => icon)
+    .join('');
+}
 
 /** 每名英雄唯一的主動技能：職業的專用技能（找不到就用第一個） */
 export function activeSkillIndex(u: Unit): number {
@@ -103,7 +122,8 @@ export class MobileHeroBar {
       const hpFill = el('div', 'fill');
       const hpText = el('span', 'hptext');
       hp.append(hpFill, hpText);
-      head.append(name, hp);
+      const status = el('span', 'm-status');
+      head.append(name, status, hp);
       head.addEventListener('mousedown', (ev) => ev.preventDefault());
       // 點名字：選取／取消選取（可以同時選多名）
       head.addEventListener('click', () => {
@@ -132,7 +152,7 @@ export class MobileHeroBar {
       });
       root.append(fill, head, skillBtn);
       this.row.appendChild(root);
-      this.cards.push({ unit: u, root, fill, hpFill, hpText, skillBtn, skillName, cdText, cdCover, skillId });
+      this.cards.push({ unit: u, root, fill, hpFill, hpText, status, skillBtn, skillName, cdText, cdCover, skillId });
     }
   }
 
@@ -149,6 +169,8 @@ export class MobileHeroBar {
       c.hpFill.style.width = `${frac * 100}%`;
       c.hpFill.classList.toggle('low', frac < 0.3);
       c.hpText.textContent = `${Math.max(0, u.hp)} / ${u.maxHp}`;
+      const st = statusIcons(u);
+      if (c.status.textContent !== st) c.status.textContent = st;
       // 水位：準備動作的進度，填滿時行動生效；恢復期間水位歸零
       const a = u.action;
       const level = a && a.phase === 'windup' ? u.actionProgress : 0;

@@ -6,6 +6,9 @@ import { HEROES } from './data/heroes';
 import { SKILLS } from './data/skills';
 import type { DamageType, HordeSetup, InteractAction, MapDef, Personality, ProjectileKind, Rect, SkillDef, SpawnerDef, Team, UnitDef, WaveDef, WaveTrigger } from './data/types';
 import { INTERACT } from './data/interact';
+import { CLASS_PASSIVES, PASSIVES } from './data/passives';
+import type { GroundZone } from './zones';
+import { updateZones, zoneMoveMult } from './zones';
 import type { InteractableState } from './interact';
 import { Interactables, approachPoint, distToRect, inInteractRange, rectOf } from './interact';
 import { HORDE, HORDE_VISION } from './data/horde';
@@ -151,7 +154,8 @@ export class World implements ZocContext {
   /** 燃燒中的格子：格子索引 → 狀態 */
   readonly fire = new Map<number, { time: number; spread: number; sourceId: number }>();
   /** 地面區域效果（沼澤）：對施放者的敵人減速 */
-  zones: { point: Vec; radius: number; time: number; moveMult: number; team: Team; skillId: string }[] = [];
+  /** 持續性地面區域（沼澤、火焰瓶的地面火…；src/sim/zones.ts） */
+  zones: GroundZone[] = [];
   private nextUnitId = 1;
   private navGrids = new Map<number, NavGrid>();
   private queue: Command[] = [];
@@ -191,6 +195,8 @@ export class World implements ZocContext {
       const u = new Unit(this.nextUnitId++, def, s.pos, slot);
       if (s.hp !== undefined) u.hp = Math.max(1, Math.min(def.maxHp, Math.round(s.hp)));
       if (s.personality) u.personality = s.personality;
+      // 沉穩節奏（SPEC_SLICE5 §14）：英雄帶職業被動
+      if (def.team === 'hero' && this.config.battleStyle === 'deliberate') for (const id of CLASS_PASSIVES[def.id] ?? []) u.addPassive(PASSIVES[id]);
       // 錯開敵人 AI 評估時間
       u.aiTimer = this.rng.range(0, 0.4);
       this.units.push(u);
@@ -331,20 +337,17 @@ export class World implements ZocContext {
 
   /** 移動倍率：地形 × 敵方區域效果（沼澤） */
   moveMultFor(u: Unit): number {
-    let m = this.moveMultAt(u.pos);
-    for (const z of this.zones) if (z.team !== u.team && dist(z.point, u.pos) <= z.radius + u.radius * 0.5) m = Math.min(m, z.moveMult);
-    return m;
+    // 減速取最慢（地形、地面區域），再乘上被動的移動速度加成
+    return Math.min(this.moveMultAt(u.pos), zoneMoveMult(this, u)) * (1 + u.mods.moveSpeedPct);
   }
 
   private updateZones(): void {
-    if (this.zones.length === 0) return;
-    for (const z of this.zones) z.time -= DT;
-    this.zones = this.zones.filter((z) => z.time > 0);
+    updateZones(this);
   }
 
   /** 普攻射程：遠程單位站在高地上射程增加 */
   attackRange(u: Unit): number {
-    return u.def.range + (!u.isMelee && this.onHigh(u) ? TERRAIN.highRangeBonus : 0);
+    return u.def.range + u.mods.range + (!u.isMelee && this.onHigh(u) ? TERRAIN.highRangeBonus : 0);
   }
 
   /** 技能射程：遠程單體／地面技能站在高地上射程增加 */

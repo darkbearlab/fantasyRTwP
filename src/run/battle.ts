@@ -19,6 +19,8 @@ import { generateLevel } from './levelGen';
 import type { MapDef } from '../sim/data/types';
 import type { RunStyle } from './data/levels';
 import { deliberateConfig } from '../sim/data/deliberate';
+import { ACTIVE_SKILL_OVERRIDE } from '../sim/data/passives';
+import { CLASSES } from '../sim/data/classes';
 import { DEFAULT_SIM_CONFIG } from '../sim/simConfig';
 import { heroDef } from './upgrades';
 
@@ -39,6 +41,11 @@ export function enemyDef(enemyId: string, layer: number, captain = false): UnitD
     damage: [...base.damage] as [number, number],
     skills: [...base.skills],
   };
+}
+
+/** 沉穩節奏：職業唯一的主動技能（預設是專用技能，ACTIVE_SKILL_OVERRIDE 列出例外） */
+export function activeSkillOf(classId: string): string {
+  return ACTIVE_SKILL_OVERRIDE[classId] ?? CLASSES[classId].signature;
 }
 
 /** 怪群模式：精英與頭目的生命下降（雜兵、巢穴不變） */
@@ -105,8 +112,11 @@ export function createBattleFromRun(run: RunState, config?: Partial<SimConfig>, 
   const layer = enc.tier === 'boss' ? 1 : run.phase.kind === 'battle' ? run.map.nodes[run.phase.nodeId].layer : 1;
   const spawns: UnitSpawn[] = [];
   // 出生位置依存活英雄數量排列；heroSlot 沿用隊伍欄位，數字鍵不會錯位
+  const deliberate = runStyle(run) === 'deliberate' && !enc.horde;
   livingHeroes(run).forEach(({ slot, hero }, i) => {
-    const def = heroDef(hero, run.nextBattleBuff);
+    let def = heroDef(hero, run.nextBattleBuff);
+    // 沉穩節奏（SPEC_SLICE5 §2）：每名英雄只有一招主動技能
+    if (deliberate) def = { ...def, skills: [activeSkillOf(hero.classId)] };
     spawns.push({ defId: hero.classId, def, pos: map.heroSpawns[i % map.heroSpawns.length], heroSlot: slot, hp: hero.hp, personality: hero.personality });
   });
   // 怪群模式：地圖與遭遇的生成點合併，戰鬥模式自動設成 horde，精英與頭目生命下降

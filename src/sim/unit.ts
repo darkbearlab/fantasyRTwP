@@ -1,6 +1,7 @@
 import type { Order } from './commands';
 import type { Personality, Team, UnitDef } from './data/types';
 import type { Vec } from './math';
+import type { PassiveDef, PassiveMods } from './data/passives';
 
 export enum UnitState {
   Idle = 'Idle',
@@ -121,6 +122,19 @@ export class Unit {
 
   stats: UnitStats = { damageDealt: 0, damageTaken: 0, healing: 0, kills: 0 };
 
+  /** 被動（SPEC_SLICE5 §14）：職業、裝備道具、技能效果 */
+  passives: PassiveDef[] = [];
+  /** 所有被動的數值修正加總 */
+  mods: Required<PassiveMods> = { accuracy: 0, defense: 0, armor: 0, damagePct: 0, attackSpeedPct: 0, moveSpeedPct: 0, range: 0 };
+  /** 普攻命中次數（被動的「每第 N 擊」用） */
+  basicHits = 0;
+
+  addPassive(p: PassiveDef): void {
+    if (this.passives.some((q) => q.id === p.id)) return;
+    this.passives.push(p);
+    for (const [k, v] of Object.entries(p.mods ?? {})) this.mods[k as keyof PassiveMods] += v ?? 0;
+  }
+
   constructor(id: number, def: UnitDef, pos: Vec, heroSlot: number) {
     this.id = id;
     this.def = def;
@@ -142,13 +156,13 @@ export class Unit {
     return this.def.maxHp;
   }
   get armor(): number {
-    return this.def.armor;
+    return this.def.armor + this.mods.armor;
   }
   get accuracy(): number {
-    return this.def.accuracy + (this.blessTime > 0 ? this.blessAccuracy : 0);
+    return this.def.accuracy + this.mods.accuracy + (this.blessTime > 0 ? this.blessAccuracy : 0);
   }
   get defense(): number {
-    return this.def.defense + (this.blessTime > 0 ? this.blessDefense : 0);
+    return this.def.defense + this.mods.defense + (this.blessTime > 0 ? this.blessDefense : 0);
   }
   maxCharges(skillId: string): number {
     return Math.max(1, this.def.skillMods?.[skillId]?.charges ?? 1);
@@ -164,7 +178,7 @@ export class Unit {
 
   /** 造成傷害的總倍率 */
   get outgoingDamageMult(): number {
-    return (this.def.damageMult ?? 1) * (this.damageBuffTime > 0 ? this.damageBuffMult : 1);
+    return (this.def.damageMult ?? 1) * (1 + this.mods.damagePct) * (this.damageBuffTime > 0 ? this.damageBuffMult : 1);
   }
 
   get isMelee(): boolean {

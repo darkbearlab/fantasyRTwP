@@ -108,6 +108,8 @@ export type SkillEffect =
       ignites?: boolean;
       /** 命中的單位開始燃燒（火焰瓶） */
       burns?: boolean;
+      /** 在地上留下持續區域（通用的持續效果，src/sim/zones.ts） */
+      lingering?: LingeringDef;
       projectileSpeed?: number;
       projectileKind?: ProjectileKind;
     }
@@ -126,7 +128,8 @@ export type SkillEffect =
   /** 煙霧彈：一段時間內無視控制區、敵人看不到（貼近除外） */
   | { kind: 'smoke'; duration: number }
   /** 地面區域：敵人在範圍內移動變慢（沼澤） */
-  | { kind: 'zone'; radius: number; duration: number; moveMult: number }
+  /** 在地上留下持續區域（沼澤等；通用的持續效果，src/sim/zones.ts） */
+  | { kind: 'zone'; radius: number; lingering: LingeringDef }
   /** 範圍治療（治療藥瓶） */
   | { kind: 'aoeHeal'; radius: number; amount: number; projectileSpeed?: number; projectileKind?: ProjectileKind }
   /** 衝鋒（knockback：抵達時的攻擊附帶擊退，攻城兵的撞擊） */
@@ -167,6 +170,17 @@ export interface Rect {
 }
 
 /** 戰術地形種類（SPEC_SLICE3 §2） */
+/** 持續區域的效果：減速、燃燒（維持燃燒狀態）、每秒傷害、每秒回復 */
+export type ZoneEffect = { kind: 'slow'; moveMult: number } | { kind: 'burn' } | { kind: 'damage'; perSecond: number } | { kind: 'heal'; perSecond: number };
+
+/** 持續區域的定義（Alan：持續效果做成通用的 helper）；style 只影響畫面顏色 */
+export interface LingeringDef {
+  duration: number;
+  affects: 'enemy' | 'ally' | 'all';
+  effects: ZoneEffect[];
+  style?: 'swamp' | 'fire' | 'holy';
+}
+
 export type TerrainKind = 'brush' | 'shallow' | 'hedge' | 'high';
 
 export interface TerrainRect {

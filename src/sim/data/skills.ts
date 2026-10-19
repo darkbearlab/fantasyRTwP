@@ -80,7 +80,7 @@ export const SKILLS: Record<string, SkillDef> = {
   swamp: {
     id: 'swamp', name: '沼澤', description: '半徑 2.5 m 區域 8 秒內敵人移動 ×0.5（減速，不算定身）',
     target: 'ground', range: 10, windup: 0.8, recovery: 0.8, cooldown: 14, requiresLos: true,
-    effect: { kind: 'zone', radius: 2.5, duration: 8, moveMult: 0.5 },
+    effect: { kind: 'zone', radius: 2.5, lingering: { duration: 8, affects: 'enemy', effects: [{ kind: 'slow', moveMult: 0.5 }], style: 'swamp' } },
   },
   healFlask: {
     id: 'healFlask', name: '治療藥瓶', description: '拋物線投擲（不需視線）：半徑 2 m 友軍恢復 20 生命',
@@ -107,6 +107,12 @@ export const SKILLS: Record<string, SkillDef> = {
     id: 'firebomb', name: '火焰瓶', description: '拋物線投擲（不需視線）：半徑 2 m 傷害 10–14，點燃草叢、使敵人燃燒',
     target: 'ground', range: 10, windup: 0.8, recovery: 0.8, cooldown: 10, requiresLos: false,
     effect: { kind: 'aoe', radius: 2, damage: [10, 14], friendlyFire: false, ignites: true, burns: true, projectileSpeed: 14, projectileKind: 'flask' },
+  },
+  // ── 沉穩節奏（SPEC_SLICE5 v0.4）：煉金術士的火焰瓶會在地上留下持續燃燒的區域 ──
+  fireFlask: {
+    id: 'fireFlask', name: '火焰瓶', description: '拋物線投擲（不需視線）：半徑 2 m 傷害 10–14，地上燃燒 5 秒，站在火裡的敵人持續燃燒',
+    target: 'ground', range: 10, windup: 0.8, recovery: 0.8, cooldown: 10, requiresLos: false,
+    effect: { kind: 'aoe', radius: 2, damage: [10, 14], friendlyFire: false, ignites: true, burns: true, lingering: { duration: 5, affects: 'enemy', effects: [{ kind: 'burn' }], style: 'fire' }, projectileSpeed: 14, projectileKind: 'flask' },
   },
   // ── 切片 3 新敵人 ──
   ram: {

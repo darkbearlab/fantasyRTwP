@@ -62,6 +62,9 @@ function objectHint(usable: boolean, o: InteractableState): string {
   return usable ? '右鍵：拉動' : '（已經拉過了）';
 }
 
+/** 持續地面區域的顏色：[填色, 邊框] */
+const ZONE_COLORS: Record<string, [number, number]> = { swamp: [0x5a6a22, 0xa5b84a], fire: [0xb3471c, 0xff8a3d], holy: [0xb39b3c, 0xffe27a] };
+
 const STATUS_COLOR: Record<string, string> = { 暈眩: '#ffe066', 定身: '#a6e3ff', 燃燒: '#ff9a4a', 詛咒: '#d59af0' };
 
 /** 戰鬥場景：固定節拍推進 sim、插值渲染、把 SimEvent 轉成飄字與戰鬥紀錄 */
@@ -883,10 +886,11 @@ export class BattleScene extends Phaser.Scene {
         if ((u.team === 'hero' && selected.has(u.id)) || (u.team === 'enemy' && s.hoverUnitId === u.id)) zoc(u);
       }
     }
-    // 地面區域（沼澤）
+    // 持續地面區域（沼澤、地面火…）：顏色依 style
     for (const z of w.zones) {
       const fade = Math.min(1, z.time / 1.5);
-      groundCircle(g, z.point.x, z.point.y, z.radius, { fill: 0x5a6a22, fillAlpha: 0.28 * fade, stroke: 0xa5b84a, strokeAlpha: 0.6 * fade, width: 2 });
+      const [fill, stroke] = ZONE_COLORS[z.style ?? 'swamp'];
+      groundCircle(g, z.point.x, z.point.y, z.radius, { fill, fillAlpha: 0.28 * fade, stroke, strokeAlpha: 0.6 * fade, width: 2 });
     }
     // 駐守點：小菱形；選取中的英雄另外畫出駐守範圍
     for (const u of w.units) {
