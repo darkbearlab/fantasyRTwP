@@ -743,6 +743,7 @@ export class BattleScene extends Phaser.Scene {
     this.drawFog();
 
     this.drawZones(selected);
+    if (w.config.battleStyle === 'deliberate') this.drawTargetLines(selected);
     this.drawSelfTelegraphs();
     this.drawOcclusion();
     this.drawBars();
@@ -756,6 +757,27 @@ export class BattleScene extends Phaser.Scene {
     this.debugOverlay.update(s, (id) => this.wpos(w.getUnit(id)!));
     this.dim.setVisible(s.paused && !w.result);
     this.input.setDefaultCursor(s.targeting ? 'crosshair' : 'default');
+  }
+
+  /**
+   * 目標線（SPEC_SLICE5 §4）：所有攻擊都是攻擊移動、目標自動選，畫出每個單位目前在打誰，讓玩家預測戰況。
+   * 英雄：藍線（選取中的較亮）；敵人：紅線（打向英雄的才畫）。
+   */
+  private drawTargetLines(selected: Set<number>): void {
+    const w = this.session.world;
+    const g = this.zoneG;
+    for (const u of w.units) {
+      if (u.dead || this.hiddenIds.has(u.id)) continue;
+      const o = u.order;
+      const tid = u.action?.targetId ?? (o && (o.type === 'attack' || o.type === 'attackMove') ? o.targetId : undefined);
+      if (tid === undefined) continue;
+      const t = w.getUnit(tid);
+      if (!t || t.dead || t.team === u.team) continue;
+      const a = this.wpos(u);
+      const b = this.wpos(t);
+      if (u.team === 'hero') groundLine(g, a, b, selected.has(u.id) ? 2.5 : 1.5, COLORS.ghostMove, selected.has(u.id) ? 0.85 : 0.45);
+      else groundLine(g, a, b, 1.5, COLORS.ghostAttack, 0.4);
+    }
   }
 
   /** 互動物件：狀態改變或滑鼠移上時重畫；滑鼠移上顯示名稱與右鍵提示 */
