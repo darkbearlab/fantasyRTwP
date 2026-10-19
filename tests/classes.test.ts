@@ -48,8 +48,8 @@ describe('職業體系（SPEC_SLICE3 §1、§7-3/4）', () => {
     expect(opts).not.toContain('arcaneMissile');
   });
 
-  it('休息節點可以替換第 2、3 欄（免費、不佔三選一），戰鬥用新技能欄', () => {
-    let r = atRest(createRun(3));
+  it('休息節點可以替換第 2、3 欄（免費、不佔三選一），戰鬥用新技能欄（戰術模式，已封存）', () => {
+    let r = atRest(createRun(3, { style: 'tactical' }));
     // 不同系的技能、第 1 欄都不能換
     expect(() => swapSkill(r, 0, 1, 'fireball')).toThrow();
     expect(() => swapSkill(r, 0, 0, 'shieldBash')).toThrow();

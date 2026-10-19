@@ -25,6 +25,13 @@ export function enemyThink(world: World, u: Unit): void {
   const heroes = world.units.filter((h) => h.team !== u.team && !h.dead && world.canTarget(u, h));
   if (heroes.length === 0) return;
 
+  // 嘲諷光環（沉穩節奏，SPEC_SLICE5 §14）：光環內的敵人優先打嘲諷者
+  const taunter = tauntingHero(u, heroes);
+  if (taunter && u.def.ai !== 'boss') {
+    attack(world, u, taunter);
+    return;
+  }
+
   // 被牽制時：先處理牽制自己的英雄
   const pinners = u.def.ai === 'boss' || u.def.ignoresZoc ? [] : pinnersAt(world, u);
   if (pinners.length > 0) {
@@ -186,6 +193,22 @@ function bestClusterPoint(u: Unit, heroes: Unit[], spell: (typeof SKILLS)[string
     if (n > 0 && score > bestScore) {
       bestScore = score;
       best = { x: c.x, y: c.y };
+    }
+  }
+  return best;
+}
+
+/** 範圍內最近的嘲諷者（被動 taunt） */
+function tauntingHero(u: Unit, heroes: Unit[]): Unit | undefined {
+  let best: Unit | undefined;
+  let bestD = Infinity;
+  for (const h of heroes) {
+    const r = h.passives.reduce((m, p) => Math.max(m, p.taunt ?? 0), 0);
+    if (r <= 0) continue;
+    const d = dist(u.pos, h.pos);
+    if (d <= r + h.radius && d < bestD) {
+      bestD = d;
+      best = h;
     }
   }
   return best;

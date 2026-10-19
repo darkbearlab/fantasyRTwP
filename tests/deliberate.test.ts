@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createBattleFromRun } from '../src/run/battle';
+import { activeSkillOf, createBattleFromRun } from '../src/run/battle';
 import { chooseNode, pickEncounter } from '../src/run/progression';
 import { createRun } from '../src/run/runState';
 import { skillCooldownOf } from '../src/sim/actions';
@@ -48,10 +48,16 @@ describe('沉穩節奏（SPEC_SLICE5 §1）', () => {
     expect(w.config.moveSpeedMult).toBeCloseTo(DEFAULT_SIM_CONFIG.moveSpeedMult * DELIBERATE_PACE.move);
   });
 
-  it('每名英雄唯一的主動技能是職業的專用技能（技能順序調過也一樣）', () => {
-    const r = createRun(5);
+  it('每名英雄只有一招主動技能：職業的專用技能；牧師是治療藥瓶、煉金術士是會留下地面火的火焰瓶（v0.4）', () => {
+    const r = createRun(5, { party: ['warrior', 'cleric', 'alchemist', 'mage'] });
     const w = createBattleFromRun(chooseNode(r, r.map.layers[0][0]));
-    for (const u of w.units.filter((x) => x.team === 'hero')) expect(u.def.skills[activeSkillIndex(u)]).toBe(CLASSES[u.def.id].signature);
+    for (const u of w.units.filter((x) => x.team === 'hero')) {
+      expect(u.def.skills).toEqual([activeSkillOf(u.def.id)]);
+      expect(u.def.skills[activeSkillIndex(u)]).toBe(activeSkillOf(u.def.id));
+    }
+    expect(activeSkillOf('warrior')).toBe(CLASSES.warrior.signature);
+    expect(activeSkillOf('cleric')).toBe('healFlask');
+    expect(activeSkillOf('alchemist')).toBe('fireFlask');
   });
 });
 

@@ -14,6 +14,7 @@ import { TERRAIN } from './data/terrain';
 import { COMBOS } from './data/combos';
 import type { BasicAttackStyle } from './data/horde';
 import { HORDE_ATTACKS, HORDE_CHAIN } from './data/horde';
+import { addZone } from './zones';
 
 /** 打斷造成的硬直秒數 */
 export const INTERRUPT_STUN = 0.5;
@@ -30,6 +31,7 @@ export interface ActionRequest {
 /** 行動條速度：攻擊速度 × 全域倍率 × 詛咒減速（怪群模式的英雄普攻另外加速） */
 export function actionRate(world: World, u: Unit, kind?: 'attack' | 'skill'): number {
   let r = u.def.attackSpeed * world.config.actionSpeedMult * (u.curseTime > 0 ? 1 - u.curseSlow : 1);
+  if (kind === 'attack') r *= 1 + u.mods.attackSpeedPct;
   if (kind === 'attack' && u.team === 'hero') {
     r *= world.config.basicAttackSpeedMult;
     const style = hordeStyle(world, u);
@@ -39,10 +41,31 @@ export function actionRate(world: World, u: Unit, kind?: 'attack' | 'skill'): nu
   return r;
 }
 
-/** 怪群模式的普攻效果（只對英雄、只在 horde 模式） */
+/**
+ * 英雄的普攻方式：怪群模式用 HORDE_ATTACKS；沉穩節奏用被動（職業被動提供，SPEC_SLICE5 §14）；戰術模式沒有。
+ */
 export function hordeStyle(world: World, u: Unit): BasicAttackStyle | undefined {
-  if (world.config.battleStyle !== 'horde' || u.team !== 'hero') return undefined;
-  return HORDE_ATTACKS[u.def.id];
+  if (u.team !== 'hero') return undefined;
+  if (world.config.battleStyle === 'horde') return HORDE_ATTACKS[u.def.id];
+  if (world.config.battleStyle === 'deliberate') return u.passives.find((p) => p.attack)?.attack;
+  return undefined;
+}
+
+/** 被動的普攻命中效果（SPEC_SLICE5 §14）：每第 N 擊、機率觸發的暈眩／定身 */
+function passiveOnHit(world: World, src: Unit, t: Unit): void {
+  src.basicHits++;
+  for (const p of src.passives) {
+    for (const e of p.onHit ?? []) {
+      if (e.every && src.basicHits % e.every !== 0) continue;
+      if (e.chance !== undefined && !world.rng.chance(e.chance)) continue;
+      if (e.kind === 'stun') applyStun(world, t, e.duration);
+      else {
+        t.rootTime = Math.max(t.rootTime, e.duration);
+        world.emit({ type: 'status', unitId: t.id, text: '定身' });
+      }
+      world.emit({ type: 'notice', unitId: src.id, text: p.name });
+    }
+  }
 }
 
 /** 技能冷卻（個別修飾 × 全域倍率） */
@@ -101,14 +124,14 @@ export function finishWindup(world: World, u: Unit): void {
       }
       const style = hordeStyle(world, u);
       if (style) hordeMelee(world, u, t, style);
-      else strike(world, u, t, { melee: true, mult: 1, damageType: basicDamageType(u.def) });
+      else strike(world, u, t, { melee: true, mult: 1, damageType: basicDamageType(u.def), basic: true });
     } else {
       const style = hordeStyle(world, u);
       world.spawnProjectile(
         u,
         u.def.projectileKind ?? 'arrow',
         u.def.projectileSpeed ?? 20,
-        { type: 'strike', melee: false, mult: 1, damageType: basicDamageType(u.def), arc: u.def.arcAttack, basic: !!style, pierceLeft: style?.kind === 'pierce' ? style.maxTargets - 1 : undefined },
+        { type: 'strike', melee: false, mult: 1, damageType: basicDamageType(u.def), arc: u.def.arcAttack, basic: true, pierceLeft: style?.kind === 'pierce' ? style.maxTargets - 1 : undefined },
         { unit: t },
       );
     }
@@ -143,7 +166,7 @@ const DEG = Math.PI / 180;
 
 /** 近戰普攻：橫掃、聖鎚、刺擊 */
 function hordeMelee(world: World, u: Unit, t: Unit, style: BasicAttackStyle): void {
-  const base: StrikeParams = { melee: true, mult: 1, damageType: basicDamageType(u.def) };
+  const base: StrikeParams = { melee: true, mult: 1, damageType: basicDamageType(u.def), basic: true };
   switch (style.kind) {
     case 'cleave': {
       u.attackCount++;
@@ -267,7 +290,7 @@ function applyHex(t: Unit, duration: number, slow: number, vuln: number, spread:
 
 /** 怪群模式的死亡連鎖：咒彈擴散、燃燒的雜兵爆開 */
 function deathChain(world: World, u: Unit): void {
-  if (world.config.battleStyle !== 'horde') return;
+  if (world.config.battleStyle === 'tactical') return;
   if (u.hexed) {
     let best: Unit | null = null;
     let bestD = Infinity;
@@ -284,7 +307,7 @@ function deathChain(world: World, u: Unit): void {
       world.emit({ type: 'status', unitId: best.id, text: '詛咒擴散' });
     }
   }
-  if (u.def.tier === 'fodder' && u.burnTime > 0) {
+  if (world.config.battleStyle === 'horde' && u.def.tier === 'fodder' && u.burnTime > 0) {
     const src = world.getUnit(u.burnSourceId) ?? u;
     world.emit({ type: 'aoe', sourceId: src.id, point: { ...u.pos }, radius: HORDE_CHAIN.burningDeathRadius, skillId: 'burnBurst' });
     for (const o of [...world.units]) {
@@ -417,7 +440,7 @@ function applySkillEffect(world: World, u: Unit, def: SkillDef, t: Unit | undefi
       return false;
     case 'zone':
       if (!point) return false;
-      world.zones.push({ point: { ...point }, radius: eff.radius, time: eff.duration, moveMult: eff.moveMult, team: u.team, skillId: def.id });
+      addZone(world, u, point, eff.radius, eff.lingering, def.id);
       world.emit({ type: 'aoe', sourceId: u.id, point: { ...point }, radius: eff.radius, skillId: def.id });
       return false;
     case 'aoeHeal':
@@ -532,6 +555,8 @@ export interface StrikeParams {
   critVsStunned?: boolean;
   /** 擊退撞牆時額外暈眩 */
   wallStun?: boolean;
+  /** 這是普攻（觸發被動的命中效果） */
+  basic?: boolean;
   skillId?: string;
   freeAttack?: boolean;
 }
@@ -590,6 +615,8 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): Uni
   const base = rollDamage(world.rng, p.flatDamage ?? src.def.damage, p.mult * damageMultOf(world, src) * terrainMult * comboMult);
   const final = applyArmor(base * (crit ? CRIT_MULT : 1), target.armor);
   applyDamage(world, target, final, p.damageType, src, { crit, skillId: p.skillId, freeAttack: p.freeAttack });
+  if (target.dead) return target;
+  if (p.basic && src.passives.length > 0) passiveOnHit(world, src, target);
   if (target.dead) return target;
   if (p.interrupts) interrupt(world, src, target);
   if (p.stun) applyStun(world, target, p.stun);
@@ -709,6 +736,7 @@ export function explode(world: World, src: Unit, point: { x: number; y: number }
   if (eff.kind !== 'aoe') return;
   world.emit({ type: 'aoe', sourceId: src.id, point: { ...point }, radius: eff.radius, skillId: def.id });
   if (eff.ignites) world.ignite(point, eff.radius, src.id);
+  if (eff.lingering) addZone(world, src, point, eff.radius, eff.lingering, def.id);
   for (const u of world.units) {
     if (u.dead) continue;
     if (dist(u.pos, point) > eff.radius + u.radius * 0.5) continue;
