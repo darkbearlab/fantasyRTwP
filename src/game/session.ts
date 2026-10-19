@@ -43,7 +43,7 @@ const persisted = {
   debug: { panel: false, navGrid: false, paths: false, allZoc: false, los: false, slots: false, facing: false } as DebugFlags,
   autoPause: { ...GAME_CONFIG.autoPause } as AutoPauseConfig,
   sim: { ...GAME_CONFIG.sim },
-  logOpen: true,
+  logOpen: false,
 };
 
 /** 玩家目前的 sim 設定偏好（遠征建立戰鬥時帶入） */

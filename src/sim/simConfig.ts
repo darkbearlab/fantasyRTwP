@@ -49,6 +49,11 @@ export interface SimConfig {
   skillCooldownMult: number;
   /** 攻擊移動：途中自動接戰的距離（邊緣距離，公尺） */
   attackMoveRange: number;
+  /**
+   * 攻擊移動找目標的基準：self＝途中接戰身邊的敵人（舊模式）；
+   * point＝只打目標點附近的敵人，途中不接戰（沉穩節奏：這樣才能脫離戰鬥）
+   */
+  attackMoveFocus: 'self' | 'point';
   /** 戰爭迷霧開關（只對啟用迷霧的怪群遭遇有效；除錯面板可以關掉比較） */
   fogOfWar: boolean;
 }
@@ -73,5 +78,6 @@ export const DEFAULT_SIM_CONFIG: SimConfig = {
   basicAttackSpeedMult: 1,
   skillCooldownMult: 1,
   attackMoveRange: 6,
+  attackMoveFocus: 'self',
   fogOfWar: true,
 };

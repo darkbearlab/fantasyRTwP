@@ -228,6 +228,7 @@ export class InputController {
       return;
     }
     s.enqueue({ type: 'interact', unitId: p.id, objectId: obj.def.id });
+    if (this.deliberate) s.selection = [];
   }
 
   /**
@@ -235,6 +236,10 @@ export class InputController {
    */
   private cyclePersonality(): void {
     const s = this.session;
+    if (this.deliberate) {
+      s.showToast('沉穩模式下性格固定為堅守', this.now(), 1200);
+      return;
+    }
     const sel = s.selectedUnits();
     const p = s.primary();
     if (!p || sel.length === 0) {
@@ -269,6 +274,8 @@ export class InputController {
       return;
     }
     this.attackMove(unit && !unit.dead ? { x: unit.pos.x, y: unit.pos.y } : m);
+    // Alan：下完指令就取消選取
+    s.selection = [];
   }
 
   /** 行動版手勢：單指拖曳移動鏡頭、雙指捏合縮放；處理了就回傳 true */
