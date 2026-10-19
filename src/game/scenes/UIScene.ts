@@ -22,6 +22,7 @@ import type { ArtMode, DirMode } from '../render/art';
 import type { ProjectionMode } from '../render/projection';
 import type { BattleSession, DebugFlags } from '../session';
 import type { BattleScene } from './BattleScene';
+import { MobileHeroBar } from '../ui/mobileBar';
 
 const STATE_LABEL: Record<UnitState, string> = {
   [UnitState.Idle]: '閒置',
@@ -79,6 +80,9 @@ export class UIScene extends Phaser.Scene {
   private quickOnly: HTMLElement[] = [];
   private logCount = -1;
   private logLast: unknown = null;
+  /** 沉穩節奏（SPEC_SLICE5）用行動版的四卡片英雄列 */
+  private mobileBar!: MobileHeroBar;
+  private mobile = false;
 
   constructor() {
     super('UI');
@@ -96,6 +100,8 @@ export class UIScene extends Phaser.Scene {
     this.buildDebug();
     this.heroBar = el('div', 'hero-bar interactive');
     this.root.appendChild(this.heroBar);
+    this.mobileBar = new MobileHeroBar({ session: () => this.cur(), now: () => this.time.now, centerOn: (id) => this.battle.centerOnUnit(id) });
+    this.root.appendChild(this.mobileBar.root);
     this.toastEl = el('div', 'toast');
     this.root.appendChild(this.toastEl);
   }
@@ -478,9 +484,15 @@ export class UIScene extends Phaser.Scene {
     if (!s) return;
     if (s !== this.session) {
       this.session = s;
-      this.buildHeroBar(s);
+      this.mobile = s.world.config.battleStyle === 'deliberate';
+      this.root.classList.toggle('mobile', this.mobile);
+      this.cards = [];
+      this.heroBar.innerHTML = '';
+      if (this.mobile) this.mobileBar.build(s);
+      else this.buildHeroBar(s);
       this.logCount = -1;
     }
+    if (this.mobile) this.mobileBar.update(s);
     const w = s.world;
     const t = w.time;
     const mm = Math.floor(t / 60);

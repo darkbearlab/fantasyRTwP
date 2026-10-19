@@ -79,8 +79,8 @@ describe('大型關卡生成（遠征）', () => {
 });
 
 describe('遠征改用大型關卡', () => {
-  it('新遠征預設是大型關卡；戰鬥、精英、頭目節點都用生成的關卡', () => {
-    const r = createRun(3);
+  it('大型關卡遠征（封存模式）：戰鬥、精英、頭目節點都用生成的關卡', () => {
+    const r = createRun(3, { style: 'horde' });
     expect(r.style).toBe('horde');
     for (const n of r.map.nodes) {
       if (n.type === 'battle' || n.type === 'elite' || n.type === 'boss') expect(pickEncounter(r, n)).toBe(levelEncounterId(n.type));
@@ -92,7 +92,7 @@ describe('遠征改用大型關卡', () => {
     expect(w.horde).not.toBeNull();
     expect(w.map.width).toBe(LEVELS.size.battle.width);
     // 同一趟遠征、同一節點：同一張關卡
-    expect(JSON.stringify(encounterFor(b, first, levelEncounterId('battle')))).toBe(JSON.stringify(encounterFor(createRun(3), first, levelEncounterId('battle'))));
+    expect(JSON.stringify(encounterFor(b, first, levelEncounterId('battle')))).toBe(JSON.stringify(encounterFor(createRun(3, { style: 'horde' }), first, levelEncounterId('battle'))));
   });
 
   it('戰術模式（tactical）仍然用原本的遭遇池', () => {

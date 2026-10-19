@@ -1388,3 +1388,198 @@ body {
   color: #c8d0dc;
   line-height: 1.6;
 }
+
+
+/* ───────────── 行動版英雄列（SPEC_SLICE5 §8）───────────── */
+.hud-root.mobile .hero-bar,
+.hud-root.mobile .pause-banner,
+.hud-root.mobile .top-bar .hint {
+  display: none;
+}
+.hud-root:not(.mobile) .m-bar {
+  display: none;
+}
+.hud-root.mobile .log {
+  top: 52px;
+  bottom: auto;
+  max-height: 40%;
+}
+.m-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+}
+.m-bar > * {
+  pointer-events: auto;
+}
+.m-pause-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  pointer-events: none;
+}
+.m-pause-col > * {
+  pointer-events: auto;
+}
+.m-pause-label {
+  font-size: 13px;
+  color: #ffd76a;
+  text-shadow: 0 1px 2px #000;
+  min-height: 16px;
+  pointer-events: none;
+}
+.m-pause {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid #4a5263;
+  background: rgba(16, 18, 23, 0.92);
+  color: #9fb3d1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+.m-pause svg {
+  animation: m-spin 2.4s linear infinite;
+}
+.m-pause.paused {
+  border-color: #ffd23f;
+  background: rgba(70, 52, 10, 0.95);
+  color: #ffd23f;
+}
+.m-pause.paused svg {
+  animation-play-state: paused;
+}
+@keyframes m-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+.m-cards {
+  display: flex;
+  gap: 10px;
+}
+.m-card {
+  position: relative;
+  width: 240px;
+  height: 150px;
+  border-radius: 14px;
+  border: 3px solid #343a46;
+  background: rgba(16, 18, 23, 0.92);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  --hero: #6c8cff;
+}
+.m-card.selected {
+  border-color: var(--hero);
+  box-shadow: 0 0 12px var(--hero);
+}
+.m-card.dead,
+.m-card.empty {
+  opacity: 0.45;
+}
+.m-card.empty .m-head {
+  justify-content: center;
+  color: #8a93a3;
+}
+/* 水位：準備動作的進度，由下往上填滿 */
+.m-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0;
+  background: var(--hero);
+  opacity: 0.4;
+  pointer-events: none;
+}
+.m-fill.skill {
+  background: #ffd23f;
+}
+.m-head,
+.m-skill {
+  position: relative;
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: #e6e9ef;
+  font: inherit;
+  cursor: pointer;
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+}
+.m-head {
+  border-bottom: 1px solid #343a46;
+}
+.m-name {
+  font-size: 20px;
+  font-weight: bold;
+  text-align: left;
+  color: var(--hero);
+}
+.m-hp {
+  position: relative;
+  height: 16px;
+  background: #2a2f3a;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.m-hp .fill {
+  height: 100%;
+  background: #4caf6a;
+}
+.m-hp .fill.low {
+  background: #e05a4f;
+}
+.m-hp .hptext {
+  position: absolute;
+  inset: 0;
+  font-size: 12px;
+  line-height: 16px;
+  text-align: center;
+}
+.m-skill {
+  align-items: center;
+  overflow: hidden;
+}
+.m-skill .sname {
+  position: relative;
+  font-size: 20px;
+  font-weight: bold;
+}
+.m-skill .cd {
+  position: relative;
+  font-size: 16px;
+  color: #ffd76a;
+  min-height: 18px;
+}
+.m-skill .cdcover {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0;
+  background: rgba(0, 0, 0, 0.55);
+}
+.m-skill.cooling .sname {
+  color: #7d8594;
+}
+.m-skill.targeting {
+  box-shadow: inset 0 0 0 3px #ffd23f;
+}

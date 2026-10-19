@@ -6,6 +6,9 @@ import type { EncounterTier } from './encounters';
 
 export type LevelTheme = 'mine' | 'wild';
 
+/** 遠征的戰鬥形式 */
+export type RunStyle = 'deliberate' | 'horde' | 'tactical';
+
 export interface LevelSize {
   width: number;
   height: number;
@@ -14,8 +17,11 @@ export interface LevelSize {
 }
 
 export const LEVELS = {
-  /** 遠征的戰鬥形式：horde＝大型關卡（預設）；tactical＝切片 2／3 的小地圖戰術戰鬥 */
-  expeditionStyle: 'horde' as 'horde' | 'tactical',
+  /**
+   * 遠征的戰鬥形式：deliberate＝沉穩節奏（SPEC_SLICE5，預設；用小地圖遭遇）；
+   * horde＝大型關卡（封存）；tactical＝切片 2／3 的戰術戰鬥（封存）
+   */
+  expeditionStyle: 'deliberate' as RunStyle,
   /** 各節點類型的關卡大小 */
   size: {
     battle: { width: 72, height: 72, zones: 3 },

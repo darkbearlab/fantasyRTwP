@@ -10,6 +10,7 @@ import { PERSONALITY_LABEL } from '../../sim/ai/idleBehavior';
 import type { Personality } from '../../sim/data/types';
 import { PERSONALITY_CYCLE } from '../ui/partyPanel';
 import type { InteractableState } from '../../sim/interact';
+import { activeSkillIndex } from '../ui/mobileBar';
 
 /** 切換性格時的一句話說明 */
 const PERSONALITY_HINT: Record<Personality, string> = {
@@ -45,11 +46,17 @@ export class InputController {
   private held = new Set<string>();
   /** 按了攻擊移動鍵，等待點擊目標點 */
   attackMoveArmed = false;
+  /** 沉穩模式（行動版操作）：按下的位置（判斷點擊或拖曳鏡頭） */
+  private tap: { x: number; y: number; sx: number; sy: number; moved: boolean } | null = null;
+  /** 雙指捏合縮放：上一次兩指的距離 */
+  private pinchDist = 0;
 
   constructor(private host: InputHost) {
     const scene = host.scene;
     const input = scene.input;
     input.mouse?.disableContextMenu();
+    // 行動版：第二根手指（捏合縮放）
+    input.addPointer(1);
     input.keyboard!.addCapture('SPACE,UP,DOWN,LEFT,RIGHT,TAB');
 
     input.on('pointerdown', (p: Phaser.Input.Pointer) => this.onDown(p));
@@ -105,7 +112,13 @@ export class InputController {
       this.attackMoveArmed = false;
       const obj = unit && !unit.dead ? undefined : this.host.objectAtScreen(sp.x, sp.y);
       if (obj) this.interact(obj);
+      else if (this.deliberate) this.tapOrder(m, unit);
       else this.rightClick(m, unit);
+      return;
+    }
+    if (this.deliberate && !this.attackMoveArmed && !s.targeting) {
+      // 行動版：先記下按下的位置，放開時沒有拖曳才算點擊（拖曳＝移動鏡頭）
+      this.tap = { x: p.x, y: p.y, sx: sp.x, sy: sp.y, moved: false };
       return;
     }
     if (p.leftButtonDown()) {
@@ -124,6 +137,7 @@ export class InputController {
 
   private onMove(p: Phaser.Input.Pointer): void {
     this.pointerSeen = true;
+    if (this.deliberate && this.touchGesture(p)) return;
     const sp = this.toScreen(p);
     const u = this.host.unitAtScreen(sp.x, sp.y);
     this.session.hoverUnitId = u ? u.id : null;
@@ -140,6 +154,18 @@ export class InputController {
 
   private onUp(p: Phaser.Input.Pointer): void {
     if (this.panLast && !p.middleButtonDown()) this.panLast = null;
+    if (this.tap) {
+      const t = this.tap;
+      this.tap = null;
+      this.pinchDist = 0;
+      if (!t.moved) {
+        const unit = this.host.unitAtScreen(t.sx, t.sy);
+        const obj = unit && !unit.dead ? undefined : this.host.objectAtScreen(t.sx, t.sy);
+        if (obj) this.interact(obj);
+        else this.tapOrder(screenToGround(t.sx, t.sy), unit);
+      }
+      return;
+    }
     if (!this.dragStart || p.leftButtonDown()) return;
     const s = this.session;
     const a = this.dragStart;
@@ -221,6 +247,52 @@ export class InputController {
   }
 
   /** 攻擊移動（SPEC_SLICE4 §3.1b） */
+  /** 沉穩節奏（SPEC_SLICE5）：使用行動版操作 */
+  private get deliberate(): boolean {
+    return this.session.world.config.battleStyle === 'deliberate';
+  }
+
+  /**
+   * 行動版的點擊（SPEC_SLICE5 §4）：所有攻擊都是攻擊移動。
+   * 點英雄＝選取／取消；點敵人＝攻擊移動到那個位置（不鎖定目標）；點地面＝攻擊移動。
+   */
+  private tapOrder(m: Vec, unit: Unit | undefined): void {
+    const s = this.session;
+    if (unit && !unit.dead && unit.team === 'hero') {
+      const i = s.selection.indexOf(unit.id);
+      if (i >= 0) s.selection.splice(i, 1);
+      else s.selection.push(unit.id);
+      return;
+    }
+    if (s.selectedUnits().length === 0) {
+      s.showToast('先點英雄卡上的名字選人', this.now(), 1200);
+      return;
+    }
+    this.attackMove(unit && !unit.dead ? { x: unit.pos.x, y: unit.pos.y } : m);
+  }
+
+  /** 行動版手勢：單指拖曳移動鏡頭、雙指捏合縮放；處理了就回傳 true */
+  private touchGesture(p: Phaser.Input.Pointer): boolean {
+    const input = this.host.scene.input;
+    const cam = this.host.scene.cameras.main;
+    const p1 = input.pointer1;
+    const p2 = input.pointer2;
+    if (p1?.isDown && p2?.isDown) {
+      const d = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+      if (this.pinchDist > 0) cam.setZoom(Phaser.Math.Clamp(cam.zoom * (d / this.pinchDist), 0.6, 1.8));
+      this.pinchDist = d;
+      if (this.tap) this.tap.moved = true;
+      return true;
+    }
+    if (!this.tap || !p.isDown) return false;
+    if (!this.tap.moved && Math.hypot(p.x - this.tap.x, p.y - this.tap.y) > 10) this.tap.moved = true;
+    if (this.tap.moved) {
+      cam.scrollX -= (p.x - p.prevPosition.x) / cam.zoom;
+      cam.scrollY -= (p.y - p.prevPosition.y) / cam.zoom;
+    }
+    return this.tap.moved;
+  }
+
   private attackMove(m: Vec): void {
     this.attackMoveArmed = false;
     const ids = this.session.selectedUnits().map((u) => u.id);
@@ -275,12 +347,16 @@ export class InputController {
   digit(n: number, shift: boolean): void {
     const s = this.session;
     const now = this.now();
-    const a = decideDigit(s.chord, now, n, shift, GAME_CONFIG.keys.selectSlot.length, (slot) => s.heroBySlot(slot)?.def.skills.length ?? 0);
+    // 沉穩節奏：每名英雄只有一招主動技能（第二下的 1）
+    const one = this.deliberate;
+    const a = decideDigit(s.chord, now, n, shift, GAME_CONFIG.keys.selectSlot.length, (slot) => (one ? 1 : (s.heroBySlot(slot)?.def.skills.length ?? 0)));
     s.chord = null;
     switch (a.kind) {
-      case 'skill':
-        beginSkill(s, a.slot, a.index, now);
+      case 'skill': {
+        const hero = s.heroBySlot(a.slot);
+        beginSkill(s, a.slot, one && hero ? activeSkillIndex(hero) : a.index, now);
         break;
+      }
       case 'noSkill': {
         const hero = s.heroBySlot(a.slot);
         if (hero) s.showToast(`${hero.def.name}沒有第 ${a.index + 1} 個技能`, now, 1000);

@@ -9,6 +9,7 @@ import { ECONOMY } from './data/economy';
 import type { NodeType, RunMap } from './mapGen';
 import { generateMap } from './mapGen';
 import { LEVELS } from './data/levels';
+import type { RunStyle } from './data/levels';
 
 export interface OwnedUpgrade {
   id: string;
@@ -83,8 +84,8 @@ export interface RunState {
   stats: RunStats;
   /** 遠征紀錄（給結算畫面） */
   journal: string[];
-  /** 戰鬥形式：horde＝大型關卡、tactical＝小地圖戰術戰鬥（舊紀錄沒有，視為 tactical） */
-  style?: 'horde' | 'tactical';
+  /** 戰鬥形式：deliberate＝沉穩節奏、horde＝大型關卡、tactical＝戰術戰鬥（舊紀錄沒有，視為 tactical） */
+  style?: RunStyle;
 }
 
 export function newHero(classId: string, personality?: Personality): HeroRecord {
@@ -106,7 +107,7 @@ export function newHero(classId: string, personality?: Personality): HeroRecord 
 /**
  * 建立遠征。opts.party：隊伍職業（組隊畫面用 rollParty 產生）；省略時為四個 Archetype。
  */
-export function createRun(seed: number, opts: { layers?: number; party?: string[]; style?: 'horde' | 'tactical' } = {}): RunState {
+export function createRun(seed: number, opts: { layers?: number; party?: string[]; style?: RunStyle } = {}): RunState {
   const party: (HeroRecord | null)[] = (opts.party ?? HERO_ORDER).slice(0, ECONOMY.partySize).map((id) => newHero(id));
   while (party.length < ECONOMY.partySize) party.push(null);
   return {

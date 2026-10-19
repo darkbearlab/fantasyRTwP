@@ -17,6 +17,9 @@ import { deriveSeed } from './seed';
 import type { LevelTier } from './levelGen';
 import { generateLevel } from './levelGen';
 import type { MapDef } from '../sim/data/types';
+import type { RunStyle } from './data/levels';
+import { deliberateConfig } from '../sim/data/deliberate';
+import { DEFAULT_SIM_CONFIG } from '../sim/simConfig';
 import { heroDef } from './upgrades';
 
 /** 敵人數值隨層數成長；隊長另外強化 */
@@ -64,7 +67,7 @@ export function levelEncounterId(tier: LevelTier): string {
 }
 
 /** 遠征的戰鬥形式（舊紀錄沒有 style，視為戰術戰鬥） */
-export function runStyle(run: RunState): 'horde' | 'tactical' {
+export function runStyle(run: RunState): RunStyle {
   return run.style ?? 'tactical';
 }
 
@@ -110,7 +113,8 @@ export function createBattleFromRun(run: RunState, config?: Partial<SimConfig>, 
   const horde = enc.horde ? { ...enc.horde, spawners: [...(map.spawners ?? []), ...enc.horde.spawners] } : undefined;
   const scaled = (id: string, captain?: boolean) => (horde ? hordeEnemyDef(enemyDef(id, layer, captain)) : enemyDef(id, layer, captain));
   for (const e of enc.enemies) spawns.push({ defId: e.enemy, def: scaled(e.enemy, e.captain), pos: { x: e.x, y: e.y } });
-  const cfg = horde ? { ...config, ...HORDE_CONFIG } : config;
+  // 沉穩節奏（SPEC_SLICE5）：小地圖遭遇套用變慢的設定
+  const cfg = horde ? { ...config, ...HORDE_CONFIG } : runStyle(run) === 'deliberate' ? { ...config, ...deliberateConfig({ ...DEFAULT_SIM_CONFIG, ...config }) } : config;
   // 戰鬥中召喚的援軍也套用層數成長
   return new World({ seed, map, spawns, config: cfg, enemyDefFor: (id, captain) => scaled(id, captain), horde });
 }

@@ -3,8 +3,11 @@
  * 執行中只能透過 `setConfig` 指令修改（畫面層不得直接改 sim）。
  */
 export type ZocMode = 'pin' | 'disengage' | 'off';
-/** 戰鬥模式（SPEC_SLICE4）：tactical＝原本的戰術戰鬥；horde＝怪群試作 */
-export type BattleStyle = 'tactical' | 'horde';
+/**
+ * 戰鬥模式：deliberate＝沉穩節奏（SPEC_SLICE5，目前的主要模式）；
+ * tactical＝切片 2／3 的戰術戰鬥、horde＝切片 4 的怪群試作（兩者封存，規則照舊）
+ */
+export type BattleStyle = 'tactical' | 'horde' | 'deliberate';
 
 export interface SimConfig {
   /** 戰鬥模式（怪群遭遇會自動設成 horde） */
