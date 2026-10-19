@@ -422,7 +422,8 @@ export class InputController {
     if (down(K.cameraDown)) dy += 1;
     const p = scene.input.activePointer;
     const m = GAME_CONFIG.edgeScrollMargin;
-    if (this.pointerSeen && scene.input.isOver && !this.dragStart && !this.panLast) {
+    // 觸控沒有「游標停在邊緣」，不做邊緣捲動（否則手指點過邊緣後鏡頭會一直飄）
+    if (this.pointerSeen && scene.input.isOver && !this.dragStart && !this.panLast && !p.wasTouch) {
       if (p.x <= m) dx -= 1;
       if (p.x >= scene.scale.width - m) dx += 1;
       if (p.y <= m) dy -= 1;
