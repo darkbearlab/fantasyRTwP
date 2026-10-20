@@ -18,6 +18,17 @@
   - `public/assets/licensed/` 已列在 `.gitignore`，**不要把它加進 git，也不要複製到任何公開的地方**。
 - 署名：遊戲內標題畫面的「製作人員」列出 Matt Walkden。
 
+## finalbossblues〈Time Elements: Hometown〉〈Four Seasons Terrain〉（**不在本 repo 內**）
+
+- 來源：https://finalbossblues.itch.io/ （作者 Jason Perry）。2026-10-20 起戰鬥地圖的地形與物件（野外、城內）。
+- 授權重點：可商用、可修改、不需署名；**不可散布素材本身**（原檔與修改版都算），只能做為遊戲的一部分發佈。
+- 和 Matt Walkden 的素材一樣放在私有 repo `darkbearlab/fantasyRTwP-assets` 的 `fbb/`（內容見該資料夾的 README），部署與本機開發的做法同上。
+- 主 repo 只放「格號」：
+  - `src/game/render/fbbTiles.ts` 的圖塊對照。
+  - `src/run/data/tilePrefabs/*.json`：Alan 用拼圖台手工拼的預製件，只有格號、沒有圖。
+- 試產工具（`tools/fieldPreview.ts`、`tools/townPreview.ts`）輸出的 PNG 含授權素材，只放本機（`preview/` 已列在 `.gitignore`）。
+- 署名：雖然不需要，遊戲內「製作人員」仍列出 finalbossblues。
+
 ## 0x72〈16x16 DungeonTileset II〉v1.7（`public/assets/0x72/`）
 
 - 來源：https://0x72.itch.io/dungeontileset-ii

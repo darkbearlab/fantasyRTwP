@@ -1,0 +1,47 @@
+{
+ "format": "tilebench-prefab/1",
+ "name": "水井",
+ "sheet": "master_everything.png",
+ "sheetCols": 115,
+ "tileSize": 16,
+ "w": 3,
+ "h": 3,
+ "cellFormat": "\"0:格號\"（表 0 = master_everything.png），空字串為空格",
+ "layers": {
+  "ground": [
+   [
+    "",
+    "",
+    ""
+   ],
+   [
+    "",
+    "",
+    ""
+   ],
+   [
+    "",
+    "",
+    ""
+   ]
+  ],
+  "objects": [
+   [
+    "0:4081",
+    "0:4082",
+    "0:4083"
+   ],
+   [
+    "0:4196",
+    "0:4197",
+    "0:4198"
+   ],
+   [
+    "0:4311",
+    "0:4312",
+    "0:4313"
+   ]
+  ]
+ },
+ "note": "Alan 手工拼的做例"
+}

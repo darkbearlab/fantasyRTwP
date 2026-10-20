@@ -8,6 +8,7 @@ export const CREDITS = {
   pixel: [
     { title: '單位美術', line: 'Matt Walkden — Fantasy Battle Pack（mattwalkden.itch.io）' },
     { title: '地城拼塊與怪物', line: '0x72 — 16x16 DungeonTileset II（CC0）' },
+    { title: '戰鬥地圖地形', line: 'finalbossblues（Jason Perry）— Time Elements: Hometown、Four Seasons Terrain（finalbossblues.itch.io）' },
   ],
   flare: {
     title: 'Flare 美術素材（flare-game · mods/fantasycore）',
