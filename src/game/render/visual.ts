@@ -35,6 +35,11 @@ const UNIT_HEIGHT: Record<string, number> = {
 };
 
 export const VISUAL = {
+  /**
+   * 畫面外敵人指示器（Alan）：畫面邊緣朝敵人方向的紅色光暈，敵人越強（最大生命越高）光暈越大。
+   * 半徑 = base + perSqrtHp × √最大生命，限制在 [min, max]（px）；只顯示我方看得到的敵人（迷霧、草叢裡的不顯示）。
+   */
+  offscreen: { color: 0xff2a2a, base: 14, perSqrtHp: 2.4, min: 22, max: 84, alpha: 0.55, layers: 7 },
   defaultUnitHeight: 1.8,
   /** 精英隊長的身高 */
   captainHeight: 2.3,

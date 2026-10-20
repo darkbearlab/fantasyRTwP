@@ -7,7 +7,7 @@ import type Phaser from 'phaser';
 import type { InteractableState } from '../../sim/interact';
 import type { World } from '../../sim/world';
 import { darken, lighten } from './palette';
-import { depthOf, groundRect, isIso, worldToScreen } from './projection';
+import { depthOf, groundRect, hasHeight, worldToScreen } from './projection';
 import { OBJECT_DEPTH_BASE } from './unitView';
 
 /** 外觀設定（畫面用，不放進 sim 資料） */
@@ -150,7 +150,7 @@ export class InteractablesView {
     p.bounds = [];
     for (const k of boxes) {
       const g = this.scene.add.graphics();
-      if (isIso()) {
+      if (hasHeight()) {
         p.bounds.push(drawBox(g, k.x, k.y, k.w, k.d, k.h, k.color, edge));
         g.setDepth(OBJECT_DEPTH_BASE + depthOf(k.x + k.w / 2, k.y + k.d / 2));
       } else {

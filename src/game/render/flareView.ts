@@ -1,16 +1,14 @@
 import Phaser from 'phaser';
-import { GAME_CONFIG } from '../../config';
 import { SKILLS } from '../../sim/data/skills';
 import type { Unit } from '../../sim/unit';
 import type { FlareAnimMeta } from './art';
 import { FLARE, displayFacing, flareDir, flareKey } from './art';
 import { COLORS } from './palette';
-import { depthOf, groundCirclePoints, worldToScreen } from './projection';
+import { depthOf, groundAxes, groundCirclePoints, heightPx, worldToScreen } from './projection';
 import type { Concealment, UnitVisual } from './unitView';
 import { DEAD_DEPTH, OBJECT_DEPTH_BASE } from './unitView';
 import { VISUAL, unitHeight } from './visual';
 
-const ISO = GAME_CONFIG.iso;
 
 interface Layer {
   sprite: Phaser.GameObjects.Sprite;
@@ -75,8 +73,8 @@ export class FlareView implements UnitVisual {
     // 精英隊長等：依身高放大
     const s = this.height / baseHeight;
     for (const l of this.layers) l.sprite.setScale(s);
-    this.bodyW = unit.radius * ISO.tileW * 1.1;
-    this.bodyH = this.height * ISO.heightPxPerM;
+    this.bodyW = unit.radius * groundAxes(1).x * Math.SQRT2 * 1.1;
+    this.bodyH = heightPx(this.height);
     this.container = scene.add.container(0, 0, children);
     this.container.setDepth(OBJECT_DEPTH_BASE);
     this.dir = flareDir(unit.facing);
@@ -225,8 +223,7 @@ export class FlareView implements UnitVisual {
     const b = this.bodyBounds();
     if (px >= b.x && px <= b.x + b.w && py >= b.y && py <= b.y + b.h) return true;
     const rr = this.unit.radius + 0.2;
-    const ax = (rr * ISO.tileW) / Math.SQRT2;
-    const ay = (rr * ISO.tileH) / Math.SQRT2;
+    const { x: ax, y: ay } = groundAxes(rr);
     const dx = (px - this.x) / ax;
     const dy = (py - this.y) / ay;
     return dx * dx + dy * dy <= 1;

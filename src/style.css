@@ -1428,6 +1428,44 @@ body {
 .m-pause-col > * {
   pointer-events: auto;
 }
+.m-pause-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+.m-pause-row > * {
+  pointer-events: auto;
+}
+.m-pause-side {
+  display: flex;
+  min-width: 52px;
+  pointer-events: none;
+}
+.m-pause-side.left {
+  justify-content: flex-end;
+}
+.m-pause-side > * {
+  pointer-events: auto;
+}
+/* 全選／全部取消（Alan）：沙漏左邊的小圓鈕 */
+.m-selall {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 2px solid #4a5263;
+  background: rgba(16, 18, 23, 0.92);
+  color: #c9d3e3;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0;
+}
+.m-selall.active {
+  border-color: #7fd0ff;
+  color: #7fd0ff;
+}
 .m-pause-label {
   font-size: 13px;
   color: #ffd76a;
@@ -1658,6 +1696,10 @@ body {
 #stage.compact .m-pause {
   width: 48px;
   height: 48px;
+}
+#stage.compact .m-selall {
+  width: 40px;
+  height: 40px;
 }
 #stage.compact .hud-root.mobile .log {
   max-height: 55%;

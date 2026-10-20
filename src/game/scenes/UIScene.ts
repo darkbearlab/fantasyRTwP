@@ -173,8 +173,9 @@ export class UIScene extends Phaser.Scene {
     projRow.appendChild(el('span', 'lbl', '投影'));
     const proj = el('select');
     for (const [v, t] of [
+      ['ortho', '正角俯視'],
       ['iso', '等角（45 度）'],
-      ['topdown', '正俯視'],
+      ['topdown', '純平面'],
     ]) {
       const o = el('option', '', t);
       o.value = v;

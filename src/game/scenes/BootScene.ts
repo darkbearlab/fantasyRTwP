@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { getArt, queueFlare } from '../render/art';
 import { queueHeroes3d } from '../render/heroes3d';
 import { queueProps3d } from '../render/props3d';
+import { isIso } from '../render/projection';
 
 /** 開機：美術為 Flare／heroes3d 時先載入素材（約 9 MB＋7 MB），再進標題 */
 export class BootScene extends Phaser.Scene {
@@ -19,7 +20,8 @@ export class BootScene extends Phaser.Scene {
     queueFlare(this.load, this);
     if (getArt() === 'heroes3d') {
       queueHeroes3d(this.load, this);
-      queueProps3d(this.load, this);
+      // 地形物件（props3d）是等角素材，只有等角投影會用到
+      if (isIso()) queueProps3d(this.load, this);
     }
   }
 

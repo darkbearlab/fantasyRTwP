@@ -1,18 +1,20 @@
 /**
- * 畫面投影（畫面改版：45 度等角）。所有畫面與輸入的座標換算都必須經過這個模組。
+ * 畫面投影。所有畫面與輸入的座標換算都必須經過這個模組。
  * sim 仍然使用公尺的平面座標 (x, y)；z 是畫面上的高度（公尺），只影響繪製位置。
  *
- * iso（2:1 等角）：
- *   screenX = (x − y) × TILE_W / 2
- *   screenY = (x + y) × TILE_H / 2 − z × HEIGHT_PX_PER_M
- * topdown（正俯視）：screenX = x × PX、screenY = y × PX（忽略 z）
+ * ortho（正角俯視，預設；Alan：地圖改成正角，但保留俯角，角色 sprite 照樣站著畫）：
+ *   先依旋轉換成 (u, v)，screenX = u × PX、screenY = v × PX × SQUASH − z × HEIGHT_PX_PER_M
+ * iso（2:1 等角，舊的 45 度畫面）：
+ *   screenX = (u − v) × TILE_W / 2
+ *   screenY = (u + v) × TILE_H / 2 − z × HEIGHT_PX_PER_M
+ * topdown（純平面俯視，除錯用）：screenX = x × PX、screenY = y × PX（忽略 z）
  *
  * 只 import Phaser 的型別，數學部分可以在測試中直接使用。
  */
 import type Phaser from 'phaser';
 import { GAME_CONFIG } from '../../config';
 
-export type ProjectionMode = 'iso' | 'topdown';
+export type ProjectionMode = 'ortho' | 'iso' | 'topdown';
 
 export interface Pt {
   x: number;
@@ -32,7 +34,11 @@ export function setProjection(m: ProjectionMode): void {
 
 export const isIso = (): boolean => mode === 'iso';
 
+/** 有高度的投影（ortho、iso）：角色立起來畫、障礙物是方塊、投射物在空中 */
+export const hasHeight = (): boolean => mode !== 'topdown';
+
 const ISO = GAME_CONFIG.iso;
+const ORTHO = GAME_CONFIG.ortho;
 const PX = GAME_CONFIG.pxPerMeter;
 
 let rotation: 0 | 90 = GAME_CONFIG.isoRotation;
@@ -46,21 +52,28 @@ export function setIsoRotation(r: 0 | 90): void {
   rotation = r;
 }
 
-/** 世界座標 → 等角投影前的格子座標 (u, v)：旋轉 90 度（逆時針）時 u = y、v = −x */
+/** 世界座標 → 投影前的格子座標 (u, v)。等角：旋轉 90 度（逆時針）時 u = y、v = −x；ortho 依 ORTHO.rotation */
 function toUV(x: number, y: number): Pt {
-  return rotation === 90 ? { x: y, y: -x } : { x, y };
+  const r = mode === 'ortho' ? ORTHO.rotation : rotation;
+  return r === 90 ? { x: y, y: -x } : { x, y };
 }
 
 /** 世界座標（公尺）→ 畫面座標（相機世界 px） */
 export function worldToScreen(x: number, y: number, z = 0): Pt {
   if (mode === 'topdown') return { x: x * PX, y: y * PX };
   const { x: u, y: v } = toUV(x, y);
+  if (mode === 'ortho') return { x: u * ORTHO.pxPerM, y: v * ORTHO.pxPerM * ORTHO.squash - z * ORTHO.heightPxPerM };
   return { x: (u - v) * (ISO.tileW / 2), y: (u + v) * (ISO.tileH / 2) - z * ISO.heightPxPerM };
 }
 
 /** 畫面座標 → 地面（z = 0）的世界座標（公尺） */
 export function screenToGround(sx: number, sy: number): Pt {
   if (mode === 'topdown') return { x: sx / PX, y: sy / PX };
+  if (mode === 'ortho') {
+    const u = sx / ORTHO.pxPerM;
+    const v = sy / (ORTHO.pxPerM * ORTHO.squash);
+    return ORTHO.rotation === 90 ? { x: -v, y: u } : { x: u, y: v };
+  }
   const a = sx / (ISO.tileW / 2);
   const b = sy / (ISO.tileH / 2);
   const u = (a + b) / 2;
@@ -72,12 +85,21 @@ export function screenToGround(sx: number, sy: number): Pt {
 export function depthOf(x: number, y: number): number {
   if (mode === 'topdown') return y;
   const { x: u, y: v } = toUV(x, y);
+  if (mode === 'ortho') return v;
   return u + v;
 }
 
 /** 高度 z 公尺在畫面上的像素（topdown 為 0） */
 export function heightPx(z: number): number {
-  return mode === 'topdown' ? 0 : z * ISO.heightPxPerM;
+  if (mode === 'topdown') return 0;
+  return z * (mode === 'ortho' ? ORTHO.heightPxPerM : ISO.heightPxPerM);
+}
+
+/** 地面上半徑 r 公尺的圓投影到畫面後的半軸（px）：iso 為 2:1 橢圓 */
+export function groundAxes(r: number): Pt {
+  if (mode === 'topdown') return { x: r * PX, y: r * PX };
+  if (mode === 'ortho') return { x: r * ORTHO.pxPerM, y: r * ORTHO.pxPerM * ORTHO.squash };
+  return { x: (r * ISO.tileW) / Math.SQRT2, y: (r * ISO.tileH) / Math.SQRT2 };
 }
 
 /** 地圖四角投影後的外框（鏡頭邊界、地面貼圖用） */

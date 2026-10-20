@@ -71,4 +71,26 @@ describe('Flare 8 方向換算', () => {
     expect(flareDir(Math.PI / 2)).toBe(5);
     setIsoRotation(0);
   });
+
+  it('ortho：來回換算誤差 < 0.001 m；世界 +x 朝畫面上方、+y 朝右；深度與畫面 y 同向；z 往上', () => {
+    setProjection('ortho');
+    for (let i = 0; i < 500; i++) {
+      const x = ((i * 7919) % 4800) / 100;
+      const y = ((i * 104729) % 4800) / 100;
+      const s = worldToScreen(x, y);
+      const g = screenToGround(s.x, s.y);
+      expect(Math.abs(g.x - x)).toBeLessThan(0.001);
+      expect(Math.abs(g.y - y)).toBeLessThan(0.001);
+    }
+    const o = worldToScreen(0, 0);
+    const ex = worldToScreen(1, 0);
+    const ey = worldToScreen(0, 1);
+    expect(ex.x - o.x).toBeCloseTo(0);
+    expect(ex.y - o.y).toBeLessThan(0);
+    expect(ey.x - o.x).toBeGreaterThan(0);
+    expect(ey.y - o.y).toBeCloseTo(0);
+    expect(depthOf(0, 0)).toBeGreaterThan(depthOf(1, 0));
+    expect(worldToScreen(0, 0, 1).y).toBeLessThan(o.y);
+    setProjection('iso');
+  });
 });
