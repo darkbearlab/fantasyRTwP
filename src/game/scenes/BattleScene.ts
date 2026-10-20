@@ -43,7 +43,7 @@ import {
 import type { ProjectionMode } from '../render/projection';
 import { VISUAL, obstacleHeight, obstacleKind } from '../render/visual';
 import { InputController } from '../input/inputController';
-import { targetingDef, validSkillTarget } from '../input/targeting';
+import { nearestTargetTo, targetingDef, validSkillTarget } from '../input/targeting';
 import { BattleSession, currentSimConfig } from '../session';
 import { battleSeed, createBattleFromRun, currentEncounter } from '../../run/battle';
 import { rushEnd } from '../../sim/actions';
@@ -1226,18 +1226,26 @@ export class BattleScene extends Phaser.Scene {
     const { caster, def } = td;
     const g = this.ghostG;
     const from = this.wpos(caster);
-    const ptr = this.input.activePointer.positionToCamera(this.cameras.main) as Phaser.Math.Vector2;
-    const gp = screenToGround(ptr.x, ptr.y);
+    // 預覽位置：按住瞄準中用按住的位置（觸控沒有 hover）；否則只有滑鼠才跟著游標預覽
+    const aim = this.input2.aim;
+    let gp: Vec | null = aim ? aim.point : null;
+    if (!gp && this.input2.lastPointerMouse) {
+      const ptr = this.input.activePointer.positionToCamera(this.cameras.main) as Phaser.Math.Vector2;
+      gp = screenToGround(ptr.x, ptr.y);
+    }
     if (def.range > 0) {
       // 射程圈用實際射程（含交戰距離倍率、高地加成）
       const range = s.world.skillRange(caster, def);
       groundCircle(g, from.x, from.y, def.target === 'ground' ? range : range + caster.radius, { stroke: COLORS.targeting, strokeAlpha: 0.55, width: 1.5 });
     }
+    if (!gp) return;
     groundLine(g, from, gp, 1.5, COLORS.targeting, 0.6);
     if (def.target === 'ground') {
-      groundCircle(g, gp.x, gp.y, effectRadius(def) ?? 0.4, { fill: COLORS.targeting, fillAlpha: 0.18, stroke: COLORS.targeting, strokeAlpha: 0.9, width: 2 });
+      groundCircle(g, gp.x, gp.y, effectRadius(def) ?? 0.4, { fill: COLORS.targeting, fillAlpha: aim ? 0.28 : 0.18, stroke: COLORS.targeting, strokeAlpha: 0.9, width: aim ? 3 : 2 });
     } else {
-      const hu = s.hoverUnitId !== null ? s.world.getUnit(s.hoverUnitId) : undefined;
+      // 按住瞄準（沉穩節奏）：標出會打到的目標（離按住位置最近的）
+      let hu = s.hoverUnitId !== null ? s.world.getUnit(s.hoverUnitId) : undefined;
+      if (aim && s.world.config.battleStyle === 'deliberate' && !validSkillTarget(def, caster, hu)) hu = nearestTargetTo(s, def, caster, gp);
       if (hu && validSkillTarget(def, caster, hu)) {
         const p = this.wpos(hu);
         groundCircle(g, p.x, p.y, hu.radius + 0.25, { stroke: COLORS.targeting, strokeAlpha: 1, width: 3 });

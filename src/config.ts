@@ -68,6 +68,8 @@ export const GAME_CONFIG = {
    * align＝整排靠左／置中／靠右（對齊卡片列）；order＝由左到右的順序。
    */
   mobileControls: { align: 'left' as 'left' | 'center' | 'right', order: ['pause', 'selectAll'] as ('pause' | 'selectAll')[] },
+  /** 行動版：點地圖下完攻擊移動指令後是否自動取消選取（Alan 2026-10-20：先關掉） */
+  deselectAfterOrder: false,
   /** 戰鬥鏡頭的固定縮放（Alan：遠近固定，玩家不能縮放；只留這個旋鈕） */
   battleZoom: 1,
   /** 等角投影：1 公尺見方的地面 = TILE_W × TILE_H 的菱形；高度 1 m = HEIGHT_PX_PER_M px */

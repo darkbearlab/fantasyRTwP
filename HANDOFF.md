@@ -53,6 +53,8 @@
 - **拖曳地圖**：改聽視窗層級的原生 pointer 事件（`InputController.onNativeMove`／`onNativeUp`），手指滑到卡片等 DOM 面板上也會繼續拖，放開才結束。
 - **只顯示戰鬥中用到的技能**：`src/run/loadout.ts` 的 `battleSkillsOf(run, hero)`——沉穩節奏是主動技能（或循環的每一招），舊模式才是 `HeroRecord.skills`。獎勵的強化、事件、招募時的隨機強化、路線圖的隊伍面板都用它；沉穩節奏的休息點不顯示「技能」分頁。
 - **火焰瓶**：節奏比照火球（準備 0、恢復 1.2 秒、冷卻 12 秒、有飛行時間）；燃燒地面畫成焦土＋跳動的火舌（`BattleScene.drawFireZone`），持續 5 秒。
+- **按住瞄準**（觸控沒有 hover）：技能進入瞄準後，在地圖上按下就出現預覽（範圍圈／會打到的目標）；暫停中可以拖曳調整位置，放開才施放；不暫停時預覽固定在按下的位置（`InputController.aim`／`finishAim`）。暫停中再按技能重新瞄準會蓋掉前一次（原本就有）。
+- **下完指令不取消選取**：`GAME_CONFIG.deselectAfterOrder`（預設 false）。
 - **角色縮放**：`VISUAL.unitScale`（0.8，只影響畫面；`unitHeight()` 已乘上這個值），碰撞半徑與腳下圈不變。
 - **交戰距離縮短**（2026-10-20）：沉穩節奏 `SimConfig.rangeMult` ＝ 0.6（`DELIBERATE_PACE.range`），套用在 1 m 以上的普攻射程與技能施放距離（換算一律經過 `scaleRange`）；敵人察覺距離、攻擊移動接戰距離也 ×0.6。近戰、範圍半徑、視野不變；舊模式 `rangeMult` ＝ 1。
 - **法師火球改回**（2026-10-20）：拿掉充能／大火球循環；法師主動＝`flashFireball`（準備時間 0、仍有 1.2 秒恢復、飛行速度 16 m/s、冷卻 12 秒 ×2）。飛行中落點畫出爆炸範圍（`BattleScene.drawLandingZones`）。charge 循環機制與 `greatFireball` 資料保留給之後用。

@@ -3,7 +3,7 @@ import { GAME_CONFIG } from '../../config';
 import type { Vec } from '../../sim/math';
 import type { Unit } from '../../sim/unit';
 import type { BattleSession } from '../session';
-import { screenToGround } from '../render/projection';
+import { screenToGround, worldToScreen } from '../render/projection';
 import { beginSkill, confirmTargeting } from './targeting';
 import { decideDigit } from './chord';
 import { PERSONALITY_LABEL } from '../../sim/ai/idleBehavior';
@@ -38,6 +38,13 @@ export interface InputHost {
 export class InputController {
   /** 框選：起點（相機世界 px＝投影後的畫面座標） */
   dragStart: { x: number; y: number } | null = null;
+  /**
+   * 按住瞄準（Alan：觸控沒有 hover，技能改成按下後出現預覽、放開才確定）：
+   * 按下時在按下的位置顯示預覽；暫停中可以拖曳調整位置；放開時用最後的位置施放。
+   */
+  aim: { pid: number | null; point: Vec } | null = null;
+  /** 最後一次操作的指標是不是滑鼠（滑鼠才用 hover 預覽） */
+  lastPointerMouse = true;
   dragNow: { x: number; y: number } | null = null;
   private panLast: { x: number; y: number } | null = null;
   /** 滑鼠真的移動過才啟用邊緣捲動（指標預設在 (0,0)） */
@@ -72,6 +79,7 @@ export class InputController {
     window.addEventListener('blur', () => this.held.clear());
     // 拖曳地圖改聽整個視窗的原生指標事件：手指移到卡片、戰鬥紀錄等 DOM 面板上也會繼續拖，放開才結束
     const down = (e: PointerEvent) => {
+      this.lastPointerMouse = e.pointerType === 'mouse';
       this.nativePointers.add(e.pointerId);
       this.nativeDown = { id: e.pointerId, x: e.clientX, y: e.clientY };
     };
@@ -130,6 +138,11 @@ export class InputController {
       else this.rightClick(m, unit);
       return;
     }
+    if (this.deliberate && s.targeting && !this.attackMoveArmed) {
+      // 行動版瞄準：按下先顯示預覽，放開才施放（暫停中可以拖曳調整位置）
+      this.aim = { pid: this.nativeDown?.id ?? null, point: m };
+      return;
+    }
     if (this.deliberate && !this.attackMoveArmed && !s.targeting) {
       // 行動版：先記下按下的位置，放開時沒有拖曳才算點擊（拖曳＝移動鏡頭）
       const nd = this.nativeDown;
@@ -170,6 +183,10 @@ export class InputController {
 
   private onUp(p: Phaser.Input.Pointer): void {
     if (this.panLast && !p.middleButtonDown()) this.panLast = null;
+    if (this.aim) {
+      this.finishAim();
+      return;
+    }
     if (this.tap) {
       this.finishTap();
       return;
@@ -282,8 +299,8 @@ export class InputController {
       return;
     }
     this.attackMove(unit && !unit.dead ? { x: unit.pos.x, y: unit.pos.y } : m);
-    // Alan：下完指令就取消選取
-    s.selection = [];
+    // 下完指令是否取消選取（GAME_CONFIG.deselectAfterOrder，目前關閉）
+    if (GAME_CONFIG.deselectAfterOrder) s.selection = [];
   }
 
   /** 行動版：放開時沒有拖曳才算點擊 */
@@ -297,6 +314,25 @@ export class InputController {
     else this.tapOrder(screenToGround(t.sx, t.sy), unit);
   }
 
+  /** 放開瞄準：在最後的位置施放（點地圖打最近目標的規則照舊） */
+  private finishAim(): void {
+    const a = this.aim;
+    this.aim = null;
+    if (!a) return;
+    const p = worldToScreen(a.point.x, a.point.y);
+    const unit = this.host.unitAtScreen(p.x, p.y);
+    confirmTargeting(this.session, a.point, unit, this.now());
+  }
+
+  /** 瀏覽器畫面座標 → 地面的世界座標 */
+  private clientToGround(cx: number, cy: number): Vec {
+    const scene = this.host.scene;
+    const rect = scene.game.canvas.getBoundingClientRect();
+    const k = this.clientScale();
+    const wp = scene.cameras.main.getWorldPoint((cx - rect.left) * k, (cy - rect.top) * k);
+    return screenToGround(wp.x, wp.y);
+  }
+
   /** 瀏覽器畫面 px → 遊戲邏輯 px（舞台有 CSS 縮放） */
   private clientScale(): number {
     const game = this.host.scene.game;
@@ -306,6 +342,13 @@ export class InputController {
 
   /** 行動版拖曳：單指拖曳移動鏡頭（在任何面板上都算，直到放開）；雙指不縮放（遠近固定），只取消點擊 */
   private onNativeMove(e: PointerEvent): void {
+    this.lastPointerMouse = e.pointerType === 'mouse';
+    // 按住瞄準：暫停中跟著手指移動預覽位置（不暫停時固定在按下的位置）
+    const a = this.aim;
+    if (a && a.pid !== null && e.pointerId === a.pid) {
+      if (this.session.paused) a.point = this.clientToGround(e.clientX, e.clientY);
+      return;
+    }
     const t = this.tap;
     if (!t || t.pid === null || e.pointerId !== t.pid) return;
     const k = this.clientScale();
@@ -325,6 +368,10 @@ export class InputController {
 
   private onNativeUp(e: PointerEvent): void {
     this.nativePointers.delete(e.pointerId);
+    if (this.aim && this.aim.pid !== null && e.pointerId === this.aim.pid) {
+      this.finishAim();
+      return;
+    }
     const t = this.tap;
     // 放開的地方可能是面板（Phaser 收不到）：在這裡結束拖曳；在地圖上放開時 Phaser 的 pointerup 會看到 tap 已經結束
     if (t && t.pid !== null && e.pointerId === t.pid) this.finishTap();
