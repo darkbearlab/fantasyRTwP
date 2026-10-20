@@ -12,9 +12,8 @@ export interface ActiveCycle {
 }
 
 export const ACTIVE_CYCLES: Record<string, ActiveCycle> = {
-  // 法師：火球；普攻命中累積充能，滿 5 層變成大火球
-  // Alan：火球即時打出（flashFireball，沒有飛行時間）
-  mage: { mode: 'charge', steps: ['flashFireball', 'greatFireball'], chargeMax: 5 },
+  // 法師（2026-10-20 Alan）：拿掉充能／大火球循環，回到單一火球（flashFireball，見 ACTIVE_SKILL_OVERRIDE）。
+  // charge 模式保留給之後其他職業使用；大火球 greatFireball 的資料還留在 skills.ts。
   // 咒術師：衰弱詛咒 → 詛咒爆裂（引爆目標身上的詛咒）→ 衰弱詛咒…
   hexer: { mode: 'sequence', steps: ['curse', 'curseBurst'] },
 };

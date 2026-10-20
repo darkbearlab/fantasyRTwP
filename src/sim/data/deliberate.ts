@@ -12,6 +12,8 @@ export const DELIBERATE_PACE = {
   actionTime: 1.8,
   /** 技能冷卻倍率 */
   cooldown: 2,
+  /** 交戰距離倍率（Alan：整體交戰距離縮短）：普攻射程、技能施放距離、敵人察覺距離、攻擊移動接戰距離 */
+  range: 0.6,
 };
 
 /** 沉穩節奏的戰鬥設定（相對於 base，預設是 DEFAULT_SIM_CONFIG） */
@@ -24,5 +26,8 @@ export function deliberateConfig(base: SimConfig = DEFAULT_SIM_CONFIG): Partial<
     moveSpeedMult: base.moveSpeedMult * DELIBERATE_PACE.move,
     actionSpeedMult: base.actionSpeedMult / DELIBERATE_PACE.actionTime,
     skillCooldownMult: base.skillCooldownMult * DELIBERATE_PACE.cooldown,
+    rangeMult: base.rangeMult * DELIBERATE_PACE.range,
+    enemyAggroRange: base.enemyAggroRange * DELIBERATE_PACE.range,
+    attackMoveRange: base.attackMoveRange * DELIBERATE_PACE.range,
   };
 }

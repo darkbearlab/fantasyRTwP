@@ -766,6 +766,7 @@ export class BattleScene extends Phaser.Scene {
     this.drawFog();
 
     this.drawZones(selected);
+    this.drawLandingZones();
     if (w.config.battleStyle === 'deliberate') this.drawTargetLines(selected);
     this.drawSelfTelegraphs();
     this.drawOcclusion();
@@ -953,6 +954,29 @@ export class BattleScene extends Phaser.Scene {
       groundCircle(g, a.point.x, a.point.y, r, { fill: c, fillAlpha: enemy ? 0.12 + 0.1 * pulse : 0.12 });
       groundCircle(g, a.point.x, a.point.y, r * u.actionProgress, { fill: c, fillAlpha: 0.25 });
       groundCircle(g, a.point.x, a.point.y, r, { stroke: c, strokeAlpha: 0.9, width: enemy ? 3 : 2 });
+    }
+  }
+
+  /**
+   * 飛行中的範圍投射物（Alan：火球直接丟出、有飛行時間）：落點畫出爆炸範圍。
+   * 我方紫色、敵方紅色；越接近落點填色越濃。
+   */
+  private drawLandingZones(): void {
+    const w = this.session.world;
+    const g = this.zoneG;
+    for (const pr of w.projectiles) {
+      if (pr.payload.type !== 'aoe' || !pr.point) continue;
+      const def = SKILLS[pr.payload.skillId];
+      if (!def || def.effect.kind !== 'aoe') continue;
+      const src = w.getUnit(pr.sourceId);
+      const enemy = src?.team === 'enemy';
+      if (enemy && src && this.hiddenIds.has(src.id)) continue;
+      const c = enemy ? COLORS.telegraph : COLORS.ghostSkill;
+      const total = Math.hypot(pr.point.x - pr.origin.x, pr.point.y - pr.origin.y) || 1;
+      const left = Math.hypot(pr.point.x - pr.pos.x, pr.point.y - pr.pos.y);
+      const t = Phaser.Math.Clamp(1 - left / total, 0, 1);
+      const r = def.effect.radius;
+      groundCircle(g, pr.point.x, pr.point.y, r, { fill: c, fillAlpha: 0.1 + 0.2 * t, stroke: c, strokeAlpha: 0.9, width: 2.5 });
     }
   }
 
@@ -1177,7 +1201,9 @@ export class BattleScene extends Phaser.Scene {
     const ptr = this.input.activePointer.positionToCamera(this.cameras.main) as Phaser.Math.Vector2;
     const gp = screenToGround(ptr.x, ptr.y);
     if (def.range > 0) {
-      groundCircle(g, from.x, from.y, def.target === 'ground' ? def.range : def.range + caster.radius, { stroke: COLORS.targeting, strokeAlpha: 0.55, width: 1.5 });
+      // 射程圈用實際射程（含交戰距離倍率、高地加成）
+      const range = s.world.skillRange(caster, def);
+      groundCircle(g, from.x, from.y, def.target === 'ground' ? range : range + caster.radius, { stroke: COLORS.targeting, strokeAlpha: 0.55, width: 1.5 });
     }
     groundLine(g, from, gp, 1.5, COLORS.targeting, 0.6);
     if (def.target === 'ground') {

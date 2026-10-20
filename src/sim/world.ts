@@ -35,7 +35,7 @@ import { T_BRUSH, T_HEDGE, T_HIGH, T_SHALLOW, TerrainGrid } from './terrain';
 import { TERRAIN } from './data/terrain';
 import { traceSupercover } from './nav/raycast';
 import type { SimConfig } from './simConfig';
-import { DEFAULT_SIM_CONFIG } from './simConfig';
+import { DEFAULT_SIM_CONFIG, scaleRange } from './simConfig';
 import { Unit } from './unit';
 import type { ZocContext } from './zoc';
 import { disengagedFrom, edgeDistance, pinBlocker, zoneDistance } from './zoc';
@@ -364,13 +364,13 @@ export class World implements ZocContext {
 
   /** 普攻射程：遠程單位站在高地上射程增加 */
   attackRange(u: Unit): number {
-    return u.def.range + u.mods.range + (!u.isMelee && this.onHigh(u) ? TERRAIN.highRangeBonus : 0);
+    return scaleRange(this.config, u.def.range) + u.mods.range + (!u.isMelee && this.onHigh(u) ? TERRAIN.highRangeBonus : 0);
   }
 
   /** 技能射程：遠程單體／地面技能站在高地上射程增加 */
   skillRange(u: Unit, def: SkillDef): number {
     const melee = def.effect.kind === 'strike' && def.effect.melee;
-    return def.range + (!melee && def.range >= 1 && this.onHigh(u) ? TERRAIN.highRangeBonus : 0);
+    return scaleRange(this.config, def.range) + (!melee && def.range >= 1 && this.onHigh(u) ? TERRAIN.highRangeBonus : 0);
   }
 
   /**
