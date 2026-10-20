@@ -155,6 +155,8 @@ export class World implements ZocContext {
   tick = 0;
   result: Team | null = null;
   enemyAggro = false;
+  /** 已經被我方看到過的敵方小隊（squadSighted 只發一次） */
+  private sightedSquads = new Set<string>();
   /** 指定時所有英雄都用這個閒置行為（測試用）；否則依各英雄的性格 */
   idleBehavior: IdleBehavior | null;
 
@@ -512,6 +514,7 @@ export class World implements ZocContext {
     this.updateWaves();
     this.director?.update(this);
     this.updateAggro();
+    this.updateSighting();
     for (const u of this.units) this.tickTimers(u);
     for (const u of this.units) this.updateUnit(u);
     this.updateProjectiles();
@@ -738,6 +741,27 @@ export class World implements ZocContext {
         this.alertUnit(e);
         this.emit({ type: 'notice', unitId: e.id, text: '！' });
       }
+    }
+  }
+
+  /**
+   * 敵方小隊第一次進入我方視野（迷霧、草叢隱匿都算；沒有迷霧時開場就全部看得到）：發 squadSighted。
+   * 畫面層用來自動暫停等；每 3 個節拍檢查一次。
+   */
+  private updateSighting(): void {
+    if (this.tick % 3 !== 0) return;
+    const fresh = new Map<string, number[]>();
+    for (const e of this.units) {
+      if (e.team !== 'enemy' || e.dead) continue;
+      const key = e.squad ?? `unit${e.id}`;
+      if (this.sightedSquads.has(key) || !this.visibleToTeam(e, 'hero')) continue;
+      const list = fresh.get(key);
+      if (list) list.push(e.id);
+      else fresh.set(key, [e.id]);
+    }
+    for (const [squad, unitIds] of fresh) {
+      this.sightedSquads.add(squad);
+      this.emit({ type: 'squadSighted', squad, unitIds });
     }
   }
 

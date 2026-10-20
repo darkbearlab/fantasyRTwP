@@ -11,6 +11,12 @@ export interface AutoPauseConfig {
   heroLowHpThreshold: number;
   enemyAoeWindup: boolean;
   heroDeath: boolean;
+  /** 一隊敵人第一次出現在視野內 */
+  squadSighted: boolean;
+  /** 精英隊長、頭目開始準備技能 */
+  eliteSkill: boolean;
+  /** 玩家按下技能、進入瞄準 */
+  skillAim: boolean;
 }
 
 export const GAME_CONFIG = {
@@ -24,6 +30,9 @@ export const GAME_CONFIG = {
     heroLowHpThreshold: 0.3,
     enemyAoeWindup: false,
     heroDeath: true,
+    squadSighted: true,
+    eliteSkill: true,
+    skillAim: false,
   } as AutoPauseConfig,
   /** 按鍵配置（KeyboardEvent.code）；SPEC_SLICE2 §1。之後可做改鍵 */
   keys: {

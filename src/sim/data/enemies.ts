@@ -182,3 +182,9 @@ export const ENEMY_ALERT = {
   blockedFar: 2.5,
   blockedContact: 0.6,
 };
+
+/** 敵人階級：頭目（rank 或 ai 為 boss）、精英隊長、一般 */
+export function enemyRank(def: UnitDef): 'boss' | 'elite' | 'normal' {
+  if (def.rank === 'boss' || def.ai === 'boss') return 'boss';
+  return def.rank === 'elite' ? 'elite' : 'normal';
+}

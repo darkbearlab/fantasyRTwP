@@ -4,6 +4,7 @@ import { createBattle } from '../sim/battle';
 import type { Command } from '../sim/commands';
 import type { Unit } from '../sim/unit';
 import type { World } from '../sim/world';
+import { BattleHooks } from './hooks';
 
 /** 英雄欄位資訊（遠征模式：陣亡或空欄位也要在英雄列上佔位） */
 export type PartySlotInfo = { classId: string; dead: boolean } | null;
@@ -37,11 +38,25 @@ export interface LogEntry {
   time: number;
 }
 
+const AUTO_PAUSE_KEY = 'fantasyRTwP.autoPause';
+
+/** 自動暫停設定：存在瀏覽器（重開也保留）；讀不到就用預設值 */
+function loadAutoPause(): AutoPauseConfig {
+  const base = { ...GAME_CONFIG.autoPause };
+  try {
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(AUTO_PAUSE_KEY) : null;
+    if (raw) Object.assign(base, JSON.parse(raw));
+  } catch {
+    // 私密瀏覽、被封鎖的儲存空間：用預設值
+  }
+  return base;
+}
+
 /** 偏好設定跨重來保留 */
 const persisted = {
   timeScale: GAME_CONFIG.defaultTimeScale,
   debug: { panel: false, navGrid: false, paths: false, allZoc: false, los: false, slots: false, facing: false } as DebugFlags,
-  autoPause: { ...GAME_CONFIG.autoPause } as AutoPauseConfig,
+  autoPause: loadAutoPause(),
   sim: { ...GAME_CONFIG.sim },
   logOpen: false,
 };
@@ -73,6 +88,8 @@ export class BattleSession {
   toast: { text: string; until: number } | null = null;
   /** 已觸發過低血自動暫停的英雄 */
   lowHpWarned = new Set<number>();
+  /** 畫面層鉤子（自動暫停等掛在這裡，見 hooks.ts） */
+  readonly hooks = new BattleHooks();
   private labels = new Map<number, string>();
 
   readonly mode: 'quick' | 'run';
@@ -105,6 +122,15 @@ export class BattleSession {
   get autoPause(): AutoPauseConfig {
     return persisted.autoPause;
   }
+  /** 修改自動暫停設定並存到瀏覽器 */
+  setAutoPause(patch: Partial<AutoPauseConfig>): void {
+    Object.assign(persisted.autoPause, patch);
+    try {
+      if (typeof localStorage !== 'undefined') localStorage.setItem(AUTO_PAUSE_KEY, JSON.stringify(persisted.autoPause));
+    } catch {
+      // 存不了就只在這次遊戲中有效
+    }
+  }
   get logOpen(): boolean {
     return persisted.logOpen;
   }
@@ -125,6 +151,7 @@ export class BattleSession {
 
   enqueue(cmd: Command): void {
     this.world.enqueue(cmd);
+    if (cmd.type === 'skill') this.hooks.emit('skillCommand', { unitId: cmd.unitId, skillId: cmd.skillId, point: cmd.point, targetId: cmd.targetId });
   }
 
   /** 戰鬥中生成的單位也要有名字 */
@@ -154,8 +181,10 @@ export class BattleSession {
   }
 
   setPaused(p: boolean, reason = ''): void {
+    const changed = this.paused !== p;
     this.paused = p;
     this.pauseReason = p ? reason : '';
+    if (changed) this.hooks.emit('pauseChanged', { paused: p, reason: this.pauseReason });
   }
 
   addLog(text: string, cls = ''): void {
