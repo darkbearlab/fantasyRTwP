@@ -122,6 +122,8 @@ export class BattleScene extends Phaser.Scene {
   /** 戰爭迷霧（SPEC_SLICE4 §6）：視野版本或開關改變時才重畫 */
   private fogG!: Phaser.GameObjects.Graphics;
   private fogDrawn = '';
+  /** 柔和迷霧（正角俯視）：一格一個像素的畫布貼圖，用平滑取樣放大；alpha 每幀往目標值靠近（淡入淡出） */
+  private fogSoft: { tex: Phaser.Textures.CanvasTexture; img: Phaser.GameObjects.Image; alpha: Float32Array; target: Float32Array; data: ImageData } | null = null;
   /** 畫面外敵人指示器（畫面座標，不跟鏡頭捲動） */
   private edgeG!: Phaser.GameObjects.Graphics;
   /** 出口（SPEC_SLICE6 §2）：地面上的範圍＋名稱，畫在迷霧上面 */
@@ -173,6 +175,7 @@ export class BattleScene extends Phaser.Scene {
     this.occlusionG = this.add.graphics().setDepth(950);
     this.fogG = this.add.graphics().setDepth(900);
     this.fogDrawn = '';
+    this.fogSoft = null;
     this.overG = this.add.graphics().setDepth(1000);
     this.ghostG = this.add.graphics().setDepth(1100);
     this.coverText = this.add
@@ -881,6 +884,13 @@ ${node}`, { fontFamily: FONT, fontSize: '14px', color: '#ffe9a8', align: 'center
   private drawFog(): void {
     const w = this.session.world;
     const v = w.vision;
+    if (getProjection() === 'ortho' && GAME_CONFIG.ortho.rotation === 90 && v && w.fogActive) {
+      this.fogG.clear();
+      this.fogDrawn = '';
+      this.drawSoftFog();
+      return;
+    }
+    this.fogSoft?.img.setVisible(false);
     const key = v && w.fogActive ? `${v.version}:${this.builtMode}` : 'off';
     if (key === this.fogDrawn) return;
     this.fogDrawn = key;
@@ -897,6 +907,64 @@ ${node}`, { fontFamily: FONT, fontSize: '14px', color: '#ffe9a8', align: 'center
         if (prev !== FOG_VISIBLE) groundRect(g, start * v.cell, cy * v.cell, (cx - start) * v.cell, v.cell, { fill: 0x05060a, fillAlpha: alpha[prev] });
         start = cx;
       }
+    }
+  }
+
+  /**
+   * 柔和迷霧（Alan：視野不要整格硬亮）。做法和許多 RTS 一樣：迷霧存成「一格一個像素」的小貼圖，
+   * 放大時用雙線性取樣（平滑）而不是像素取樣，格與格之間自然變成漸層；每格的透明度每幀往目標值靠近，
+   * 看得到／看不到時是淡入淡出而不是瞬間切換。
+   */
+  private drawSoftFog(): void {
+    const w = this.session.world;
+    const v = w.vision!;
+    // 畫面方向（世界 +x 朝上）：貼圖寬＝y 方向的格數、高＝x 方向的格數
+    const tw = v.rows;
+    const th = v.cols;
+    if (!this.fogSoft || this.fogSoft.alpha.length !== v.cols * v.rows) {
+      this.fogSoft?.img.destroy();
+      const key = `fog-soft-${this.session.seed}-${Date.now()}`;
+      const tex = this.textures.createCanvas(key, tw, th)!;
+      tex.setFilter(Phaser.Textures.FilterMode.LINEAR);
+      const o = worldToScreen(v.cols * v.cell, 0);
+      const img = this.add
+        .image(o.x, o.y, key)
+        .setOrigin(0)
+        .setScale(v.cell * GAME_CONFIG.ortho.pxPerM, v.cell * GAME_CONFIG.ortho.pxPerM * GAME_CONFIG.ortho.squash)
+        .setDepth(900);
+      this.events.once('shutdown', () => this.textures.exists(key) && this.textures.remove(key));
+      const alpha = new Float32Array(v.cols * v.rows).fill(VISUAL.fogUnexploredAlpha);
+      this.fogSoft = { tex, img, alpha, target: new Float32Array(v.cols * v.rows), data: tex.getContext().createImageData(tw, th) };
+    }
+    const f = this.fogSoft;
+    f.img.setVisible(true);
+    const levels = [VISUAL.fogUnexploredAlpha, VISUAL.fogExploredAlpha, 0];
+    for (let i = 0; i < f.target.length; i++) f.target[i] = levels[v.state[i]];
+    const step = Math.min(1, this.game.loop.delta / 1000 / VISUAL.fogFadeSec);
+    let changed = false;
+    const d = f.data.data;
+    for (let cy = 0; cy < v.rows; cy++) {
+      for (let cx = 0; cx < v.cols; cx++) {
+        const i = cy * v.cols + cx;
+        const a0 = f.alpha[i];
+        const a1 = a0 + (f.target[i] - a0) * step;
+        const a = Math.abs(f.target[i] - a1) < 0.01 ? f.target[i] : a1;
+        if (a !== a0) changed = true;
+        f.alpha[i] = a;
+        // 貼圖像素：(x, y) = (cy, cols − 1 − cx)
+        const p = ((v.cols - 1 - cx) * tw + cy) * 4;
+        d[p] = 5;
+        d[p + 1] = 6;
+        d[p + 2] = 10;
+        d[p + 3] = Math.round(a * 255);
+      }
+    }
+    if (changed || !this.fogDrawn) {
+      f.tex.getContext().putImageData(f.data, 0, 0);
+      f.tex.refresh();
+      // 遊戲是像素模式（預設最近鄰取樣）：更新後要重新設定成平滑取樣
+      f.tex.setFilter(Phaser.Textures.FilterMode.LINEAR);
+      this.fogDrawn = 'soft';
     }
   }
 

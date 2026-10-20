@@ -1560,6 +1560,12 @@ body {
   cursor: pointer;
   padding: 0;
 }
+.m-selall.m-desel {
+  font-size: 12px;
+}
+.m-selall.dim {
+  opacity: 0.45;
+}
 .m-selall.active {
   border-color: #7fd0ff;
   color: #7fd0ff;

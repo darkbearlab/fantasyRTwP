@@ -58,6 +58,8 @@ export const VISUAL = {
   /** 被高障礙物擋住的角色：最上層輪廓的透明度 */
   occludedAlpha: 0.35,
   /** 戰爭迷霧：未探索／已探索但不在視野內的遮罩透明度 */
+  /** 柔和迷霧（正角俯視）：每格一個像素的小貼圖放大時用平滑取樣，邊緣變成漸層；狀態改變時淡入淡出的秒數 */
+  fogFadeSec: 0.25,
   fogUnexploredAlpha: 0.94,
   fogExploredAlpha: 0.5,
 };

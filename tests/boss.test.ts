@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { strike } from '../src/sim/actions';
 import { MAPS } from '../src/sim/data/maps';
+import { deliberateConfig } from '../src/sim/data/deliberate';
 import { World } from '../src/sim/world';
 import { UnitState } from '../src/sim/unit';
 import { HOLD, run } from './helpers';
@@ -45,6 +46,26 @@ describe('頭目：戰爭領主（SPEC_SLICE2 §7.3、§11-7）', () => {
     expect(boss.action).toBeNull();
     expect(boss.stunTime).toBeGreaterThan(0);
     expect(boss.spentSkills).not.toContain('sweep'); // 橫掃之後還能再用
+  });
+
+  it('沉穩節奏的戰吼：叫來的是屍僕雜魚（沒有打斷手段，Alan）', () => {
+    const w = new World({
+      seed: 4,
+      map: MAPS.boss01,
+      idleBehavior: HOLD,
+      config: { ...deliberateConfig(), enemyAggroRange: 99 },
+      spawns: [
+        { defId: 'warrior', pos: { x: 21.5, y: 12 } },
+        { defId: 'mage', pos: { x: 12, y: 12 } },
+        { defId: 'warlord', pos: { x: 23, y: 12 } },
+      ],
+    });
+    const boss = w.units[2];
+    boss.hp = Math.floor(boss.maxHp * 0.45);
+    for (let i = 0; i < 30 * 12 && !boss.spentSkills.includes('warcry'); i++) w.step();
+    expect(boss.spentSkills).toContain('warcry');
+    expect(w.units.filter((u) => u.def.id === 'minion').length).toBe(3);
+    expect(w.units.some((u) => u.def.id === 'brute')).toBe(false);
   });
 
   it('戰吼：生命低於 50% 使用一次，召喚 3 名蠻兵並提高全體敵人傷害', () => {

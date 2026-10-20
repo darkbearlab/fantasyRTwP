@@ -419,9 +419,10 @@ function applySkillEffect(world: World, u: Unit, def: SkillDef, t: Unit | undefi
     case 'warcry': {
       world.emit({ type: 'warcry', unitId: u.id });
       const pts = world.map.summonPoints ?? [];
-      for (let i = 0; i < eff.summon.count; i++) {
+      const summon = world.config.battleStyle === 'deliberate' && eff.deliberateSummon ? eff.deliberateSummon : eff.summon;
+      for (let i = 0; i < summon.count; i++) {
         const p = pts.length ? pts[i % pts.length] : { x: world.map.width - 1, y: world.map.height / 2 };
-        const s = world.spawnUnit(world.enemyDefFor(eff.summon.enemy), p, u.id);
+        const s = world.spawnUnit(world.enemyDefFor(summon.enemy), p, u.id);
         s.damageBuffMult = Math.max(s.damageBuffMult, 1);
       }
       for (const a of world.units) {

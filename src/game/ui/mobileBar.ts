@@ -112,6 +112,7 @@ export class MobileHeroBar {
   private pauseBtn: HTMLElement;
   private pauseLabel: HTMLElement;
   private selectAllBtn: HTMLElement;
+  private deselectBtn: HTMLElement;
 
   constructor(private host: MobileBarHost) {
     this.root = el('div', 'm-bar interactive');
@@ -128,10 +129,20 @@ export class MobileHeroBar {
     this.selectAllBtn = el('button', 'm-selall', '全選');
     this.selectAllBtn.tabIndex = -1;
     this.selectAllBtn.addEventListener('mousedown', (ev) => ev.preventDefault());
-    this.selectAllBtn.addEventListener('click', () => this.toggleSelectAll());
+    this.selectAllBtn.addEventListener('click', () => this.selectAll());
+    this.selectAllBtn.title = '選取所有英雄';
+    // Alan：全不選是另一顆按鈕（全選鈕一定是全選）
+    this.deselectBtn = el('button', 'm-selall m-desel', '全不選');
+    this.deselectBtn.tabIndex = -1;
+    this.deselectBtn.title = '取消選取所有英雄';
+    this.deselectBtn.addEventListener('mousedown', (ev) => ev.preventDefault());
+    this.deselectBtn.addEventListener('click', () => {
+      const s = this.host.session();
+      if (!s.world.result) s.selection = [];
+    });
     // 控制鈕列：依設定排列，對齊卡片列的左／中／右
     const mc = GAME_CONFIG.mobileControls;
-    const buttons: Record<string, HTMLElement> = { pause: this.pauseBtn, selectAll: this.selectAllBtn };
+    const buttons: Record<string, HTMLElement> = { pause: this.pauseBtn, selectAll: this.selectAllBtn, deselectAll: this.deselectBtn };
     const pauseRow = el('div', 'm-pause-row');
     for (const k of mc.order) if (buttons[k]) pauseRow.appendChild(buttons[k]);
     const pauseCol = el('div', `m-pause-col align-${mc.align}`);
@@ -212,21 +223,17 @@ export class MobileHeroBar {
     return alive.length > 0 && alive.every((u) => s.selection.includes(u.id));
   }
 
-  /** 全選鈕：有人沒選到就全選，已經全選就全部取消 */
-  private toggleSelectAll(): void {
+  /** 全選鈕：一定是選取所有存活英雄 */
+  private selectAll(): void {
     const s = this.host.session();
     if (s.world.result) return;
-    if (this.allSelected(s)) s.selection = [];
-    else s.selection = s.world.units.filter((u) => u.team === 'hero' && !u.dead).sort((a, b) => a.heroSlot - b.heroSlot).map((u) => u.id);
+    s.selection = s.world.units.filter((u) => u.team === 'hero' && !u.dead).sort((a, b) => a.heroSlot - b.heroSlot).map((u) => u.id);
   }
 
   update(s: BattleSession): void {
     this.pauseBtn.classList.toggle('paused', s.paused);
-    const all = this.allSelected(s);
-    this.selectAllBtn.classList.toggle('active', all);
-    const selLabel = all ? '取消' : '全選';
-    if (this.selectAllBtn.textContent !== selLabel) this.selectAllBtn.textContent = selLabel;
-    this.selectAllBtn.title = all ? '取消選取所有英雄' : '選取所有英雄';
+    this.selectAllBtn.classList.toggle('active', this.allSelected(s));
+    this.deselectBtn.classList.toggle('dim', s.selection.length === 0);
     const label = s.paused && !s.world.result ? (s.pauseReason ? `暫停：${s.pauseReason}` : '暫停中') : '';
     if (this.pauseLabel.textContent !== label) this.pauseLabel.textContent = label;
     const sel = new Set(s.selection);
@@ -289,7 +296,8 @@ export function staticHeroBar(cards: StaticHeroCard[], slots: number, portraitUr
   const pause = el('div', 'm-pause');
   pause.innerHTML = HOURGLASS_SVG;
   const selAll = el('div', 'm-selall', '全選');
-  const buttons: Record<string, HTMLElement> = { pause, selectAll: selAll };
+  const desel = el('div', 'm-selall m-desel', '全不選');
+  const buttons: Record<string, HTMLElement> = { pause, selectAll: selAll, deselectAll: desel };
   const mc = GAME_CONFIG.mobileControls;
   const pauseRow = el('div', 'm-pause-row');
   for (const k of mc.order) if (buttons[k]) pauseRow.appendChild(buttons[k]);
