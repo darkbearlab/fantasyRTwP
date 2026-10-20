@@ -22,7 +22,10 @@ import { ITEMS } from '../sim/data/items';
 export function availableNodes(run: RunState): MapNode[] {
   if (run.phase.kind !== 'map') return [];
   if (run.currentNodeId === null) return run.map.layers[0].map((id) => run.map.nodes[id]);
-  return run.map.nodes[run.currentNodeId].next.map((id) => run.map.nodes[id]);
+  const next = run.map.nodes[run.currentNodeId].next;
+  // 從戰鬥出口離開：下一個節點已經決定
+  if (run.exitTo != null && next.includes(run.exitTo)) return [run.map.nodes[run.exitTo]];
+  return next.map((id) => run.map.nodes[id]);
 }
 
 /** 依節點類型與層數抽遭遇 */
@@ -43,6 +46,7 @@ export function chooseNode(run: RunState, nodeId: number): RunState {
   const r = cloneRun(run);
   const node = r.map.nodes[nodeId];
   r.currentNodeId = nodeId;
+  r.exitTo = null;
   r.path.push(nodeId);
   switch (node.type) {
     case 'battle':
@@ -131,6 +135,8 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
     return r;
   }
   if (recovered > 0) r.journal.push(`戰後整補：全隊回復 ${recovered} 生命。`);
+  // 出口制：走哪個出口，下一個節點就是哪個
+  r.exitTo = outcome.exitNodeId ?? null;
   const elite = node.type === 'elite' && !fromEvent;
   const gold = elite ? ECONOMY.goldPerElite : ECONOMY.goldPerBattle;
   r.gold += gold;

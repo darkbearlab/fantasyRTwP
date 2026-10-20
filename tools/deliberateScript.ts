@@ -3,6 +3,7 @@
  * - 有看得到的敵人：全隊攻擊移動到最近的敵人；主動技能好了就放（地面技能打敵人位置、治療給最低血的隊友）
  * - 看不到敵人：全隊往最近的存活敵人位置推進（腳本作弊看位置，只是代替玩家探索迷霧）
  * - 沒有敵人可打時：先派一名英雄去拉絞盤、打開關著的門
+ * - 出口制（SPEC_SLICE6 §2）：敵人清光後全隊走到出口（受傷時優先選休息節點的出口）
  * 只透過 Command 操作 sim。
  */
 import { SKILLS } from '../src/sim/data/skills';
@@ -25,6 +26,14 @@ export class DeliberateScript {
     if (heroes.length === 0) return;
     const alive = w.units.filter((u) => u.team === 'enemy' && !u.dead);
     const visible = alive.filter((u) => w.visibleToTeam(u, 'hero'));
+    const exits = w.map.exits ?? [];
+    if (alive.length === 0 && exits.length) {
+      const hurt = heroes.reduce((a, u) => a + u.hp / u.maxHp, 0) / heroes.length < 0.6;
+      const exit = exits.find((e) => hurt && e.label === 'rest') ?? exits.find((e) => e.label === 'battle') ?? exits[0];
+      const p = { x: exit.x + exit.w / 2, y: exit.y + exit.h / 2 };
+      w.enqueue({ type: 'move', unitIds: heroes.map((u) => u.id), point: p });
+      return;
+    }
     // 沒有敵人可打時：先拉絞盤、再打開關著的門（腳本不會判斷門後有沒有路，全部打開）
     const lever = w.interactables.list.find((d) => d.def.kind === 'lever' && d.uses === 0);
     const door = w.interactables.list.find((d) => d.def.kind === 'door' && !d.open && !d.def.locked);

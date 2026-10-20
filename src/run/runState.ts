@@ -86,6 +86,8 @@ export interface RunState {
   party: (HeroRecord | null)[];
   phase: RunPhase;
   nextBattleBuff: BattleBuff | null;
+  /** 出口制（SPEC_SLICE6 §2）：從戰鬥的哪個出口離開＝下一個節點；回到路線圖時只能前往這個節點 */
+  exitTo?: number | null;
   /** 已出現過的事件（避免重複） */
   seenEvents: string[];
   stats: RunStats;
