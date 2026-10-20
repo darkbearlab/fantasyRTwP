@@ -197,6 +197,13 @@ function restPhase(run: RunState) {
 }
 
 /** 紮營：全體存活英雄恢復最大生命的 40% */
+/** 營火對話看完（或略過）：之後再進這個休息節點直接打開選單 */
+export function finishCampfire(run: RunState): RunState {
+  const r = cloneRun(run);
+  restPhase(r).talked = true;
+  return r;
+}
+
 export function restCamp(run: RunState): RunState {
   if (restPhase(run).used) throw new Error('本次休息已經做過選擇');
   const r = cloneRun(run);

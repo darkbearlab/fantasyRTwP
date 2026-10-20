@@ -4,13 +4,14 @@ import { SKILLS } from '../../sim/data/skills';
 import { swapOptions, swapSkill } from '../../run/classes';
 import { className } from '../ui/classInfo';
 import { ECONOMY } from '../../run/data/economy';
-import { canRecruit, canRevive, leaveNode, restCamp, restRecruit, restRevive, restTrain } from '../../run/progression';
+import { canRecruit, canRevive, finishCampfire, leaveNode, restCamp, restRecruit, restRevive, restTrain } from '../../run/progression';
 import { hex } from '../render/palette';
 import { button, el } from '../ui/dom';
 import { partyPanel } from '../ui/partyPanel';
 import { upgradePicker } from '../ui/upgradePicker';
 import { advance, getRun, setRun } from '../runFlow';
-import { firstEmptySlot } from '../../run/runState';
+import { firstEmptySlot, livingHeroes } from '../../run/runState';
+import { campfireTalk } from '../../run/campfire';
 import { DomScene } from './DomScene';
 
 type Mode = 'menu' | 'revive' | 'train';
@@ -21,15 +22,44 @@ export class RestScene extends DomScene {
   protected screenClass = 'panel-screen';
   private mode: Mode = 'menu';
   private tab: Tab = 'rest';
+  /** 營火對話進行中（場景停止是排隊處理的，不能用 isActive 判斷） */
+  private campfireOpen = false;
 
   constructor() {
     super('Rest');
+  }
+
+  create(data?: object): void {
+    // 場景物件會重複使用：每次進入休息節點都重新開始
+    this.campfireOpen = false;
+    super.create(data);
   }
 
   protected build(): void {
     const run = getRun(this);
     if (run.phase.kind !== 'rest') return;
     const p = run.phase;
+    // 營火對話（Alan）：先看英雄們圍著火堆聊幾句，說完才打開休息選單
+    if (!p.talked && !this.campfireOpen) {
+      const lines = campfireTalk(run, p.nodeId);
+      if (lines.length > 0) {
+        this.root.style.display = 'none';
+        this.campfireOpen = true;
+        const heroes = livingHeroes(run).map(({ slot, hero }) => ({ slot, classId: hero.classId }));
+        this.scene.launch('Campfire', {
+          heroes,
+          lines,
+          onDone: () => {
+            this.campfireOpen = false;
+            this.root.style.display = '';
+            setRun(this, finishCampfire(getRun(this)));
+            this.rebuild();
+          },
+        });
+        return;
+      }
+    }
+    if (this.campfireOpen) return;
     const box = el('div', 'panel wide');
     box.append(el('h2', '', '🔥 營火'), el('div', 'meta', `💰 ${run.gold} 金幣`));
     const set = (r: typeof run) => {
