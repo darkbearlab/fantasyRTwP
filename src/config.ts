@@ -56,8 +56,15 @@ export const GAME_CONFIG = {
   heroChordMs: 2000,
   /** 正俯視（topdown）模式的渲染比例：1 m = 32 px */
   pxPerMeter: 32,
-  /** 畫面投影：iso＝2:1 等角（預設）；topdown＝原本的正俯視（除錯與比較用，除錯面板可即時切換） */
-  projection: 'iso' as 'iso' | 'topdown',
+  /** 畫面投影：ortho＝正角俯視、保留俯角（預設）；iso＝2:1 等角（舊畫面）；topdown＝純平面（除錯用）。除錯面板可即時切換 */
+  projection: 'ortho' as 'ortho' | 'iso' | 'topdown',
+  /**
+   * 正角俯視（ortho）：地面 1 m = pxPerM px（橫向）；縱向再乘 squash 表現俯角（1 = 正上方往下看）；高度 1 m = heightPxPerM px。
+   * rotation 90：世界 +x 朝畫面上方（直拿手機時玩家往上推進）。全部是可調旋鈕，不開放玩家設定。
+   */
+  ortho: { pxPerM: 44, squash: 0.7, heightPxPerM: 32, rotation: 90 as 0 | 90 },
+  /** 戰鬥鏡頭的固定縮放（Alan：遠近固定，玩家不能縮放；只留這個旋鈕） */
+  battleZoom: 1,
   /** 等角投影：1 公尺見方的地面 = TILE_W × TILE_H 的菱形；高度 1 m = HEIGHT_PX_PER_M px */
   iso: { tileW: 64, tileH: 32, heightPxPerM: 32 },
   /** 等角畫面的旋轉（逆時針，0 或 90 度）：90 = 世界 +x 朝螢幕右上，玩家（地圖左側）往右上進攻 */

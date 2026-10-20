@@ -6,12 +6,11 @@ import { displayFacing, flareDir } from './art';
 import { COLORS } from './palette';
 import { H3D, H3D_SHEETS, h3dCharFor, h3dKey } from './heroes3d';
 import { h3dFrame, hitDuration } from './heroes3dAnim';
-import { depthOf, groundCirclePoints, worldToScreen } from './projection';
+import { depthOf, groundAxes, groundCirclePoints, heightPx, worldToScreen } from './projection';
 import type { Concealment, UnitVisual } from './unitView';
 import { DEAD_DEPTH, OBJECT_DEPTH_BASE } from './unitView';
 import { VISUAL, unitHeight } from './visual';
 
-const ISO = GAME_CONFIG.iso;
 
 /**
  * 自製 3D 預渲染英雄的外觀（美術試裝 heroes3d）。
@@ -47,8 +46,8 @@ export class Hero3DView implements UnitVisual {
     this.ring = scene.add.graphics();
     this.sprite = scene.add.sprite(0, 0, h3dKey(this.char, 'idle'), 0);
     this.applyChar();
-    this.bodyW = unit.radius * ISO.tileW * 1.1;
-    this.bodyH = this.height * ISO.heightPxPerM;
+    this.bodyW = unit.radius * groundAxes(1).x * Math.SQRT2 * 1.1;
+    this.bodyH = heightPx(this.height);
     this.container = scene.add.container(0, 0, [this.ring, this.sprite]);
     this.container.setDepth(OBJECT_DEPTH_BASE);
     this.dir = flareDir(unit.facing);
@@ -142,8 +141,7 @@ export class Hero3DView implements UnitVisual {
     const b = this.bodyBounds();
     if (px >= b.x && px <= b.x + b.w && py >= b.y && py <= b.y + b.h) return true;
     const rr = this.unit.radius + 0.2;
-    const ax = (rr * ISO.tileW) / Math.SQRT2;
-    const ay = (rr * ISO.tileH) / Math.SQRT2;
+    const { x: ax, y: ay } = groundAxes(rr);
     const dx = (px - this.x) / ax;
     const dy = (py - this.y) / ay;
     return dx * dx + dy * dy <= 1;

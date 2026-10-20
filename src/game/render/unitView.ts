@@ -2,11 +2,10 @@ import Phaser from 'phaser';
 import { GAME_CONFIG } from '../../config';
 import type { Unit } from '../../sim/unit';
 import { COLORS, FONT, darken } from './palette';
-import { depthOf, groundCirclePoints, isIso, worldToScreen } from './projection';
+import { depthOf, groundAxes, groundCirclePoints, hasHeight, heightPx, worldToScreen } from './projection';
 import { VISUAL, unitHeight } from './visual';
 
 const PX = GAME_CONFIG.pxPerMeter;
-const ISO = GAME_CONFIG.iso;
 
 /** normal：一般；brush：在草叢裡但敵人看得到；concealed：我方躲在草叢中（半透明）；hidden：對我方隱藏的敵人 */
 export type Concealment = 'normal' | 'brush' | 'concealed' | 'hidden';
@@ -65,10 +64,10 @@ export class UnitView implements UnitVisual {
   wy = 0;
 
   constructor(scene: Phaser.Scene, readonly unit: Unit) {
-    this.iso = isIso();
+    this.iso = hasHeight();
     this.height = unitHeight(unit.def);
-    this.bodyW = unit.radius * ISO.tileW * VISUAL.bodyWidthFactor;
-    this.bodyH = this.height * ISO.heightPxPerM;
+    this.bodyW = unit.radius * groundAxes(1).x * Math.SQRT2 * VISUAL.bodyWidthFactor;
+    this.bodyH = heightPx(this.height);
     this.ring = scene.add.graphics();
     this.foot = scene.add.graphics();
     this.body = scene.add.graphics();
@@ -205,8 +204,7 @@ export class UnitView implements UnitVisual {
     if (px >= b.x - pad && px <= b.x + b.w + pad && py >= b.y - pad && py <= b.y + b.h + pad) return true;
     // 腳下橢圓：半軸 = 投影後的圓（r + 容許值）
     const rr = r + 0.2;
-    const ax = (rr * ISO.tileW) / Math.SQRT2;
-    const ay = (rr * ISO.tileH) / Math.SQRT2;
+    const { x: ax, y: ay } = groundAxes(rr);
     const dx = (px - this.x) / ax;
     const dy = (py - this.y) / ay;
     return dx * dx + dy * dy <= 1;

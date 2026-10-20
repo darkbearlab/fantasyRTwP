@@ -3,6 +3,7 @@
  * - 下緣四張卡片對應四名英雄；上半是名字與生命值（點一下選取／再點一下取消），下半是唯一的主動技能鈕（讀秒冷卻）。
  * - 行動條改成卡片的「水位」：準備動作時由下往上填滿，填滿那一刻行動生效。
  * - 暫停鈕是一個不斷轉動的沙漏，放在四張卡片那一欄的正上方中間；暫停時停止轉動並換顏色。
+ * - 沙漏左邊是全選鈕（Alan）：有存活英雄沒被選取時按下＝全選；已經全選時按下＝全部取消。
  * 只讀 session 的狀態；操作透過 session（enqueue、targeting、selection）。
  */
 import { skillCooldownOf } from '../../sim/actions';
@@ -97,6 +98,7 @@ export class MobileHeroBar {
   private row: HTMLElement;
   private pauseBtn: HTMLElement;
   private pauseLabel: HTMLElement;
+  private selectAllBtn: HTMLElement;
 
   constructor(private host: MobileBarHost) {
     this.root = el('div', 'm-bar interactive');
@@ -110,8 +112,17 @@ export class MobileHeroBar {
       if (!s.world.result) s.setPaused(!s.paused);
     });
     this.pauseLabel = el('div', 'm-pause-label');
+    this.selectAllBtn = el('button', 'm-selall', '全選');
+    this.selectAllBtn.tabIndex = -1;
+    this.selectAllBtn.addEventListener('mousedown', (ev) => ev.preventDefault());
+    this.selectAllBtn.addEventListener('click', () => this.toggleSelectAll());
+    // 沙漏維持在正中間：左右兩欄等寬，全選鈕靠右貼著沙漏
+    const pauseRow = el('div', 'm-pause-row');
+    const left = el('div', 'm-pause-side left');
+    left.appendChild(this.selectAllBtn);
+    pauseRow.append(left, this.pauseBtn, el('div', 'm-pause-side'));
     const pauseCol = el('div', 'm-pause-col');
-    pauseCol.append(this.pauseLabel, this.pauseBtn);
+    pauseCol.append(this.pauseLabel, pauseRow);
     this.row = el('div', 'm-cards');
     this.root.append(pauseCol, this.row);
   }
@@ -177,8 +188,27 @@ export class MobileHeroBar {
     }
   }
 
+  /** 存活英雄是否全部被選取（沒有存活英雄時視為否） */
+  private allSelected(s: BattleSession): boolean {
+    const alive = s.world.units.filter((u) => u.team === 'hero' && !u.dead);
+    return alive.length > 0 && alive.every((u) => s.selection.includes(u.id));
+  }
+
+  /** 全選鈕：有人沒選到就全選，已經全選就全部取消 */
+  private toggleSelectAll(): void {
+    const s = this.host.session();
+    if (s.world.result) return;
+    if (this.allSelected(s)) s.selection = [];
+    else s.selection = s.world.units.filter((u) => u.team === 'hero' && !u.dead).sort((a, b) => a.heroSlot - b.heroSlot).map((u) => u.id);
+  }
+
   update(s: BattleSession): void {
     this.pauseBtn.classList.toggle('paused', s.paused);
+    const all = this.allSelected(s);
+    this.selectAllBtn.classList.toggle('active', all);
+    const selLabel = all ? '取消' : '全選';
+    if (this.selectAllBtn.textContent !== selLabel) this.selectAllBtn.textContent = selLabel;
+    this.selectAllBtn.title = all ? '取消選取所有英雄' : '選取所有英雄';
     const label = s.paused && !s.world.result ? (s.pauseReason ? `暫停：${s.pauseReason}` : '暫停中') : '';
     if (this.pauseLabel.textContent !== label) this.pauseLabel.textContent = label;
     const sel = new Set(s.selection);

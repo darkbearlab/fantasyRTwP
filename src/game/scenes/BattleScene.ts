@@ -34,6 +34,7 @@ import {
   groundPolygon,
   groundRect,
   groundSector,
+  hasHeight,
   isIso,
   mapScreenBounds,
   screenToGround,
@@ -115,6 +116,8 @@ export class BattleScene extends Phaser.Scene {
   /** 戰爭迷霧（SPEC_SLICE4 §6）：視野版本或開關改變時才重畫 */
   private fogG!: Phaser.GameObjects.Graphics;
   private fogDrawn = '';
+  /** 畫面外敵人指示器（畫面座標，不跟鏡頭捲動） */
+  private edgeG!: Phaser.GameObjects.Graphics;
   /** 互動物件（門、拉桿）的外觀與滑鼠提示 */
   private interactView!: InteractablesView;
   private objectLabel!: Phaser.GameObjects.Text;
@@ -175,6 +178,7 @@ export class BattleScene extends Phaser.Scene {
       .setDepth(1200)
       .setVisible(false);
     this.fx = new Fx(this);
+    this.edgeG = this.add.graphics().setScrollFactor(0).setDepth(2900);
     // 暫停時的變暗層：scrollFactor 0 仍會跟著鏡頭縮放（以畫面中心縮放），做成三倍大，縮小到最小倍率也能蓋滿畫面
     this.dim = this.add
       .rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width * 3, this.scale.height * 3, 0x000000, 0.22)
@@ -217,7 +221,7 @@ export class BattleScene extends Phaser.Scene {
     this.builtH3d = this.useH3d();
     this.builtProps = this.useProps();
     this.drawMap();
-    if (isIso()) this.buildObstacleBlocks();
+    if (hasHeight()) this.buildObstacleBlocks();
     if (this.builtProps) this.buildProps();
     this.interactView = new InteractablesView(this, this.session.world);
     for (const u of this.session.world.units) this.views.set(u.id, this.makeView(u));
@@ -254,7 +258,7 @@ export class BattleScene extends Phaser.Scene {
   /** 除錯面板切換投影或美術：重建畫面物件，鏡頭對準同一個地面點 */
   private checkProjection(): void {
     const wantFlare = wantsFlare();
-    if (getArt() === 'heroes3d' && isIso() && !heroes3dLoaded(this)) ensureHeroes3dLoaded(this);
+    if (getArt() === 'heroes3d' && hasHeight() && !heroes3dLoaded(this)) ensureHeroes3dLoaded(this);
     if (wantFlare && !useFlare(this)) {
       // Flare 素材第一次使用時才載入；載入完成前先維持目前的畫面
       ensureFlareLoaded(this, () => undefined);
@@ -276,11 +280,13 @@ export class BattleScene extends Phaser.Scene {
     const b = mapScreenBounds(W, H);
     const pad = 4;
     const flare = useFlare(this);
-    if (flare) this.drawFloorTiles(b, pad);
+    // Flare 地板磚是等角菱形，只用在等角投影；正角俯視的地面用程式畫
+    const tiles = flare && isIso();
+    if (tiles) this.drawFloorTiles(b, pad);
     const g = this.add.graphics();
     g.translateCanvas(-b.x + pad, -b.y + pad);
-    if (!flare) groundRect(g, 0, 0, W, H, { fill: COLORS.floor });
-    const gridAlpha = flare ? 0.18 : 1;
+    if (!tiles) groundRect(g, 0, 0, W, H, { fill: COLORS.floor });
+    const gridAlpha = tiles ? 0.18 : 1;
     for (let x = 0; x <= W; x++) groundLine(g, { x, y: 0 }, { x, y: H }, 1, COLORS.floorGrid, gridAlpha);
     for (let y = 0; y <= H; y++) groundLine(g, { x: 0, y }, { x: W, y }, 1, COLORS.floorGrid, gridAlpha);
     const zone = (pts: Vec[], color: number) => {
@@ -289,7 +295,7 @@ export class BattleScene extends Phaser.Scene {
       const ys = pts.map((p) => p.y);
       const x0 = Math.min(...xs) - 1.5;
       const y0 = Math.min(...ys) - 1.5;
-      groundRect(g, x0, y0, Math.max(...xs) + 1.5 - x0, Math.max(...ys) + 1.5 - y0, { fill: color, fillAlpha: flare ? 0.18 : 0.35 });
+      groundRect(g, x0, y0, Math.max(...xs) + 1.5 - x0, Math.max(...ys) + 1.5 - y0, { fill: color, fillAlpha: tiles ? 0.18 : 0.35 });
     };
     zone(map.heroSpawns, COLORS.heroZone);
     zone(map.enemySpawns, COLORS.enemyZone);
@@ -300,8 +306,8 @@ export class BattleScene extends Phaser.Scene {
         groundRect(g, r.x, r.y, r.w, r.h, { fill: 0x1d3f5c });
         continue;
       }
-      // 等角模式的障礙物是立體方塊（物件層）；地面只畫陰影（props3d 物件自帶影子）
-      if (isIso()) {
+      // 有高度的投影：障礙物是立體方塊（物件層）；地面只畫陰影（props3d 物件自帶影子）
+      if (hasHeight()) {
         if (this.builtProps && obstacleUsesProp(map, r)) continue;
         groundRect(g, r.x, r.y, r.w, r.h, { fill: 0x15171b, fillAlpha: 0.6 });
         continue;
@@ -310,7 +316,7 @@ export class BattleScene extends Phaser.Scene {
     }
     groundRect(g, 0, 0, W, H, { stroke: 0x15171b, width: 3 });
     // 靜態圖層烘成貼圖，避免每幀重新三角化
-    this.worldObjects.push(bakeGraphics(this, g, 'map-floor', b.w + pad * 2, b.h + pad * 2, flare ? 0.5 : 0, b.x - pad, b.y - pad));
+    this.worldObjects.push(bakeGraphics(this, g, 'map-floor', b.w + pad * 2, b.h + pad * 2, tiles ? 0.5 : 0, b.x - pad, b.y - pad));
     const corner = worldToScreen(W, 0);
     this.worldObjects.push(
       this.add
@@ -485,14 +491,16 @@ export class BattleScene extends Phaser.Scene {
     const cam = this.cameras.main;
     const b = mapScreenBounds(map.width, map.height);
     const pad = 96;
-    cam.setBounds(b.x - pad, b.y - pad - (isIso() ? 120 : 0), b.w + pad * 2, b.h + pad * 2 + (isIso() ? 120 : 0) + this.hudBottom());
+    cam.setBounds(b.x - pad, b.y - pad - (hasHeight() ? 120 : 0), b.w + pad * 2, b.h + pad * 2 + (hasHeight() ? 120 : 0) + this.hudBottom());
   }
 
   private setupCamera(): void {
     const map = this.session.world.map;
+    // Alan：鏡頭遠近固定，玩家不能縮放（只留 GAME_CONFIG.battleZoom 旋鈕）
+    this.cameras.main.setZoom(GAME_CONFIG.battleZoom);
     this.setupCameraBounds();
     let start: Vec;
-    if (isIso()) {
+    if (hasHeight()) {
       // 開場鏡頭對準英雄群的中心
       const heroes = this.session.world.units.filter((u) => u.team === 'hero' && !u.dead);
       start = heroes.length
@@ -769,6 +777,7 @@ export class BattleScene extends Phaser.Scene {
     this.drawCoverHint();
     this.drawBoxSelect();
     this.drawFacingDebug();
+    this.drawOffscreenEnemies();
     this.debugOverlay.update(s, (id) => this.wpos(w.getUnit(id)!));
     this.dim.setVisible(s.paused && !w.result);
     this.input.setDefaultCursor(s.targeting ? 'crosshair' : 'default');
@@ -861,7 +870,7 @@ export class BattleScene extends Phaser.Scene {
   private drawOcclusion(): void {
     const g = this.occlusionG;
     g.clear();
-    if (!isIso() || this.blocks.length === 0) return;
+    if (!hasHeight() || this.blocks.length === 0) return;
     for (const v of this.views.values()) {
       const u = v.unit;
       if (u.dead || !v.visible) continue;
@@ -987,7 +996,7 @@ export class BattleScene extends Phaser.Scene {
   private drawBars(): void {
     const g = this.overG;
     g.clear();
-    const iso = isIso();
+    const iso = hasHeight();
     for (const u of this.session.world.units) {
       const st = this.statusTexts.get(u.id);
       if (u.dead || this.hiddenIds.has(u.id)) {
@@ -1031,7 +1040,7 @@ export class BattleScene extends Phaser.Scene {
 
   private drawProjectiles(): void {
     const g = this.overG;
-    const iso = isIso();
+    const iso = hasHeight();
     for (const pr of this.session.world.projectiles) {
       const st = PROJECTILE_STYLE[pr.kind] ?? PROJECTILE_STYLE.arrow;
       const wx = pr.prevPos.x + (pr.pos.x - pr.prevPos.x) * this.alpha;
@@ -1225,6 +1234,48 @@ export class BattleScene extends Phaser.Scene {
       const d = flareDir(f);
       const sp = worldToScreen(p.x, p.y);
       t.setText(`dir ${d}（${DIR_NAMES[d]}）`).setPosition(sp.x, sp.y + 10).setVisible(true);
+    }
+  }
+
+  /**
+   * 畫面外敵人指示器（Alan）：鏡頭遠近固定後，看不到的敵人在畫面邊緣（下緣是卡片上方）朝它的方向顯示紅色光暈。
+   * 光暈大小依敵人強弱（最大生命）；被迷霧或草叢遮住的敵人不顯示。
+   */
+  private drawOffscreenEnemies(): void {
+    const g = this.edgeG;
+    g.clear();
+    const w = this.session.world;
+    if (w.result) return;
+    const cam = this.cameras.main;
+    const V = VISUAL.offscreen;
+    // 可見區域（畫面座標）：下方扣掉 HUD
+    const x0 = 0;
+    const y0 = 0;
+    const x1 = this.scale.width;
+    const y1 = this.scale.height - this.hudBottom();
+    const cx = (x0 + x1) / 2;
+    const cy = (y0 + y1) / 2;
+    const pulse = 0.85 + 0.15 * Math.sin(this.time.now / 260);
+    for (const u of w.units) {
+      if (u.team !== 'enemy' || u.dead || this.hiddenIds.has(u.id)) continue;
+      const wp = this.wpos(u);
+      const p = worldToScreen(wp.x, wp.y, 1);
+      const sx = (p.x - cam.worldView.x) * cam.zoom;
+      const sy = (p.y - cam.worldView.y) * cam.zoom;
+      if (sx >= x0 && sx <= x1 && sy >= y0 && sy <= y1) continue;
+      // 從可見區域中心往敵人的射線與邊框的交點
+      const dx = sx - cx;
+      const dy = sy - cy;
+      const t = Math.min(dx !== 0 ? (x1 - cx) / Math.abs(dx) : Infinity, dy !== 0 ? (y1 - cy) / Math.abs(dy) : Infinity);
+      const ex = cx + dx * t;
+      const ey = cy + dy * t;
+      const r = Phaser.Math.Clamp(V.base + V.perSqrtHp * Math.sqrt(u.maxHp), V.min, V.max) * pulse;
+      // 同心圓疊出柔和的光暈：外圈淡、內圈濃
+      for (let i = 0; i < V.layers; i++) {
+        const k = 1 - i / V.layers;
+        g.fillStyle(V.color, (V.alpha / V.layers) * (0.6 + i * 0.25));
+        g.fillCircle(ex, ey, r * k);
+      }
     }
   }
 

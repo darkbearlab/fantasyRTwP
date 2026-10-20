@@ -48,24 +48,18 @@ export class InputController {
   attackMoveArmed = false;
   /** 沉穩模式（行動版操作）：按下的位置（判斷點擊或拖曳鏡頭） */
   private tap: { x: number; y: number; sx: number; sy: number; moved: boolean } | null = null;
-  /** 雙指捏合縮放：上一次兩指的距離 */
-  private pinchDist = 0;
 
   constructor(private host: InputHost) {
     const scene = host.scene;
     const input = scene.input;
     input.mouse?.disableContextMenu();
-    // 行動版：第二根手指（捏合縮放）
+    // 行動版：第二根手指（Alan：鏡頭遠近固定，雙指只是取消點擊，不縮放）
     input.addPointer(1);
     input.keyboard!.addCapture('SPACE,UP,DOWN,LEFT,RIGHT,TAB');
 
     input.on('pointerdown', (p: Phaser.Input.Pointer) => this.onDown(p));
     input.on('pointermove', (p: Phaser.Input.Pointer) => this.onMove(p));
     input.on('pointerup', (p: Phaser.Input.Pointer) => this.onUp(p));
-    input.on('wheel', (_p: Phaser.Input.Pointer, _o: unknown, _dx: number, dy: number) => {
-      const cam = scene.cameras.main;
-      cam.setZoom(Phaser.Math.Clamp(cam.zoom * (dy > 0 ? 0.9 : 1.1), 0.6, 1.8));
-    });
     input.keyboard!.on('keydown', (e: KeyboardEvent) => {
       this.held.add(e.code);
       this.onKey(e);
@@ -157,7 +151,6 @@ export class InputController {
     if (this.tap) {
       const t = this.tap;
       this.tap = null;
-      this.pinchDist = 0;
       if (!t.moved) {
         const unit = this.host.unitAtScreen(t.sx, t.sy);
         const obj = unit && !unit.dead ? undefined : this.host.objectAtScreen(t.sx, t.sy);
@@ -278,16 +271,13 @@ export class InputController {
     s.selection = [];
   }
 
-  /** 行動版手勢：單指拖曳移動鏡頭、雙指捏合縮放；處理了就回傳 true */
+  /** 行動版手勢：單指拖曳移動鏡頭；雙指不縮放（遠近固定），只取消點擊。處理了就回傳 true */
   private touchGesture(p: Phaser.Input.Pointer): boolean {
     const input = this.host.scene.input;
     const cam = this.host.scene.cameras.main;
     const p1 = input.pointer1;
     const p2 = input.pointer2;
     if (p1?.isDown && p2?.isDown) {
-      const d = Math.hypot(p1.x - p2.x, p1.y - p2.y);
-      if (this.pinchDist > 0) cam.setZoom(Phaser.Math.Clamp(cam.zoom * (d / this.pinchDist), 0.6, 1.8));
-      this.pinchDist = d;
       if (this.tap) this.tap.moved = true;
       return true;
     }

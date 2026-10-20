@@ -5,7 +5,7 @@
 import type Phaser from 'phaser';
 import { GAME_CONFIG } from '../../config';
 import flareArt from './flareArt.json';
-import { isIso, worldToScreen } from './projection';
+import { hasHeight, worldToScreen } from './projection';
 
 export type ArtMode = 'blocks' | 'flare' | 'heroes3d';
 
@@ -87,10 +87,10 @@ export function queueFlare(load: Phaser.Loader.LoaderPlugin, scene: Phaser.Scene
 
 /** 目前的美術是否需要 Flare 素材（heroes3d 的敵人與地板也用 Flare） */
 export function wantsFlare(): boolean {
-  return (art === 'flare' || art === 'heroes3d') && isIso();
+  return (art === 'flare' || art === 'heroes3d') && hasHeight();
 }
 
-/** 是否實際使用 Flare 畫角色與地板（只支援等角投影） */
+/** 是否實際使用 Flare 畫角色（有高度的投影）；地板磚只在等角投影使用 */
 export function useFlare(scene: Phaser.Scene): boolean {
   return wantsFlare() && flareLoaded(scene);
 }
