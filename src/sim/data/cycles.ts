@@ -13,7 +13,8 @@ export interface ActiveCycle {
 
 export const ACTIVE_CYCLES: Record<string, ActiveCycle> = {
   // 法師：火球；普攻命中累積充能，滿 5 層變成大火球
-  mage: { mode: 'charge', steps: ['fireball', 'greatFireball'], chargeMax: 5 },
+  // Alan：火球即時打出（flashFireball，沒有飛行時間）
+  mage: { mode: 'charge', steps: ['flashFireball', 'greatFireball'], chargeMax: 5 },
   // 咒術師：衰弱詛咒 → 詛咒爆裂（引爆目標身上的詛咒）→ 衰弱詛咒…
   hexer: { mode: 'sequence', steps: ['curse', 'curseBurst'] },
 };

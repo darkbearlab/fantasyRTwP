@@ -9,6 +9,7 @@ import { DEFAULT_SIM_CONFIG } from '../src/sim/simConfig';
 import { activeSkillIndex } from '../src/game/ui/mobileBar';
 import { OPEN_MAP, PASSIVE, makeWorld, run } from './helpers';
 import { World } from '../src/sim/world';
+import { HEROES } from '../src/sim/data/heroes';
 
 describe('沉穩節奏（SPEC_SLICE5 §1）', () => {
   it('設定檔：移動、行動、冷卻依倍率變慢', () => {
@@ -82,5 +83,35 @@ describe('沉穩節奏的規則調整（Alan）', () => {
     const w = new World({ seed: 1, map: OPEN_MAP, spawns: [{ defId: 'ranger', pos: { x: 5, y: 6 }, personality: 'guerrilla' }, { defId: 'brute', pos: { x: 7, y: 6 } }], config: { ...PASSIVE, ...c, enemyAggroRange: 0 } });
     const evs = run(w, 3 * 30);
     expect(evs.some((e) => e.type === 'notice' && e.text === '逃跑！')).toBe(false);
+  });
+});
+
+describe('Alan 的調整（切片 5 試玩後）', () => {
+  it('點地圖放指定目標技能：打點擊位置最近的敵人（遊俠瞄準射擊）', async () => {
+    const { BattleSession } = await import('../src/game/session');
+    const { confirmTargeting } = await import('../src/game/input/targeting');
+    const w = new World({
+      seed: 1,
+      map: OPEN_MAP,
+      spawns: [{ defId: 'ranger', def: { ...HEROES.ranger, skills: ['aimedShot'] }, pos: { x: 2, y: 6 } }, { defId: 'brute', pos: { x: 10, y: 3 } }, { defId: 'brute', pos: { x: 10, y: 9 } }],
+      config: { ...PASSIVE, ...deliberateConfig() },
+    });
+    const s = new BattleSession(1, { world: w });
+    s.targeting = { unitId: 1, skillId: 'aimedShot' };
+    expect(confirmTargeting(s, { x: 11, y: 8 }, undefined, 0)).toBe(true);
+    expect(w.pendingCommands).toContainEqual({ type: 'skill', unitId: 1, skillId: 'aimedShot', targetId: 3 });
+    expect(activeSkillOf('ranger')).toBe('aimedShot');
+  });
+
+  it('法師的火球即時爆炸（沒有投射物）；沉穩節奏的手工遭遇也有迷霧', () => {
+    const w = makeWorld([{ defId: 'mage', def: { ...HEROES.mage, skills: ['flashFireball'] }, pos: { x: 2, y: 6 } }, { defId: 'brute', pos: { x: 10, y: 6 } }], deliberateConfig());
+    w.enqueue({ type: 'skill', unitId: 1, skillId: 'flashFireball', point: { x: 10, y: 6 } });
+    const evs = run(w, 6 * 30);
+    expect(evs.some((e) => e.type === 'aoe' && e.skillId === 'flashFireball')).toBe(true);
+    expect(w.projectiles.length).toBe(0);
+    const r = createRun(5, { party: ['warrior', 'cleric', 'mage', 'ranger'] });
+    const node = r.map.nodes[r.map.layers[0][0]];
+    const b = { ...r, currentNodeId: node.id, phase: { kind: 'battle' as const, nodeId: node.id, encounterId: 'passScouts', fromEvent: false } };
+    expect(createBattleFromRun(b).fogActive).toBe(true);
   });
 });

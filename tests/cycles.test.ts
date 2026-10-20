@@ -20,14 +20,14 @@ describe('技能循環（SPEC_SLICE5 §16）', () => {
     const hexer = w.units.find((u) => u.def.id === 'hexer')!;
     expect(mage.def.skills).toEqual(ACTIVE_CYCLES.mage.steps);
     expect(hexer.def.skills).toEqual(ACTIVE_CYCLES.hexer.steps);
-    expect(currentActiveSkill(mage)).toBe('fireball');
+    expect(currentActiveSkill(mage)).toBe('flashFireball');
     expect(currentActiveSkill(hexer)).toBe('curse');
-    expect(mage.def.skills[activeSkillIndex(mage)]).toBe('fireball');
+    expect(mage.def.skills[activeSkillIndex(mage)]).toBe('flashFireball');
     expect(w.units.find((u) => u.def.id === 'warrior')!.cycle).toBeUndefined();
   });
 
-  it('法師：普攻命中 5 次後火球換成大火球；放完大火球歸零', () => {
-    const def = { ...HEROES.mage, skills: ['fireball', 'greatFireball'] };
+  it('法師：普攻命中 5 次後火球（即時）換成大火球；放完大火球歸零', () => {
+    const def = { ...HEROES.mage, skills: ['flashFireball', 'greatFireball'] };
     // 標靶：打不死、不還手、好命中
     const dummy = { ...ENEMIES.minion, maxHp: 9999, defense: 0, damage: [0, 0] as [number, number] };
     const w = makeWorld([{ defId: 'mage', def, pos: { x: 3, y: 6 } }, { defId: 'minion', def: dummy, pos: { x: 9, y: 6 } }], D, undefined, 1, HOLD);
@@ -42,7 +42,7 @@ describe('技能循環（SPEC_SLICE5 §16）', () => {
     expect(m.cycleCharge).toBe(5);
     expect(currentActiveSkill(m)).toBe('greatFireball');
     // 放的是第一招：還沒輪到
-    w.enqueue({ type: 'skill', unitId: 1, skillId: 'fireball', point: { x: 9, y: 6 } });
+    w.enqueue({ type: 'skill', unitId: 1, skillId: 'flashFireball', point: { x: 9, y: 6 } });
     expect(run(w, 4 * 30).some((e) => e.type === 'notice' && e.text === '還沒輪到這一招')).toBe(true);
     w.enqueue({ type: 'skill', unitId: 1, skillId: 'greatFireball', point: { x: 9, y: 6 } });
     const evs = run(w, 12 * 30);

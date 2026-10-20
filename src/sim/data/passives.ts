@@ -115,6 +115,8 @@ export const CLASS_PASSIVES: Record<string, string[]> = {
  * Alan v0.4：牧師的治療改成相當於煉金術士的治療藥瓶。
  */
 export const ACTIVE_SKILL_OVERRIDE: Record<string, string> = {
+  // Alan：遊俠的主動技能是瞄準射擊（點地圖時打點擊位置最近的敵人）
+  ranger: 'aimedShot',
   cleric: 'healFlask',
   // Alan v0.4：火焰瓶要真的在地上留下持續效果
   alchemist: 'fireFlask',
