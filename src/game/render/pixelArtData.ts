@@ -10,26 +10,48 @@
  * 對照表（Alan 2026-10-20：先照交接文件的建議表，全部當佔位）。
  */
 
+import { HEROES } from '../../sim/data/heroes';
+
 export type PixelUnitArt =
-  | { kind: 'mw'; path: string }
+  /** recolor：把藍隊的兩個隊伍色換成這兩個顏色（英雄用職業色，見 heroTeamColors） */
+  | { kind: 'mw'; path: string; recolor?: { dark: number; light: number } }
   | { kind: 'm72'; idle: string; run: string; frames: number };
 
 const mw = (path: string): PixelUnitArt => ({ kind: 'mw', path });
+
+/** mw 藍隊的兩個隊伍色（原包固定值；recolor.py 也用這兩個） */
+export const MW_TEAM_DARK = 0x0000c0;
+export const MW_TEAM_LIGHT = 0x7d7dea;
+
+/**
+ * 職業色 → 換色用的隊伍色（Alan：職業顏色要和 sprite 顏色一致）。
+ * 亮色＝職業色，暗色＝職業色壓暗（和原包藍隊的明暗差差不多）。
+ */
+export function heroTeamColors(color: number): { dark: number; light: number } {
+  const k = 0.5;
+  const r = Math.round(((color >> 16) & 0xff) * k);
+  const g = Math.round(((color >> 8) & 0xff) * k);
+  const b = Math.round((color & 0xff) * k);
+  return { dark: (r << 16) | (g << 8) | b, light: color };
+}
+
+/** 英雄：藍隊 sheet 換成職業色 */
+const hero = (id: string, path: string): PixelUnitArt => ({ kind: 'mw', path, recolor: heroTeamColors(HEROES[id].color) });
 const m72 = (name: string, single = false): PixelUnitArt =>
   single ? { kind: 'm72', idle: `${name}_anim`, run: `${name}_anim`, frames: 4 } : { kind: 'm72', idle: `${name}_idle_anim`, run: `${name}_run_anim`, frames: 4 };
 
 /** 單位 def.id → 素材（路徑相對於 public/assets/licensed/） */
 export const PIXEL_UNITS: Record<string, PixelUnitArt> = {
-  // ── 英雄（藍隊） ──
-  warrior: mw('mw/sheets/SwordFighter/SwordFighter_ShortHair_Blue1.png'),
-  ranger: mw('mw/sheets/Archer/Archer_Blue1.png'),
-  mage: mw('mw/sheets/Wizard/Wizard_Blue1.png'),
-  berserker: mw('mw/sheets/AxeFighter/AxeFighter_LongHair_Blue1.png'),
-  rogue: mw('mw/sheets/Thief/Thief_Blue1.png'),
-  hexer: mw('mw/recolor/Cult/Wizard/Wizard_Cult1.png'),
-  cleric: mw('mw/recolor/Holy/Wizard/Wizard_Holy1.png'),
-  // 建議表沒有煉金術士：先用綠色法師
-  alchemist: mw('mw/sheets/Wizard/Wizard_Green1.png'),
+  // ── 英雄：藍隊 sheet，隊伍色換成職業色（咒術師、牧師原本建議用 Cult／Holy 換色版，改成職業色以便和介面一致） ──
+  warrior: hero('warrior', 'mw/sheets/SwordFighter/SwordFighter_ShortHair_Blue1.png'),
+  ranger: hero('ranger', 'mw/sheets/Archer/Archer_Blue1.png'),
+  mage: hero('mage', 'mw/sheets/Wizard/Wizard_Blue1.png'),
+  berserker: hero('berserker', 'mw/sheets/AxeFighter/AxeFighter_LongHair_Blue1.png'),
+  rogue: hero('rogue', 'mw/sheets/Thief/Thief_Blue1.png'),
+  hexer: hero('hexer', 'mw/sheets/Wizard/Wizard_Blue2.png'),
+  cleric: hero('cleric', 'mw/sheets/Wizard/Wizard_Blue3.png'),
+  // 建議表沒有煉金術士：先用法師
+  alchemist: hero('alchemist', 'mw/sheets/Wizard/Wizard_Blue1.png'),
   // ── 人類敵人（換色陣營） ──
   brute: mw('mw/recolor/Bandit/AxeFighter/AxeFighter_ShortHair_Bandit1.png'),
   skirmisher: mw('mw/recolor/Bandit/Thief/Thief_Bandit1.png'),

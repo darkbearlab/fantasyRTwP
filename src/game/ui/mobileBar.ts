@@ -56,10 +56,19 @@ const STATUS_ICONS: [(u: Unit) => boolean, string][] = [
 
 /**
  * 頭像（Alan：之後放真的頭像；平時是朝左的側臉，被選取時轉成正面，參考魔鬥士 Commandos）。
- * 現在用色塊佔位：側臉只有一隻眼睛和朝左的鼻子，正面是兩隻眼睛。
+ * 有像素素材時：直接用英雄 sprite 的側面（朝左）與正面待機格（CSS 背景裁切，見 .m-sprite）。
+ * 沒有素材時：色塊佔位——側臉只有一隻眼睛和朝左的鼻子，正面是兩隻眼睛。
  */
-function portrait(): HTMLElement {
+function portrait(sheetUrl?: string): HTMLElement {
   const box = el('div', 'm-portrait');
+  if (sheetUrl) {
+    for (const view of ['side', 'front']) {
+      const s = el('div', `m-sprite ${view}`);
+      s.style.backgroundImage = `url("${sheetUrl}")`;
+      box.appendChild(s);
+    }
+    return box;
+  }
   const face = el('div', 'm-face');
   face.append(el('span', 'eye l'), el('span', 'eye r'), el('span', 'nose'));
   box.appendChild(face);
@@ -90,6 +99,8 @@ function cycleHint(u: Unit): string {
 
 export interface MobileBarHost {
   session(): BattleSession;
+  /** 英雄頭像用的 sprite sheet 網址（沒有像素素材時 undefined → 色塊頭像） */
+  portraitUrl?(defId: string): string | undefined;
   now(): number;
   centerOn(unitId: number): void;
 }
@@ -160,7 +171,7 @@ export class MobileHeroBar {
       const hpText = el('span', 'hptext');
       hp.append(hpFill, hpText);
       const status = el('span', 'm-status');
-      head.append(portrait(), name, status, hp);
+      head.append(portrait(this.host.portraitUrl?.(u.def.id)), name, status, hp);
       head.addEventListener('mousedown', (ev) => ev.preventDefault());
       // 點名字：選取／取消選取（可以同時選多名）
       head.addEventListener('click', () => {
@@ -271,7 +282,7 @@ export interface StaticHeroCard {
  * 和戰鬥中一樣的底部英雄面板，但只是外觀：上面蓋一層半透明黑色，按不到也不會穿過去（Alan：營火畫面保留面板，不要空空的）。
  * slots：隊伍欄位數（空欄位也佔一張卡）。
  */
-export function staticHeroBar(cards: StaticHeroCard[], slots: number): HTMLElement {
+export function staticHeroBar(cards: StaticHeroCard[], slots: number, portraitUrl?: (classId: string) => string | undefined): HTMLElement {
   const root = el('div', 'm-bar m-static');
   const pause = el('div', 'm-pause');
   pause.innerHTML = HOURGLASS_SVG;
@@ -298,7 +309,7 @@ export function staticHeroBar(cards: StaticHeroCard[], slots: number): HTMLEleme
     const hpFill = el('div', 'fill');
     hpFill.style.width = `${Math.max(0, (c.hp / c.maxHp) * 100)}%`;
     hp.append(hpFill, el('span', 'hptext', `${c.hp} / ${c.maxHp}`));
-    head.append(portrait(), el('span', 'm-name', HEROES[c.classId].name), el('span', 'm-status'), hp);
+    head.append(portrait(portraitUrl?.(c.classId)), el('span', 'm-name', HEROES[c.classId].name), el('span', 'm-status'), hp);
     const skill = el('div', 'm-skill');
     skill.appendChild(el('span', 'sname', c.skillName));
     card.append(el('div', 'm-fill'), head, skill);

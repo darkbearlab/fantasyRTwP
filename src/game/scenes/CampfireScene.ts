@@ -7,7 +7,7 @@ import Phaser from 'phaser';
 import type { CampfireLine } from '../../run/campfire';
 import { HEROES } from '../../sim/data/heroes';
 import { FLARE, flareKey, getArt } from '../render/art';
-import { mwKey, pixelArtFor } from '../render/pixelArt';
+import { artKey, pixelArtFor, portraitSheetUrl } from '../render/pixelArt';
 import { MW_IDLE, PIXEL, facingBlock, mwFrame } from '../render/pixelArtData';
 import type { FlareAnimMeta } from '../render/art';
 import { H3D_SHEETS, h3dCharFor, h3dKey, h3dResolve } from '../render/heroes3d';
@@ -59,7 +59,7 @@ function makeHeroSprite(scene: Phaser.Scene, classId: string, x: number, y: numb
     if (art?.kind === 'mw') {
       const k = ((dir + 4) % 8) * (Math.PI / 4);
       const { block, flip } = facingBlock(Math.cos(k), Math.sin(k));
-      const s = scene.add.sprite(x, y, mwKey(art.path), mwFrame(block, MW_IDLE, 0)).setOrigin(0.5, PIXEL.mwFootY).setFlipX(flip);
+      const s = scene.add.sprite(x, y, artKey(art), mwFrame(block, MW_IDLE, 0)).setOrigin(0.5, PIXEL.mwFootY).setFlipX(flip);
       // 像素要整數倍：依原本的倍率換算成最接近的整數
       s.setScale(Math.max(1, Math.round(scale * CAMP.pixelPerScale)));
       return { objs: [s], setFrame: (i) => s.setFrame(mwFrame(block, MW_IDLE, Math.floor(i / 2))) };
@@ -147,7 +147,7 @@ export class CampfireScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor('#07080c');
     // 底部保留原本的英雄面板（只是外觀，蓋半透明黑色）
     const hud = el('div', 'hud-root mobile');
-    hud.appendChild(staticHeroBar(data.cards, data.slots));
+    hud.appendChild(staticHeroBar(data.cards, data.slots, (id) => (getArt() === 'pixel' ? portraitSheetUrl(this, id) : undefined)));
     uiRoot().appendChild(hud);
     this.events.once('shutdown', () => hud.remove());
     // 版面（Alan）：畫面下方是英雄面板的位置（戰鬥中四張卡片那一塊），對話框與場景只用它以上的區域

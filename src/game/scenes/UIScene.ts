@@ -24,6 +24,7 @@ import type { BattleSession, DebugFlags } from '../session';
 import type { BattleScene } from './BattleScene';
 import { MobileHeroBar } from '../ui/mobileBar';
 import { AUTO_PAUSE_OPTIONS, LOW_HP_THRESHOLDS } from '../autoPause';
+import { portraitSheetUrl } from '../render/pixelArt';
 
 const STATE_LABEL: Record<UnitState, string> = {
   [UnitState.Idle]: '閒置',
@@ -103,7 +104,12 @@ export class UIScene extends Phaser.Scene {
     this.buildDebug();
     this.heroBar = el('div', 'hero-bar interactive');
     this.root.appendChild(this.heroBar);
-    this.mobileBar = new MobileHeroBar({ session: () => this.cur(), now: () => this.time.now, centerOn: (id) => this.battle.centerOnUnit(id) });
+    this.mobileBar = new MobileHeroBar({
+      session: () => this.cur(),
+      now: () => this.time.now,
+      centerOn: (id) => this.battle.centerOnUnit(id),
+      portraitUrl: (defId) => (getArt() === 'pixel' ? portraitSheetUrl(this, defId) : undefined),
+    });
     this.root.appendChild(this.mobileBar.root);
     this.toastEl = el('div', 'toast');
     this.root.appendChild(this.toastEl);

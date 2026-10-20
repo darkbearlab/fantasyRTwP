@@ -1987,6 +1987,45 @@ body {
   background: #1d2129;
   perspective: 200px;
 }
+/* 像素頭像：英雄 sprite sheet 放大 4 倍，裁出待機第一格的上半身。
+   側面（區塊 0，原圖朝右）水平翻轉成朝左；選取時換成正面（區塊 1，第 5 列） */
+.m-sprite {
+  position: absolute;
+  left: 50%;
+  top: 2px;
+  width: 64px;
+  height: 56px;
+  margin-left: -32px;
+  background-repeat: no-repeat;
+  background-size: 1024px 1792px;
+  image-rendering: pixelated;
+}
+.m-sprite.side {
+  background-position: -32px -20px;
+  transform: scaleX(-1);
+}
+.m-sprite.front {
+  display: none;
+  background-position: -32px -660px;
+}
+.m-card.selected .m-sprite.side {
+  display: none;
+}
+.m-card.selected .m-sprite.front {
+  display: block;
+}
+#stage.compact .m-sprite {
+  width: 48px;
+  height: 42px;
+  margin-left: -24px;
+  background-size: 768px 1344px;
+}
+#stage.compact .m-sprite.side {
+  background-position: -24px -15px;
+}
+#stage.compact .m-sprite.front {
+  background-position: -24px -495px;
+}
 .m-face {
   position: absolute;
   left: 50%;
