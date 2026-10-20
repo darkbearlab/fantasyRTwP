@@ -48,7 +48,9 @@
 - **畫面改成正角俯視**（2026-10-20）：`projection.ts` 新增 `ortho` 模式並設為預設（地圖正方格、保留俯角、z 高度照樣畫，所以角色 sprite 與立體方塊沿用）。Flare 地板磚與 props3d 是等角素材，只在 `iso` 使用；`ortho` 的地面、牆、門用程式畫。舊的 `iso` 還在（除錯面板可切），`isIso()` 只用在等角專用素材，其他「有高度」的判斷用 `hasHeight()`。
 - **鏡頭遠近固定**：移除滾輪與雙指縮放；`GAME_CONFIG.battleZoom` 是唯一旋鈕（Alan：不要做成玩家設定）。
 - **畫面外敵人指示器**：`BattleScene.drawOffscreenEnemies`，紅色光暈，大小依最大生命；迷霧／草叢裡的敵人不顯示。
-- **全選鈕**：有人沒選到＝全選，全選中＝全部取消（`mobileBar.ts`）。
+- **全選／全不選**：兩顆按鈕（Alan：全選一定是全選）；`mobileControls.order` 裡是 `selectAll`、`deselectAll`。
+- **柔和迷霧**（正角俯視）：`BattleScene.drawSoftFog`——一格一個像素的畫布貼圖，用平滑（雙線性）取樣放大成漸層，每格透明度淡入淡出（`VISUAL.fogFadeSec`）。像素模式下 `refresh()` 會把取樣改回最近鄰，所以每次更新後要重設 `LINEAR`。
+- **戰吼**：沉穩節奏叫來的是屍僕雜魚（`warcry.deliberateSummon`），因為英雄現在沒有打斷手段；舊模式還是蠻兵。
 - **控制鈕排列**：沙漏與全選鈕的位置由 `GAME_CONFIG.mobileControls`（`align` 左／中／右、`order` 順序）決定，預設靠左、沙漏在前（Alan：之後要做成玩家可調整）。
 - **拖曳地圖**：改聽視窗層級的原生 pointer 事件（`InputController.onNativeMove`／`onNativeUp`），手指滑到卡片等 DOM 面板上也會繼續拖，放開才結束。
 - **只顯示戰鬥中用到的技能**：`src/run/loadout.ts` 的 `battleSkillsOf(run, hero)`——沉穩節奏是主動技能（或循環的每一招），舊模式才是 `HeroRecord.skills`。獎勵的強化、事件、招募時的隨機強化、路線圖的隊伍面板都用它；沉穩節奏的休息點不顯示「技能」分頁。

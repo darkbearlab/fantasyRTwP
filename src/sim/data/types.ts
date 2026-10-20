@@ -148,7 +148,8 @@ export type SkillEffect =
   /** 前方扇形範圍攻擊（以施放者為圓心、朝目標點方向） */
   | { kind: 'cone'; radius: number; angle: number; damage: [number, number]; friendlyFire: boolean }
   /** 戰吼：召喚援軍，並讓全體友軍暫時提高傷害 */
-  | { kind: 'warcry'; summon: { enemy: string; count: number }; damageBuff: number; duration: number }
+  /** deliberateSummon：沉穩節奏改叫這些（Alan：沒有打斷手段時，戰吼叫來的是很弱的雜魚） */
+  | { kind: 'warcry'; summon: { enemy: string; count: number }; deliberateSummon?: { enemy: string; count: number }; damageBuff: number; duration: number }
   /** 旋風斬：打周圍所有敵人（每個目標各自命中判定） */
   | { kind: 'whirlwind'; radius: number; mult: number; shatters?: boolean }
   /** 衰弱詛咒：目標行動條變慢、受到傷害增加 */

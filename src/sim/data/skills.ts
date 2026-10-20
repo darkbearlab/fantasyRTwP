@@ -150,10 +150,10 @@ export const SKILLS: Record<string, SkillDef> = {
     effect: { kind: 'cone', radius: 3.6, angle: 110, damage: [14, 20], friendlyFire: false },
   },
   warcry: {
-    id: 'warcry', name: '戰吼', description: '召喚 3 名蠻兵，全體敵人 10 秒內傷害 +20%；準備 2.0 秒，被打斷就不能再用',
+    id: 'warcry', name: '戰吼', description: '召喚 3 名援軍（沉穩節奏是屍僕雜魚，舊模式是蠻兵），全體敵人 10 秒內傷害 +20%；準備 2.0 秒，被打斷就不能再用',
     target: 'self', range: 0, windup: 2.0, recovery: 1.0, cooldown: 999, requiresLos: false, telegraph: true,
     oncePerBattle: true, lostOnInterrupt: true,
-    effect: { kind: 'warcry', summon: { enemy: 'brute', count: 3 }, damageBuff: 1.2, duration: 10 },
+    effect: { kind: 'warcry', summon: { enemy: 'brute', count: 3 }, deliberateSummon: { enemy: 'minion', count: 3 }, damageBuff: 1.2, duration: 10 },
   },
   // ── 沉穩節奏的新敵人（SPEC_SLICE5 §15.2；全部有預兆；準備時間 ×1.8、冷卻 ×2 後才是實際秒數） ──
   rush: {
