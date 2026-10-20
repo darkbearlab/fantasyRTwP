@@ -96,7 +96,9 @@ export class PixelView implements UnitVisual {
       const art = this.art;
       const anim = u.movedThisTick && !u.dead ? art.run : art.idle;
       const fps = u.movedThisTick ? PIXEL.moveFps : PIXEL.idleFps;
-      this.sprite.setTexture(m72Key(`${anim}_f${Math.floor(simTime * fps) % art.frames}`));
+      // 沒有倒地動作：陣亡後固定用待機的第一格（躺平），不再播動畫
+      const frame = u.dead ? 0 : Math.floor(simTime * fps) % art.frames;
+      this.sprite.setTexture(m72Key(`${anim}_f${frame}`));
       // 只有朝右的圖：往左時鏡像
       this.sprite.setFlipX(fsx < 0 || (fsx === 0 && this.flip));
       if (u.dead) {
