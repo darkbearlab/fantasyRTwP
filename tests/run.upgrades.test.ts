@@ -31,10 +31,10 @@ describe('強化修飾器（SPEC_SLICE2 §9、§11-5）', () => {
 
   it('沉穩節奏：需要技能的強化只能指定戰鬥中實際用到的技能（舊技能欄不算）', () => {
     const r = createRun(1, { style: 'deliberate' });
-    expect(battleSkillsOf(r, r.party[2]!)).toEqual(['flashFireball']);
+    expect(battleSkillsOf(r, r.party[2]!)).toEqual(['enchant']);
     expect(() => grantUpgrade(r, 'practiced', 2, 'iceBind')).toThrow();
-    grantUpgrade(r, 'practiced', 2, 'flashFireball');
-    expect(heroDef(r.party[2]!).skillMods!.flashFireball.cooldownMult).toBeLessThan(1);
+    grantUpgrade(r, 'practiced', 2, 'enchant');
+    expect(heroDef(r.party[2]!).skillMods!.enchant.cooldownMult).toBeLessThan(1);
     // 舊模式照舊用技能欄
     const t = createRun(1, { style: 'tactical' });
     expect(battleSkillsOf(t, t.party[2]!)).toEqual(t.party[2]!.skills);

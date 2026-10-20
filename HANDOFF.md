@@ -50,6 +50,12 @@
 - **畫面外敵人指示器**：`BattleScene.drawOffscreenEnemies`，紅色光暈，大小依最大生命；迷霧／草叢裡的敵人不顯示。
 - **全選／全不選**：兩顆按鈕（Alan：全選一定是全選）；`mobileControls.order` 裡是 `selectAll`、`deselectAll`。
 - **柔和迷霧**（正角俯視）：`BattleScene.drawSoftFog`——一格一個像素的畫布貼圖，用平滑（雙線性）取樣放大成漸層，每格透明度淡入淡出（`VISUAL.fogFadeSec`）。像素模式下 `refresh()` 會把取樣改回最近鄰，所以每次更新後要重設 `LINEAR`。
+- **英雄技能重整**（2026-10-20，沉穩節奏）：
+  - 戰士：主動＝盾擊（打斷＋暈眩 1 秒）；嘲諷光環 5 m、防禦 +10。
+  - 遊俠：主動＝`sureShot`（瞄準射擊：打斷、命中 +60）；被動鷹眼（`seesBrush` 10 m：看得見草叢裡的敵人，`World.updateBrushSight` 分享給全隊）。
+  - 牧師：被動多了祝福光環（`aura.allies`：5 m 內命中 +10、防禦 +5，沿用祝福的欄位）。
+  - 法師：普攻＝小火球（`emberBolt`：攻速 −40%、傷害 +60%、命中點 1.5 m 爆炸）；寒氣光環（`aura.enemies`：3 m 內敵人移動與行動 −25%）；主動＝附魔（6 m 內隊友 10 秒傷害 +30%，只加攻擊力；命中從牧師光環等其他地方取得）。
+  - 光環每節拍套用，離開範圍 0.25 秒後消失（`World.updateAuras`）。封存模式不受影響（被動只在沉穩節奏生效）。
 - **戰吼**：沉穩節奏叫來的是屍僕雜魚（`warcry.deliberateSummon`），因為英雄現在沒有打斷手段；舊模式還是蠻兵。
 - **控制鈕排列**：沙漏與全選鈕的位置由 `GAME_CONFIG.mobileControls`（`align` 左／中／右、`order` 順序）決定，預設靠左、沙漏在前（Alan：之後要做成玩家可調整）。
 - **拖曳地圖**：改聽視窗層級的原生 pointer 事件（`InputController.onNativeMove`／`onNativeUp`），手指滑到卡片等 DOM 面板上也會繼續拖，放開才結束。

@@ -145,6 +145,8 @@ export type SkillEffect =
   | { kind: 'heal'; amount: number }
   | { kind: 'guard'; duration: number; chance: number }
   | { kind: 'bless'; radius: number; duration: number; accuracy: number; defense: number }
+  /** 附魔（Alan：法師的主動，只加攻擊力）：範圍內隊友 duration 秒內造成傷害 ×(1＋damagePct) */
+  | { kind: 'enchant'; radius: number; duration: number; damagePct: number }
   /** 前方扇形範圍攻擊（以施放者為圓心、朝目標點方向） */
   | { kind: 'cone'; radius: number; angle: number; damage: [number, number]; friendlyFire: boolean }
   /** 戰吼：召喚援軍，並讓全體友軍暫時提高傷害 */
