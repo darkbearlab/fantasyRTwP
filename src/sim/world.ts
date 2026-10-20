@@ -2,6 +2,8 @@ import type { Command, Order } from './commands';
 import { sameOrder } from './commands';
 import { DT, NAV_CELL, RANGE_TOLERANCE } from './constants';
 import { ENEMIES } from './data/enemies';
+import { ACTIVE_CYCLES } from './data/cycles';
+import { offCycle } from './cycle';
 import { HEROES } from './data/heroes';
 import { SKILLS } from './data/skills';
 import type { DamageType, HordeSetup, InteractAction, MapDef, Personality, ProjectileKind, Rect, SkillDef, SpawnerDef, Team, UnitDef, WaveDef, WaveTrigger } from './data/types';
@@ -93,7 +95,8 @@ export type ProjectilePayload =
   | { type: 'aoe'; skillId: string }
   | { type: 'root'; duration: number; skillId: string }
   | { type: 'curse'; duration: number; actionSlow: number; damageTakenPct: number; skillId: string }
-  | { type: 'aoeHeal'; skillId: string };
+  | { type: 'aoeHeal'; skillId: string }
+  | { type: 'curseBurst'; skillId: string };
 
 export interface Projectile {
   id: number;
@@ -201,7 +204,12 @@ export class World implements ZocContext {
       if (s.personality) u.personality = s.personality;
       if (s.squad) u.squad = s.squad;
       // 沉穩節奏（SPEC_SLICE5 §14）：英雄帶職業被動
-      if (def.team === 'hero' && this.config.battleStyle === 'deliberate') for (const id of CLASS_PASSIVES[def.id] ?? []) u.addPassive(PASSIVES[id]);
+      if (def.team === 'hero' && this.config.battleStyle === 'deliberate') {
+        for (const id of CLASS_PASSIVES[def.id] ?? []) u.addPassive(PASSIVES[id]);
+        // 技能循環（SPEC_SLICE5 §16）：英雄帶齊循環的每一招才啟用
+        const cyc = ACTIVE_CYCLES[def.id];
+        if (cyc && cyc.steps.every((sk) => def.skills.includes(sk))) u.cycle = cyc;
+      }
       // 錯開敵人 AI 評估時間
       u.aiTimer = this.rng.range(0, 0.4);
       this.units.push(u);
@@ -983,6 +991,11 @@ export class World implements ZocContext {
     const def = SKILLS[o.skillId];
     if (!def) {
       this.setOrder(u, null);
+      return;
+    }
+    if (offCycle(u, def.id)) {
+      this.emit({ type: 'notice', unitId: u.id, text: '還沒輪到這一招' });
+      this.setOrder(u, u.resumeOrder ?? null);
       return;
     }
     if (!u.skillReady(def.id)) {

@@ -170,6 +170,8 @@ export type SkillEffect =
   | { kind: 'pull'; mult: number; projectileKind?: ProjectileKind }
   /** 召喚：在自己周圍召喚 count 名 enemy */
   | { kind: 'summon'; enemy: string; count: number; radius: number }
+  /** 詛咒爆裂（咒術師的循環第二招）：目標身上有詛咒就引爆（傷害 damage、解除詛咒），沒有就只造成 uncursedDamage */
+  | { kind: 'curseBurst'; damage: [number, number]; uncursedDamage: [number, number]; projectileSpeed?: number; projectileKind?: ProjectileKind }
   /** 自爆：以自己為中心的範圍傷害，之後死亡 */
   | { kind: 'explode'; radius: number; damage: [number, number] };
 

@@ -51,7 +51,8 @@ describe('沉穩節奏（SPEC_SLICE5 §1）', () => {
   it('每名英雄只有一招主動技能：職業的專用技能；牧師是治療藥瓶、煉金術士是會留下地面火的火焰瓶（v0.4）', () => {
     const r = createRun(5, { party: ['warrior', 'cleric', 'alchemist', 'mage'] });
     const w = createBattleFromRun(chooseNode(r, r.map.layers[0][0]));
-    for (const u of w.units.filter((x) => x.team === 'hero')) {
+    // 法師有技能循環（S5-4）：帶齊循環的每一招，技能鈕顯示目前這一招
+    for (const u of w.units.filter((x) => x.team === 'hero' && x.def.id !== 'mage')) {
       expect(u.def.skills).toEqual([activeSkillOf(u.def.id)]);
       expect(u.def.skills[activeSkillIndex(u)]).toBe(activeSkillOf(u.def.id));
     }

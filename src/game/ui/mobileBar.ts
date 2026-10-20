@@ -6,7 +6,7 @@
  * 只讀 session 的狀態；操作透過 session（enqueue、targeting、selection）。
  */
 import { skillCooldownOf } from '../../sim/actions';
-import { CLASSES } from '../../sim/data/classes';
+import { currentActiveSkill } from '../../sim/cycle';
 import { HEROES } from '../../sim/data/heroes';
 import { SKILLS } from '../../sim/data/skills';
 import type { Unit } from '../../sim/unit';
@@ -25,6 +25,7 @@ interface MobileCard {
   skillName: HTMLElement;
   cdText: HTMLElement;
   cdCover: HTMLElement;
+  hint: HTMLElement;
   skillId: string | undefined;
 }
 
@@ -57,11 +58,19 @@ function statusIcons(u: Unit): string {
     .join('');
 }
 
-/** 每名英雄唯一的主動技能：職業的專用技能（找不到就用第一個） */
+/** 每名英雄唯一的技能鈕對應的技能索引：技能循環目前這一招，否則是職業專用技能（sim 的 currentActiveSkill） */
 export function activeSkillIndex(u: Unit): number {
-  const sig = CLASSES[u.def.id]?.signature;
-  const i = sig ? u.def.skills.indexOf(sig) : -1;
+  const id = currentActiveSkill(u);
+  const i = id ? u.def.skills.indexOf(id) : -1;
   return i >= 0 ? i : 0;
+}
+
+/** 技能鈕上的小字：蓄力進度或下一招 */
+function cycleHint(u: Unit): string {
+  const c = u.cycle;
+  if (!c) return '';
+  if (c.mode === 'charge') return u.cycleStep > 0 ? '強化！' : `⚡${u.cycleCharge}/${c.chargeMax}`;
+  return `→ ${SKILLS[c.steps[(u.cycleStep + 1) % c.steps.length]].name}`;
 }
 
 export interface MobileBarHost {
@@ -134,25 +143,25 @@ export class MobileHeroBar {
         else s2.selection.push(u.id);
       });
       head.addEventListener('dblclick', () => this.host.centerOn(u.id));
-      const idx = activeSkillIndex(u);
-      const skillId = u.def.skills[idx];
+      const skillId = currentActiveSkill(u);
       const def = skillId ? SKILLS[skillId] : undefined;
       const skillBtn = el('button', 'm-skill');
       skillBtn.tabIndex = -1;
       const skillName = el('span', 'sname', def?.name ?? '—');
       const cdText = el('span', 'cd');
       const cdCover = el('div', 'cdcover');
-      skillBtn.append(cdCover, skillName, cdText);
+      const hint = el('span', 'm-hint');
+      skillBtn.append(cdCover, skillName, hint, cdText);
       if (def) skillBtn.title = `${def.name}\n${def.description}`;
       skillBtn.addEventListener('mousedown', (ev) => ev.preventDefault());
       // 點技能：發動唯一的主動技能（需要目標時進入瞄準，再點一次取消）
       skillBtn.addEventListener('click', () => {
         if (u.dead) return;
-        beginSkill(this.host.session(), u.heroSlot, idx, this.host.now());
+        beginSkill(this.host.session(), u.heroSlot, activeSkillIndex(u), this.host.now());
       });
       root.append(fill, head, skillBtn);
       this.row.appendChild(root);
-      this.cards.push({ unit: u, root, fill, hpFill, hpText, status, skillBtn, skillName, cdText, cdCover, skillId });
+      this.cards.push({ unit: u, root, fill, hpFill, hpText, status, skillBtn, skillName, cdText, cdCover, hint, skillId });
     }
   }
 
@@ -176,6 +185,19 @@ export class MobileHeroBar {
       const level = a && a.phase === 'windup' ? u.actionProgress : 0;
       c.fill.style.height = `${level * 100}%`;
       c.fill.classList.toggle('skill', !!a?.skillId);
+      // 技能循環：技能鈕換成目前這一招
+      const cur = currentActiveSkill(u);
+      if (cur !== c.skillId && cur) {
+        c.skillId = cur;
+        const d = SKILLS[cur];
+        c.skillName.textContent = d.name;
+        c.skillBtn.title = `${d.name}\n${d.description}`;
+        c.skillBtn.classList.remove('flash');
+        void c.skillBtn.offsetWidth;
+        c.skillBtn.classList.add('flash');
+      }
+      const h = cycleHint(u);
+      if (c.hint.textContent !== h) c.hint.textContent = h;
       if (!c.skillId) continue;
       const cd = u.cooldowns[c.skillId] ?? 0;
       const ready = u.skillReady(c.skillId);

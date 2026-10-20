@@ -2,6 +2,7 @@ import type { Order } from './commands';
 import type { Personality, Team, UnitDef } from './data/types';
 import type { Vec } from './math';
 import type { PassiveDef, PassiveMods } from './data/passives';
+import type { ActiveCycle } from './data/cycles';
 
 export enum UnitState {
   Idle = 'Idle',
@@ -138,6 +139,11 @@ export class Unit {
   threatLog: { id: number; amount: number; t: number }[] = [];
   /** 盾兵的盾已破 */
   shieldBroken = false;
+
+  /** 技能循環（沉穩節奏的英雄，SPEC_SLICE5 §16）：目前第幾招、蓄力層數 */
+  cycle?: ActiveCycle;
+  cycleStep = 0;
+  cycleCharge = 0;
 
   addPassive(p: PassiveDef): void {
     if (this.passives.some((q) => q.id === p.id)) return;
