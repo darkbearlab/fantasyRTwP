@@ -1,6 +1,6 @@
 /**
  * 小衝突導演（沉穩節奏；資料與說明在 data/skirmish.ts）。
- * 每隔一段時間在隊伍周圍、視野外、而且和前幾波不同的方向叫出 2～3 名敵人，直接進入戰鬥朝隊伍過來。
+ * 沒在交戰的時間累積到間隔，就在隊伍周圍、視野外、而且和前幾波不同的方向叫出 2～3 名敵人，直接進入戰鬥朝隊伍過來。
  * 一波的組成用「估計處理秒數」湊到上限以內；導演叫來的敵人還活著太多時先等。只用種子亂數，維持決定論。
  * 出現位置的路徑檢查用流場（水流法，world.flowDistanceAt）：一次算完全圖到最近英雄的距離。
  * 敵人出現後照一般的沉穩節奏 AI 選目標（撲後排、被戰士架住就打戰士），移動用各自的尋路；
@@ -25,6 +25,8 @@ export class SkirmishDirector {
   /** 這個導演叫出的敵人編號 */
   private readonly mine = new Set<number>();
   private recentAngles: number[] = [];
+  /** 最近一次檢查時是否在交戰 */
+  private fighting = false;
 
   constructor(
     readonly def: SkirmishDef,
@@ -45,8 +47,21 @@ export class SkirmishDirector {
     return n;
   }
 
+  /** 交戰中：有已警覺、還活著的敵人在英雄 combatRange 內（據點的敵人也算） */
+  inCombat(world: World): boolean {
+    const heroes = world.units.filter((u) => u.team === 'hero' && !u.dead);
+    const R = this.def.combatRange;
+    return world.units.some((e) => e.team === 'enemy' && !e.dead && e.alerted && heroes.some((h) => dist(e.pos, h.pos) <= R));
+  }
+
   update(world: World): void {
     if (world.result) return;
+    // 交戰中計時暫停；打完至少喘 calmAfterCombat 秒
+    if (world.tick % 5 === 0) this.fighting = this.inCombat(world);
+    if (this.fighting) {
+      this.timer = Math.max(this.timer, this.def.calmAfterCombat);
+      return;
+    }
     this.timer -= DT;
     if (this.timer > 0) return;
     // 太多還沒處理掉：晚一點再檢查

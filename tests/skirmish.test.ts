@@ -45,6 +45,17 @@ describe('小衝突導演', () => {
     }
     expect(closest).toBeLessThan(2);
   });
+  it('交戰中不出新的一波（Alan：計時在交戰中停止）', () => {
+    const w = battleAt(9, 1);
+    let spawnedWhileFighting = 0;
+    let fighting = false;
+    for (let t = 0; t < 120 / DT; t++) {
+      const evs = w.step();
+      if (fighting && evs.some((e) => e.type === 'spawn' && e.waveId?.startsWith('wave'))) spawnedWhileFighting++;
+      if (w.tick % 5 === 0) fighting = w.skirmish!.inCombat(w);
+    }
+    expect(spawnedWhileFighting).toBe(0);
+  });
   it('頭目關卡（模板地圖）沒有導演', () => {
     const r: RunState = createRun(5, { style: 'deliberate' });
     const node = r.map.nodes.find((n) => n.type === 'boss')!;

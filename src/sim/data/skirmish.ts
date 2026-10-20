@@ -15,8 +15,14 @@ export interface SkirmishEnemy {
 export interface SkirmishDef {
   /** 開戰後第一波（秒） */
   firstDelay: [number, number];
-  /** 波與波之間（秒；從上一波出現算起） */
+  /**
+   * 波與波之間（秒）。Alan：交戰中計時要停——只有「沒在打」的時間才算，打完至少再喘 calmAfterCombat 秒才來下一波。
+   */
   interval: [number, number];
+  /** 交戰中：有已警覺、還活著的敵人在英雄這個距離（公尺）內 */
+  combatRange: number;
+  /** 打完後至少隔幾秒才出下一波 */
+  calmAfterCombat: number;
   /** 導演叫來、還活著的敵人達到這個數就先不出新的一波（避免越滾越多、把隊伍困死） */
   maxAlive: number;
   /** 每波人數 */
@@ -39,6 +45,8 @@ export interface SkirmishDef {
 export const SKIRMISH: SkirmishDef = {
   firstDelay: [8, 12],
   interval: [12, 18],
+  combatRange: 12,
+  calmAfterCombat: 5,
   maxAlive: 5,
   packSize: [2, 3],
   secondsBudget: 10,
