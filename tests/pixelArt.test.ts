@@ -12,6 +12,7 @@ import {
   MW_SIDE,
   PIXEL_UNITS,
   facingBlock,
+  heroTeamColors,
   m72Frames,
   m72Lunge,
   mwAnim,
@@ -50,5 +51,15 @@ describe('2D 像素素材', () => {
   it('所有英雄與敵人都有對照；0x72 的逐格圖都在 repo 裡', () => {
     for (const id of [...Object.keys(HEROES), ...Object.keys(ENEMIES)]) expect(PIXEL_UNITS[id], id).toBeDefined();
     for (const f of m72Frames()) expect(existsSync(`public/assets/0x72/frames/${f}.png`), f).toBe(true);
+  });
+
+  it('英雄換成職業色：亮色＝職業色、暗色＝壓暗一半；英雄都有換色、敵人保留陣營色', () => {
+    expect(heroTeamColors(0x3a7bd5)).toEqual({ light: 0x3a7bd5, dark: 0x1d3e6b });
+    for (const id of Object.keys(HEROES)) {
+      const a = PIXEL_UNITS[id];
+      expect(a.kind === 'mw' && a.recolor?.light, id).toBe(HEROES[id].color);
+    }
+    const brute = PIXEL_UNITS.brute;
+    expect(brute.kind === 'mw' && brute.recolor).toBeFalsy();
   });
 });

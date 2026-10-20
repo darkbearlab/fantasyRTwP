@@ -8,7 +8,7 @@ import Phaser from 'phaser';
 import type { Unit } from '../../sim/unit';
 import { displayFacing } from './art';
 import { COLORS } from './palette';
-import { m72Key, mwKey } from './pixelArt';
+import { artKey, m72Key } from './pixelArt';
 import type { PixelUnitArt } from './pixelArtData';
 import { PIXEL, facingBlock, m72Lunge, mwAnim, mwFrame } from './pixelArtData';
 import { depthOf, groundAxes, groundCirclePoints, heightPx, worldToScreen } from './projection';
@@ -42,7 +42,7 @@ export class PixelView implements UnitVisual {
     const s = PIXEL.unitScale;
     this.ring = scene.add.graphics();
     if (art.kind === 'mw') {
-      this.sprite = scene.add.sprite(0, 0, mwKey(art.path), mwFrame(1, 0, 0)).setOrigin(0.5, PIXEL.mwFootY);
+      this.sprite = scene.add.sprite(0, 0, artKey(art), mwFrame(1, 0, 0)).setOrigin(0.5, PIXEL.mwFootY);
       this.bodyH = PIXEL.mwBodyPx * s;
     } else {
       this.sprite = scene.add.sprite(0, 0, m72Key(`${art.idle}_f0`)).setOrigin(0.5, 1);
