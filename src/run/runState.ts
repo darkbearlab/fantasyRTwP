@@ -44,7 +44,18 @@ export type RunPhase =
   | { kind: 'map' }
   | { kind: 'battle'; nodeId: number; encounterId: string; fromEvent: boolean }
   /** item：這場掉落的道具（已放進背包） */
-  | { kind: 'reward'; nodeId: number; options: string[]; elite: boolean; gold: number; item?: string }
+  | {
+      kind: 'reward';
+      nodeId: number;
+      /** 三選一的強化；沉穩節奏沒有升級時是空的（只顯示戰果） */
+      options: string[];
+      elite: boolean;
+      gold: number;
+      item?: string;
+      /** 經驗值（沉穩節奏）：這場獲得多少；正在選第幾級的升級（沒有升級時省略） */
+      xpGained?: number;
+      levelUpTo?: number;
+    }
   /** 商人（SPEC_SLICE5 §17）：貨架與已售出的道具 */
   | { kind: 'shop'; nodeId: number; stock: string[]; sold: string[] }
   | { kind: 'event'; nodeId: number; eventId: string; resultText?: string; resolved: boolean }
@@ -88,6 +99,11 @@ export interface RunState {
   nextBattleBuff: BattleBuff | null;
   /** 出口制（SPEC_SLICE6 §2）：從戰鬥的哪個出口離開＝下一個節點；回到路線圖時只能前往這個節點 */
   exitTo?: number | null;
+  /** 隊伍等級與經驗值（SPEC_SLICE6 §3，沉穩節奏） */
+  level?: number;
+  xp?: number;
+  /** 還沒選的升級三選一次數 */
+  pendingLevelUps?: number;
   /** 已出現過的事件（避免重複） */
   seenEvents: string[];
   stats: RunStats;
@@ -137,6 +153,9 @@ export function createRun(seed: number, opts: { layers?: number; party?: string[
     stats: { battles: 0, battleTime: 0, battleTimeByType: {}, heroesLost: 0, goldEarned: 0 },
     journal: [],
     style,
+    level: 1,
+    xp: 0,
+    pendingLevelUps: 0,
     inventory: [],
   };
 }

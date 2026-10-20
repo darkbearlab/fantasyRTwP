@@ -27,6 +27,30 @@ export const ECONOMY = {
   campHealRatio: 0.4,
   rewardChoices: 3,
   eliteRewardChoices: 4,
+  /**
+   * 經驗值與隊伍等級（SPEC_SLICE6 §3，只用在沉穩節奏）：經驗值只來自擊殺；升級後回路線圖前三選一，升幾級選幾次。全部佔位。
+   * 升到下一級需要 toNext.base ＋ toNext.perLevel × (目前等級 − 1)。
+   */
+  xp: {
+    perEnemy: {
+      minion: 2,
+      exploder: 6,
+      shieldbearer: 10,
+      archer: 10,
+      assassin: 10,
+      bomber: 10,
+      hooker: 10,
+      charger: 14,
+      priest: 12,
+      lurker: 12,
+      summoner: 14,
+      warlord: 60,
+    } as Record<string, number>,
+    default: 10,
+    /** 精英隊長的倍率 */
+    captainMult: 3,
+    toNext: { base: 50, perLevel: 25 },
+  },
   trainChoices: 3,
   /** 敵人數值隨層數成長：1 + layerScaling × (layer − 1) */
   layerScaling: 0.05,
