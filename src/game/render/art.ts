@@ -7,7 +7,7 @@ import { GAME_CONFIG } from '../../config';
 import flareArt from './flareArt.json';
 import { hasHeight, worldToScreen } from './projection';
 
-export type ArtMode = 'blocks' | 'flare' | 'heroes3d';
+export type ArtMode = 'blocks' | 'flare' | 'heroes3d' | 'pixel';
 
 export interface FlareArtConfig {
   heightPxPerM: number;

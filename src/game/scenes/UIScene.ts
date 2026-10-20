@@ -251,6 +251,7 @@ export class UIScene extends Phaser.Scene {
     artRow.appendChild(el('span', 'lbl', '美術'));
     const artSel = el('select');
     for (const [v, t] of [
+      ['pixel', '2D 像素'],
       ['heroes3d', '3D 英雄＋Flare（等角）'],
       ['flare', 'Flare 素材（等角）'],
       ['blocks', '色塊'],

@@ -132,7 +132,9 @@ npm run perf                      # 怪群效能：80 名敵人時每節拍的 s
 
 ## 美術方向：2D 像素（2026-10-20 起）
 
-單位用 Matt Walkden〈Fantasy Battle Pack〉（32×32 sprite sheet，3 方向 × 待機／移動／攻擊／倒地），地形與非人類怪物用 0x72〈16x16 DungeonTileset II〉（`public/assets/0x72/`，CC0）。接進遊戲的範圍等 Alan 指派。
+`config.art = 'pixel'`（預設）：單位用 Matt Walkden〈Fantasy Battle Pack〉（32×32 sprite sheet，3 方向 × 待機／移動／攻擊／倒地；朝左鏡像），非人類敵人與地板用 0x72〈16x16 DungeonTileset II〉（`public/assets/0x72/`，CC0；只有待機／移動，攻擊用往前衝＋閃白代替）。
+對照表在 `src/game/render/pixelArtData.ts` 的 `PIXEL_UNITS`（全部是佔位）；sprite 放大 3 倍（`PIXEL.unitScale`）；地圖 1 m＝16 px，正角俯視時放大成 48 × 32（`config.ortho`）。牆、門、草叢仍是程式畫的。
+**沒有授權素材時**（PR 的 CI、fork、沒拉素材的本機）該單位改用色塊，遊戲照常運作。
 Matt Walkden 的素材**不能公開散布**，不在本 repo：本機用 `npm run assets:pull` 拉到 `public/assets/licensed/`（不進 git），部署時由 Actions 從私有 repo 取得。細節見 [ASSET_LICENSES.md](ASSET_LICENSES.md)。
 
 ## 美術試裝：Flare 等角素材
