@@ -46,7 +46,7 @@ export class Hero3DView implements UnitVisual {
     this.ring = scene.add.graphics();
     this.sprite = scene.add.sprite(0, 0, h3dKey(this.char, 'idle'), 0);
     this.applyChar();
-    this.bodyW = unit.radius * groundAxes(1).x * Math.SQRT2 * 1.1;
+    this.bodyW = unit.radius * groundAxes(1).x * Math.SQRT2 * 1.1 * VISUAL.unitScale;
     this.bodyH = heightPx(this.height);
     this.container = scene.add.container(0, 0, [this.ring, this.sprite]);
     this.container.setDepth(OBJECT_DEPTH_BASE);
@@ -57,7 +57,7 @@ export class Hero3DView implements UnitVisual {
   private applyChar(): void {
     const s = H3D_SHEETS[this.char];
     this.sprite.setOrigin(s.origin[0] / s.cell, s.origin[1] / s.cell);
-    this.sprite.setScale(GAME_CONFIG.heroes3dScale * (H3D.scaleMul[this.char] ?? 1));
+    this.sprite.setScale(GAME_CONFIG.heroes3dScale * (H3D.scaleMul[this.char] ?? 1) * VISUAL.unitScale);
   }
 
   onHit(simTime: number, from?: Vec): void {

@@ -3,9 +3,11 @@
  * - 下緣四張卡片對應四名英雄；上半是名字與生命值（點一下選取／再點一下取消），下半是唯一的主動技能鈕（讀秒冷卻）。
  * - 行動條改成卡片的「水位」：準備動作時由下往上填滿，填滿那一刻行動生效。
  * - 暫停鈕是一個不斷轉動的沙漏，放在四張卡片那一欄的正上方中間；暫停時停止轉動並換顏色。
- * - 沙漏左邊是全選鈕（Alan）：有存活英雄沒被選取時按下＝全選；已經全選時按下＝全部取消。
+ * - 全選鈕（Alan）：有存活英雄沒被選取時按下＝全選；已經全選時按下＝全部取消。
+ * - 沙漏與全選鈕的位置、順序由 GAME_CONFIG.mobileControls 決定（預設：靠左，沙漏、全選）。
  * 只讀 session 的狀態；操作透過 session（enqueue、targeting、selection）。
  */
+import { GAME_CONFIG } from '../../config';
 import { skillCooldownOf } from '../../sim/actions';
 import { currentActiveSkill } from '../../sim/cycle';
 import { HEROES } from '../../sim/data/heroes';
@@ -116,15 +118,18 @@ export class MobileHeroBar {
     this.selectAllBtn.tabIndex = -1;
     this.selectAllBtn.addEventListener('mousedown', (ev) => ev.preventDefault());
     this.selectAllBtn.addEventListener('click', () => this.toggleSelectAll());
-    // 沙漏維持在正中間：左右兩欄等寬，全選鈕靠右貼著沙漏
+    // 控制鈕列：依設定排列，對齊卡片列的左／中／右
+    const mc = GAME_CONFIG.mobileControls;
+    const buttons: Record<string, HTMLElement> = { pause: this.pauseBtn, selectAll: this.selectAllBtn };
     const pauseRow = el('div', 'm-pause-row');
-    const left = el('div', 'm-pause-side left');
-    left.appendChild(this.selectAllBtn);
-    pauseRow.append(left, this.pauseBtn, el('div', 'm-pause-side'));
-    const pauseCol = el('div', 'm-pause-col');
+    for (const k of mc.order) if (buttons[k]) pauseRow.appendChild(buttons[k]);
+    const pauseCol = el('div', `m-pause-col align-${mc.align}`);
     pauseCol.append(this.pauseLabel, pauseRow);
     this.row = el('div', 'm-cards');
-    this.root.append(pauseCol, this.row);
+    // 控制鈕列與卡片列包在一起，寬度跟著卡片列
+    const dock = el('div', 'm-dock');
+    dock.append(pauseCol, this.row);
+    this.root.append(dock);
   }
 
   build(s: BattleSession): void {

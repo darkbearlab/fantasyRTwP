@@ -73,7 +73,7 @@ export class FlareView implements UnitVisual {
     // 精英隊長等：依身高放大
     const s = this.height / baseHeight;
     for (const l of this.layers) l.sprite.setScale(s);
-    this.bodyW = unit.radius * groundAxes(1).x * Math.SQRT2 * 1.1;
+    this.bodyW = unit.radius * groundAxes(1).x * Math.SQRT2 * 1.1 * VISUAL.unitScale;
     this.bodyH = heightPx(this.height);
     this.container = scene.add.container(0, 0, children);
     this.container.setDepth(OBJECT_DEPTH_BASE);

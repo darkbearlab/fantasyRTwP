@@ -35,6 +35,8 @@ const UNIT_HEIGHT: Record<string, number> = {
 };
 
 export const VISUAL = {
+  /** 角色外觀的整體縮放（Alan：sprite 縮小約 0.8 看效果；只影響畫面，碰撞半徑等規則不變） */
+  unitScale: 0.8,
   /**
    * 畫面外敵人指示器（Alan）：畫面邊緣朝敵人方向的紅色光暈，敵人越強（最大生命越高）光暈越大。
    * 半徑 = base + perSqrtHp × √最大生命，限制在 [min, max]（px）；只顯示我方看得到的敵人（迷霧、草叢裡的不顯示）。
@@ -60,9 +62,10 @@ export const VISUAL = {
   fogExploredAlpha: 0.5,
 };
 
+/** 角色在畫面上的身高（公尺，已乘 VISUAL.unitScale）：決定 sprite 大小、頭頂生命條與飄字的位置 */
 export function unitHeight(def: UnitDef): number {
-  if (def.team === 'enemy' && def.name.startsWith('隊長')) return VISUAL.captainHeight;
-  return UNIT_HEIGHT[def.id] ?? VISUAL.defaultUnitHeight;
+  const h = def.team === 'enemy' && def.name.startsWith('隊長') ? VISUAL.captainHeight : UNIT_HEIGHT[def.id] ?? VISUAL.defaultUnitHeight;
+  return h * VISUAL.unitScale;
 }
 
 export type ObstacleKind = 'wall' | 'pillar' | 'rock' | 'cliff' | 'water';
