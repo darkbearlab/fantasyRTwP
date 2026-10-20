@@ -256,3 +256,59 @@ export class MobileHeroBar {
     }
   }
 }
+
+/** 不在戰鬥中時顯示用的英雄卡（營火等畫面）：欄位、職業、生命、主動技能名稱 */
+export interface StaticHeroCard {
+  slot: number;
+  classId: string;
+  hp: number;
+  maxHp: number;
+  dead: boolean;
+  skillName: string;
+}
+
+/**
+ * 和戰鬥中一樣的底部英雄面板，但只是外觀：上面蓋一層半透明黑色，按不到也不會穿過去（Alan：營火畫面保留面板，不要空空的）。
+ * slots：隊伍欄位數（空欄位也佔一張卡）。
+ */
+export function staticHeroBar(cards: StaticHeroCard[], slots: number): HTMLElement {
+  const root = el('div', 'm-bar m-static');
+  const pause = el('div', 'm-pause');
+  pause.innerHTML = HOURGLASS_SVG;
+  const selAll = el('div', 'm-selall', '全選');
+  const buttons: Record<string, HTMLElement> = { pause, selectAll: selAll };
+  const mc = GAME_CONFIG.mobileControls;
+  const pauseRow = el('div', 'm-pause-row');
+  for (const k of mc.order) if (buttons[k]) pauseRow.appendChild(buttons[k]);
+  const pauseCol = el('div', `m-pause-col align-${mc.align}`);
+  pauseCol.append(el('div', 'm-pause-label'), pauseRow);
+  const row = el('div', 'm-cards');
+  for (let slot = 0; slot < slots; slot++) {
+    const c = cards.find((x) => x.slot === slot);
+    if (!c || c.dead) {
+      const card = el('div', 'm-card empty');
+      card.appendChild(el('div', 'm-head', c ? `${HEROES[c.classId].name}（陣亡）` : '（空欄位）'));
+      row.appendChild(card);
+      continue;
+    }
+    const card = el('div', 'm-card');
+    card.style.setProperty('--hero', hex(HEROES[c.classId].color));
+    const head = el('div', 'm-head');
+    const hp = el('div', 'm-hp');
+    const hpFill = el('div', 'fill');
+    hpFill.style.width = `${Math.max(0, (c.hp / c.maxHp) * 100)}%`;
+    hp.append(hpFill, el('span', 'hptext', `${c.hp} / ${c.maxHp}`));
+    head.append(portrait(), el('span', 'm-name', HEROES[c.classId].name), el('span', 'm-status'), hp);
+    const skill = el('div', 'm-skill');
+    skill.appendChild(el('span', 'sname', c.skillName));
+    card.append(el('div', 'm-fill'), head, skill);
+    row.appendChild(card);
+  }
+  const dock = el('div', 'm-dock');
+  dock.append(pauseCol, row);
+  // 半透明黑色遮罩：吃掉所有點擊，不會穿到後面的畫面
+  const block = el('div', 'm-block');
+  block.addEventListener('pointerdown', (ev) => ev.stopPropagation());
+  root.append(dock, block);
+  return root;
+}

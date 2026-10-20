@@ -12,6 +12,8 @@ import { upgradePicker } from '../ui/upgradePicker';
 import { advance, getRun, setRun } from '../runFlow';
 import { firstEmptySlot, livingHeroes } from '../../run/runState';
 import { campfireTalk } from '../../run/campfire';
+import { battleSkillsOf } from '../../run/loadout';
+import { maxHpOf } from '../../run/upgrades';
 import { DomScene } from './DomScene';
 
 type Mode = 'menu' | 'revive' | 'train';
@@ -46,9 +48,14 @@ export class RestScene extends DomScene {
         this.root.style.display = 'none';
         this.campfireOpen = true;
         const heroes = livingHeroes(run).map(({ slot, hero }) => ({ slot, classId: hero.classId }));
+        const cards = run.party.flatMap((h, slot) =>
+          h ? [{ slot, classId: h.classId, hp: h.hp, maxHp: maxHpOf(h), dead: h.dead, skillName: SKILLS[battleSkillsOf(run, h)[0]]?.name ?? '—' }] : [],
+        );
         this.scene.launch('Campfire', {
           heroes,
           lines,
+          cards,
+          slots: run.party.length,
           onDone: () => {
             this.campfireOpen = false;
             this.root.style.display = '';
