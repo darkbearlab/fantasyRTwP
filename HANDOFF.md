@@ -59,6 +59,8 @@
   - `UnitDef.rank`（`'elite'`＝精英隊長、`'boss'`）與 `enemyRank(def)`（`src/sim/data/enemies.ts`；ai 為 boss 也算頭目）。
   - 畫面層 `BattleSession.hooks`（`src/game/hooks.ts`）：`simEvent`（每個 sim 事件，戰鬥場景處理完畫面之後）、`skillAim`（按下技能進入瞄準）、`skillCommand`（下達技能指令）、`pauseChanged`。
 - **自動暫停**：規則全部在 `src/game/autoPause.ts`（掛在鉤子上；`AUTO_PAUSE_OPTIONS` 是選單項目）。設定存在 localStorage（`fantasyRTwP.autoPause`），⚙ 設定選單與除錯面板都能改。新選項預設：發現敵人 開、精英／頭目技能 開、按技能瞄準 關（待確認）。
+- **營火對話**（休息節點）：先進 `CampfireScene`（英雄圍著程式畫的火堆、上下兩個對話框、頭像用 sprite），看完或略過才打開休息選單；看過的記在 `phase.talked`。台詞在 `src/run/data/campfire.ts`（通用台詞，`{0}` 換成職業名），挑選在 `src/run/campfire.ts`（依種子＋節點，同一節點每次一樣）。
+- **故事大綱**：`STORY.md`（Alan 口述，尚未實作：五張路線圖、魔法水晶、FTL 式路線圖與魔王冠軍追擊）。
 - **下完指令不取消選取**：`GAME_CONFIG.deselectAfterOrder`（預設 false）。
 - **角色縮放**：`VISUAL.unitScale`（0.8，只影響畫面；`unitHeight()` 已乘上這個值），碰撞半徑與腳下圈不變。
 - **交戰距離縮短**（2026-10-20）：沉穩節奏 `SimConfig.rangeMult` ＝ 0.6（`DELIBERATE_PACE.range`），套用在 1 m 以上的普攻射程與技能施放距離（換算一律經過 `scaleRange`）；敵人察覺距離、攻擊移動接戰距離也 ×0.6。近戰、範圍半徑、視野不變；舊模式 `rangeMult` ＝ 1。

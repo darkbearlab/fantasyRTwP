@@ -53,6 +53,8 @@ export type RunPhase =
       nodeId: number;
       /** 三選一已經用掉 */
       used: boolean;
+      /** 營火對話已經看過（看完才打開休息選單） */
+      talked?: boolean;
       /** 本次休息已經招募過 */
       recruited: boolean;
       recruitCandidates: string[];
