@@ -1418,6 +1418,11 @@ body {
 .m-bar > * {
   pointer-events: auto;
 }
+/* 底部列的容器本身（含沙漏那一排的空白）不攔截觸控：從這裡按下也能拖曳地圖。
+   根節點帶 .interactive（#ui .interactive 會設成 auto），所以要用更高的優先度蓋掉 */
+#ui .m-bar.interactive {
+  pointer-events: none;
+}
 .m-dock {
   display: flex;
   flex-direction: column;

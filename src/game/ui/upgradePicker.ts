@@ -4,6 +4,7 @@ import { UPGRADES } from '../../run/data/upgrades';
 import type { RunState } from '../../run/runState';
 import { button, el, noFocus } from './dom';
 import { partyPanel } from './partyPanel';
+import { battleSkillsOf } from '../../run/loadout';
 
 export interface UpgradeChoice {
   upgradeId: string;
@@ -61,7 +62,7 @@ export function upgradePicker(run: RunState, options: string[], onDone: (c: Upgr
       const h = run.party[slot]!;
       box.appendChild(el('div', 'step-title', `${HEROES[h.classId].name}的哪個技能？`));
       const row = el('div', 'btn-row');
-      for (const sk of h.skills) row.appendChild(button(SKILLS[sk].name, '', () => onDone({ upgradeId: picked!, slot, skillId: sk })));
+      for (const sk of battleSkillsOf(run, h)) row.appendChild(button(SKILLS[sk].name, '', () => onDone({ upgradeId: picked!, slot, skillId: sk })));
       box.appendChild(row);
       if (fixedSlot === undefined)
         row.appendChild(

@@ -902,6 +902,10 @@ export class BattleScene extends Phaser.Scene {
     for (const z of w.zones) {
       const fade = Math.min(1, z.time / 1.5);
       const [fill, stroke] = ZONE_COLORS[z.style ?? 'swamp'];
+      if (z.style === 'fire') {
+        this.drawFireZone(g, z.point, z.radius, fade, z.time);
+        continue;
+      }
       groundCircle(g, z.point.x, z.point.y, z.radius, { fill, fillAlpha: 0.28 * fade, stroke, strokeAlpha: 0.6 * fade, width: 2 });
     }
     // 駐守點：小菱形；選取中的英雄另外畫出駐守範圍
@@ -954,6 +958,30 @@ export class BattleScene extends Phaser.Scene {
       groundCircle(g, a.point.x, a.point.y, r, { fill: c, fillAlpha: enemy ? 0.12 + 0.1 * pulse : 0.12 });
       groundCircle(g, a.point.x, a.point.y, r * u.actionProgress, { fill: c, fillAlpha: 0.25 });
       groundCircle(g, a.point.x, a.point.y, r, { stroke: c, strokeAlpha: 0.9, width: enemy ? 3 : 2 });
+    }
+  }
+
+  /**
+   * 燃燒中的地面（火焰瓶等，Alan：落點地面要看得出來在燒）：閃爍的焦土＋一圈跳動的火舌；剩最後 1.5 秒逐漸熄滅。
+   */
+  private drawFireZone(g: Phaser.GameObjects.Graphics, p: Vec, r: number, fade: number, left: number): void {
+    const now = this.time.now;
+    const flick = 0.5 + 0.5 * Math.sin(now / 70 + p.x * 3.1);
+    groundCircle(g, p.x, p.y, r, { fill: 0x5a1e08, fillAlpha: 0.45 * fade, stroke: 0xff8a3d, strokeAlpha: (0.55 + 0.3 * flick) * fade, width: 2.5 });
+    groundCircle(g, p.x, p.y, r * 0.75, { fill: 0xd2541a, fillAlpha: (0.25 + 0.15 * flick) * fade });
+    // 火舌：固定位置（依落點雜湊），高度隨時間跳動
+    const n = Math.max(6, Math.round(r * r * 3));
+    for (let i = 0; i < n; i++) {
+      const a = i * 2.399963 + p.x * 1.7 + p.y * 0.9;
+      const d = r * 0.85 * Math.sqrt((i + 0.5) / n);
+      const fx = p.x + Math.cos(a) * d;
+      const fy = p.y + Math.sin(a) * d;
+      const h = (0.35 + 0.3 * (0.5 + 0.5 * Math.sin(now / 90 + i * 1.9))) * fade * Math.min(1, left);
+      const base = worldToScreen(fx, fy);
+      const tip = worldToScreen(fx, fy, h);
+      const w = 4 + (i % 3);
+      g.fillStyle(i % 2 ? 0xff8a3d : 0xffc24a, 0.85 * fade);
+      g.fillTriangle(base.x - w, base.y, base.x + w, base.y, tip.x, tip.y);
     }
   }
 

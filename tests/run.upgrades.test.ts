@@ -4,6 +4,7 @@ import { SKILLS } from '../src/sim/data/skills';
 import { UPGRADES } from '../src/run/data/upgrades';
 import { createRun } from '../src/run/runState';
 import { grantUpgrade, heroDef, rollUpgrades } from '../src/run/upgrades';
+import { battleSkillsOf } from '../src/run/loadout';
 import { Rng } from '../src/sim/rng';
 import { World } from '../src/sim/world';
 import { strike } from '../src/sim/actions';
@@ -28,6 +29,17 @@ describe('強化修飾器（SPEC_SLICE2 §9、§11-5）', () => {
     expect(heroDef(r.party[1]!).accuracy).toBe(HEROES.ranger.accuracy);
   });
 
+  it('沉穩節奏：需要技能的強化只能指定戰鬥中實際用到的技能（舊技能欄不算）', () => {
+    const r = createRun(1, { style: 'deliberate' });
+    expect(battleSkillsOf(r, r.party[2]!)).toEqual(['flashFireball']);
+    expect(() => grantUpgrade(r, 'practiced', 2, 'iceBind')).toThrow();
+    grantUpgrade(r, 'practiced', 2, 'flashFireball');
+    expect(heroDef(r.party[2]!).skillMods!.flashFireball.cooldownMult).toBeLessThan(1);
+    // 舊模式照舊用技能欄
+    const t = createRun(1, { style: 'tactical' });
+    expect(battleSkillsOf(t, t.party[2]!)).toEqual(t.party[2]!.skills);
+  });
+
   it('全隊強化：戰地醫療回血、同袍套到所有存活英雄', () => {
     const r = createRun(1);
     for (const h of r.party) h!.hp = 10;
@@ -38,7 +50,8 @@ describe('強化修飾器（SPEC_SLICE2 §9、§11-5）', () => {
   });
 
   it('需要技能的強化必須指定技能；熟練 ×2 冷卻疊乘', () => {
-    const r = createRun(1);
+    // 舊的三技能欄只存在於封存的戰術模式
+    const r = createRun(1, { style: 'tactical' });
     expect(() => grantUpgrade(r, 'practiced', 2)).toThrow();
     grantUpgrade(r, 'practiced', 2, 'fireball');
     grantUpgrade(r, 'practiced', 2, 'fireball');
@@ -50,7 +63,7 @@ describe('強化修飾器（SPEC_SLICE2 §9、§11-5）', () => {
   });
 
   it('效果在戰鬥中生效：熟練縮短冷卻、二連可連放兩次、堅定不會被打斷暈眩', () => {
-    const r = createRun(1);
+    const r = createRun(1, { style: 'tactical' });
     grantUpgrade(r, 'practiced', 2, 'arcaneMissile');
     grantUpgrade(r, 'doubleCast', 2, 'iceBind');
     grantUpgrade(r, 'steadfast', 2);

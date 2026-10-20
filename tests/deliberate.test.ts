@@ -160,4 +160,26 @@ describe('交戰距離縮短、火球改回（Alan 2026-10-20）', () => {
     run(w, 6 * 30);
     expect(m.skillReady('flashFireball')).toBe(true);
   });
+
+  it('火焰瓶：節奏比照火球（直接丟出、有飛行時間、冷卻 12 秒 ×2），落點地面燃燒 5 秒', () => {
+    const w = makeWorld([{ defId: 'alchemist', def: { ...HEROES.alchemist, skills: ['fireFlask'] }, pos: { x: 2, y: 6 } }, { defId: 'brute', pos: { x: 6, y: 6 } }], { ...deliberateConfig(), enemyAggroRange: 0 });
+    const a = w.getUnit(1)!;
+    w.enqueue({ type: 'skill', unitId: 1, skillId: 'fireFlask', point: { x: 6, y: 6 } });
+    run(w, 3);
+    expect(w.projectiles.some((p) => p.payload.type === 'aoe' && p.payload.skillId === 'fireFlask')).toBe(true);
+    let t = 0;
+    while (t < 90 && w.zones.length === 0) {
+      run(w, 1);
+      t++;
+    }
+    expect(t).toBeGreaterThan(3);
+    expect(w.zones[0].style).toBe('fire');
+    run(w, 4 * 30);
+    expect(w.zones.length).toBe(1);
+    run(w, 2 * 30);
+    expect(w.zones.length).toBe(0);
+    expect(a.skillReady('fireFlask')).toBe(false);
+    run(w, 20 * 30);
+    expect(a.skillReady('fireFlask')).toBe(true);
+  });
 });
