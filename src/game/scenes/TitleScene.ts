@@ -84,6 +84,7 @@ export class TitleScene extends DomScene {
     const panel = el('div', 'panel credits-panel');
     panel.append(el('h2', '', '製作人員'));
     for (const line of CREDITS.game) panel.append(el('div', '', line));
+    for (const p of CREDITS.pixel) panel.append(el('div', 'step-title', p.title), el('div', 'meta', p.line));
     const f = CREDITS.flare;
     panel.append(el('div', 'step-title', f.title), el('div', 'meta', f.note), el('div', 'meta', f.source));
     panel.append(el('div', 'step-title', 'Art'), el('div', 'credits-names', f.art.join('、')));

@@ -2,6 +2,27 @@
 
 本專案的**程式碼**不受以下素材授權影響。
 
+> 2026-10-20 起美術方向改回 **2D 像素**（單位：Matt Walkden；地形與非人類怪物：0x72）。下面的 Flare、3D 預渲染素材仍在 repo 內，接上像素素材之前照常使用。
+
+## Matt Walkden〈Fantasy Battle Pack〉（**不在本 repo 內**）
+
+- 來源：https://mattwalkden.itch.io/fantasy-battle-pack （單位 sprite sheet、暴擊特效；含我們依原包換色遮罩產生的陣營版本）。
+- 授權重點（原包 `License and Information`）：
+  1. 可以**做為遊戲或其他作品的一部分**散布，可商用。
+  2. **不可**單獨或以素材集形式販售、出租、授權、再授權、散布、贈送或以其他方式公開提供。
+  3. 可以修改；**修改後的版本同樣適用第 2 條**（換色版也不能公開放）。
+- 因為本 repo 是公開的，這些圖**不放進 repo**：
+  - 原圖與換色版放在私有 repo `darkbearlab/fantasyRTwP-assets`（`mw/sheets/`、`mw/recolor/`、`mw/effects/`）。
+  - 部署到 GitHub Pages 時，`.github/workflows/deploy.yml` 用唯讀 deploy key（Actions secret `ASSET_DEPLOY_KEY`）把它 checkout 到 `public/assets/licensed/`，隨遊戲一起打包發佈。沒有 secret 的環境（fork、PR 的 CI）會跳過，遊戲改用佔位圖形。
+  - 本機開發：`npm run assets:pull`（clone／更新私有 repo），或 `npm run assets:pull -- --from <FantasyBattlePack_MattWalkden 資料夾>` 從本機複製。
+  - `public/assets/licensed/` 已列在 `.gitignore`，**不要把它加進 git，也不要複製到任何公開的地方**。
+- 署名：遊戲內標題畫面的「製作人員」列出 Matt Walkden。
+
+## 0x72〈16x16 DungeonTileset II〉v1.7（`public/assets/0x72/`）
+
+- 來源：https://0x72.itch.io/dungeontileset-ii
+- 授權：**CC0**（不需署名；仍在製作人員名單列出）。原檔未修改，見 `public/assets/0x72/LICENSE.txt`。
+
 ## Flare 美術素材（`public/assets/flare/`）
 
 - 來源：[flare-game](https://github.com/flareteam/flare-game) 的 `mods/fantasycore`（主角紙娃娃圖層、敵人、地城地板磚）。

@@ -19,6 +19,7 @@ npm run autobattle -- --runs 200 # 無畫面單場自動對戰，輸出勝率與
 npm run autorun -- --runs 100    # 無畫面整趟自動遠征（隨機組隊）：通關率、抵達層數、陣亡、金幣、戰鬥時間、全滅層數、各職業通關率
 npm run autorun -- --runs 100 --fixed  # 同上，但隊伍固定為四個 Archetype（與切片 2 比較用）
 npm run autorun -- --runs 20 --style deliberate  # 沉穩節奏的遠征（腳本很粗糙，只用來確認關卡打得完、不當機）
+npm run assets:pull              # 本機開發：把授權素材（私有 repo）拉到 public/assets/licensed/（不進 git）
 npm run perf                      # 怪群效能：80 名敵人時每節拍的 sim 耗時；hordePass 統計；深淵礦坑沿路點推進的統計
 ```
 
@@ -128,6 +129,11 @@ npm run perf                      # 怪群效能：80 名敵人時每節拍的 s
 等角畫面預設逆時針轉 90 度（`config.isoRotation = 90`）：世界 +x（英雄 → 敵人的方向）朝螢幕右上，玩家以「往右上進攻」為主；設成 0 可回到原本的方向。
 
 所有戰鬥地圖在規則層都是 48 × 48 公尺的正方形：原本的配置橫向拉開 1.2 倍（雙方起始距離更遠）、置中後上下補地帶，並在中間與上下兩側補上依主題而定的小型地形（岩石、樹叢、草叢、矮籬、淺水、石柱），每塊都確認不會擋住出生點之間的通路。
+
+## 美術方向：2D 像素（2026-10-20 起）
+
+單位用 Matt Walkden〈Fantasy Battle Pack〉（32×32 sprite sheet，3 方向 × 待機／移動／攻擊／倒地），地形與非人類怪物用 0x72〈16x16 DungeonTileset II〉（`public/assets/0x72/`，CC0）。接進遊戲的範圍等 Alan 指派。
+Matt Walkden 的素材**不能公開散布**，不在本 repo：本機用 `npm run assets:pull` 拉到 `public/assets/licensed/`（不進 git），部署時由 Actions 從私有 repo 取得。細節見 [ASSET_LICENSES.md](ASSET_LICENSES.md)。
 
 ## 美術試裝：Flare 等角素材
 

@@ -4,6 +4,11 @@
  */
 export const CREDITS = {
   game: ['設計：Alan（darkbearlab）', '程式：Claude（Anthropic）'],
+  /** 2D 像素美術（2026-10-20 起的美術方向） */
+  pixel: [
+    { title: '單位美術', line: 'Matt Walkden — Fantasy Battle Pack（mattwalkden.itch.io）' },
+    { title: '地城拼塊與怪物', line: '0x72 — 16x16 DungeonTileset II（CC0）' },
+  ],
   flare: {
     title: 'Flare 美術素材（flare-game · mods/fantasycore）',
     note: '主角紙娃娃與多數怪物作者為 Clint Bellanger。授權 CC-BY-SA 3.0；本遊戲縮放、重新打包後的圖檔同樣以 CC-BY-SA 3.0 釋出。',

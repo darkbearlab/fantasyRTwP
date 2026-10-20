@@ -1,3 +1,5 @@
 node_modules/
 dist/
 *.log
+# 授權不允許公開散布的素材（Matt Walkden 等）：放在私有 repo fantasyRTwP-assets，部署時才拉進來（見 ASSET_LICENSES.md）
+public/assets/licensed/
