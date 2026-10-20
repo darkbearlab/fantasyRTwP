@@ -8,7 +8,7 @@ import Phaser from 'phaser';
 import type { Unit } from '../../sim/unit';
 import { displayFacing } from './art';
 import { COLORS } from './palette';
-import { artKey, m72Key } from './pixelArt';
+import { artKey, m72Key, outlineKey } from './pixelArt';
 import type { PixelUnitArt } from './pixelArtData';
 import { PIXEL, facingBlock, m72Lunge, mwAnim, mwFrame } from './pixelArtData';
 import { depthOf, groundAxes, groundCirclePoints, heightPx, worldToScreen } from './projection';
@@ -20,6 +20,9 @@ export class PixelView implements UnitVisual {
   readonly container: Phaser.GameObjects.Container;
   private ring: Phaser.GameObjects.Graphics;
   private sprite: Phaser.GameObjects.Sprite;
+  /** 陣營色外框：跟著 sprite（容器內，畫在 sprite 後面）＋最上層的一份（被遮住時也看得到） */
+  private outline: Phaser.GameObjects.Sprite | null = null;
+  private overlay: Phaser.GameObjects.Sprite | null = null;
   private concealment: Concealment = 'normal';
   /** 身高（公尺）：依素材實際高度換算，頭頂生命條放在這裡 */
   readonly height: number;
@@ -35,7 +38,7 @@ export class PixelView implements UnitVisual {
   wy = 0;
 
   constructor(
-    scene: Phaser.Scene,
+    private readonly scene: Phaser.Scene,
     readonly unit: Unit,
     private readonly art: PixelUnitArt,
   ) {
@@ -51,8 +54,37 @@ export class PixelView implements UnitVisual {
     this.sprite.setScale(s);
     this.height = this.bodyH / heightPx(1);
     this.bodyW = Math.max(unit.radius * groundAxes(1).x * 2, 12 * s);
-    this.container = scene.add.container(0, 0, [this.ring, this.sprite]);
+    const ol = art.kind === 'mw' ? outlineKey(scene, artKey(art), true) : outlineKey(scene, m72Key(`${art.idle}_f0`), false);
+    const parts: Phaser.GameObjects.GameObject[] = [this.ring];
+    if (ol) {
+      const color = unit.team === 'hero' ? VISUAL.teamOutline.hero : VISUAL.teamOutline.enemy;
+      const make = () => scene.add.sprite(0, 0, ol, art.kind === 'mw' ? mwFrame(1, 0, 0) : undefined).setOrigin(this.sprite.originX, this.sprite.originY).setScale(s).setTint(color);
+      this.outline = make();
+      this.overlay = make().setDepth(VISUAL.teamOutline.overlayDepth).setAlpha(VISUAL.teamOutline.overlayAlpha);
+      parts.push(this.outline);
+    }
+    parts.push(this.sprite);
+    this.container = scene.add.container(0, 0, parts);
     this.container.setDepth(OBJECT_DEPTH_BASE);
+  }
+
+  /** 外框跟著 sprite 的格、鏡像、位置與角度 */
+  private syncOutline(): void {
+    if (!this.outline || !this.overlay) return;
+    const sp = this.sprite;
+    for (const o of [this.outline, this.overlay]) {
+      if (this.art.kind === 'mw') o.setFrame(sp.frame.name);
+      else {
+        const key = outlineKey(this.scene, sp.texture.key, false);
+        if (key) o.setTexture(key);
+      }
+      o.setFlipX(sp.flipX).setAngle(sp.angle);
+    }
+    this.outline.setPosition(sp.x, sp.y);
+    this.overlay.setPosition(this.container.x + sp.x, this.container.y + sp.y);
+    const show = this.container.visible && !this.unit.dead;
+    this.outline.setVisible(!this.unit.dead);
+    this.overlay.setVisible(show).setAlpha(VISUAL.teamOutline.overlayAlpha * this.container.alpha);
   }
 
   onHit(simTime: number): void {
@@ -116,6 +148,7 @@ export class PixelView implements UnitVisual {
     if (flash && !u.dead) this.sprite.setTintFill(0xffffff);
     else this.sprite.clearTint();
     this.sprite.setAlpha(u.dead ? 0.6 : 1);
+    this.syncOutline();
 
     // 腳下：選取／滑過時的橢圓；平時一個淡淡的影子
     this.ring.clear();
@@ -161,6 +194,7 @@ export class PixelView implements UnitVisual {
     this.concealment = c;
     this.container.setVisible(c !== 'hidden');
     this.container.setAlpha(c === 'concealed' ? 0.5 : 1);
+    this.syncOutline();
   }
 
   get visible(): boolean {
@@ -169,5 +203,6 @@ export class PixelView implements UnitVisual {
 
   destroy(): void {
     this.container.destroy();
+    this.overlay?.destroy();
   }
 }

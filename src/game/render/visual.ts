@@ -57,6 +57,11 @@ export const VISUAL = {
   pillarMaps: ['boss01'],
   /** 被高障礙物擋住的角色：最上層輪廓的透明度 */
   occludedAlpha: 0.35,
+  /**
+   * 像素單位的陣營色外框（Alan 2026-10-21）：sprite 輪廓外 1 px。另外疊一層在樹冠、牆、房子之上（迷霧之下），
+   * 被擋住時也看得到；overlayAlpha＝那一層的透明度、overlayDepth＝深度。
+   */
+  teamOutline: { hero: 0x50aaff, enemy: 0xff5050, overlayAlpha: 0.7, overlayDepth: 875 },
   /** 戰爭迷霧：未探索／已探索但不在視野內的遮罩透明度 */
   /** 柔和迷霧（正角俯視）：每格一個像素的小貼圖放大時用平滑取樣，邊緣變成漸層；狀態改變時淡入淡出的秒數 */
   fogFadeSec: 0.25,

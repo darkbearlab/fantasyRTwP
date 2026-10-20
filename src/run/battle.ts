@@ -15,9 +15,13 @@ import type { RunState } from './runState';
 import { livingHeroes } from './runState';
 import { deriveSeed } from './seed';
 import type { LevelTier } from './levelGen';
+import type { DeliberateTier } from './data/deliberateLevels';
 import { generateLevel } from './levelGen';
 import { generateDeliberateLevel } from './deliberateLevelGen';
 import { generateTemplateLevel } from './templateLevelGen';
+import { FBB_LEVELS, fieldLookFor } from './data/fbbLevels';
+import { fieldEncounter, townEncounter } from './fbbLevel';
+import { tilePrefabs } from './tilePrefabRegistry';
 import type { Edge, ExitRequest } from './templateLevelGen';
 import { ROUTE_MAP } from './data/routeMap';
 import { directionTo, neighbors } from './routeMap';
@@ -111,7 +115,12 @@ export function encounterFor(run: RunState, nodeId: number, encounterId: string)
   const key = `${encounterId}:${seed}:${layer}`;
   let enc = levelCache.get(key);
   if (!enc) {
-    if (dlevel && LEVELS.deliberateGenerator === 'templates') {
+    const fbb = dlevel && LEVELS.deliberateGenerator === 'fbb' && !FBB_LEVELS.templateTiers.includes(tier);
+    if (fbb) {
+      // finalbossblues 地形：前幾層是城內（首都突圍），後面是野外
+      const o = { tier: tier as DeliberateTier, layer, ...exitsFor(run, nodeId), budgetMult: mods.force ? ROUTE_MAP.force.budgetMult : undefined, captainEnemy: mods.champion ? ROUTE_MAP.champion.enemy : undefined };
+      enc = node.layer <= FBB_LEVELS.townUntilLayer ? townEncounter(seed, { ...o, prefabs: tilePrefabs() }) : fieldEncounter(seed, { ...o, look: fieldLookFor(node.layer) });
+    } else if (dlevel && LEVELS.deliberateGenerator !== 'classic') {
       // 出口制（SPEC_SLICE6 §2）：一個下一層節點一個出口，依路線圖由左到右排
       enc = generateTemplateLevel(seed, { tier, layer, ...exitsFor(run, nodeId), budgetMult: mods.force ? ROUTE_MAP.force.budgetMult : undefined, captainEnemy: mods.champion ? ROUTE_MAP.champion.enemy : undefined });
     } else enc = dlevel ? generateDeliberateLevel(seed, { tier, layer }) : generateLevel(seed, { tier, layer });
@@ -171,7 +180,7 @@ export function createBattleFromRun(run: RunState, config?: Partial<SimConfig>, 
   const horde = enc.horde ? { ...enc.horde, spawners: [...(map.spawners ?? []), ...enc.horde.spawners] } : undefined;
   const scaled = (id: string, captain?: boolean) => (horde ? hordeEnemyDef(enemyDef(id, layer, captain)) : enemyDef(id, layer, captain));
   // 沉穩節奏：同小隊一起警覺；舊的手工遭遇沒有小隊，全部算同一隊（看到一名就全體進攻）
-  for (const e of enc.enemies) spawns.push({ defId: e.enemy, def: scaled(e.enemy, e.captain), pos: { x: e.x, y: e.y }, squad: e.squad ?? 'main' });
+  for (const e of enc.enemies) spawns.push({ defId: e.enemy, def: scaled(e.enemy, e.captain), pos: { x: e.x, y: e.y }, squad: e.squad ?? 'main', facing: e.facing });
   // 沉穩節奏（SPEC_SLICE5）：小地圖遭遇套用變慢的設定
   const cfg = horde ? { ...config, ...HORDE_CONFIG } : runStyle(run) === 'deliberate' ? { ...config, ...deliberateConfig({ ...DEFAULT_SIM_CONFIG, ...config }) } : config;
   // 戰鬥中召喚的援軍也套用層數成長

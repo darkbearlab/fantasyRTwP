@@ -15,6 +15,8 @@ export interface EncounterEnemy {
   captain?: boolean;
   /** 小隊（沉穩節奏：同小隊一起警覺） */
   squad?: string;
+  /** 初始面向（弧度；生成的野外、城內地圖：據點的敵人面向開口） */
+  facing?: number;
 }
 
 export interface EncounterDef {

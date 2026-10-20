@@ -43,6 +43,20 @@ const PX = GAME_CONFIG.pxPerMeter;
 
 let rotation: 0 | 90 = GAME_CONFIG.isoRotation;
 
+/**
+ * 正角俯視的縱向壓縮：預設 GAME_CONFIG.ortho.squash；finalbossblues 地形的地圖不壓縮（Alan 2026-10-21），
+ * 戰鬥場景載入地圖時設定，離開時還原。
+ */
+let squash = ORTHO.squash;
+
+export function setOrthoSquash(s?: number): void {
+  squash = s ?? ORTHO.squash;
+}
+
+export function orthoSquash(): number {
+  return squash;
+}
+
 export function getIsoRotation(): 0 | 90 {
   return rotation;
 }
@@ -62,7 +76,7 @@ function toUV(x: number, y: number): Pt {
 export function worldToScreen(x: number, y: number, z = 0): Pt {
   if (mode === 'topdown') return { x: x * PX, y: y * PX };
   const { x: u, y: v } = toUV(x, y);
-  if (mode === 'ortho') return { x: u * ORTHO.pxPerM, y: v * ORTHO.pxPerM * ORTHO.squash - z * ORTHO.heightPxPerM };
+  if (mode === 'ortho') return { x: u * ORTHO.pxPerM, y: v * ORTHO.pxPerM * squash - z * ORTHO.heightPxPerM };
   return { x: (u - v) * (ISO.tileW / 2), y: (u + v) * (ISO.tileH / 2) - z * ISO.heightPxPerM };
 }
 
@@ -71,7 +85,7 @@ export function screenToGround(sx: number, sy: number): Pt {
   if (mode === 'topdown') return { x: sx / PX, y: sy / PX };
   if (mode === 'ortho') {
     const u = sx / ORTHO.pxPerM;
-    const v = sy / (ORTHO.pxPerM * ORTHO.squash);
+    const v = sy / (ORTHO.pxPerM * squash);
     return ORTHO.rotation === 90 ? { x: -v, y: u } : { x: u, y: v };
   }
   const a = sx / (ISO.tileW / 2);
@@ -98,7 +112,7 @@ export function heightPx(z: number): number {
 /** 地面上半徑 r 公尺的圓投影到畫面後的半軸（px）：iso 為 2:1 橢圓 */
 export function groundAxes(r: number): Pt {
   if (mode === 'topdown') return { x: r * PX, y: r * PX };
-  if (mode === 'ortho') return { x: r * ORTHO.pxPerM, y: r * ORTHO.pxPerM * ORTHO.squash };
+  if (mode === 'ortho') return { x: r * ORTHO.pxPerM, y: r * ORTHO.pxPerM * squash };
   return { x: (r * ISO.tileW) / Math.SQRT2, y: (r * ISO.tileH) / Math.SQRT2 };
 }
 

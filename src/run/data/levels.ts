@@ -22,8 +22,11 @@ export const LEVELS = {
    * horde＝大型關卡（封存）；tactical＝切片 2／3 的戰術戰鬥（封存）
    */
   expeditionStyle: 'deliberate' as RunStyle,
-  /** 沉穩節奏的關卡生成：templates＝模板拼接（SPEC_SLICE6，預設）；classic＝切片 5 的隔牆關卡 */
-  deliberateGenerator: 'templates' as 'templates' | 'classic',
+  /**
+   * 沉穩節奏的關卡生成：fbb＝finalbossblues 地形的程序生成（城內、野外；預設，2026-10-21 起，頭目關卡仍用模板，見 data/fbbLevels.ts）；
+   * templates＝模板拼接（SPEC_SLICE6）；classic＝切片 5 的隔牆關卡
+   */
+  deliberateGenerator: 'fbb' as 'fbb' | 'templates' | 'classic',
   /** 各節點類型的關卡大小 */
   size: {
     battle: { width: 72, height: 72, zones: 3 },
