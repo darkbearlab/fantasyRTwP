@@ -20,6 +20,7 @@ npm run autorun -- --runs 100    # 無畫面整趟自動遠征（隨機組隊）
 npm run autorun -- --runs 100 --fixed  # 同上，但隊伍固定為四個 Archetype（與切片 2 比較用）
 npm run autorun -- --runs 20 --style deliberate  # 沉穩節奏的遠征（腳本很粗糙，只用來確認關卡打得完、不當機）
 npm run assets:pull              # 本機開發：把授權素材（私有 repo）拉到 public/assets/licensed/（不進 git）
+npm run level:preview            # 關卡模板預覽：模板與拼好的關卡畫成圖，輸出 preview/levels.html
 npm run perf                      # 怪群效能：80 名敵人時每節拍的 sim 耗時；hordePass 統計；深淵礦坑沿路點推進的統計
 ```
 
