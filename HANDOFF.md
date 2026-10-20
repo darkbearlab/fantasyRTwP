@@ -85,7 +85,7 @@
   - 像素單位有陣營色外框（`VISUAL.teamOutline`），另外疊一層在樹冠、牆之上，被遮住也看得到。
   - 石牆用拉高版（`FBB_VIEW.tallWalls`，Alan 還沒在兩版之間定案）；調色只做乘色，飽和度還沒做。
   - **小衝突導演**（Alan：類似 L4D 的 AI 導演，探索永遠有威脅感）：`src/sim/skirmishDirector.ts`、資料 `src/sim/data/skirmish.ts`。
-    - 每 12～18 秒在視野外、和前幾波不同的方向叫出 2～3 名敵人，一波的「估計處理秒數」不超過 10 秒，沒有總數上限。
+    - 沒在交戰的時間累積 12～18 秒（Alan：交戰中計時要停；打完至少喘 5 秒），就在視野外、和前幾波不同的方向叫出 2～3 名敵人，一波的「估計處理秒數」不超過 10 秒，沒有總數上限。
     - 導演叫來的還活著 5 名以上就先等。
     - 波次的敵人沒接戰時沿流場（水流法，`world.flowNext`）往隊伍走，接近後照一般 AI；流場走不到的窄處改用 A*。
     - 只在沉穩節奏的 fbb 地圖、非頭目關卡（`createBattleFromRun`）。量測：`npx tsx tools/skirmishMeasure.ts`。
