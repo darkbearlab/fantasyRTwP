@@ -18,6 +18,9 @@ import type { UnitVisual } from '../render/unitView';
 import { FlareView } from '../render/flareView';
 import { DIR_NAMES, FLARE, FLARE_TILES, displayFacing, ensureFlareLoaded, flareDir, getArt, useFlare, wantsFlare } from '../render/art';
 import { Hero3DView } from '../render/hero3dView';
+import { PixelView } from '../render/pixelView';
+import { m72Key, pixelArtFor, pixelFloorReady } from '../render/pixelArt';
+import { floorTileFor } from '../render/pixelArtData';
 import { InteractablesView, drawBox } from '../render/interactView';
 import { p3dKey, props3dLoaded } from '../render/props3d';
 import { PROP_META, PROPS3D, obstacleUsesProp, planProps } from '../render/props3dPlan';
@@ -243,6 +246,10 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private makeView(u: Unit): UnitVisual {
+    if (this.builtArt === 'pixel') {
+      const art = pixelArtFor(this, u.def.id);
+      return art ? new PixelView(this, u, art) : new UnitView(this, u);
+    }
     if (this.builtH3d && u.team === 'hero' && h3dCharFor(u.def.id)) return new Hero3DView(this, u);
     return this.builtFlare ? new FlareView(this, u) : new UnitView(this, u);
   }
@@ -285,12 +292,17 @@ export class BattleScene extends Phaser.Scene {
     // Flare 地板磚是等角菱形，只用在等角投影；正角俯視的地面用程式畫
     const tiles = flare && isIso();
     if (tiles) this.drawFloorTiles(b, pad);
+    // 2D 像素：0x72 地城地板（Alan：戶外關卡暫時也用地城的）
+    const pixelFloor = this.builtArt === 'pixel' && getProjection() === 'ortho' && pixelFloorReady(this);
+    if (pixelFloor) this.drawPixelFloor(b);
     const g = this.add.graphics();
     g.translateCanvas(-b.x + pad, -b.y + pad);
-    if (!tiles) groundRect(g, 0, 0, W, H, { fill: COLORS.floor });
-    const gridAlpha = tiles ? 0.18 : 1;
-    for (let x = 0; x <= W; x++) groundLine(g, { x, y: 0 }, { x, y: H }, 1, COLORS.floorGrid, gridAlpha);
-    for (let y = 0; y <= H; y++) groundLine(g, { x: 0, y }, { x: W, y }, 1, COLORS.floorGrid, gridAlpha);
+    if (!tiles && !pixelFloor) groundRect(g, 0, 0, W, H, { fill: COLORS.floor });
+    const gridAlpha = tiles ? 0.18 : pixelFloor ? 0 : 1;
+    if (gridAlpha > 0) {
+      for (let x = 0; x <= W; x++) groundLine(g, { x, y: 0 }, { x, y: H }, 1, COLORS.floorGrid, gridAlpha);
+      for (let y = 0; y <= H; y++) groundLine(g, { x: 0, y }, { x: W, y }, 1, COLORS.floorGrid, gridAlpha);
+    }
     const zone = (pts: Vec[], color: number) => {
       if (pts.length === 0) return;
       const xs = pts.map((p) => p.x);
@@ -318,7 +330,7 @@ export class BattleScene extends Phaser.Scene {
     }
     groundRect(g, 0, 0, W, H, { stroke: 0x15171b, width: 3 });
     // 靜態圖層烘成貼圖，避免每幀重新三角化
-    this.worldObjects.push(bakeGraphics(this, g, 'map-floor', b.w + pad * 2, b.h + pad * 2, tiles ? 0.5 : 0, b.x - pad, b.y - pad));
+    this.worldObjects.push(bakeGraphics(this, g, 'map-floor', b.w + pad * 2, b.h + pad * 2, tiles || pixelFloor ? 0.5 : 0, b.x - pad, b.y - pad));
     const corner = worldToScreen(W, 0);
     this.worldObjects.push(
       this.add
@@ -326,6 +338,29 @@ export class BattleScene extends Phaser.Scene {
         .setOrigin(1, 0)
         .setDepth(1),
     );
+  }
+
+  /**
+   * 0x72 地城地板（16 px 一格＝1 m）：先在原始像素大小的畫布上拼好，再整張放大成畫面比例
+   * （正角俯視時橫 3 倍、縱 2 倍，每個原始像素都是整數大小，不會糊）。
+   */
+  private drawPixelFloor(b: { x: number; y: number; w: number; h: number }): void {
+    const map = this.session.world.map;
+    const kx = GAME_CONFIG.ortho.pxPerM / 16;
+    const ky = (GAME_CONFIG.ortho.pxPerM * GAME_CONFIG.ortho.squash) / 16;
+    const rt = this.add.renderTexture(b.x, b.y, Math.ceil(b.w / kx), Math.ceil(b.h / ky)).setOrigin(0).setScale(kx, ky).setDepth(0);
+    rt.beginDraw();
+    for (let cy = 0; cy < map.height; cy++) {
+      for (let cx = 0; cx < map.width; cx++) {
+        const p = worldToScreen(cx, cy);
+        const q = worldToScreen(cx + 1, cy + 1);
+        const x = Math.round((Math.min(p.x, q.x) - b.x) / kx);
+        const y = Math.round((Math.min(p.y, q.y) - b.y) / ky);
+        rt.batchDraw(m72Key(floorTileFor(cx, cy, map.id.length)), x, y);
+      }
+    }
+    rt.endDraw();
+    this.worldObjects.push(rt);
   }
 
   /** Flare 地板磚：乾淨地板隨機混搭；英雄出生區用花磚 */

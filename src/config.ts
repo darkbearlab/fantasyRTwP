@@ -71,7 +71,8 @@ export const GAME_CONFIG = {
    * 正角俯視（ortho）：地面 1 m = pxPerM px（橫向）；縱向再乘 squash 表現俯角（1 = 正上方往下看）；高度 1 m = heightPxPerM px。
    * rotation 90：世界 +x 朝畫面上方（直拿手機時玩家往上推進）。全部是可調旋鈕，不開放玩家設定。
    */
-  ortho: { pxPerM: 44, squash: 0.7, heightPxPerM: 32, rotation: 90 as 0 | 90 },
+  // 2D 像素（2026-10-20）：1 m＝16 px 的地圖格放大成 48 × 32（每個原始像素 3 × 2），保留俯角的壓縮感
+  ortho: { pxPerM: 48, squash: 2 / 3, heightPxPerM: 32, rotation: 90 as 0 | 90 },
   /**
    * 行動版卡片上方的控制鈕（Alan：之後要做成可以調整，先把排列抽出來）：
    * align＝整排靠左／置中／靠右（對齊卡片列）；order＝由左到右的順序。
@@ -86,10 +87,11 @@ export const GAME_CONFIG = {
   /** 等角畫面的旋轉（逆時針，0 或 90 度）：90 = 世界 +x 朝螢幕右上，玩家（地圖左側）往右上進攻 */
   isoRotation: 90 as 0 | 90,
   /**
-   * 角色與地板的美術（只在等角投影下生效，除錯面板可即時切換）：
+   * 角色與地板的美術（除錯面板可即時切換）：
+   * pixel＝2D 像素（預設，2026-10-20 起；Matt Walkden＋0x72，缺素材的單位用色塊）；
    * blocks＝色塊；flare＝Flare 等角素材試裝；heroes3d＝自製 3D 預渲染英雄（沒有素材的英雄、敵人與地板沿用 Flare）
    */
-  art: 'heroes3d' as 'blocks' | 'flare' | 'heroes3d',
+  art: 'pixel' as 'blocks' | 'flare' | 'heroes3d' | 'pixel',
   /** heroes3d 的縮放（素材約 53.3 px／公尺；32/53.3 ≈ 0.6，但素材是半蹲姿勢且有俯角縮短，對齊身高方塊約 0.75） */
   heroes3dScale: 0.75,
   /** 每幀最多推進幾個節拍（避免切回分頁時暴衝） */

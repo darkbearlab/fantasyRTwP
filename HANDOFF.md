@@ -60,6 +60,9 @@
   - 畫面層 `BattleSession.hooks`（`src/game/hooks.ts`）：`simEvent`（每個 sim 事件，戰鬥場景處理完畫面之後）、`skillAim`（按下技能進入瞄準）、`skillCommand`（下達技能指令）、`pauseChanged`。
 - **自動暫停**：規則全部在 `src/game/autoPause.ts`（掛在鉤子上；`AUTO_PAUSE_OPTIONS` 是選單項目）。設定存在 localStorage（`fantasyRTwP.autoPause`），⚙ 設定選單與除錯面板都能改。新選項預設：發現敵人 開、精英／頭目技能 開、按技能瞄準 關（待確認）。
 - **美術方向改回 2D 像素**（2026-10-20）：素材說明在 `D:\_遊戲素材\像素素材\交接_像素素材給開發session.md`（格式、建議對照表）。Matt Walkden 的素材在私有 repo `darkbearlab/fantasyRTwP-assets`，本機 `npm run assets:pull`、部署時 `deploy.yml` 用 secret `ASSET_DEPLOY_KEY` 拉到 `public/assets/licensed/`（不進 git；**不要碰金鑰或 secret**）；0x72（CC0）在 `public/assets/0x72/`。程式在沒有 `licensed/` 時必須退回佔位圖形，CI 不拉私有素材。
+  - 已接上（2026-10-20）：`config.art = 'pixel'` 為預設。`pixelArtData.ts`（對照表 `PIXEL_UNITS`、取格公式、動作）、`pixelArt.ts`（載入；缺圖的單位用色塊 `UnitView`）、`pixelView.ts`（單位外觀）、`BattleScene.drawPixelFloor`（0x72 地板，原始像素拼好再放大）。營火畫面也用像素 sprite。
+  - Alan 的決定：對照表照交接文件建議、全部當佔位；**視角維持正角俯視＋縱向壓縮**（`ortho.squash` 2/3，讓 16 px 地板正好放大 3 × 2）；方向只用 3 方向；戶外關卡暫時也用地城地板，具體 asset 下一輪再決定；0x72 怪物攻擊用往前衝＋閃白。
+  - 建議表沒有、我先挑的：煉金術士＝綠色 Wizard、siege＝ogre、bomber＝goblin、exploder＝muddy、nest＝swampy。
 - **營火對話**（休息節點）：先進 `CampfireScene`（英雄圍著程式畫的火堆、上下兩個對話框、頭像用 sprite），看完或略過才打開休息選單；看過的記在 `phase.talked`。台詞在 `src/run/data/campfire.ts`（通用台詞，`{0}` 換成職業名），挑選在 `src/run/campfire.ts`（依種子＋節點，同一節點每次一樣）。
 - **故事大綱**：`STORY.md`（Alan 口述，尚未實作：五張路線圖、魔法水晶、FTL 式路線圖與魔王冠軍追擊）。
 - **下完指令不取消選取**：`GAME_CONFIG.deselectAfterOrder`（預設 false）。

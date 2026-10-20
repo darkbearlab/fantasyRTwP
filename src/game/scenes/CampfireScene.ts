@@ -6,7 +6,9 @@
 import Phaser from 'phaser';
 import type { CampfireLine } from '../../run/campfire';
 import { HEROES } from '../../sim/data/heroes';
-import { FLARE, flareKey } from '../render/art';
+import { FLARE, flareKey, getArt } from '../render/art';
+import { mwKey, pixelArtFor } from '../render/pixelArt';
+import { MW_IDLE, PIXEL, facingBlock, mwFrame } from '../render/pixelArtData';
 import type { FlareAnimMeta } from '../render/art';
 import { H3D_SHEETS, h3dCharFor, h3dKey, h3dResolve } from '../render/heroes3d';
 import { FONT, hex } from '../render/palette';
@@ -31,6 +33,8 @@ const CAMP = {
   heroScale: 1.4,
   /** 頭像裡 sprite 的倍率 */
   portraitScale: 2.4,
+  /** 2D 像素 sprite：上面兩個倍率 × 這個值（取整數） */
+  pixelPerScale: 2.9,
   /** 頭像框大小（px） */
   portrait: 92,
   boxHeight: 128,
@@ -49,6 +53,19 @@ interface HeroSprite {
 
 /** 建立英雄 sprite：dir 是 8 方向（0=西、2=北、4=東、6=南／面向鏡頭） */
 function makeHeroSprite(scene: Phaser.Scene, classId: string, x: number, y: number, dir: number, scale: number): HeroSprite | null {
+  // 2D 像素：mw sheet 的待機動作（8 方向換成畫面方向後取側面／正面／背面）
+  if (getArt() === 'pixel') {
+    const art = pixelArtFor(scene, classId);
+    if (art?.kind === 'mw') {
+      const k = ((dir + 4) % 8) * (Math.PI / 4);
+      const { block, flip } = facingBlock(Math.cos(k), Math.sin(k));
+      const s = scene.add.sprite(x, y, mwKey(art.path), mwFrame(block, MW_IDLE, 0)).setOrigin(0.5, PIXEL.mwFootY).setFlipX(flip);
+      // 像素要整數倍：依原本的倍率換算成最接近的整數
+      s.setScale(Math.max(1, Math.round(scale * CAMP.pixelPerScale)));
+      return { objs: [s], setFrame: (i) => s.setFrame(mwFrame(block, MW_IDLE, Math.floor(i / 2))) };
+    }
+    if (!art) return null;
+  }
   const char = h3dCharFor(classId);
   if (char && H3D_SHEETS[char]) {
     const sheet = H3D_SHEETS[char];
@@ -230,7 +247,7 @@ export class CampfireScene extends Phaser.Scene {
     const mask = box.maskShape.createGeometryMask();
     // 腳底放在框下方，放大讓頭和胸口落在框裡
     // 預渲染（heroes3d）的頭部比 Flare 高一點：腳底放低一些
-    const footY = h3dCharFor(classId) ? P * 2.0 : P * 1.75;
+    const footY = getArt() === 'pixel' ? P * 1.4 : h3dCharFor(classId) ? P * 2.0 : P * 1.75;
     const sp = makeHeroSprite(this, classId, box.px + P / 2, box.py + footY, 6, CAMP.portraitScale);
     if (!sp) return;
     for (const o of sp.objs) {
