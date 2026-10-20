@@ -20,9 +20,7 @@ import { generateDeliberateLevel } from './deliberateLevelGen';
 import type { MapDef } from '../sim/data/types';
 import type { RunStyle } from './data/levels';
 import { deliberateConfig } from '../sim/data/deliberate';
-import { ACTIVE_SKILL_OVERRIDE } from '../sim/data/passives';
-import { CLASSES } from '../sim/data/classes';
-import { ACTIVE_CYCLES } from '../sim/data/cycles';
+import { deliberateSkillsOf } from './loadout';
 import { DEFAULT_SIM_CONFIG } from '../sim/simConfig';
 import { heroDef } from './upgrades';
 
@@ -45,10 +43,7 @@ export function enemyDef(enemyId: string, layer: number, captain = false): UnitD
   };
 }
 
-/** 沉穩節奏：職業唯一的主動技能（預設是專用技能，ACTIVE_SKILL_OVERRIDE 列出例外） */
-export function activeSkillOf(classId: string): string {
-  return ACTIVE_SKILL_OVERRIDE[classId] ?? CLASSES[classId].signature;
-}
+export { activeSkillOf } from './loadout';
 
 /** 怪群模式：精英與頭目的生命下降（雜兵、巢穴不變） */
 export function hordeEnemyDef(def: UnitDef): UnitDef {
@@ -131,7 +126,7 @@ export function createBattleFromRun(run: RunState, config?: Partial<SimConfig>, 
     let def = heroDef(hero, run.nextBattleBuff);
     // 沉穩節奏（SPEC_SLICE5 §2）：每名英雄只有一招主動技能
     // 有技能循環的職業帶齊循環的每一招（技能鈕只顯示目前這一招，SPEC_SLICE5 §16）
-    if (deliberate) def = { ...def, skills: ACTIVE_CYCLES[hero.classId] ? [...ACTIVE_CYCLES[hero.classId].steps] : [activeSkillOf(hero.classId)] };
+    if (deliberate) def = { ...def, skills: deliberateSkillsOf(hero.classId) };
     spawns.push({ defId: hero.classId, def, pos: map.heroSpawns[i % map.heroSpawns.length], heroSlot: slot, hp: hero.hp, personality: hero.personality, items: hero.items });
   });
   // 怪群模式：地圖與遭遇的生成點合併，戰鬥模式自動設成 horde，精英與頭目生命下降

@@ -12,6 +12,7 @@ import { grantUpgrade, maxHpOf, recruitInto } from './upgrades';
 import { recruitPool } from './classes';
 import { rngFor } from './seed';
 import { deliberateLevelId, levelEncounterId, runStyle } from './battle';
+import { battleSkillsOf } from './loadout';
 
 export function conditionMet(run: RunState, c: EventCondition | undefined): boolean {
   if (!c) return true;
@@ -111,7 +112,7 @@ export function applyEffect(r: RunState, e: EventEffect, rng: Rng): string {
       const { slot, hero } = alive[rng.int(0, alive.length - 1)];
       const pool = Object.values(UPGRADES).filter((u) => u.scope === 'hero' && (!e.rare || u.rare));
       const up = pool[rng.int(0, pool.length - 1)];
-      const skills = hero.skills;
+      const skills = battleSkillsOf(r, hero);
       return grantUpgrade(r, up.id, slot, up.needsSkill ? skills[rng.int(0, skills.length - 1)] : undefined);
     }
     case 'recruit': {

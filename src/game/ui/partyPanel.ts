@@ -5,6 +5,7 @@ import type { Personality } from '../../sim/data/types';
 import { UPGRADES } from '../../run/data/upgrades';
 import type { RunState } from '../../run/runState';
 import { maxHpOf } from '../../run/upgrades';
+import { battleSkillsOf } from '../../run/loadout';
 import { hex } from '../render/palette';
 import { className } from './classInfo';
 import { el, noFocus } from './dom';
@@ -61,8 +62,10 @@ export function partyPanel(run: RunState, opts: PartyPanelOptions = {}): HTMLEle
     // 技能順序（戰鬥中「選人後再按數字」與 Q E R 的對應）；路線圖上可以調整
     if (opts.onSwapSkill || opts.onSwapHero) {
       const skills = el('div', 'party-skills');
-      h.skills.forEach((sk, i) => {
-        if (i > 0 && opts.onSwapSkill) {
+      // 沉穩節奏：只列戰鬥中實際用到的技能（舊的三技能欄不顯示），也不能調整順序
+      const deliberate = run.style === 'deliberate';
+      battleSkillsOf(run, h).forEach((sk, i) => {
+        if (i > 0 && opts.onSwapSkill && !deliberate) {
           const left = el('button', 'order-btn', '◀');
           left.title = '和前一個技能交換順序';
           noFocus(left);

@@ -46,9 +46,11 @@ export class RestScene extends DomScene {
       tabs.appendChild(b);
     };
     tabBtn('rest', '休息');
-    tabBtn('skills', '技能（不佔三選一）');
+    // 沉穩節奏每名英雄只有一招主動，沒有舊的技能欄可以換
+    const deliberate = run.style === 'deliberate';
+    if (!deliberate) tabBtn('skills', '技能（不佔三選一）');
     box.appendChild(tabs);
-    if (this.tab === 'skills') {
+    if (this.tab === 'skills' && !deliberate) {
       box.appendChild(this.skillsTab(run, (r) => {
         setRun(this, r);
         this.rebuild();
