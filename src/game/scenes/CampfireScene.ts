@@ -28,6 +28,8 @@ const CAMP = {
   /** 頭像框大小（px） */
   portrait: 92,
   boxHeight: 128,
+  /** 圍坐英雄在畫面上大約多高（px，排版用） */
+  heroHeightPx: 105,
   /** 打字速度（字／秒） */
   typeSpeed: 40,
   idleFps: 8,
@@ -120,7 +122,16 @@ export class CampfireScene extends Phaser.Scene {
     const W = this.scale.width;
     const H = this.scale.height;
     this.cameras.main.setBackgroundColor('#07080c');
-    this.center = { x: W / 2, y: H / 2 + 10 };
+    // 版面（Alan）：畫面下方是英雄面板的位置（戰鬥中四張卡片那一塊），對話框與場景只用它以上的區域
+    const reserve = W < H ? GAME_CONFIG.hudBottomHeightPortrait : GAME_CONFIG.hudBottomHeight;
+    const areaBottom = H - reserve;
+    const topBoxY = 12;
+    const bottomBoxY = areaBottom - 12 - CAMP.boxHeight;
+    // 兩個對話框之間放火堆與英雄：上排英雄的頭不碰到上框，下排英雄的腳不碰到提示列
+    const m0 = topBoxY + CAMP.boxHeight + 8;
+    const m1 = bottomBoxY - 56;
+    const ry = Phaser.Math.Clamp((m1 - m0 - CAMP.heroHeightPx) / 2, 30, 120);
+    this.center = { x: W / 2, y: m0 + CAMP.heroHeightPx + ry };
     const c = this.center;
 
     // 火光照亮的地面
@@ -134,7 +145,6 @@ export class CampfireScene extends Phaser.Scene {
 
     // 四名英雄：左上、右上、左下、右下，面向火堆
     const rx = Math.min(W * 0.3, 180);
-    const ry = rx * 0.62;
     const seats = [
       { x: c.x - rx, y: c.y - ry, top: true },
       { x: c.x + rx, y: c.y - ry, top: true },
@@ -158,8 +168,8 @@ export class CampfireScene extends Phaser.Scene {
     this.fireG.setDepth(10);
     this.glowG.setDepth(11);
 
-    this.boxes = { top: this.makeBox(12), bottom: this.makeBox(H - 12 - CAMP.boxHeight) };
-    const by = H - 12 - CAMP.boxHeight - 10;
+    this.boxes = { top: this.makeBox(topBoxY), bottom: this.makeBox(bottomBoxY) };
+    const by = bottomBoxY - 8;
     this.add.text(14, by, '點一下繼續', { fontFamily: FONT, fontSize: '13px', color: '#8f8470' }).setOrigin(0, 1).setDepth(40);
     this.skipBtn = this.add
       .text(W - 14, by, '略過 ▶▶', { fontFamily: FONT, fontSize: '15px', color: '#e0c48a', backgroundColor: '#1a1d25', padding: { x: 10, y: 5 } })
