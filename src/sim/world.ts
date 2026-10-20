@@ -3,6 +3,7 @@ import { sameOrder } from './commands';
 import { DT, NAV_CELL, RANGE_TOLERANCE } from './constants';
 import { ENEMIES } from './data/enemies';
 import { ACTIVE_CYCLES } from './data/cycles';
+import { ITEMS } from './data/items';
 import { offCycle } from './cycle';
 import { HEROES } from './data/heroes';
 import { SKILLS } from './data/skills';
@@ -55,6 +56,8 @@ export interface UnitSpawn {
   heroSlot?: number;
   /** 敵人的小隊（沉穩節奏：同小隊一起警覺） */
   squad?: string;
+  /** 英雄裝備的道具（沉穩節奏：每件提供一個被動，SPEC_SLICE5 §17） */
+  items?: string[];
 }
 
 export interface WorldOptions {
@@ -206,6 +209,7 @@ export class World implements ZocContext {
       // 沉穩節奏（SPEC_SLICE5 §14）：英雄帶職業被動
       if (def.team === 'hero' && this.config.battleStyle === 'deliberate') {
         for (const id of CLASS_PASSIVES[def.id] ?? []) u.addPassive(PASSIVES[id]);
+        for (const id of s.items ?? []) if (ITEMS[id]) u.addPassive(ITEMS[id].passive);
         // 技能循環（SPEC_SLICE5 §16）：英雄帶齊循環的每一招才啟用
         const cyc = ACTIVE_CYCLES[def.id];
         if (cyc && cyc.steps.every((sk) => def.skills.includes(sk))) u.cycle = cyc;

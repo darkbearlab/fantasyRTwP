@@ -132,7 +132,7 @@ export function createBattleFromRun(run: RunState, config?: Partial<SimConfig>, 
     // 沉穩節奏（SPEC_SLICE5 §2）：每名英雄只有一招主動技能
     // 有技能循環的職業帶齊循環的每一招（技能鈕只顯示目前這一招，SPEC_SLICE5 §16）
     if (deliberate) def = { ...def, skills: ACTIVE_CYCLES[hero.classId] ? [...ACTIVE_CYCLES[hero.classId].steps] : [activeSkillOf(hero.classId)] };
-    spawns.push({ defId: hero.classId, def, pos: map.heroSpawns[i % map.heroSpawns.length], heroSlot: slot, hp: hero.hp, personality: hero.personality });
+    spawns.push({ defId: hero.classId, def, pos: map.heroSpawns[i % map.heroSpawns.length], heroSlot: slot, hp: hero.hp, personality: hero.personality, items: hero.items });
   });
   // 怪群模式：地圖與遭遇的生成點合併，戰鬥模式自動設成 horde，精英與頭目生命下降
   const horde = enc.horde ? { ...enc.horde, spawners: [...(map.spawners ?? []), ...enc.horde.spawners] } : undefined;

@@ -5,7 +5,8 @@ import { levelDifficulty } from '../../run/levelGen';
 import type { MapNode } from '../../run/mapGen';
 import { NODE_ICON, NODE_LABEL } from '../../run/mapGen';
 import { availableNodes, chooseNode, pickEncounter, setHeroPersonality } from '../../run/progression';
-import { el, noFocus } from '../ui/dom';
+import { button, el, noFocus } from '../ui/dom';
+import { bagPanel } from '../ui/bagPanel';
 import { partyPanel } from '../ui/partyPanel';
 import { swapHeroSlots, swapSkillOrder } from '../../run/classes';
 import { advance, getRun, setRun } from '../runFlow';
@@ -17,11 +18,14 @@ const NODE_DESC: Record<string, string> = {
   event: '未知的遭遇。',
   rest: '休息：紮營回血、救回陣亡者或訓練；也可以招募。',
   boss: '戰爭領主。擊敗他就結束這趟遠征。',
+  shop: '商人：用金幣買道具（每件道具提供一個被動）。',
 };
 
 /** 路線圖（SPEC_SLICE2 §2.3）：左側隊伍面板、右側分層節點 */
 export class MapScene extends DomScene {
   protected screenClass = 'map-screen';
+  /** 背包面板是否打開 */
+  private bagOpen = false;
 
   constructor() {
     super('Map');
@@ -47,6 +51,23 @@ export class MapScene extends DomScene {
         },
       }),
     );
+    // 背包與裝備（沉穩節奏，SPEC_SLICE5 §17）
+    if (run.style === 'deliberate') {
+      const n = run.inventory?.length ?? 0;
+      side.appendChild(
+        button(this.bagOpen ? '收起背包' : `🎒 背包與裝備${n ? `（${n}）` : ''}`, 'small bag-toggle', () => {
+          this.bagOpen = !this.bagOpen;
+          this.rebuild();
+        }),
+      );
+      if (this.bagOpen)
+        side.appendChild(
+          bagPanel(run, (r) => {
+            setRun(this, r);
+            this.rebuild();
+          }),
+        );
+    }
     const layer = run.currentNodeId === null ? 0 : run.map.nodes[run.currentNodeId].layer;
     side.appendChild(el('div', 'map-progress', `第 ${layer} / ${run.map.layerCount} 層　·　種子 ${run.seed}`));
     if (run.nextBattleBuff) side.appendChild(el('div', 'buff-note', '下一場戰鬥有事件加成'));

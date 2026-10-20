@@ -59,10 +59,18 @@ function passiveOnHit(world: World, src: Unit, t: Unit): void {
     for (const e of p.onHit ?? []) {
       if (e.every && src.basicHits % e.every !== 0) continue;
       if (e.chance !== undefined && !world.rng.chance(e.chance)) continue;
-      if (e.kind === 'stun') applyStun(world, t, e.duration);
-      else {
-        t.rootTime = Math.max(t.rootTime, e.duration);
+      if (e.kind === 'stun') applyStun(world, t, e.duration ?? 0.5);
+      else if (e.kind === 'root') {
+        t.rootTime = Math.max(t.rootTime, e.duration ?? 1);
+        t.path = null;
         world.emit({ type: 'status', unitId: t.id, text: '定身' });
+      } else if (e.kind === 'burn') {
+        if (t.burnTime <= 0) t.burnTick = 1;
+        t.burnTime = Math.max(t.burnTime, e.duration ?? TERRAIN.burnDuration);
+        t.burnSourceId = src.id;
+        world.emit({ type: 'status', unitId: t.id, text: '燃燒' });
+      } else if (e.lingering) {
+        addZone(world, src, t.pos, e.radius ?? 1.5, e.lingering, p.id);
       }
       world.emit({ type: 'notice', unitId: src.id, text: p.name });
     }
@@ -729,6 +737,8 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): Uni
       world.emit({ type: 'status', unitId: target.id, text: '碎冰' });
     }
   }
+  // 斬殺（被動）：對低生命的目標傷害提高
+  for (const ps of src.passives) if (ps.execute && target.hp / target.maxHp < ps.execute.below) comboMult *= 1 + ps.execute.pct;
   const base = rollDamage(world.rng, p.flatDamage ?? src.def.damage, p.mult * damageMultOf(world, src) * terrainMult * comboMult);
   const final = applyArmor(base * (crit ? CRIT_MULT : 1), target.armor);
   applyDamage(world, target, final, p.damageType, src, { crit, skillId: p.skillId, freeAttack: p.freeAttack });

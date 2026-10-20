@@ -5,7 +5,8 @@ import { ECONOMY } from './data/economy';
 import { rngFor } from './seed';
 import type { Rng } from '../sim/rng';
 
-export type NodeType = 'battle' | 'elite' | 'event' | 'rest' | 'boss';
+/** shop：商人（沉穩節奏的遠征才有，SPEC_SLICE5 §17） */
+export type NodeType = 'battle' | 'elite' | 'event' | 'rest' | 'boss' | 'shop';
 
 export interface MapNode {
   id: number;
@@ -31,6 +32,7 @@ export const NODE_LABEL: Record<NodeType, string> = {
   event: '事件',
   rest: '休息',
   boss: '頭目',
+  shop: '商人',
 };
 
 export const NODE_ICON: Record<NodeType, string> = {
@@ -39,18 +41,24 @@ export const NODE_ICON: Record<NodeType, string> = {
   event: '？',
   rest: '🔥',
   boss: '👑',
+  shop: '💰',
 };
 
-export function generateMap(seed: number, layerCount = ECONOMY.mapLayers): RunMap {
+export interface MapOptions {
+  /** 放商人節點（沉穩節奏的遠征） */
+  shops?: boolean;
+}
+
+export function generateMap(seed: number, layerCount = ECONOMY.mapLayers, opts: MapOptions = {}): RunMap {
   const rng = rngFor(seed, 'map');
   for (let attempt = 0; attempt < 500; attempt++) {
-    const map = tryGenerate(rng, layerCount);
+    const map = tryGenerate(rng, layerCount, opts);
     if (map && validateMap(map).length === 0) return map;
   }
   throw new Error('路線圖生成失敗');
 }
 
-function tryGenerate(rng: Rng, layerCount: number): RunMap | null {
+function tryGenerate(rng: Rng, layerCount: number, opts: MapOptions): RunMap | null {
   const nodes: MapNode[] = [];
   const layers: number[][] = [];
   for (let l = 1; l <= layerCount; l++) {
@@ -113,6 +121,14 @@ function tryGenerate(rng: Rng, layerCount: number): RunMap | null {
     const n = pickBattleNode(2, layerCount - 1);
     if (n) n.type = 'event';
   }
+  // 商人放在最後（不影響沒有商人的路線圖：舊模式的亂數順序不變）
+  if (opts.shops) {
+    const shops = rng.int(ECONOMY.shopNodes[0], ECONOMY.shopNodes[1]);
+    for (let k = 0; k < shops; k++) {
+      const n = pickBattleNode(2, layerCount - 1);
+      if (n) n.type = 'shop';
+    }
+  }
   return { layerCount, layers, nodes };
 }
 
@@ -134,6 +150,7 @@ export function validateMap(map: RunMap): string[] {
       if (n.type === 'boss' && l !== layerCount) err.push('頭目只能在最後一層');
       if (n.type === 'elite' && l <= 2) err.push('精英不能在第 1–2 層');
       if (n.type === 'rest' && l <= 3) err.push('休息不能在第 1–3 層');
+      if (n.type === 'shop' && l <= 1) err.push('商人不能在第 1 層');
       if (l < layerCount) {
         if (n.next.length < 1 || n.next.length > 2) err.push(`節點 ${id} 出線數 ${n.next.length}`);
         for (const t of n.next) {
