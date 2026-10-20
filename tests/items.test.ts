@@ -3,6 +3,8 @@ import { createBattleFromRun } from '../src/run/battle';
 import { ECONOMY } from '../src/run/data/economy';
 import { buyItem, canBuy, canEquip, equipItem, rollItemDrop, unequipItem } from '../src/run/items';
 import { validateMap } from '../src/run/mapGen';
+import { validateRouteMap } from '../src/run/routeMap';
+import { ROUTE_MAP } from '../src/run/data/routeMap';
 import { applyBattleResult, chooseNode, leaveNode } from '../src/run/progression';
 import type { RunState } from '../src/run/runState';
 import { createRun } from '../src/run/runState';
@@ -21,9 +23,14 @@ function toShop(seed = 1): RunState {
     const r = createRun(s);
     const shop = r.map.nodes.find((n) => n.type === 'shop');
     if (!shop) continue;
-    // 直接把目前位置放在商人的上一層（測試用）
-    const prev = r.map.nodes.find((n) => n.next.includes(shop.id))!;
+    // 直接把目前位置放在商人的相鄰節點（測試用）；移開主力與冠軍，只測商人
+    const prev = r.map.nodes.find((n) => (n.links ?? n.next).includes(shop.id))!;
     r.currentNodeId = prev.id;
+    if (r.overworld) {
+      r.overworld.force = [];
+      r.overworld.champion.node = null;
+      r.overworld.champion.respawnAt = 999;
+    }
     return chooseNode(r, shop.id);
   }
   throw new Error('找不到商人');
@@ -35,8 +42,10 @@ describe('裝備道具（SPEC_SLICE5 §17）', () => {
       const r = createRun(s);
       const shops = r.map.nodes.filter((n) => n.type === 'shop').length;
       expect(shops).toBeGreaterThanOrEqual(1);
-      expect(shops).toBeLessThanOrEqual(ECONOMY.shopNodes[1]);
-      expect(validateMap(r.map)).toEqual([]);
+      expect(shops).toBeLessThanOrEqual(ROUTE_MAP.shops[1]);
+      // 沉穩節奏用 FTL 式路線圖（SPEC_SLICE6 §4）
+      expect(validateRouteMap(r.map)).toEqual([]);
+      expect(validateMap(createRun(s, { layers: 8 }).map)).toEqual([]);
       expect(createRun(s, { style: 'tactical' }).map.nodes.some((n) => n.type === 'shop')).toBe(false);
     }
   });

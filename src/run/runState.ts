@@ -8,6 +8,9 @@ import type { Personality } from '../sim/data/types';
 import { ECONOMY } from './data/economy';
 import type { NodeType, RunMap } from './mapGen';
 import { generateMap } from './mapGen';
+import { generateRouteMap } from './routeMap';
+import { initOverworld } from './overworld';
+import type { Overworld } from './overworld';
 import { LEVELS } from './data/levels';
 import type { RunStyle } from './data/levels';
 
@@ -42,7 +45,15 @@ export interface BattleBuff {
 /** 目前所在的畫面／步驟 */
 export type RunPhase =
   | { kind: 'map' }
-  | { kind: 'battle'; nodeId: number; encounterId: string; fromEvent: boolean }
+  | {
+      kind: 'battle';
+      nodeId: number;
+      encounterId: string;
+      fromEvent: boolean;
+      /** FTL 式路線圖：第幾次造訪（重新生成地圖用）、被主力佔領的強化戰鬥、冠軍戰 */
+      visit?: number;
+      mods?: { force?: boolean; champion?: boolean };
+    }
   /** item：這場掉落的道具（已放進背包） */
   | {
       kind: 'reward';
@@ -104,6 +115,8 @@ export interface RunState {
   xp?: number;
   /** 還沒選的升級三選一次數 */
   pendingLevelUps?: number;
+  /** FTL 式路線圖（SPEC_SLICE6 §4，沉穩節奏）：回合、造訪次數、主力、冠軍 */
+  overworld?: Overworld;
   /** 已出現過的事件（避免重複） */
   seenEvents: string[];
   stats: RunStats;
@@ -139,10 +152,11 @@ export function createRun(seed: number, opts: { layers?: number; party?: string[
   const party: (HeroRecord | null)[] = (opts.party ?? HERO_ORDER).slice(0, ECONOMY.partySize).map((id) => newHero(id));
   while (party.length < ECONOMY.partySize) party.push(null);
   const style = opts.style ?? LEVELS.expeditionStyle;
-  return {
+  const run: RunState = {
     version: 1,
     seed: seed >>> 0,
-    map: generateMap(seed, opts.layers ?? ECONOMY.mapLayers, { shops: style === 'deliberate' }),
+    // 沉穩節奏用 FTL 式路線圖（SPEC_SLICE6 §4）；封存模式維持單向分層路線圖
+    map: style === 'deliberate' && opts.layers === undefined ? generateRouteMap(seed) : generateMap(seed, opts.layers ?? ECONOMY.mapLayers, { shops: style === 'deliberate' }),
     currentNodeId: null,
     path: [],
     gold: ECONOMY.startGold,
@@ -158,6 +172,8 @@ export function createRun(seed: number, opts: { layers?: number; party?: string[
     pendingLevelUps: 0,
     inventory: [],
   };
+  if (style === 'deliberate' && opts.layers === undefined) run.overworld = initOverworld(run);
+  return run;
 }
 
 export function cloneRun(r: RunState): RunState {

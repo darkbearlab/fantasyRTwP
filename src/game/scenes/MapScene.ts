@@ -12,6 +12,7 @@ import { swapHeroSlots, swapSkillOrder } from '../../run/classes';
 import { advance, getRun, setRun } from '../runFlow';
 import { DomScene } from './DomScene';
 import { xpBar } from '../ui/xpBar';
+import { ROUTE_MAP } from '../../run/data/routeMap';
 
 const NODE_DESC: Record<string, string> = {
   battle: '一般戰鬥。勝利後獲得金幣與強化。',
@@ -73,6 +74,15 @@ export class MapScene extends DomScene {
     }
     const layer = run.currentNodeId === null ? 0 : run.map.nodes[run.currentNodeId].layer;
     side.appendChild(el('div', 'map-progress', `第 ${layer} / ${run.map.layerCount} 層　·　種子 ${run.seed}`));
+    // FTL 式路線圖（SPEC_SLICE6 §4）：回合、主力、冠軍
+    const ow = run.overworld;
+    if (ow) {
+      const c = ow.champion;
+      const champ = c.node === null ? `冠軍：重整中（第 ${c.respawnAt} 回合回來）` : c.hunting ? '冠軍：發現你了，正在追擊！' : '冠軍：在圖上遊蕩';
+      const box = el('div', 'ow-status');
+      box.append(el('div', '', `第 ${ow.turn} 回合　·　魔王主力佔領 ${ow.force.length} 個節點（每 ${ROUTE_MAP.force.spreadEvery} 回合擴散）`), el('div', c.hunting && c.node !== null ? 'ow-hunt' : '', champ));
+      side.appendChild(box);
+    }
     if (run.nextBattleBuff) side.appendChild(el('div', 'buff-note', '下一場戰鬥有事件加成'));
     const journal = el('div', 'journal');
     for (const j of run.journal.slice(-6)) journal.appendChild(el('div', '', j));
@@ -87,9 +97,11 @@ export class MapScene extends DomScene {
     const pos = (n: MapNode) => {
       const ids = run.map.layers[n.layer - 1];
       const off = n.index - (ids.length - 1) / 2;
-      if (portrait) return { x: W / 2 + off * Math.min(130, W / 3.2), y: H - 40 - ((n.layer - 1) / (L - 1)) * (H - 80) };
+      // 每層最多幾個節點決定間距（FTL 式路線圖比較寬）
+      const most = Math.max(...run.map.layers.map((l) => l.length));
+      if (portrait) return { x: W / 2 + off * Math.min(130, (W - 60) / Math.max(1, most - 1)), y: H - 40 - ((n.layer - 1) / (L - 1)) * (H - 80) };
       const x = 50 + ((n.layer - 1) / (L - 1)) * (W - 100);
-      const y = H / 2 + off * 170;
+      const y = H / 2 + off * Math.min(170, (H - 80) / Math.max(1, most - 1));
       return { x, y };
     };
     area.style.width = `${W}px`;
@@ -102,7 +114,8 @@ export class MapScene extends DomScene {
     svg.setAttribute('height', String(H));
     svg.classList.add('map-lines');
     for (const n of run.map.nodes) {
-      for (const t of n.next) {
+      // 雙向的路線圖每條線只畫一次
+      for (const t of n.links ? n.links.filter((x) => x > n.id) : n.next) {
         const a = pos(n);
         const b = pos(run.map.nodes[t]);
         const line = document.createElementNS(svgNS, 'line');
@@ -110,8 +123,8 @@ export class MapScene extends DomScene {
         line.setAttribute('y1', String(a.y));
         line.setAttribute('x2', String(b.x));
         line.setAttribute('y2', String(b.y));
-        const walked = visited.has(n.id) && visited.has(t) && run.path.indexOf(t) === run.path.indexOf(n.id) + 1;
-        const open = n.id === run.currentNodeId && avail.has(t);
+        const walked = run.path.some((id, i) => i > 0 && ((run.path[i - 1] === n.id && id === t) || (run.path[i - 1] === t && id === n.id)));
+        const open = (n.id === run.currentNodeId && avail.has(t)) || (t === run.currentNodeId && avail.has(n.id));
         line.setAttribute('class', walked ? 'walked' : open ? 'open' : '');
         svg.appendChild(line);
       }
@@ -127,9 +140,17 @@ export class MapScene extends DomScene {
       if (n.id === run.currentNodeId) b.classList.add('current');
       if (avail.has(n.id)) b.classList.add('available');
       else if (!visited.has(n.id)) b.classList.add('locked');
+      if (ow?.force.includes(n.id)) b.classList.add('occupied');
+      if (ow && ow.champion.node === n.id) {
+        const badge = el('span', `champ-badge${ow.champion.hunting ? ' hunting' : ''}`, '👹');
+        b.appendChild(badge);
+      }
       noFocus(b);
       const showTip = () => {
         let text = `<b>${NODE_LABEL[n.type]}</b>（第 ${n.layer} 層）<br>${NODE_DESC[n.type]}`;
+        if (ow?.force.includes(n.id) && n.type !== 'boss') text += '<br><span class="ow-hunt">被魔王的主力佔領：進去會遇到更強的敵人</span>';
+        if (ow && ow.champion.node === n.id) text += '<br><span class="ow-hunt">魔王的冠軍在這裡</span>';
+        if (ow && (ow.visits[n.id] ?? 0) > 0) text += `<br>已經來過 ${ow.visits[n.id]} 次（重新來會遇到新的敵人，主力也會往這裡蔓延）`;
         if (n.type === 'battle' || n.type === 'elite' || n.type === 'boss') {
           const id = pickEncounter(run, n);
           // 大型關卡進場時才生成；預覽只算難度

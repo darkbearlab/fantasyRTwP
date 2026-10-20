@@ -29,7 +29,23 @@ export interface TemplateLevelOptions {
    * 出口（SPEC_SLICE6 §2）：一個相鄰節點一個，依路線圖上由左到右的順序排在地圖遠端（畫面上方）由左到右。
    * 沒給（快速戰鬥、最後的頭目戰）＝沒有出口。
    */
-  exits?: { id: string; label?: string }[];
+  exits?: ExitRequest[];
+  /** 從哪一側進入（出生點在那一側）：bottom＝畫面下方（預設）、top、left、right（SPEC_SLICE6 §4：從哪裡來就從哪裡進） */
+  entry?: Edge;
+  /** 點數預算與人數上限倍率（被主力佔領的節點） */
+  budgetMult?: number;
+  /** 精英隊長換成這個敵人（冠軍戰） */
+  captainEnemy?: string;
+}
+
+/** 地圖的四個邊：top＝x 最大（畫面上方）、bottom＝x＝0、left＝y＝0、right＝y 最大 */
+export type Edge = 'top' | 'bottom' | 'left' | 'right';
+
+export interface ExitRequest {
+  id: string;
+  label?: string;
+  /** 出口在哪一邊（預設 top） */
+  edge?: Edge;
 }
 
 /** 擋路的字元 */
@@ -348,7 +364,7 @@ function floodChars(grid: string[][], start: Vec): Uint8Array {
  * 出口：沿地圖遠端（x 最大的一邊）平均分配，每個出口 EXIT_SIZE 見方；出口範圍清成地板，
  * 走不到就往地圖內側一路打通，直到和出生點相連。回傳 null＝打不通。
  */
-function carveExits(grid: string[][], list: { id: string; label?: string }[]): ExitDef[] | null {
+function carveExits(grid: string[][], list: ExitRequest[]): ExitDef[] | null {
   if (list.length === 0) return [];
   const H = grid.length;
   const W = grid[0].length;
@@ -357,21 +373,47 @@ function carveExits(grid: string[][], list: { id: string; label?: string }[]): E
   for (let y = 0; y < H && !start; y++) for (let x = 0; x < W; x++) if (grid[y][x] === 'S') start = { x, y };
   if (!start) return null;
   const out: ExitDef[] = [];
-  list.forEach((e, k) => {
-    const cy = Math.round(((k + 0.5) / list.length) * H);
-    const y0 = Math.max(0, Math.min(H - S, cy - S / 2));
-    const x0 = W - S;
-    for (let y = y0; y < y0 + S; y++) for (let x = x0; x < W; x++) grid[y][x] = 'E';
-    // 往內側打通：寬度和出口一樣
-    for (let x = x0 - 1; x >= 0; x--) {
-      const seen = floodChars(grid, start!);
-      if (seen[(y0 + 1) * W + x0]) break;
-      for (let y = y0; y < y0 + S; y++) if (BLOCKING.has(grid[y][x])) grid[y][x] = '.';
-    }
-    out.push({ id: e.id, x: x0, y: y0, w: S, h: S, label: e.label });
-  });
+  const edges: Edge[] = ['top', 'bottom', 'left', 'right'];
+  for (const edge of edges) {
+    const mine = list.filter((e) => (e.edge ?? 'top') === edge);
+    mine.forEach((e, k) => {
+      // 沿著這條邊平均分配；top／bottom 沿 y、left／right 沿 x
+      const along = edge === 'top' || edge === 'bottom' ? H : W;
+      const c = Math.round(((k + 0.5) / mine.length) * along);
+      const a0 = Math.max(0, Math.min(along - S, c - S / 2));
+      const r = edge === 'top' ? { x: W - S, y: a0 } : edge === 'bottom' ? { x: 0, y: a0 } : edge === 'left' ? { x: a0, y: 0 } : { x: a0, y: H - S };
+      for (let y = r.y; y < r.y + S; y++) for (let x = r.x; x < r.x + S; x++) if (grid[y][x] !== 'S') grid[y][x] = 'E';
+      // 往內側打通（寬度和出口一樣），直到和出生點相連
+      const probe = { x: r.x + 1, y: r.y + 1 };
+      for (let d = 1; d < Math.max(W, H); d++) {
+        if (floodChars(grid, start!)[probe.y * W + probe.x]) break;
+        for (let t = 0; t < S; t++) {
+          const p = edge === 'top' ? { x: r.x - d, y: r.y + t } : edge === 'bottom' ? { x: r.x + S - 1 + d, y: r.y + t } : edge === 'left' ? { x: r.x + t, y: r.y + S - 1 + d } : { x: r.x + t, y: r.y - d };
+          if (p.x >= 0 && p.y >= 0 && p.x < W && p.y < H && BLOCKING.has(grid[p.y][p.x])) grid[p.y][p.x] = '.';
+        }
+      }
+      out.push({ id: e.id, x: r.x, y: r.y, w: S, h: S, label: e.label, edge });
+    });
+  }
   const seen = floodChars(grid, start);
+  const order = new Map(list.map((e, i) => [e.id, i]));
+  out.sort((a, b) => order.get(a.id)! - order.get(b.id)!);
   return out.every((e) => seen[(e.y + 1) * W + e.x + 1]) ? out : null;
+}
+
+/**
+ * 把拼好的地圖轉向，讓起點（原本在 bottom）落在 entry 那一側；owner 是同樣大小的「這格屬於哪個生怪小隊」，一起轉。
+ * left／right 會交換寬高（轉置），等於鏡像＋旋轉，模板本來就允許鏡像。
+ */
+function orient<T>(grid: T[][], entry: Edge): T[][] {
+  const H = grid.length;
+  const W = grid[0].length;
+  if (entry === 'bottom') return grid;
+  if (entry === 'top') return grid.map((_, y) => grid[H - 1 - y].slice().reverse());
+  // left：新的 (x', y') = (y, x)；right：新的 (x', y') = (y, W − 1 − x)
+  const out: T[][] = Array.from({ length: W }, () => new Array<T>(H));
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) out[entry === 'left' ? x : W - 1 - x][y] = grid[y][x];
+  return out;
 }
 
 /** 從池子抽一名敵人（只抽已解鎖的層數） */
@@ -387,8 +429,22 @@ function tryGenerate(rng: Rng, seed: number, opts: TemplateLevelOptions): { leve
   const T = TEMPLATE_LEVELS;
   const a = assemble(rng, tier);
   if (!a) return null;
-  const { grid, placements } = a;
+  const { placements } = a;
   const C = T.chunk;
+  // 生怪磚屬於哪個小隊（轉向前先標好，跟著地圖一起轉）
+  const specs = new Map<string, SpawnTile>();
+  const owner0: (string | null)[][] = a.grid.map((row) => row.map(() => null));
+  placements.forEach((p, pi) => {
+    for (const [digit, spec] of Object.entries(p.tpl.spawns)) {
+      const key = `p${pi}_${digit}`;
+      specs.set(key, spec);
+      for (let y = 0; y < p.rows.length; y++) for (let x = 0; x < p.rows[y].length; x++) if (p.rows[y][x] === digit) owner0[p.cy * C + y][p.cx * C + x] = key;
+    }
+  });
+  const entry = opts.entry ?? 'bottom';
+  const grid = orient(a.grid, entry);
+  const owner = orient(owner0, entry);
+  a.grid = grid;
   const H = grid.length;
   const W = grid[0].length;
   const exits = carveExits(grid, opts.exits ?? []);
@@ -437,21 +493,26 @@ function tryGenerate(rng: Rng, seed: number, opts: TemplateLevelOptions): { leve
     spec: SpawnTile;
     cells: Vec[];
   }
-  const groups: Group[] = [];
-  placements.forEach((p, pi) => {
-    for (const [digit, spec] of Object.entries(p.tpl.spawns)) {
-      const cells: Vec[] = [];
-      for (let y = 0; y < p.rows.length; y++) for (let x = 0; x < p.rows[y].length; x++) if (p.rows[y][x] === digit) cells.push(center({ x: p.cx * C + x, y: p.cy * C + y }));
-      const ok = cells.filter(reachable);
-      if (ok.length) groups.push({ squad: `p${pi}_${digit}`, spec, cells: ok });
+  const cellsBy = new Map<string, Vec[]>();
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const k = owner[y][x];
+      // 出口打通時被清掉的生怪磚不算
+      if (k && /[1-9]/.test(grid[y][x])) (cellsBy.get(k) ?? cellsBy.set(k, []).get(k)!).push(center({ x, y }));
     }
-  });
+  const groups: Group[] = [];
+  for (const [key, spec] of specs) {
+    const ok = (cellsBy.get(key) ?? []).filter(reachable);
+    if (ok.length) groups.push({ squad: key, spec, cells: ok });
+  }
   for (let i = groups.length - 1; i > 0; i--) {
     const j = rng.int(0, i);
     [groups[i], groups[j]] = [groups[j], groups[i]];
   }
   const B = L.budget[tier];
-  const budget = Math.round(B.base + B.perLayer * (layer - 1));
+  const mult = opts.budgetMult ?? 1;
+  const budget = Math.round((B.base + B.perLayer * (layer - 1)) * mult);
+  const maxEnemies = Math.round(L.maxEnemies * mult);
   let spent = 0;
   const enemies: EncounterEnemy[] = [];
   const takeCell = (g: Group): Vec | undefined => g.cells.splice(rng.int(0, g.cells.length - 1), 1)[0];
@@ -460,7 +521,7 @@ function tryGenerate(rng: Rng, seed: number, opts: TemplateLevelOptions): { leve
     if (g.spec.pool === 'escort') continue;
     const n = rng.int(g.spec.count[0], g.spec.count[1]);
     const members: string[] = [];
-    for (let i = 0; i < n && enemies.length + members.length < L.maxEnemies; i++) {
+    for (let i = 0; i < n && enemies.length + members.length < maxEnemies; i++) {
       const e = rollFromPool(rng, g.spec.pool, layer);
       if (!e || spent + e.cost > budget) break;
       spent += e.cost;
@@ -469,7 +530,7 @@ function tryGenerate(rng: Rng, seed: number, opts: TemplateLevelOptions): { leve
     if (members.length === 0) continue;
     const captain = tier === 'elite' && !!g.spec.captain && !captainPlaced;
     if (captain) {
-      members[0] = L.captainPool[rng.int(0, L.captainPool.length - 1)];
+      members[0] = opts.captainEnemy ?? L.captainPool[rng.int(0, L.captainPool.length - 1)];
       captainPlaced = true;
     }
     members.forEach((enemy, i) => {

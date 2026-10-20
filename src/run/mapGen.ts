@@ -17,6 +17,8 @@ export interface MapNode {
   type: NodeType;
   /** 下一層可前往的節點 id */
   next: number[];
+  /** FTL 式路線圖（SPEC_SLICE6 §4）：所有相鄰節點（雙向，含往回走與同層橫向）；舊的單向路線圖沒有 */
+  links?: number[];
 }
 
 export interface RunMap {
