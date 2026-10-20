@@ -23,6 +23,7 @@ import type { ProjectionMode } from '../render/projection';
 import type { BattleSession, DebugFlags } from '../session';
 import type { BattleScene } from './BattleScene';
 import { MobileHeroBar } from '../ui/mobileBar';
+import { AUTO_PAUSE_OPTIONS, LOW_HP_THRESHOLDS } from '../autoPause';
 
 const STATE_LABEL: Record<UnitState, string> = {
   [UnitState.Idle]: '閒置',
@@ -76,6 +77,8 @@ export class UIScene extends Phaser.Scene {
   private debugPanel!: HTMLElement;
   private seedEl!: HTMLElement;
   private debugInputs: { sync: () => unknown }[] = [];
+  /** 設定選單（自動暫停） */
+  private settingsEl!: HTMLElement;
   /** 只在單場模式顯示的按鈕（遠征中不能重來） */
   private quickOnly: HTMLElement[] = [];
   private logCount = -1;
@@ -127,9 +130,64 @@ export class UIScene extends Phaser.Scene {
       const list = GAME_CONFIG.timeScales;
       s.timeScale = list[(list.indexOf(s.timeScale) + 1) % list.length];
     });
+    // 設定選單（Alan：可以勾選哪些情況自動暫停）
+    const gear = el('div', 'pill settings-btn interactive', '⚙');
+    gear.title = '設定';
+    noFocus(gear);
+    gear.addEventListener('click', () => this.toggleSettings());
     const hint = el('div', 'pill hint', '空白鍵 暫停　1–4 選人→再按 1–3 放技能　Tab 切換　右鍵技能鈕 自動施放　右鍵 移動・攻擊・跟隨　F＋點擊／Ctrl＋右鍵 攻擊移動　WASD 鏡頭　G 切換性格　H 停止　` 除錯');
-    top.append(this.timeEl, this.speedEl, hint);
+    top.append(this.timeEl, this.speedEl, gear, hint);
     this.root.appendChild(top);
+    this.settingsEl = el('div', 'settings-panel interactive');
+    this.root.appendChild(this.settingsEl);
+  }
+
+  /** 開關設定選單；每次打開都依目前設定重建內容 */
+  private toggleSettings(): void {
+    const open = !this.settingsEl.classList.contains('show');
+    this.settingsEl.classList.toggle('show', open);
+    if (open) this.buildSettings();
+  }
+
+  private buildSettings(): void {
+    const s = this.cur();
+    const p = this.settingsEl;
+    p.innerHTML = '';
+    const head = el('div', 'settings-head');
+    head.appendChild(el('div', 'settings-title', '設定'));
+    const close = el('button', 'btn small', '關閉');
+    noFocus(close);
+    close.addEventListener('click', () => this.toggleSettings());
+    head.appendChild(close);
+    p.appendChild(head);
+    p.appendChild(el('div', 'settings-sub', '自動暫停'));
+    for (const o of AUTO_PAUSE_OPTIONS) {
+      // 列是 div：勾選框與文字包在 label 裡，門檻下拉選單放在 label 外面（點選單不會切換勾選）
+      const row = el('div', 'settings-row');
+      const lab = el('label', 'settings-check');
+      const cb = el('input');
+      cb.type = 'checkbox';
+      cb.tabIndex = -1;
+      cb.checked = s.autoPause[o.key];
+      cb.addEventListener('change', () => s.setAutoPause({ [o.key]: cb.checked }));
+      const text = el('div', 'settings-text');
+      text.appendChild(el('div', '', o.label));
+      if (o.hint) text.appendChild(el('div', 'settings-hint', o.hint));
+      lab.append(cb, text);
+      row.appendChild(lab);
+      if (o.key === 'heroLowHp') {
+        const sel = el('select', 'settings-select');
+        for (const v of LOW_HP_THRESHOLDS) {
+          const opt = el('option', '', `低於 ${Math.round(v * 100)}%`);
+          opt.value = String(v);
+          opt.selected = Math.abs(v - s.autoPause.heroLowHpThreshold) < 1e-6;
+          sel.appendChild(opt);
+        }
+        sel.addEventListener('change', () => s.setAutoPause({ heroLowHpThreshold: Number(sel.value) }));
+        row.appendChild(sel);
+      }
+      p.appendChild(row);
+    }
   }
 
   private buildBanner(): void {
@@ -354,11 +412,8 @@ export class UIScene extends Phaser.Scene {
     numSelect('行動條速度', 'actionSpeedMult', [0.7, 0.75, 0.8, 0.85, 0.9, 1]);
     numSelect('我方傷害', 'heroDamageMult', [1, 1.1, 1.2, 1.3, 1.5]);
 
-    p.appendChild(el('div', 'debug-sub', '自動暫停'));
-    p.appendChild(this.checkbox('戰鬥開始', () => this.cur().autoPause.battleStart, (v) => (this.cur().autoPause.battleStart = v)));
-    p.appendChild(this.checkbox('英雄生命低於 30%', () => this.cur().autoPause.heroLowHp, (v) => (this.cur().autoPause.heroLowHp = v)));
-    p.appendChild(this.checkbox('敵方術士準備範圍法術', () => this.cur().autoPause.enemyAoeWindup, (v) => (this.cur().autoPause.enemyAoeWindup = v)));
-    p.appendChild(this.checkbox('英雄死亡', () => this.cur().autoPause.heroDeath, (v) => (this.cur().autoPause.heroDeath = v)));
+    p.appendChild(el('div', 'debug-sub', '自動暫停（也可以從 ⚙ 設定選單改）'));
+    for (const o of AUTO_PAUSE_OPTIONS) p.appendChild(this.checkbox(o.label, () => this.cur().autoPause[o.key], (v) => this.cur().setAutoPause({ [o.key]: v })));
 
     const seedRow = el('div', 'row');
     this.seedEl = el('span', 'seed');

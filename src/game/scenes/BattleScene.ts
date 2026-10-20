@@ -45,6 +45,7 @@ import { VISUAL, obstacleHeight, obstacleKind } from '../render/visual';
 import { InputController } from '../input/inputController';
 import { nearestTargetTo, targetingDef, validSkillTarget } from '../input/targeting';
 import { BattleSession, currentSimConfig } from '../session';
+import { installAutoPause } from '../autoPause';
 import { battleSeed, createBattleFromRun, currentEncounter } from '../../run/battle';
 import { rushEnd } from '../../sim/actions';
 import { getRun } from '../runFlow';
@@ -145,6 +146,7 @@ export class BattleScene extends Phaser.Scene {
     } else this.session = new BattleSession(data.seed ?? randomSeed());
     if (!data.encounterId) this.quickEncounter = null;
     const seed = this.session.seed;
+    installAutoPause(this.session);
     this.registry.set('session', this.session);
     this.views.clear();
     this.statusTexts.clear();
@@ -615,10 +617,6 @@ export class BattleScene extends Phaser.Scene {
             src.team,
           );
           if (ev.freeAttack) this.fx.text(t.pos, '脫離攻擊', '#ff9f43', 13, 50, 900, this.headZ(t));
-          if (t.team === 'hero' && !t.dead && s.autoPause.heroLowHp && t.hp / t.maxHp < s.autoPause.heroLowHpThreshold && !s.lowHpWarned.has(t.id)) {
-            s.lowHpWarned.add(t.id);
-            s.setPaused(true, `${L(t.id)}生命低於 ${Math.round(s.autoPause.heroLowHpThreshold * 100)}%`);
-          }
           break;
         }
         case 'miss': {
@@ -636,7 +634,6 @@ export class BattleScene extends Phaser.Scene {
           const t = w.getUnit(ev.targetId)!;
           this.fx.text(t.pos, `+${ev.amount}`, '#5dff7a', 18, 34, 900, this.headZ(t));
           s.addLog(`${L(ev.sourceId)} 治療 ${L(t.id)} +${ev.amount}`, 'heal');
-          if (t.hp / t.maxHp >= s.autoPause.heroLowHpThreshold) s.lowHpWarned.delete(t.id);
           break;
         }
         case 'interrupt': {
@@ -652,7 +649,6 @@ export class BattleScene extends Phaser.Scene {
           this.fx.text(u.pos, '陣亡', '#c0c4cc', 16, 20, 1400, this.headZ(u));
           s.addLog(`${L(u.id)} 被 ${ev.killerId !== undefined ? L(ev.killerId) : '?'} 擊倒`, 'death');
           s.selection = s.selection.filter((id) => id !== u.id);
-          if (u.team === 'hero' && s.autoPause.heroDeath && !w.result) s.setPaused(true, `${L(u.id)}陣亡`);
           break;
         }
         case 'pinned': {
@@ -697,7 +693,6 @@ export class BattleScene extends Phaser.Scene {
           const def = SKILLS[ev.skillId];
           if (u.team === 'enemy' && def.telegraph) {
             s.addLog(`⚠ ${L(u.id)} 開始準備「${def.name}」！`, 'warn');
-            if (s.autoPause.enemyAoeWindup) s.setPaused(true, `${L(u.id)}準備「${def.name}」`);
           } else if (u.team === 'hero') {
             s.addLog(`${L(u.id)} 施放「${def.name}」`, 'skill');
           }
@@ -710,6 +705,9 @@ export class BattleScene extends Phaser.Scene {
           if (!ev.waveId) this.fx.ring(u.pos, 1.2, 0xff6b6b, 500);
           break;
         }
+        case 'squadSighted':
+          if (w.time > 0.5) s.addLog(`發現敵人：${ev.unitIds.map((id) => L(id)).join('、')}`, 'warn');
+          break;
         case 'waveStart':
           s.addLog(`敵人湧上來了！（${ev.waveId}）`, 'enemy');
           break;
@@ -749,6 +747,8 @@ export class BattleScene extends Phaser.Scene {
           }
           break;
       }
+      // 鉤子：自動暫停等在畫面效果之後處理
+      s.hooks.emit('simEvent', ev);
     }
   }
 

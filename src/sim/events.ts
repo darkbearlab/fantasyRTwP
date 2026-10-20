@@ -4,6 +4,8 @@ import type { DamageType, Team } from './data/types';
 /** sim → 畫面層：每個節拍產生的事件 */
 export type SimEvent =
   | { type: 'actionStart'; unitId: number; skillId?: string; targetId?: number; point?: Vec }
+  /** 一隊敵人第一次出現在我方視野內（同一小隊只發一次；沒有小隊的敵人各自算一隊）。unitIds＝當下看得到的成員 */
+  | { type: 'squadSighted'; squad: string; unitIds: number[] }
   | { type: 'hit'; sourceId: number; targetId: number; damage: number; crit: boolean; damageType: DamageType; skillId?: string; freeAttack?: boolean }
   /** blocked：投射物在飛行途中撞到障礙物（point 為撞擊位置） */
   | { type: 'miss'; sourceId: number; targetId: number; skillId?: string; freeAttack?: boolean; blocked?: boolean; point?: Vec }

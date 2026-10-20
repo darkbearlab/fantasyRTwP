@@ -69,6 +69,73 @@ body {
   font-weight: bold;
 }
 
+.pill.settings-btn {
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1.1;
+}
+
+/* 設定選單（自動暫停） */
+.settings-panel {
+  display: none;
+  position: absolute;
+  top: 44px;
+  left: 8px;
+  width: min(340px, calc(100% - 16px));
+  max-height: calc(100% - 60px);
+  overflow-y: auto;
+  background: rgba(16, 18, 23, 0.97);
+  border: 1px solid #3a4150;
+  border-radius: 10px;
+  padding: 10px 12px 12px;
+  z-index: 50;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+}
+.settings-panel.show {
+  display: block;
+}
+.settings-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.settings-title {
+  font-size: 17px;
+  font-weight: bold;
+}
+.settings-sub {
+  color: #ffd76a;
+  font-size: 13px;
+  margin: 6px 0 4px;
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0;
+  border-top: 1px solid #262b34;
+}
+.settings-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  cursor: pointer;
+}
+.settings-check input {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+.settings-hint {
+  color: #8a93a3;
+  font-size: 12px;
+}
+.settings-select {
+  flex: none;
+}
+
 .pill.hint {
   color: #9aa3b2;
   font-size: 12px;

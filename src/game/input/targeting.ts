@@ -31,6 +31,7 @@ export function beginSkill(session: BattleSession, slot: number, index: number, 
     return;
   }
   session.targeting = { unitId: hero.id, skillId: def.id };
+  session.hooks.emit('skillAim', { unitId: hero.id, skillId: def.id });
 }
 
 export function targetingDef(session: BattleSession): { caster: Unit; def: SkillDef } | null {

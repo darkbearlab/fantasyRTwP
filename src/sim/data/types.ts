@@ -90,6 +90,8 @@ export interface UnitDef {
   ai?: EnemyArchetype;
   /** 敵人層級（省略為 elite） */
   tier?: UnitTier;
+  /** 敵人階級（自動暫停等用）：精英隊長、頭目；省略為一般。頭目也可以由 ai === 'boss' 判斷（見 enemyRank） */
+  rank?: 'elite' | 'boss';
   /** 不會被推開（巢穴） */
   immovable?: boolean;
   /** 盾（盾兵，SPEC_SLICE5 v0.4）：生命高於 hpFrac 之前防禦、護甲較高；跌破後盾破，不再恢復 */

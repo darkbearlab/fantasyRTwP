@@ -35,6 +35,7 @@ export function enemyDef(enemyId: string, layer: number, captain = false): UnitD
   return {
     ...base,
     name: captain ? `隊長${base.name}` : base.name,
+    rank: captain ? 'elite' : base.rank,
     maxHp: Math.round(base.maxHp * hpMult),
     damageMult: (base.damageMult ?? 1) * dmgMult,
     radius: base.radius + (captain ? c.radiusBonus : 0),
