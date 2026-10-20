@@ -13,6 +13,8 @@ export interface EncounterEnemy {
   y: number;
   /** 精英隊長（生命 ×2.5、傷害 ×1.4、體型稍大） */
   captain?: boolean;
+  /** 小隊（沉穩節奏：同小隊一起警覺） */
+  squad?: string;
 }
 
 export interface EncounterDef {
@@ -30,6 +32,8 @@ export interface EncounterDef {
   horde?: HordeSetup;
   /** 程序生成的關卡自帶地圖（map 欄位只是編號） */
   mapDef?: MapDef;
+  /** 啟用視線與戰爭迷霧（沉穩節奏的生成關卡） */
+  fog?: boolean;
 }
 
 const E = (enemy: string, x: number, y: number, captain = false): EncounterEnemy => ({ enemy, x, y, captain: captain || undefined });

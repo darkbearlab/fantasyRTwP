@@ -23,6 +23,15 @@ const UNIT_HEIGHT: Record<string, number> = {
   bomber: 1.7,
   lurker: 1.6,
   warlord: 3.0,
+  // 沉穩節奏的新敵人（借用現有素材）
+  shieldbearer: 2.1,
+  charger: 2.2,
+  assassin: 1.7,
+  hooker: 1.8,
+  priest: 1.8,
+  summoner: 1.9,
+  exploder: 1.5,
+  minion: 1.4,
 };
 
 export const VISUAL = {

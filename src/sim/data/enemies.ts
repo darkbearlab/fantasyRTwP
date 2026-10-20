@@ -1,4 +1,4 @@
-import type { UnitDef } from './types';
+import type { TargetingWeights, UnitDef } from './types';
 
 /**
  * 敵人資料（SPEC §10.3）。數值為實作者自訂起始值，依英雄表比例設計，
@@ -85,6 +85,72 @@ export const ENEMIES: Record<string, UnitDef> = {
     projectsZoc: false, immovable: true,
     skills: [],
   },
+  // ── 沉穩節奏的新敵人（SPEC_SLICE5 §15.2，v0.4；外觀借用現有素材，數值佔位） ──
+  // 技能的準備時間在沉穩節奏下會再 ×1.8、冷卻 ×2（DELIBERATE_PACE），資料值是換算前的
+  /** 盾兵：生命高於一半前防禦、護甲較高（盾破後恢復一般）；借蠻兵外觀 */
+  shieldbearer: {
+    id: 'shieldbearer', name: '盾兵', letter: 'D', color: 0x8a5a3a, team: 'enemy', ai: 'brute',
+    maxHp: 120, armor: 4, accuracy: 25, defense: 25, damage: [6, 10],
+    range: 0.3, windup: 0.7, recovery: 1.1, attackSpeed: 1, moveSpeed: 2.4, radius: 0.48,
+    projectsZoc: true, shield: { hpFrac: 0.5, defense: 30, armor: 4 },
+    skills: [],
+  },
+  /** 衝鋒兵：預兆線後直線衝鋒，撞到的英雄受傷（v0.4：不擊倒）；借攻城兵外觀 */
+  charger: {
+    id: 'charger', name: '衝鋒兵', letter: 'C', color: 0x9c4a1a, team: 'enemy', ai: 'charger',
+    maxHp: 130, armor: 5, accuracy: 25, defense: 25, damage: [7, 11],
+    range: 0.3, windup: 0.8, recovery: 1.2, attackSpeed: 1, moveSpeed: 2.4, radius: 0.5,
+    projectsZoc: true,
+    skills: ['rush'],
+  },
+  /** 刺客：優先後排；跳躍突進（落點預兆圈） */
+  assassin: {
+    id: 'assassin', name: '刺客', letter: 'K', color: 0xe8743b, team: 'enemy', ai: 'assassin',
+    maxHp: 60, armor: 1, accuracy: 40, defense: 40, damage: [6, 10],
+    range: 0.3, windup: 0.4, recovery: 0.7, attackSpeed: 1, moveSpeed: 4.0, radius: 0.38,
+    projectsZoc: false, targeting: { distance: 1, lowHp: 1.2, backline: 1.5, sticky: 0.6 },
+    skills: ['leap'],
+  },
+  /** 鉤手：鉤鎖把一名後排英雄拉到身前（預兆線）；借刺客外觀 */
+  hooker: {
+    id: 'hooker', name: '鉤手', letter: 'H', color: 0xb05a7a, team: 'enemy', ai: 'hooker',
+    maxHp: 75, armor: 2, accuracy: 30, defense: 30, damage: [6, 9],
+    range: 0.3, windup: 0.6, recovery: 1.0, attackSpeed: 1, moveSpeed: 3.0, radius: 0.42,
+    projectsZoc: false, targeting: { distance: 1, backline: 1.2 },
+    skills: ['hook'],
+  },
+  /** 祭司：治療同伴（長準備，可打斷）；借術士外觀 */
+  priest: {
+    id: 'priest', name: '祭司', letter: 'P', color: 0xc9a227, team: 'enemy', ai: 'priest',
+    maxHp: 60, armor: 0, accuracy: 30, defense: 20, damage: [3, 6],
+    range: 8, windup: 0.8, recovery: 1.2, attackSpeed: 1, moveSpeed: 2.8, radius: 0.4,
+    projectsZoc: false, projectileSpeed: 16, projectileKind: 'bolt', attackDamageType: 'spell',
+    skills: ['mend'],
+  },
+  /** 召喚師：每 15 秒召喚 3 隻屍僕（召喚圈）；借術士外觀 */
+  summoner: {
+    id: 'summoner', name: '召喚師', letter: 'M', color: 0x6a2a8a, team: 'enemy', ai: 'summoner',
+    maxHp: 65, armor: 0, accuracy: 30, defense: 20, damage: [3, 6],
+    range: 8, windup: 0.8, recovery: 1.2, attackSpeed: 1, moveSpeed: 2.6, radius: 0.4,
+    projectsZoc: false, projectileSpeed: 16, projectileKind: 'bolt', attackDamageType: 'spell',
+    skills: ['summonThralls'],
+  },
+  /** 自爆屍：貼近後倒數自爆（範圍預兆圈） */
+  exploder: {
+    id: 'exploder', name: '自爆屍', letter: 'e', color: 0x7a8a3a, team: 'enemy', ai: 'exploder',
+    maxHp: 30, armor: 0, accuracy: 20, defense: 10, damage: [2, 3],
+    range: 0.3, windup: 0.6, recovery: 0.9, attackSpeed: 1, moveSpeed: 3.0, radius: 0.38,
+    projectsZoc: false,
+    skills: ['selfDestruct'],
+  },
+  /** 召喚出來的屍僕（只作為召喚物；完整敵人 AI，不是怪群模式的雜兵） */
+  minion: {
+    id: 'minion', name: '屍僕', letter: 't', color: 0x8a6d5a, team: 'enemy', ai: 'brute',
+    maxHp: 18, armor: 0, accuracy: 20, defense: 10, damage: [3, 5],
+    range: 0.3, windup: 0.6, recovery: 0.9, attackSpeed: 1, moveSpeed: 2.6, radius: 0.35,
+    projectsZoc: false,
+    skills: [],
+  },
   /** 頭目：戰爭領主（SPEC_SLICE2 §7.3） */
   warlord: {
     id: 'warlord', name: '戰爭領主', letter: 'L', color: 0x7a0d0d, team: 'enemy', ai: 'boss',
@@ -93,4 +159,26 @@ export const ENEMIES: Record<string, UnitDef> = {
     projectsZoc: true,
     skills: ['sweep', 'warcry'],
   },
+};
+
+/** 敵人選目標的預設權重（SPEC_SLICE5 §15.1；各敵人可用 def.targeting 覆寫；數值佔位） */
+export const ENEMY_TARGETING: TargetingWeights = {
+  distance: 1,
+  lowHp: 0.3,
+  backline: 0,
+  threat: 0.6,
+  marked: 0.2,
+  sticky: 0.4,
+};
+
+/** 敵人選目標的換算基準（沉穩節奏）；警覺距離沿用 SimConfig.enemyAggroRange（英雄進入且看得到就警覺，同小隊一起） */
+export const ENEMY_ALERT = {
+  /** 距離因子：這個距離以外為 0 */
+  distanceFull: 20,
+  /** 仇恨：計算最近幾秒的傷害、滿分是多少傷害 */
+  threatWindow: 5,
+  threatFull: 40,
+  /** 近戰被擋路：目標還在這麼遠（邊緣距離）以外、身邊貼著另一名英雄，就改打擋路的 */
+  blockedFar: 2.5,
+  blockedContact: 0.6,
 };

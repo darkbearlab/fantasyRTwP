@@ -25,6 +25,9 @@ export interface Action {
   ticksTotal: number;
   /** 衝刺階段已經過的秒數 */
   dashTime?: number;
+  /** 直線衝鋒：起點、已經撞過的單位 */
+  dashFrom?: Vec;
+  hitIds?: number[];
 }
 
 export interface UnitStats {
@@ -129,6 +132,13 @@ export class Unit {
   /** 普攻命中次數（被動的「每第 N 擊」用） */
   basicHits = 0;
 
+  /** 沉穩節奏的敵人（SPEC_SLICE5 §15）：所屬小隊（一起警覺）、是否已警覺、最近受到的傷害（仇恨） */
+  squad?: string;
+  alerted = false;
+  threatLog: { id: number; amount: number; t: number }[] = [];
+  /** 盾兵的盾已破 */
+  shieldBroken = false;
+
   addPassive(p: PassiveDef): void {
     if (this.passives.some((q) => q.id === p.id)) return;
     this.passives.push(p);
@@ -155,14 +165,18 @@ export class Unit {
   get maxHp(): number {
     return this.def.maxHp;
   }
+  /** 盾兵：盾還在 */
+  get shieldUp(): boolean {
+    return !!this.def.shield && !this.shieldBroken;
+  }
   get armor(): number {
-    return this.def.armor + this.mods.armor;
+    return this.def.armor + this.mods.armor + (this.shieldUp ? this.def.shield!.armor : 0);
   }
   get accuracy(): number {
     return this.def.accuracy + this.mods.accuracy + (this.blessTime > 0 ? this.blessAccuracy : 0);
   }
   get defense(): number {
-    return this.def.defense + this.mods.defense + (this.blessTime > 0 ? this.blessDefense : 0);
+    return this.def.defense + this.mods.defense + (this.blessTime > 0 ? this.blessDefense : 0) + (this.shieldUp ? this.def.shield!.defense : 0);
   }
   maxCharges(skillId: string): number {
     return Math.max(1, this.def.skillMods?.[skillId]?.charges ?? 1);

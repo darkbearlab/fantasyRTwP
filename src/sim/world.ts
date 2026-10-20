@@ -51,6 +51,8 @@ export interface UnitSpawn {
   personality?: Personality;
   /** 未指定時依英雄出現順序自動編號 */
   heroSlot?: number;
+  /** 敵人的小隊（沉穩節奏：同小隊一起警覺） */
+  squad?: string;
 }
 
 export interface WorldOptions {
@@ -64,6 +66,8 @@ export interface WorldOptions {
   enemyDefFor?: (enemyId: string, captain?: boolean) => UnitDef;
   /** 怪群模式：生成點、波次、勝利目標（SPEC_SLICE4 §2） */
   horde?: HordeSetup;
+  /** 啟用視線與戰爭迷霧（非怪群遭遇用；怪群遭遇看 horde.fog） */
+  fog?: boolean;
 }
 
 export type ProjectilePayload =
@@ -195,6 +199,7 @@ export class World implements ZocContext {
       const u = new Unit(this.nextUnitId++, def, s.pos, slot);
       if (s.hp !== undefined) u.hp = Math.max(1, Math.min(def.maxHp, Math.round(s.hp)));
       if (s.personality) u.personality = s.personality;
+      if (s.squad) u.squad = s.squad;
       // 沉穩節奏（SPEC_SLICE5 §14）：英雄帶職業被動
       if (def.team === 'hero' && this.config.battleStyle === 'deliberate') for (const id of CLASS_PASSIVES[def.id] ?? []) u.addPassive(PASSIVES[id]);
       // 錯開敵人 AI 評估時間
@@ -210,10 +215,10 @@ export class World implements ZocContext {
       }
       this.waveState = this.horde.waves.map((def) => ({ def, fired: false, repeatsLeft: 0, nextAt: 0 }));
       if (this.horde.director) this.director = new Director(this.horde.director);
-      if (this.horde.fog) {
-        this.vision = new Vision(this.map.width, this.map.height, HORDE_VISION.cell, this.sight);
-        this.updateVision();
-      }
+    }
+    if (this.horde?.fog || opts.fog) {
+      this.vision = new Vision(this.map.width, this.map.height, HORDE_VISION.cell, this.sight);
+      this.updateVision();
     }
   }
 
@@ -675,6 +680,10 @@ export class World implements ZocContext {
   // ───────────── 每節拍更新 ─────────────
 
   private updateAggro(): void {
+    if (this.config.battleStyle === 'deliberate') {
+      this.updateAlert();
+      return;
+    }
     if (this.enemyAggro) return;
     let trigger = this.time >= this.config.enemyAggroTime;
     if (!trigger) {
@@ -692,10 +701,44 @@ export class World implements ZocContext {
     if (trigger) this.triggerAggro();
   }
 
-  triggerAggro(): void {
+  /** 敵人開始進攻；沉穩節奏下只有被打的那名（與同小隊）警覺 */
+  triggerAggro(by?: Unit): void {
+    if (this.config.battleStyle === 'deliberate') {
+      if (by) this.alertUnit(by);
+      return;
+    }
     if (this.enemyAggro) return;
     this.enemyAggro = true;
     this.emit({ type: 'aggro' });
+  }
+
+  /**
+   * 沉穩節奏的個別警覺（SPEC_SLICE5 §15）：英雄進入察覺距離且看得到就警覺，同小隊的同伴一起警覺。
+   * 沒有全場一起衝過來的計時。
+   */
+  private updateAlert(): void {
+    if (this.tick % 5 !== 0) return;
+    const heroes = this.units.filter((h) => h.team === 'hero' && !h.dead);
+    for (const e of this.units) {
+      if (e.team !== 'enemy' || e.dead || e.alerted || e.def.ai === 'nest') continue;
+      const spotted = heroes.some((h) => dist(h.pos, e.pos) <= this.config.enemyAggroRange && this.canTarget(e, h) && this.canSee(e, h));
+      if (spotted) {
+        this.alertUnit(e);
+        this.emit({ type: 'notice', unitId: e.id, text: '！' });
+      }
+    }
+  }
+
+  /** 讓一名敵人（與同小隊的同伴）警覺 */
+  alertUnit(u: Unit): void {
+    if (u.team !== 'enemy' || u.alerted) return;
+    const group = u.squad ? this.units.filter((o) => o.team === 'enemy' && !o.dead && o.squad === u.squad) : [u];
+    for (const o of group) o.alerted = true;
+    u.alerted = true;
+    if (!this.enemyAggro) {
+      this.enemyAggro = true;
+      this.emit({ type: 'aggro' });
+    }
   }
 
   private tickTimers(u: Unit): void {
@@ -947,7 +990,7 @@ export class World implements ZocContext {
       this.setOrder(u, u.resumeOrder ?? null);
       return;
     }
-    const dashSkill = def.effect.kind === 'charge' || def.effect.kind === 'tumble';
+    const dashSkill = def.effect.kind === 'charge' || def.effect.kind === 'tumble' || def.effect.kind === 'rush' || def.effect.kind === 'leap';
     if (dashSkill && u.rooted) {
       this.emit({ type: 'notice', unitId: u.id, text: '被定身' });
       this.setOrder(u, u.resumeOrder ?? null);
@@ -1137,6 +1180,8 @@ export class World implements ZocContext {
     }
     const u = new Unit(this.nextUnitId++, def, p, -1);
     u.aiTimer = 0;
+    // 沉穩節奏：戰鬥中召喚出來的援軍直接進入戰鬥
+    if (byId !== undefined && this.config.battleStyle === 'deliberate') u.alerted = true;
     this.units.push(u);
     this.unitById.set(u.id, u);
     this.emit({ type: 'spawn', unitId: u.id, byId, waveId });

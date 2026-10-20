@@ -1,5 +1,5 @@
 /**
- * 無畫面整趟自動遠征（SPEC_SLICE2 §12、SPEC_SLICE3 §8）：npm run autorun -- --runs 100 [--seed 1] [--layers 8] [--fixed]
+ * 無畫面整趟自動遠征（SPEC_SLICE2 §12、SPEC_SLICE3 §8）：npm run autorun -- --runs 100 [--seed 1] [--layers 8] [--fixed] [--style deliberate]
  * 隊伍預設 4 名隨機組隊；--fixed 改用四個 Archetype（與切片 2 比較用）。
  * 輸出：通關率、平均抵達層數、平均陣亡人數、平均剩餘金幣、各節點類型的平均戰鬥時間、全滅最常發生的層數。
  */
@@ -7,6 +7,7 @@ import type { RunState } from '../src/run/runState';
 import { HEROES } from '../src/sim/data/heroes';
 import { CLASS_ORDER } from '../src/sim/data/classes';
 import { autoParty, playRun } from './runPolicy';
+import type { RunStyle } from '../src/run/data/levels';
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(`--${name}`);
@@ -17,13 +18,14 @@ const runs = Number(arg('runs') ?? 100);
 const seed0 = Number(arg('seed') ?? 1);
 const layers = arg('layers') ? Number(arg('layers')) : undefined;
 const partyMode = process.argv.includes('--fixed') ? 'fixed' : 'random';
+const style = (arg('style') ?? 'tactical') as RunStyle;
 
 const TYPE_LABEL: Record<string, string> = { battle: '戰鬥', elite: '精英', boss: '頭目', eventBattle: '事件戰鬥' };
 const t0 = Date.now();
 const results: RunState[] = [];
 const parties: string[][] = [];
 for (let i = 0; i < runs; i++) {
-  results.push(playRun(seed0 + i, { layers, party: partyMode }));
+  results.push(playRun(seed0 + i, { layers, party: partyMode, style }));
   parties.push(autoParty(seed0 + i, partyMode) ?? results[i].party.map((h) => h!.classId));
 }
 
@@ -41,7 +43,7 @@ for (const r of results)
     byType.set(k, a);
   }
 
-console.log(`\n=== 自動遠征：${runs} 趟（種子 ${seed0}–${seed0 + runs - 1}，${results[0]?.map.layerCount ?? '?'} 層，腳本 AI，${partyMode === 'random' ? '隨機組隊' : '固定四職業'}）===`);
+console.log(`\n=== 自動遠征：${runs} 趟（${style}，種子 ${seed0}–${seed0 + runs - 1}，${results[0]?.map.layerCount ?? '?'} 層，腳本 AI，${partyMode === 'random' ? '隨機組隊' : '固定四職業'}）===`);
 console.log(`通關率：${((won.length / runs) * 100).toFixed(1)}%`);
 console.log(`平均抵達層數：${avg(reached).toFixed(2)}`);
 console.log(`平均陣亡人次：${avg(results.map((r) => r.stats.heroesLost)).toFixed(2)}　（結束時仍陣亡：${avg(results.map((r) => r.party.filter((h) => h?.dead).length)).toFixed(2)} 人）`);

@@ -1,5 +1,5 @@
 import { ENCOUNTERS } from '../../run/data/encounters';
-import { LEVEL_PREFIX } from '../../run/battle';
+import { isGeneratedEncounter } from '../../run/battle';
 import type { LevelTier } from '../../run/levelGen';
 import { levelDifficulty } from '../../run/levelGen';
 import type { MapNode } from '../../run/mapGen';
@@ -109,7 +109,7 @@ export class MapScene extends DomScene {
         if (n.type === 'battle' || n.type === 'elite' || n.type === 'boss') {
           const id = pickEncounter(run, n);
           // 大型關卡進場時才生成；預覽只算難度
-          const difficulty = id.startsWith(LEVEL_PREFIX) ? levelDifficulty(n.type as LevelTier, n.layer) : ENCOUNTERS[id].difficulty;
+          const difficulty = isGeneratedEncounter(id) ? levelDifficulty(n.type as LevelTier, n.layer) : ENCOUNTERS[id].difficulty;
           text += `<br>難度 ${'★'.repeat(difficulty)}${'☆'.repeat(Math.max(0, 5 - difficulty))}`;
         }
         tip.innerHTML = text;

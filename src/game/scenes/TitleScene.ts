@@ -2,7 +2,7 @@ import { button, el } from '../ui/dom';
 import { randomRunSeed, startNewRun, switchTo } from '../runFlow';
 import { DomScene } from './DomScene';
 import { ENCOUNTERS } from '../../run/data/encounters';
-import { levelEncounterId } from '../../run/battle';
+import { deliberateLevelId, levelEncounterId } from '../../run/battle';
 import { MAPS } from '../../sim/data/maps';
 import { CREDITS } from '../credits';
 
@@ -34,9 +34,15 @@ export class TitleScene extends DomScene {
     const opt0 = el('option', '', '隘口之戰（切片 1）');
     opt0.value = '';
     sel.appendChild(opt0);
-    // 遠征的大型關卡（每次依種子生成）
+    // 沉穩節奏的遠征關卡（48 × 48，依種子生成；SPEC_SLICE5 §15.3）
+    for (const [tier, label] of [['battle', '遭遇'], ['elite', '精英'], ['boss', '最終決戰'], ['event', '突發']] as const) {
+      const o = el('option', '', `遠征關卡：${label}（依種子生成）`);
+      o.value = deliberateLevelId(tier);
+      sel.appendChild(o);
+    }
+    // 怪群模式的大型關卡（封存；每次依種子生成）
     for (const [tier, label] of [['battle', '探索'], ['elite', '精英'], ['boss', '最終決戰'], ['event', '突發']] as const) {
-      const o = el('option', '', `大型關卡：${label}（依種子生成）`);
+      const o = el('option', '', `怪群大型關卡：${label}（封存）`);
       o.value = levelEncounterId(tier);
       sel.appendChild(o);
     }

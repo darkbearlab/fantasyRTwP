@@ -308,7 +308,7 @@ function tryGenerate(rng: Rng, seed: number, opts: LevelOptions, withRocks: bool
 }
 
 /** 從起點出發、4 連通可走到的格子（1 = 可達） */
-function floodFrom(grid: NavGrid, start: Vec): Uint8Array {
+export function floodFrom(grid: NavGrid, start: Vec): Uint8Array {
   const out = new Uint8Array(grid.cols * grid.rows);
   const c = grid.cellOf(start);
   if (grid.isBlockedCell(c.cx, c.cy)) return out;

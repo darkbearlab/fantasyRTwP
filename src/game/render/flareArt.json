@@ -34,7 +34,15 @@
     "warlord": "minotaur",
     "siege": "zombie",
     "bomber": "goblin",
-    "lurker": "skeleton_weak"
+    "lurker": "skeleton_weak",
+    "shieldbearer": "skeleton",
+    "charger": "zombie",
+    "assassin": "goblin_elite",
+    "hooker": "goblin_elite",
+    "priest": "skeleton_mage",
+    "summoner": "skeleton_mage",
+    "exploder": "zombie",
+    "minion": "skeleton_weak"
   },
   "tiles": {
     "tileset": "tileset_dungeon",

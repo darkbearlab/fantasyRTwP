@@ -8,7 +8,7 @@ import { ENCOUNTERS } from './data/encounters';
 import { EVENTS } from './data/events';
 import { UPGRADES } from './data/upgrades';
 import type { BattleOutcome } from './battle';
-import { encounterFor, levelEncounterId, runStyle } from './battle';
+import { deliberateLevelId, encounterFor, levelEncounterId, runStyle } from './battle';
 import type { MapNode } from './mapGen';
 import type { HeroRecord, RunState } from './runState';
 import { cloneRun, firstEmptySlot, livingHeroes } from './runState';
@@ -28,6 +28,8 @@ export function pickEncounter(run: RunState, node: MapNode): string {
   const tier = node.type === 'elite' ? 'elite' : node.type === 'boss' ? 'boss' : 'battle';
   // 大型關卡：每個節點各自生成（編號只記節點類型）
   if (runStyle(run) === 'horde') return levelEncounterId(tier);
+  // 沉穩節奏：48 × 48 的生成關卡（SPEC_SLICE5 §15.3）
+  if (runStyle(run) === 'deliberate') return deliberateLevelId(tier);
   const pool = Object.values(ENCOUNTERS).filter((e) => e.tier === tier && node.layer >= e.minLayer && node.layer <= e.maxLayer);
   if (pool.length === 0) throw new Error(`第 ${node.layer} 層沒有可用的${tier}遭遇`);
   const rng = rngFor(run.seed, 'encounter', node.id);
