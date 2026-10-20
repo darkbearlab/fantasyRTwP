@@ -18,12 +18,21 @@ import { LEVEL_POOLS } from './data/levelPools';
 import { TOWN } from './data/town';
 import type { Facing, FieldEdge } from './fieldGen';
 import { deriveSeed } from './seed';
+import { exitRects, inward, spawnCells } from './edgeLayout';
 import type { TilePrefab } from './tilePrefab';
 
 export interface TownOptions {
   tier: DeliberateTier;
   layer: number;
   exits: { id: string; edge: FieldEdge; label?: string }[];
+  /** 從哪一邊進來（出生點在那一側；預設 bottom＝入口大街） */
+  entry?: FieldEdge;
+  /** 升級點數倍率（被主力佔領的節點） */
+  upgradeMult?: number;
+  /** 精英隊長換成這個敵人（冠軍戰） */
+  captainEnemy?: string;
+  /** 精英隊長的候選（精英關卡） */
+  captainPool?: string[];
   /** 手工預製件（src/run/data/tilePrefabs/，用 parseTilePrefab 讀好）；房屋與水井從這裡挑，沒有就全用佔位 */
   prefabs?: TilePrefab[];
 }
@@ -175,25 +184,24 @@ function tryGenerate(rng: Rng, seed: number, opts: TownOptions): TownLevel | nul
   }
 
   // ── 3. 出口：往內打一條街接到最近的街 ──
-  const exits = opts.exits.map((e) => {
-    const same = opts.exits.filter((x) => x.edge === e.edge);
-    const order = same.indexOf(e);
-    const along = e.edge === 'top' ? W : H;
-    const c = Math.round(((order + 0.5) / same.length) * along);
-    const S = T.exitSize;
-    const a0 = Math.max(1, Math.min(along - S - 1, c - S / 2));
-    const r = e.edge === 'top' ? { x: a0, y: 0 } : e.edge === 'left' ? { x: 0, y: a0 } : { x: W - S, y: a0 };
-    return { ...e, ...r, w: S, h: S };
-  });
-  for (const e of exits) {
+  // 入口：下方＝入口大街上的主街口；上方＝主街口；左右＝隨機一條橫街的街口
+  const entryEdge: FieldEdge = opts.entry ?? 'bottom';
+  const sideStreets = hStreets.slice(1);
+  const pickH = sideStreets.length ? sideStreets[rng.int(0, sideStreets.length - 1)] : hStreets[0];
+  const along = entryEdge === 'bottom' || entryEdge === 'top' ? Math.round(mainV.x + mainV.w / 2) : pickH.y + Math.floor(pickH.h / 2);
+  const exits = exitRects(opts.exits, W, H, T.exitSize, { edge: entryEdge, along });
+  const S = T.exitSize;
+  const entryRect = { edge: entryEdge, ...(entryEdge === 'bottom' ? { x: along - 2, y: H - S } : entryEdge === 'top' ? { x: along - 2, y: 0 } : entryEdge === 'left' ? { x: 0, y: along - 2 } : { x: W - S, y: along - 2 }), w: S, h: S };
+  // 出口與入口：往內打一條街接到最近的街（入口寬 exitSize，出口寬 exitSize−1）
+  for (const e of [...exits, entryRect]) {
     fillRect(street, e.x, e.y, e.w, e.h);
-    const [dx, dy] = e.edge === 'top' ? [0, 1] : e.edge === 'left' ? [1, 0] : [-1, 0];
-    let x = e.edge === 'top' ? e.x : e.edge === 'left' ? e.x + e.w : e.x - 1;
-    let y = e.edge === 'top' ? e.y + e.h : e.y;
-    // 往內走到碰到街為止（寬度 exitSize−1）
+    const [dx, dy] = inward(e.edge);
+    const width = e === entryRect ? S : S - 1;
+    let x = dx > 0 ? e.x + e.w : dx < 0 ? e.x - 1 : e.x;
+    let y = dy > 0 ? e.y + e.h : dy < 0 ? e.y - 1 : e.y;
     for (let k = 0; k < Math.max(W, H); k++) {
       const cells: Cell[] = [];
-      for (let t = 0; t < T.exitSize - 1; t++) cells.push(dx ? [x, y + t] : [x + t, y]);
+      for (let t = 0; t < width; t++) cells.push(dx ? [x, y + t] : [x + t, y]);
       if (cells.some(([cx, cy]) => !inside(cx, cy) || street[idx(cx, cy)])) break;
       for (const [cx, cy] of cells) street[idx(cx, cy)] = 1;
       x += dx;
@@ -342,18 +350,16 @@ function tryGenerate(rng: Rng, seed: number, opts: TownOptions): TownLevel | nul
   if (houses.length < 12) return null;
 
   // ── 出生點、保留區 ──
-  const entryX = Math.round(mainV.x + mainV.w / 2);
-  const heroSpawns = [
-    { x: entryX - 2, y: H - 2 },
-    { x: entryX, y: H - 2 },
-    { x: entryX + 2, y: H - 2 },
-    { x: entryX + 4, y: H - 2 },
-  ];
+  const heroSpawns = spawnCells(entryEdge, along, W, H, [1, 2]).map(([x, y]) => ({ x, y }));
   const reserved = new Uint8Array(W * H);
   const reserve = (cx: number, cy: number, r: number) => {
     for (let y = cy - r; y <= cy + r; y++) for (let x = cx - r; x <= cx + r; x++) if (inside(x, y)) reserved[idx(x, y)] = 1;
   };
-  reserve(entryX + 1, H - 2, T.keepClear + 1);
+  {
+    const [ix, iy] = inward(entryEdge);
+    const [ex, ey] = entryEdge === 'bottom' ? [along, H - 1] : entryEdge === 'top' ? [along, 0] : entryEdge === 'left' ? [0, along] : [W - 1, along];
+    reserve(ex + ix * 3, ey + iy * 3, T.keepClear + 1);
+  }
   for (const e of exits) reserve(e.x + e.w / 2, e.y + e.h / 2, T.keepClear);
   // 門口外側不放東西
   for (const [x, y] of doors) if (inside(x, y)) reserved[idx(x, y)] = 1;
@@ -454,7 +460,7 @@ function tryGenerate(rng: Rng, seed: number, opts: TownOptions): TownLevel | nul
   if (chosen.length < SQ.count[0]) return null;
   // 升級
   {
-    let points = T.upgrade.base + T.upgrade.perLayer * (opts.layer - 1) + (opts.tier === 'elite' ? T.upgrade.eliteBonus : 0);
+    let points = (T.upgrade.base + T.upgrade.perLayer * (opts.layer - 1) + (opts.tier === 'elite' ? T.upgrade.eliteBonus : 0)) * (opts.upgradeMult ?? 1);
     const all = LEVEL_POOLS[T.upgradePool] ?? [];
     const pool = all.filter((e) => e.minLayer <= opts.layer);
     const grunts = new Set(T.grunts.map((g) => g.enemy));
@@ -470,7 +476,14 @@ function tryGenerate(rng: Rng, seed: number, opts: TownOptions): TownLevel | nul
       points -= price(u);
       enemies[i].enemy = u.enemy;
     }
-    if (opts.tier === 'elite' && enemies.length) enemies[0].captain = true;
+    // 精英隊長（精英關卡、冠軍戰）：第一個小隊的第一名
+    if (opts.tier === 'elite' || opts.captainEnemy) {
+      const pool = opts.captainPool ?? [];
+      const id = opts.captainEnemy ?? (pool.length ? pool[rng.int(0, pool.length - 1)] : undefined);
+      if (!enemies.length || !id) return null;
+      enemies[0].enemy = id;
+      enemies[0].captain = true;
+    }
   }
 
   // ── 8. 可達性 ──

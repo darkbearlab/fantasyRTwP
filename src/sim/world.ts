@@ -58,6 +58,8 @@ export interface UnitSpawn {
   squad?: string;
   /** 英雄裝備的道具（沉穩節奏：每件提供一個被動，SPEC_SLICE5 §17） */
   items?: string[];
+  /** 初始面向（弧度）；省略時英雄朝 +x、敵人朝 −x */
+  facing?: number;
 }
 
 export interface WorldOptions {
@@ -218,6 +220,7 @@ export class World implements ZocContext {
       if (s.hp !== undefined) u.hp = Math.max(1, Math.min(def.maxHp, Math.round(s.hp)));
       if (s.personality) u.personality = s.personality;
       if (s.squad) u.squad = s.squad;
+      if (s.facing !== undefined) u.facing = s.facing;
       // 沉穩節奏（SPEC_SLICE5 §14）：英雄帶職業被動
       if (def.team === 'hero' && this.config.battleStyle === 'deliberate') {
         for (const id of CLASS_PASSIVES[def.id] ?? []) u.addPassive(PASSIVES[id]);

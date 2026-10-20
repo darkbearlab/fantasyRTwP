@@ -17,8 +17,10 @@ import type { DeliberateTier } from './data/deliberateLevels';
 import { LEVEL_POOLS } from './data/levelPools';
 import { FIELD, PREFABS, RUIN_SHAPES, SITES, WALL_JOINS } from './data/prefabs';
 import { deriveSeed } from './seed';
+import { exitRects, inward, roadStart, spawnCells } from './edgeLayout';
+import type { MapEdge } from './edgeLayout';
 
-export type FieldEdge = 'top' | 'left' | 'right';
+export type FieldEdge = MapEdge;
 export type Facing = 'up' | 'down' | 'left' | 'right';
 
 export interface FieldOptions {
@@ -26,6 +28,14 @@ export interface FieldOptions {
   layer: number;
   /** 出口（依順序沿著那一邊排列） */
   exits: { id: string; edge: FieldEdge; label?: string }[];
+  /** 從哪一邊進來（出生點在那一側；預設 bottom） */
+  entry?: FieldEdge;
+  /** 升級點數倍率（被主力佔領的節點） */
+  upgradeMult?: number;
+  /** 精英隊長換成這個敵人（冠軍戰；有給時一般戰鬥也會有隊長） */
+  captainEnemy?: string;
+  /** 精英隊長的候選（精英關卡） */
+  captainPool?: string[];
 }
 
 export interface FieldProp {
@@ -140,11 +150,20 @@ function tryGenerate(rng: Rng, seed: number, opts: FieldOptions): FieldLevel | n
 
   // ── 1. 區塊 ──
   const roles: string[] = new Array(cw * ch).fill('open');
-  const startCol = rng.int(0, cw - 1);
-  roles[(ch - 1) * cw + startCol] = 'start';
-  const midRow = [...roles.keys()].filter((i) => Math.floor(i / cw) === Math.floor(ch / 2));
-  const cpChunk = midRow[rng.int(0, midRow.length - 1)];
+  const entryEdge: FieldEdge = opts.entry ?? 'bottom';
+  const vertical = entryEdge === 'bottom' || entryEdge === 'top';
+  // 起點區塊在入口那一邊；檢查點在中間那一排（和入口那一邊平行）
+  const startK = rng.int(0, (vertical ? cw : ch) - 1);
+  const along = startK * C + C / 2;
+  const chunkAt = (x: number, y: number) => Math.floor(y / C) * cw + Math.floor(x / C);
+  const [ix, iy] = inward(entryEdge);
+  const entry: Cell = entryEdge === 'bottom' ? [along, H - 1] : entryEdge === 'top' ? [along, 0] : entryEdge === 'left' ? [0, along] : [W - 1, along];
+  roles[chunkAt(Math.min(W - 1, entry[0]), Math.min(H - 1, entry[1]))] = 'start';
+  const midBand = [...roles.keys()].filter((i) => (vertical ? Math.floor(i / cw) === Math.floor(ch / 2) : i % cw === Math.floor(cw / 2)));
+  const cpChunk = midBand[rng.int(0, midBand.length - 1)];
   roles[cpChunk] = 'checkpoint';
+  /** 檢查點面向入口那一邊 */
+  const towardEntry: Facing = entryEdge === 'bottom' ? 'down' : entryEdge === 'top' ? 'up' : entryEdge;
   const free = shuffle(
     rng,
     [...roles.keys()].filter((i) => roles[i] === 'open'),
@@ -152,24 +171,14 @@ function tryGenerate(rng: Rng, seed: number, opts: FieldOptions): FieldLevel | n
   for (const i of free.slice(0, rng.int(F.forests[0], F.forests[1]))) roles[i] = 'forest';
 
   // ── 出口位置、保留區 ──
-  const entry: Cell = [startCol * C + C / 2, H - 1];
-  const exits = opts.exits.map((e) => {
-    const same = opts.exits.filter((x) => x.edge === e.edge);
-    const order = same.indexOf(e);
-    const along = e.edge === 'top' ? W : H;
-    const c = Math.round(((order + 0.5) / same.length) * along);
-    const S = F.exitSize;
-    const a0 = Math.max(1, Math.min(along - S - 1, c - S / 2));
-    const r = e.edge === 'top' ? { x: a0, y: 0 } : e.edge === 'left' ? { x: 0, y: a0 } : { x: W - S, y: a0 };
-    return { ...e, ...r, w: S, h: S };
-  });
+  const exits = exitRects(opts.exits, W, H, F.exitSize, { edge: entryEdge, along });
   const path = new Uint8Array(W * H);
   const blocked = new Uint8Array(W * H);
   const reserved = new Uint8Array(W * H);
   const reserve = (cx: number, cy: number, r: number) => {
     for (let y = cy - r; y <= cy + r; y++) for (let x = cx - r; x <= cx + r; x++) if (inside(x, y)) reserved[idx(x, y)] = 1;
   };
-  reserve(entry[0], H - 3, F.keepClear);
+  reserve(entry[0] + ix * 3, entry[1] + iy * 3, F.keepClear);
   for (const e of exits) reserve(e.x + e.w / 2, e.y + e.h / 2, F.keepClear);
   const isFree = (x: number, y: number) => inside(x, y) && !blocked[idx(x, y)] && !reserved[idx(x, y)] && !path[idx(x, y)];
   const nearBlocker = (x: number, y: number, gap: number) => {
@@ -222,18 +231,21 @@ function tryGenerate(rng: Rng, seed: number, opts: FieldOptions): FieldLevel | n
     const cx0 = (cpChunk % cw) * C;
     const cy0 = Math.floor(cpChunk / cw) * C;
     for (let t = 0; t < 30 && !sites.length; t++) {
-      const rows = pick(def.shapes).rows;
+      // 開口朝入口那一邊（左右進來時轉 90°）
+      const rows = vertical ? pick(def.shapes).rows : rotate(pick(def.shapes).rows);
       const sw = rows[0].length;
       const sh = rows.length;
       const ox = cx0 + rng.int(1, C - 1 - sw);
       const oy = cy0 + rng.int(1, C - 1 - sh);
       const inner = stampShape(rows, ox, oy, (x, y) => isFree(x, y));
-      if (inner) sites.push({ kind: 'checkpoint', facing: 'down', cells: inner, gate: [ox + Math.floor(sw / 2) - 2, oy + 1] });
+      const gate: Cell = vertical ? [ox + Math.floor(sw / 2) - 2, oy + 1] : [ox + 1, oy + Math.floor(sh / 2) - 2];
+      if (inner) sites.push({ kind: 'checkpoint', facing: towardEntry, cells: inner, gate });
     }
     if (!sites.length) return null;
     // 營火貼側牆，中間留給路
     const g = sites[0].gate!;
-    addFire(sites[0].cells.filter(([x, y]) => (x < g[0] - 1 || x > g[0] + 4) && y > g[1] - 1 && y < g[1] + 3));
+    const side = ([x, y]: Cell) => (vertical ? (x < g[0] - 1 || x > g[0] + 4) && y > g[1] - 1 && y < g[1] + 3 : (y < g[1] - 1 || y > g[1] + 4) && x > g[0] - 1 && x < g[0] + 3);
+    addFire(sites[0].cells.filter(side));
   }
 
   // ── 3. 泥土路 ──
@@ -296,7 +308,7 @@ function tryGenerate(rng: Rng, seed: number, opts: FieldOptions): FieldLevel | n
   };
   {
     const gate = sites[0].gate!;
-    if (!route([Math.min(W - wd, entry[0] - 1), H - wd], gate)) return null;
+    if (!route(roadStart(entryEdge, along, W, H, wd), gate)) return null;
     for (const e of exits) if (!route(gate, [Math.min(W - wd, e.x + 1), Math.min(H - wd, e.y + 1)])) return null;
   }
   // 清掉單格凸起、填滿凹洞（兩輪）
@@ -497,12 +509,7 @@ function tryGenerate(rng: Rng, seed: number, opts: FieldOptions): FieldLevel | n
   }
 
   // ── 出生點 ──
-  const heroSpawns = [
-    { x: entry[0] - 1, y: H - 3 },
-    { x: entry[0] + 1, y: H - 3 },
-    { x: entry[0] - 1, y: H - 5 },
-    { x: entry[0] + 1, y: H - 5 },
-  ];
+  const heroSpawns = spawnCells(entryEdge, along, W, H).map(([x, y]) => ({ x, y }));
 
   // ── 7. 敵人：每個據點固定幾個生怪格，先放雜兵，再用升級點數換成強敵 ──
   const E = F.enemies;
@@ -520,7 +527,7 @@ function tryGenerate(rng: Rng, seed: number, opts: FieldOptions): FieldLevel | n
       enemySite.push(s);
     }
   });
-  let points = E.upgrade.base + E.upgrade.perLayer * (opts.layer - 1) + (opts.tier === 'elite' ? E.upgrade.eliteBonus : 0);
+  let points = (E.upgrade.base + E.upgrade.perLayer * (opts.layer - 1) + (opts.tier === 'elite' ? E.upgrade.eliteBonus : 0)) * (opts.upgradeMult ?? 1);
   for (const i of shuffle(
     rng,
     enemies.map((_, i) => i),
@@ -537,7 +544,18 @@ function tryGenerate(rng: Rng, seed: number, opts: FieldOptions): FieldLevel | n
     points -= price(u);
     enemies[i].enemy = u.enemy;
   }
-  if (opts.tier === 'elite' && enemies.length) enemies[0].captain = true;
+  // 精英隊長（精英關卡、冠軍戰）：營地裡的第一名（沒有營地就檢查點）
+  if (opts.tier === 'elite' || opts.captainEnemy) {
+    const i = Math.max(
+      0,
+      enemySite.findIndex((s) => s.kind === 'camp'),
+    );
+    const pool = opts.captainPool ?? [];
+    const id = opts.captainEnemy ?? (pool.length ? pool[rng.int(0, pool.length - 1)] : undefined);
+    if (!enemies[i] || !id) return null;
+    enemies[i].enemy = id;
+    enemies[i].captain = true;
+  }
 
   // ── 8. 可達性：出生點走得到每個出口與每名敵人 ──
   const seen = new Uint8Array(W * H);

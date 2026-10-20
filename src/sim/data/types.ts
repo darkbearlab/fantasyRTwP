@@ -265,6 +265,11 @@ export interface MapDef {
    * 有門檻但沒有出口（最後的頭目戰）＝達成門檻就勝利。
    */
   exitLock?: 'captain' | 'boss';
+  /**
+   * 畫面用的地圖資料（sim 不讀）：finalbossblues 地形的程序生成地圖（野外、城內）帶著生成結果，
+   * 畫面層照它拼圖塊。kind 決定格式（見 src/run/fbbLevel.ts）。
+   */
+  art?: { kind: string; [k: string]: unknown };
 }
 
 export interface ExitDef {

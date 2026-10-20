@@ -40,9 +40,12 @@ import {
   hasHeight,
   isIso,
   mapScreenBounds,
+  orthoSquash,
   screenToGround,
+  setOrthoSquash,
   worldToScreen,
 } from '../render/projection';
+import { FbbMapView, isFbbMap } from '../render/fbbMapView';
 import type { ProjectionMode } from '../render/projection';
 import { VISUAL, obstacleHeight, obstacleKind } from '../render/visual';
 import { InputController } from '../input/inputController';
@@ -113,6 +116,8 @@ export class BattleScene extends Phaser.Scene {
   private builtH3d = false;
   /** 目前畫面是否用 props3d 畫地形物件（heroes3d 模式且素材已載入） */
   private builtProps = false;
+  /** finalbossblues 地形的地圖畫面（程序生成的野外、城內；素材不在時是 null，改用程式畫法） */
+  private fbbView: FbbMapView | null = null;
   /** 草叢上的灌木（燒掉的格子要隱藏） */
   private brushProps: { img: Phaser.GameObjects.Image; x: number; y: number }[] = [];
   /** 每幀記錄鏡頭中心對應的地面點（切換投影時保持鏡頭位置） */
@@ -168,6 +173,9 @@ export class BattleScene extends Phaser.Scene {
     this.lastFrame = 0;
 
     // 圖層：地面（地板、地形、地面標示）< 物件層（角色、障礙物方塊，依 depthOf 排序）< 覆蓋層（生命條、幽靈線、飄字）
+    // finalbossblues 地形的地圖不做縱向壓縮（Alan 2026-10-21）；離開戰鬥時還原
+    setOrthoSquash(isFbbMap(this.session.world.map) ? 1 : undefined);
+    this.events.once('shutdown', () => setOrthoSquash());
     this.brushG = this.add.graphics().setDepth(1);
     this.fireG = this.add.graphics().setDepth(2);
     this.zoneG = this.add.graphics().setDepth(3);
@@ -244,7 +252,7 @@ ${node}`, { fontFamily: FONT, fontSize: '14px', color: '#ffe9a8', align: 'center
     this.builtH3d = this.useH3d();
     this.builtProps = this.useProps();
     this.drawMap();
-    if (hasHeight()) this.buildObstacleBlocks();
+    if (hasHeight() && !this.fbbView) this.buildObstacleBlocks();
     if (this.builtProps) this.buildProps();
     this.interactView = new InteractablesView(this, this.session.world);
     for (const u of this.session.world.units) this.views.set(u.id, this.makeView(u));
@@ -259,6 +267,7 @@ ${node}`, { fontFamily: FONT, fontSize: '14px', color: '#ffe9a8', align: 'center
     this.brushProps = [];
     for (const v of this.views.values()) v.destroy();
     this.views.clear();
+    this.fbbView = null;
     this.debugOverlay.destroy();
     this.interactView.destroy();
   }
@@ -304,6 +313,12 @@ ${node}`, { fontFamily: FONT, fontSize: '14px', color: '#ffe9a8', align: 'center
     const map = this.session.world.map;
     const W = map.width;
     const H = map.height;
+    // finalbossblues 地形（程序生成的野外、城內）：圖塊拼的地面與物件
+    this.fbbView = getProjection() === 'ortho' && FbbMapView.usable(this, map) ? new FbbMapView(this, map) : null;
+    if (this.fbbView) {
+      this.worldObjects.push(...this.fbbView.objects);
+      return;
+    }
     const b = mapScreenBounds(W, H);
     const pad = 4;
     const flare = useFlare(this);
@@ -365,7 +380,7 @@ ${node}`, { fontFamily: FONT, fontSize: '14px', color: '#ffe9a8', align: 'center
   private drawPixelFloor(b: { x: number; y: number; w: number; h: number }): void {
     const map = this.session.world.map;
     const kx = GAME_CONFIG.ortho.pxPerM / 16;
-    const ky = (GAME_CONFIG.ortho.pxPerM * GAME_CONFIG.ortho.squash) / 16;
+    const ky = (GAME_CONFIG.ortho.pxPerM * orthoSquash()) / 16;
     const rt = this.add.renderTexture(b.x, b.y, Math.ceil(b.w / kx), Math.ceil(b.h / ky)).setOrigin(0).setScale(kx, ky).setDepth(0);
     rt.beginDraw();
     for (let cy = 0; cy < map.height; cy++) {
@@ -819,6 +834,7 @@ ${node}`, { fontFamily: FONT, fontSize: '14px', color: '#ffe9a8', align: 'center
     this.updateConcealment();
     const simTime = w.time + this.alpha * DT;
     for (const v of this.views.values()) v.update(this.alpha, selected.has(v.unit.id), s.hoverUnitId === v.unit.id, simTime);
+    this.fbbView?.update(this.time.now / 1000);
     this.drawDynamicTerrain();
     this.drawInteractables();
     this.drawFog();
@@ -930,7 +946,7 @@ ${node}`, { fontFamily: FONT, fontSize: '14px', color: '#ffe9a8', align: 'center
       const img = this.add
         .image(o.x, o.y, key)
         .setOrigin(0)
-        .setScale(v.cell * GAME_CONFIG.ortho.pxPerM, v.cell * GAME_CONFIG.ortho.pxPerM * GAME_CONFIG.ortho.squash)
+        .setScale(v.cell * GAME_CONFIG.ortho.pxPerM, v.cell * GAME_CONFIG.ortho.pxPerM * orthoSquash())
         .setDepth(900);
       this.events.once('shutdown', () => this.textures.exists(key) && this.textures.remove(key));
       const alpha = new Float32Array(v.cols * v.rows).fill(VISUAL.fogUnexploredAlpha);

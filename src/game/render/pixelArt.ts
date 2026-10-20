@@ -103,3 +103,37 @@ export function portraitSheetUrl(scene: Phaser.Scene, defId: string): string | u
 export function pixelFloorReady(scene: Phaser.Scene): boolean {
   return FLOOR_TILES.every((f) => scene.textures.exists(m72Key(f)));
 }
+
+/**
+ * 外框貼圖（Alan：陣營色腳下圈以外，sprite 的輪廓也框起來，被遮住時也看得到）：
+ * 原圖的不透明像素往外擴 1 px 的那一圈，填白色（畫的時候再染成陣營色）。格子排列和原圖相同。
+ * sheet＝mw 的 spritesheet（32 px 一格）；否則是 0x72 的單張圖。
+ */
+export function outlineKey(scene: Phaser.Scene, key: string, sheet: boolean): string | undefined {
+  const out = `${key}#outline`;
+  if (scene.textures.exists(out)) return out;
+  if (!scene.textures.exists(key)) return undefined;
+  const src = recolored.get(key) ?? (scene.textures.get(key).getSourceImage() as HTMLImageElement);
+  const w = src.width;
+  const h = src.height;
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d')!;
+  ctx.drawImage(src, 0, 0);
+  const a = ctx.getImageData(0, 0, w, h);
+  const o = ctx.createImageData(w, h);
+  const solid = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < h && a.data[(y * w + x) * 4 + 3] > 0;
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      if (solid(x, y)) continue;
+      if (!(solid(x + 1, y) || solid(x - 1, y) || solid(x, y + 1) || solid(x, y - 1))) continue;
+      const i = (y * w + x) * 4;
+      o.data[i] = o.data[i + 1] = o.data[i + 2] = o.data[i + 3] = 255;
+    }
+  ctx.clearRect(0, 0, w, h);
+  ctx.putImageData(o, 0, 0);
+  if (sheet) scene.textures.addSpriteSheet(out, canvas as unknown as HTMLImageElement, { frameWidth: PIXEL.cell, frameHeight: PIXEL.cell });
+  else scene.textures.addCanvas(out, canvas);
+  return out;
+}
