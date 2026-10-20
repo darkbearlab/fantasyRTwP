@@ -1662,6 +1662,15 @@ body {
 }
 .m-head {
   border-bottom: 1px solid #343a46;
+  -webkit-user-select: none;
+  user-select: none;
+}
+/* 頭像與生命條沒有文字：明確撐滿寬度（iOS WebKit 不會自動撐開） */
+.m-head > .m-portrait,
+.m-head > .m-hp {
+  align-self: stretch;
+  width: 100%;
+  box-sizing: border-box;
 }
 .m-name {
   font-size: 20px;
