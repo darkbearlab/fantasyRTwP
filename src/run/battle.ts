@@ -18,6 +18,9 @@ import type { LevelTier } from './levelGen';
 import { generateLevel } from './levelGen';
 import { generateDeliberateLevel } from './deliberateLevelGen';
 import { generateTemplateLevel } from './templateLevelGen';
+import type { Edge, ExitRequest } from './templateLevelGen';
+import { ROUTE_MAP } from './data/routeMap';
+import { directionTo, neighbors } from './routeMap';
 import type { MapDef } from '../sim/data/types';
 import type { RunStyle } from './data/levels';
 import { LEVELS } from './data/levels';
@@ -96,23 +99,48 @@ export function encounterFor(run: RunState, nodeId: number, encounterId: string)
   if (!isGeneratedEncounter(encounterId)) return ENCOUNTERS[encounterId];
   const dlevel = encounterId.startsWith(DLEVEL_PREFIX);
   const tier = encounterId.slice(dlevel ? DLEVEL_PREFIX.length : LEVEL_PREFIX.length) as LevelTier;
-  const layer = run.map.nodes[nodeId].layer;
-  const seed = deriveSeed(run.seed, 'level', nodeId, encounterId);
+  const node = run.map.nodes[nodeId];
+  // FTL 式路線圖：每次造訪重新生成；被主力佔領或冠軍戰另外生成
+  const ph = run.phase.kind === 'battle' && run.phase.nodeId === nodeId ? run.phase : null;
+  const visit = ph?.visit ?? 1;
+  const mods = ph?.mods ?? {};
+  const layer = node.layer + levelBonus(mods);
+  // 第一次造訪、沒有修飾時種子和以前一樣
+  const extra = [visit > 1 ? `v${visit}` : '', mods.force ? 'force' : '', mods.champion ? 'champion' : ''].filter(Boolean);
+  const seed = deriveSeed(run.seed, 'level', nodeId, encounterId, ...extra);
   const key = `${encounterId}:${seed}:${layer}`;
   let enc = levelCache.get(key);
   if (!enc) {
     if (dlevel && LEVELS.deliberateGenerator === 'templates') {
       // 出口制（SPEC_SLICE6 §2）：一個下一層節點一個出口，依路線圖由左到右排
-      const exits = run.map.nodes[nodeId].next
-        .map((id) => run.map.nodes[id])
-        .sort((a, b) => a.index - b.index)
-        .map((n) => ({ id: `node:${n.id}`, label: n.type }));
-      enc = generateTemplateLevel(seed, { tier, layer, exits });
+      enc = generateTemplateLevel(seed, { tier, layer, ...exitsFor(run, nodeId), budgetMult: mods.force ? ROUTE_MAP.force.budgetMult : undefined, captainEnemy: mods.champion ? ROUTE_MAP.champion.enemy : undefined });
     } else enc = dlevel ? generateDeliberateLevel(seed, { tier, layer }) : generateLevel(seed, { tier, layer });
     if (levelCache.size > 32) levelCache.clear();
     levelCache.set(key, enc);
   }
   return enc;
+}
+
+/** 敵人層數加成：被主力佔領的節點、冠軍戰 */
+export function levelBonus(mods: { force?: boolean; champion?: boolean }): number {
+  return (mods.force ? ROUTE_MAP.force.layerBonus : 0) + (mods.champion ? ROUTE_MAP.champion.layerBonus : 0);
+}
+
+/**
+ * 出口與入口（SPEC_SLICE6 §2、§4）：一個相鄰節點一個出口，放在它在路線圖上的方向（下一層＝上、前一層＝下、同層＝左右）；
+ * 從哪個節點來，出生點就在那一側。單向路線圖只有往下一層的出口。
+ */
+function exitsFor(run: RunState, nodeId: number): { exits: ExitRequest[]; entry: Edge } {
+  const map = run.map;
+  const ids = run.overworld ? neighbors(map, nodeId) : map.nodes[nodeId].next;
+  // 最後的頭目戰沒有出口：打倒頭目就結束遠征
+  const exits = (map.nodes[nodeId].type === 'boss' ? [] : ids)
+    .map((id) => map.nodes[id])
+    .sort((a, b) => a.layer - b.layer || a.index - b.index)
+    .map((n) => ({ id: `node:${n.id}`, label: n.type, edge: directionTo(map, nodeId, n.id) }));
+  const prev = run.path.length >= 2 ? run.path[run.path.length - 2] : null;
+  const entry: Edge = prev !== null && prev !== nodeId && ids.includes(prev) ? directionTo(map, nodeId, prev) : 'bottom';
+  return { exits, entry };
 }
 
 /** 遭遇使用的地圖（生成的關卡自帶地圖） */
@@ -128,7 +156,7 @@ export function createBattleFromRun(run: RunState, config?: Partial<SimConfig>, 
   const enc = currentEncounter(run);
   const map = mapOf(enc);
   // 頭目戰的數值是為最後一層設計的，不再套用層數成長（大型關卡的頭目關卡也一樣）
-  const layer = enc.tier === 'boss' ? 1 : run.phase.kind === 'battle' ? run.map.nodes[run.phase.nodeId].layer : 1;
+  const layer = enc.tier === 'boss' ? 1 : run.phase.kind === 'battle' ? run.map.nodes[run.phase.nodeId].layer + levelBonus(run.phase.mods ?? {}) : 1;
   const spawns: UnitSpawn[] = [];
   // 出生位置依存活英雄數量排列；heroSlot 沿用隊伍欄位，數字鍵不會錯位
   const deliberate = runStyle(run) === 'deliberate' && !enc.horde;

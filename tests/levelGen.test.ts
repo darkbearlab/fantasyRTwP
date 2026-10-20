@@ -58,7 +58,8 @@ describe('大型關卡生成（遠征）', () => {
   });
 
   it('實際模擬：門全開、英雄沿路線攻擊移動，可以抵達出口', () => {
-    const r = createRun(7);
+    // 單向分層路線圖（這個測試只測封存的大型關卡）
+    const r = createRun(7, { layers: 8 });
     const node = r.map.nodes.find((n) => n.layer === 1)!;
     r.currentNodeId = node.id;
     r.phase = { kind: 'battle', nodeId: node.id, encounterId: levelEncounterId('battle'), fromEvent: false };

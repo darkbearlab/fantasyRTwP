@@ -271,6 +271,8 @@ export interface ExitDef {
   w: number;
   h: number;
   label?: string;
+  /** 出口在地圖哪一邊（top＝往路線圖的下一層） */
+  edge?: 'top' | 'bottom' | 'left' | 'right';
 }
 
 // ───────────── 互動物件（SPEC_SLICE4 §15.1：通用的「互動 → 觸發動作」） ─────────────

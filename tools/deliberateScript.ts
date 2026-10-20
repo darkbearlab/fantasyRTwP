@@ -29,7 +29,10 @@ export class DeliberateScript {
     const exits = w.map.exits ?? [];
     if (alive.length === 0 && exits.length) {
       const hurt = heroes.reduce((a, u) => a + u.hp / u.maxHp, 0) / heroes.length < 0.6;
-      const exit = exits.find((e) => hurt && e.label === 'rest') ?? exits.find((e) => e.label === 'battle') ?? exits[0];
+      // 往前（top）的出口優先：受傷時找休息、否則戰鬥
+      const fwd = exits.filter((e) => (e.edge ?? 'top') === 'top');
+      const pool = fwd.length ? fwd : exits;
+      const exit = pool.find((e) => hurt && e.label === 'rest') ?? pool.find((e) => e.label === 'battle') ?? pool[0];
       const p = { x: exit.x + exit.w / 2, y: exit.y + exit.h / 2 };
       w.enqueue({ type: 'move', unitIds: heroes.map((u) => u.id), point: p });
       return;

@@ -18,12 +18,15 @@ import { recruitPool } from './classes';
 import { rollItemDrop, rollShopStock } from './items';
 import { ITEMS } from '../sim/data/items';
 import { gainXp, nextLevelUpTo, xpForKills } from './xp';
+import { neighbors } from './routeMap';
+import { advanceTurn, campfireSmoke, caught, championDefeated, isOccupied } from './overworld';
 
 /** 下一步可以前往的節點 */
 export function availableNodes(run: RunState): MapNode[] {
   if (run.phase.kind !== 'map') return [];
   if (run.currentNodeId === null) return run.map.layers[0].map((id) => run.map.nodes[id]);
-  const next = run.map.nodes[run.currentNodeId].next;
+  // FTL 式路線圖：相鄰節點都能去（往回走、同層橫向）
+  const next = run.overworld ? neighbors(run.map, run.currentNodeId) : run.map.nodes[run.currentNodeId].next;
   // 從戰鬥出口離開：下一個節點已經決定
   if (run.exitTo != null && next.includes(run.exitTo)) return [run.map.nodes[run.exitTo]];
   return next.map((id) => run.map.nodes[id]);
@@ -49,6 +52,33 @@ export function chooseNode(run: RunState, nodeId: number): RunState {
   r.currentNodeId = nodeId;
   r.exitTo = null;
   r.path.push(nodeId);
+  if (r.overworld) {
+    // FTL 式路線圖（SPEC_SLICE6 §4）：一回合——主力擴散、冠軍行動
+    const { revisit } = advanceTurn(r, nodeId);
+    const visit = r.overworld.visits[nodeId];
+    if (caught(r)) {
+      r.journal.push(`第 ${node.layer} 層：魔王的冠軍追上來了！`);
+      r.phase = { kind: 'battle', nodeId, encounterId: deliberateLevelId('elite'), fromEvent: false, visit, mods: { champion: true } };
+      return r;
+    }
+    if (isOccupied(r, nodeId) && node.type !== 'boss') {
+      r.journal.push(`第 ${node.layer} 層：這裡已經被魔王的主力佔領。`);
+      r.phase = { kind: 'battle', nodeId, encounterId: deliberateLevelId(node.type === 'elite' ? 'elite' : 'battle'), fromEvent: false, visit, mods: { force: true } };
+      return r;
+    }
+    if (node.type === 'event') {
+      if (revisit && r.overworld.clearedEvents.includes(nodeId)) {
+        r.journal.push(`第 ${node.layer} 層：這裡已經沒有事了。`);
+        r.phase = { kind: 'map' };
+        return r;
+      }
+      r.overworld.clearedEvents.push(nodeId);
+    }
+    if (node.type === 'battle' || node.type === 'elite' || node.type === 'boss') {
+      r.phase = { kind: 'battle', nodeId, encounterId: pickEncounter(r, node), fromEvent: false, visit };
+      return r;
+    }
+  }
   switch (node.type) {
     case 'battle':
     case 'elite':
@@ -136,6 +166,10 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
     return r;
   }
   if (recovered > 0) r.journal.push(`戰後整補：全隊回復 ${recovered} 生命。`);
+  if (run.phase.mods?.champion) {
+    championDefeated(r);
+    r.journal.push(`第 ${node.layer} 層：擊退了魔王的冠軍！`);
+  }
   // 出口制：走哪個出口，下一個節點就是哪個
   r.exitTo = outcome.exitNodeId ?? null;
   const elite = node.type === 'elite' && !fromEvent;
@@ -253,6 +287,15 @@ export function restCamp(run: RunState): RunState {
   const p = restPhase(r);
   p.used = true;
   p.resultText = `全隊在營火旁休息，恢復了 ${Math.round(ECONOMY.campHealRatio * 100)}% 生命。`;
+  // Alan：冠軍看到營火的煙，立刻往這裡多走一格；追到了就直接開打
+  if (r.overworld) {
+    campfireSmoke(r);
+    if (caught(r)) {
+      const node = r.map.nodes[p.nodeId];
+      r.journal.push(`第 ${node.layer} 層：營火的煙引來了魔王的冠軍！`);
+      r.phase = { kind: 'battle', nodeId: p.nodeId, encounterId: deliberateLevelId('elite'), fromEvent: false, visit: r.overworld.visits[p.nodeId], mods: { champion: true } };
+    }
+  }
   return r;
 }
 

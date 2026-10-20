@@ -52,7 +52,10 @@ export function stepRun(r: RunState, scripted = true): RunState {
         if (t === 'event') return 1.5;
         return 1;
       };
-      const best = nodes.reduce((a, b) => (score(b.type) > score(a.type) ? b : a));
+      // FTL 式路線圖：往前走（層數高）優先，避開主力與冠軍
+      const ow = r.overworld;
+      const value = (n: (typeof nodes)[number]) => score(n.type) + n.layer * 10 - (ow?.force.includes(n.id) ? 6 : 0) - (ow?.champion.node === n.id ? 20 : 0);
+      const best = nodes.reduce((a, b) => (value(b) > value(a) ? b : a));
       return chooseNode(r, best.id);
     }
     case 'battle': {

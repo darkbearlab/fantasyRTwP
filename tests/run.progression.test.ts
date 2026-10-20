@@ -18,8 +18,14 @@ function toFirstBattle(seed = 1): RunState {
 function atRest(r: RunState): RunState {
   const rest = r.map.nodes.find((n) => n.type === 'rest')!;
   const s = JSON.parse(JSON.stringify(r)) as RunState;
-  s.currentNodeId = s.map.nodes.find((n) => n.next.includes(rest.id))!.id;
+  s.currentNodeId = s.map.nodes.find((n) => (n.links ?? n.next).includes(rest.id))!.id;
   s.phase = { kind: 'map' };
+  // 移開主力與冠軍，只測休息節點本身
+  if (s.overworld) {
+    s.overworld.force = [];
+    s.overworld.champion.node = null;
+    s.overworld.champion.respawnAt = 999;
+  }
   return chooseNode(s, rest.id);
 }
 
