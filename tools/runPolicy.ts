@@ -17,6 +17,7 @@ import {
   restRecruit,
   restRevive,
   restTrain,
+  continueFromReward,
 } from '../src/run/progression';
 import type { RunState } from '../src/run/runState';
 import { createRun, livingHeroes } from '../src/run/runState';
@@ -66,6 +67,8 @@ export function stepRun(r: RunState, scripted = true): RunState {
     }
     case 'reward': {
       r = autoEquip(r);
+      // 經驗值制：沒有升級時只是看戰果
+      if (p.options.length === 0) return continueFromReward(r);
       const id = p.options[0];
       const up = UPGRADES[id];
       if (up.scope === 'party') return chooseReward(r, { upgradeId: id });

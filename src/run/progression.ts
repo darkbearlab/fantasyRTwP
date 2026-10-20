@@ -17,6 +17,7 @@ import { grantUpgrade, maxHpOf, recruitInto, rollUpgrades } from './upgrades';
 import { recruitPool } from './classes';
 import { rollItemDrop, rollShopStock } from './items';
 import { ITEMS } from '../sim/data/items';
+import { gainXp, nextLevelUpTo, xpForKills } from './xp';
 
 /** 下一步可以前往的節點 */
 export function availableNodes(run: RunState): MapNode[] {
@@ -141,8 +142,19 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
   const gold = elite ? ECONOMY.goldPerElite : ECONOMY.goldPerBattle;
   r.gold += gold;
   r.stats.goldEarned += gold;
-  const rng = rngFor(r.seed, 'reward', nodeId, fromEvent ? 'event' : 'node');
-  const options = rollUpgrades(rng, elite ? ECONOMY.eliteRewardChoices : ECONOMY.rewardChoices, elite);
+  const deliberate = runStyle(r) === 'deliberate';
+  let options: string[];
+  let xpGained: number | undefined;
+  if (deliberate) {
+    // SPEC_SLICE6 §3：不再每場三選一；經驗值只來自擊殺，升級了才三選一（升幾級選幾次）
+    xpGained = xpForKills(outcome.killed ?? []);
+    const ups = gainXp(r, xpGained);
+    if (ups > 0) r.journal.push(`隊伍升到第 ${r.level} 級！`);
+    options = (r.pendingLevelUps ?? 0) > 0 ? levelUpOptions(r) : [];
+  } else {
+    const rng = rngFor(r.seed, 'reward', nodeId, fromEvent ? 'event' : 'node');
+    options = rollUpgrades(rng, elite ? ECONOMY.eliteRewardChoices : ECONOMY.rewardChoices, elite);
+  }
   r.journal.push(`第 ${node.layer} 層：${encounterFor(run, nodeId, run.phase.encounterId).name}勝利（${outcome.time.toFixed(0)} 秒），獲得 ${gold} 金幣。`);
   // 沉穩節奏：打贏節點時機率掉落道具（精英必掉；SPEC_SLICE5 §17）
   let item: string | undefined;
@@ -153,8 +165,20 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
       r.journal.push(`撿到了「${ITEMS[item].name}」。`);
     }
   }
-  r.phase = { kind: 'reward', nodeId, options, elite, gold, item };
+  r.phase = { kind: 'reward', nodeId, options, elite: elite && !deliberate, gold, item, xpGained, levelUpTo: options.length ? nextLevelUpTo(r) : undefined };
   return r;
+}
+
+/** 升級三選一的選項（依要升到的等級決定，同一趟遠征每次一樣） */
+function levelUpOptions(r: RunState): string[] {
+  return rollUpgrades(rngFor(r.seed, 'levelup', nextLevelUpTo(r)), ECONOMY.rewardChoices);
+}
+
+/** 戰果畫面沒有升級時：繼續回到路線圖 */
+export function continueFromReward(run: RunState): RunState {
+  if (run.phase.kind !== 'reward') throw new Error('目前不在獎勵階段');
+  if (run.phase.options.length > 0) throw new Error('還有升級沒有選');
+  return toMap(cloneRun(run));
 }
 
 export type RewardChoice = { upgradeId: string; slot?: number; skillId?: string } | 'skip';
@@ -169,6 +193,15 @@ export function chooseReward(run: RunState, choice: RewardChoice): RunState {
   } else {
     if (!run.phase.options.includes(choice.upgradeId)) throw new Error('不是可選的強化');
     r.journal.push(grantUpgrade(r, choice.upgradeId, choice.slot, choice.skillId));
+  }
+  // 升級三選一：升了好幾級就再選一次
+  if (runStyle(r) === 'deliberate' && (r.pendingLevelUps ?? 0) > 0) {
+    r.pendingLevelUps! -= 1;
+    if (r.pendingLevelUps! > 0) {
+      const options = levelUpOptions(r);
+      r.phase = { kind: 'reward', nodeId: run.phase.nodeId, options, elite: false, gold: 0, levelUpTo: nextLevelUpTo(r) };
+      return r;
+    }
   }
   return toMap(r);
 }

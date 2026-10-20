@@ -11,6 +11,7 @@ import { partyPanel } from '../ui/partyPanel';
 import { swapHeroSlots, swapSkillOrder } from '../../run/classes';
 import { advance, getRun, setRun } from '../runFlow';
 import { DomScene } from './DomScene';
+import { xpBar } from '../ui/xpBar';
 
 const NODE_DESC: Record<string, string> = {
   battle: '一般戰鬥。勝利後獲得金幣與強化。',
@@ -35,6 +36,8 @@ export class MapScene extends DomScene {
     const run = getRun(this);
     const side = el('div', 'map-side');
     side.append(el('div', 'map-title', '遠征'), el('div', 'gold', `💰 ${run.gold} 金幣`));
+    // 隊伍等級與經驗值（SPEC_SLICE6 §3，沉穩節奏）
+    if (run.style === 'deliberate') side.appendChild(xpBar(run));
     side.appendChild(
       partyPanel(run, {
         onPersonality: (slot, p) => {

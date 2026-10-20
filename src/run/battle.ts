@@ -155,6 +155,8 @@ export interface BattleOutcome {
   won: boolean;
   /** 從哪個出口離開＝下一個節點（出口制） */
   exitNodeId?: number;
+  /** 被打倒的敵人（經驗值用） */
+  killed?: { enemy: string; captain: boolean }[];
   time: number;
   heroes: { slot: number; hp: number; dead: boolean; kills: number; damageDealt: number; damageTaken: number; personality?: Personality }[];
 }
@@ -164,6 +166,7 @@ export function battleOutcomeFromWorld(world: World): BattleOutcome {
   return {
     won: world.result === 'hero',
     exitNodeId: m ? Number(m[1]) : undefined,
+    killed: world.units.filter((u) => u.team === 'enemy' && u.dead).map((u) => ({ enemy: u.def.id, captain: u.def.rank === 'elite' })),
     time: world.time,
     heroes: world.units
       .filter((u) => u.team === 'hero')
