@@ -22,6 +22,8 @@ export const LEVELS = {
    * horde＝大型關卡（封存）；tactical＝切片 2／3 的戰術戰鬥（封存）
    */
   expeditionStyle: 'deliberate' as RunStyle,
+  /** 沉穩節奏的關卡生成：templates＝模板拼接（SPEC_SLICE6，預設）；classic＝切片 5 的隔牆關卡 */
+  deliberateGenerator: 'templates' as 'templates' | 'classic',
   /** 各節點類型的關卡大小 */
   size: {
     battle: { width: 72, height: 72, zones: 3 },

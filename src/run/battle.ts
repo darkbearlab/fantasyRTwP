@@ -17,8 +17,10 @@ import { deriveSeed } from './seed';
 import type { LevelTier } from './levelGen';
 import { generateLevel } from './levelGen';
 import { generateDeliberateLevel } from './deliberateLevelGen';
+import { generateTemplateLevel } from './templateLevelGen';
 import type { MapDef } from '../sim/data/types';
 import type { RunStyle } from './data/levels';
+import { LEVELS } from './data/levels';
 import { deliberateConfig } from '../sim/data/deliberate';
 import { deliberateSkillsOf } from './loadout';
 import { DEFAULT_SIM_CONFIG } from '../sim/simConfig';
@@ -99,7 +101,8 @@ export function encounterFor(run: RunState, nodeId: number, encounterId: string)
   const key = `${encounterId}:${seed}:${layer}`;
   let enc = levelCache.get(key);
   if (!enc) {
-    enc = dlevel ? generateDeliberateLevel(seed, { tier, layer }) : generateLevel(seed, { tier, layer });
+    const dgen = LEVELS.deliberateGenerator === 'templates' ? generateTemplateLevel : generateDeliberateLevel;
+    enc = dlevel ? dgen(seed, { tier, layer }) : generateLevel(seed, { tier, layer });
     if (levelCache.size > 32) levelCache.clear();
     levelCache.set(key, enc);
   }

@@ -12,7 +12,8 @@
     "autobattle": "tsx tools/autobattle.ts",
     "autorun": "tsx tools/autorun.ts",
     "perf": "tsx tools/perf.ts",
-    "assets:pull": "node tools/pullAssets.mjs"
+    "assets:pull": "node tools/pullAssets.mjs",
+    "level:preview": "tsx tools/levelPreview.ts"
   },
   "dependencies": {
     "phaser": "3.90.0"
