@@ -66,7 +66,7 @@ export class UnitView implements UnitVisual {
   constructor(scene: Phaser.Scene, readonly unit: Unit) {
     this.iso = hasHeight();
     this.height = unitHeight(unit.def);
-    this.bodyW = unit.radius * groundAxes(1).x * Math.SQRT2 * VISUAL.bodyWidthFactor;
+    this.bodyW = unit.radius * groundAxes(1).x * Math.SQRT2 * VISUAL.bodyWidthFactor * VISUAL.unitScale;
     this.bodyH = heightPx(this.height);
     this.ring = scene.add.graphics();
     this.foot = scene.add.graphics();

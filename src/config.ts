@@ -63,6 +63,11 @@ export const GAME_CONFIG = {
    * rotation 90：世界 +x 朝畫面上方（直拿手機時玩家往上推進）。全部是可調旋鈕，不開放玩家設定。
    */
   ortho: { pxPerM: 44, squash: 0.7, heightPxPerM: 32, rotation: 90 as 0 | 90 },
+  /**
+   * 行動版卡片上方的控制鈕（Alan：之後要做成可以調整，先把排列抽出來）：
+   * align＝整排靠左／置中／靠右（對齊卡片列）；order＝由左到右的順序。
+   */
+  mobileControls: { align: 'left' as 'left' | 'center' | 'right', order: ['pause', 'selectAll'] as ('pause' | 'selectAll')[] },
   /** 戰鬥鏡頭的固定縮放（Alan：遠近固定，玩家不能縮放；只留這個旋鈕） */
   battleZoom: 1,
   /** 等角投影：1 公尺見方的地面 = TILE_W × TILE_H 的菱形；高度 1 m = HEIGHT_PX_PER_M px */

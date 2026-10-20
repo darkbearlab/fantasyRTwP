@@ -48,7 +48,10 @@
 - **畫面改成正角俯視**（2026-10-20）：`projection.ts` 新增 `ortho` 模式並設為預設（地圖正方格、保留俯角、z 高度照樣畫，所以角色 sprite 與立體方塊沿用）。Flare 地板磚與 props3d 是等角素材，只在 `iso` 使用；`ortho` 的地面、牆、門用程式畫。舊的 `iso` 還在（除錯面板可切），`isIso()` 只用在等角專用素材，其他「有高度」的判斷用 `hasHeight()`。
 - **鏡頭遠近固定**：移除滾輪與雙指縮放；`GAME_CONFIG.battleZoom` 是唯一旋鈕（Alan：不要做成玩家設定）。
 - **畫面外敵人指示器**：`BattleScene.drawOffscreenEnemies`，紅色光暈，大小依最大生命；迷霧／草叢裡的敵人不顯示。
-- **全選鈕**：沙漏左邊；有人沒選到＝全選，全選中＝全部取消（`mobileBar.ts`）。
+- **全選鈕**：有人沒選到＝全選，全選中＝全部取消（`mobileBar.ts`）。
+- **控制鈕排列**：沙漏與全選鈕的位置由 `GAME_CONFIG.mobileControls`（`align` 左／中／右、`order` 順序）決定，預設靠左、沙漏在前（Alan：之後要做成玩家可調整）。
+- **拖曳地圖**：改聽視窗層級的原生 pointer 事件（`InputController.onNativeMove`／`onNativeUp`），手指滑到卡片等 DOM 面板上也會繼續拖，放開才結束。
+- **角色縮放**：`VISUAL.unitScale`（0.8，只影響畫面；`unitHeight()` 已乘上這個值），碰撞半徑與腳下圈不變。
 - **交戰距離縮短**（2026-10-20）：沉穩節奏 `SimConfig.rangeMult` ＝ 0.6（`DELIBERATE_PACE.range`），套用在 1 m 以上的普攻射程與技能施放距離（換算一律經過 `scaleRange`）；敵人察覺距離、攻擊移動接戰距離也 ×0.6。近戰、範圍半徑、視野不變；舊模式 `rangeMult` ＝ 1。
 - **法師火球改回**（2026-10-20）：拿掉充能／大火球循環；法師主動＝`flashFireball`（準備時間 0、仍有 1.2 秒恢復、飛行速度 16 m/s、冷卻 12 秒 ×2）。飛行中落點畫出爆炸範圍（`BattleScene.drawLandingZones`）。charge 循環機制與 `greatFireball` 資料保留給之後用。
 - 技能循環目前只有咒術師（法師已改回單一火球）（其他職業的提案在 SPEC_SLICE5 §16，尚未實作）。

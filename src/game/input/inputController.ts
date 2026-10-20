@@ -47,7 +47,10 @@ export class InputController {
   /** 按了攻擊移動鍵，等待點擊目標點 */
   attackMoveArmed = false;
   /** 沉穩模式（行動版操作）：按下的位置（判斷點擊或拖曳鏡頭） */
-  private tap: { x: number; y: number; sx: number; sy: number; moved: boolean } | null = null;
+  private tap: { x: number; y: number; sx: number; sy: number; moved: boolean; pid: number | null; cx: number; cy: number; cx0: number; cy0: number } | null = null;
+  /** 瀏覽器原生指標（Alan：拖曳地圖時手指滑到其他面板上也要繼續拖，直到放開）：按著的指標、最後一次按下的指標與位置 */
+  private nativePointers = new Set<number>();
+  private nativeDown: { id: number; x: number; y: number } | null = null;
 
   constructor(private host: InputHost) {
     const scene = host.scene;
@@ -67,6 +70,23 @@ export class InputController {
     input.keyboard!.on('keyup', (e: KeyboardEvent) => this.held.delete(e.code));
     // 視窗失焦時放開所有按鍵，避免鏡頭一直捲
     window.addEventListener('blur', () => this.held.clear());
+    // 拖曳地圖改聽整個視窗的原生指標事件：手指移到卡片、戰鬥紀錄等 DOM 面板上也會繼續拖，放開才結束
+    const down = (e: PointerEvent) => {
+      this.nativePointers.add(e.pointerId);
+      this.nativeDown = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    };
+    const move = (e: PointerEvent) => this.onNativeMove(e);
+    const up = (e: PointerEvent) => this.onNativeUp(e);
+    window.addEventListener('pointerdown', down, true);
+    window.addEventListener('pointermove', move, true);
+    window.addEventListener('pointerup', up, true);
+    window.addEventListener('pointercancel', up, true);
+    scene.events.once('shutdown', () => {
+      window.removeEventListener('pointerdown', down, true);
+      window.removeEventListener('pointermove', move, true);
+      window.removeEventListener('pointerup', up, true);
+      window.removeEventListener('pointercancel', up, true);
+    });
   }
 
   private get session(): BattleSession {
@@ -112,7 +132,8 @@ export class InputController {
     }
     if (this.deliberate && !this.attackMoveArmed && !s.targeting) {
       // 行動版：先記下按下的位置，放開時沒有拖曳才算點擊（拖曳＝移動鏡頭）
-      this.tap = { x: p.x, y: p.y, sx: sp.x, sy: sp.y, moved: false };
+      const nd = this.nativeDown;
+      this.tap = { x: p.x, y: p.y, sx: sp.x, sy: sp.y, moved: false, pid: nd?.id ?? null, cx: nd?.x ?? 0, cy: nd?.y ?? 0, cx0: nd?.x ?? 0, cy0: nd?.y ?? 0 };
       return;
     }
     if (p.leftButtonDown()) {
@@ -131,7 +152,8 @@ export class InputController {
 
   private onMove(p: Phaser.Input.Pointer): void {
     this.pointerSeen = true;
-    if (this.deliberate && this.touchGesture(p)) return;
+    // 拖曳中（由原生指標事件處理）不更新滑鼠提示
+    if (this.deliberate && this.tap?.moved) return;
     const sp = this.toScreen(p);
     const u = this.host.unitAtScreen(sp.x, sp.y);
     this.session.hoverUnitId = u ? u.id : null;
@@ -149,14 +171,7 @@ export class InputController {
   private onUp(p: Phaser.Input.Pointer): void {
     if (this.panLast && !p.middleButtonDown()) this.panLast = null;
     if (this.tap) {
-      const t = this.tap;
-      this.tap = null;
-      if (!t.moved) {
-        const unit = this.host.unitAtScreen(t.sx, t.sy);
-        const obj = unit && !unit.dead ? undefined : this.host.objectAtScreen(t.sx, t.sy);
-        if (obj) this.interact(obj);
-        else this.tapOrder(screenToGround(t.sx, t.sy), unit);
-      }
+      this.finishTap();
       return;
     }
     if (!this.dragStart || p.leftButtonDown()) return;
@@ -271,23 +286,48 @@ export class InputController {
     s.selection = [];
   }
 
-  /** 行動版手勢：單指拖曳移動鏡頭；雙指不縮放（遠近固定），只取消點擊。處理了就回傳 true */
-  private touchGesture(p: Phaser.Input.Pointer): boolean {
-    const input = this.host.scene.input;
-    const cam = this.host.scene.cameras.main;
-    const p1 = input.pointer1;
-    const p2 = input.pointer2;
-    if (p1?.isDown && p2?.isDown) {
-      if (this.tap) this.tap.moved = true;
-      return true;
+  /** 行動版：放開時沒有拖曳才算點擊 */
+  private finishTap(): void {
+    const t = this.tap;
+    this.tap = null;
+    if (!t || t.moved) return;
+    const unit = this.host.unitAtScreen(t.sx, t.sy);
+    const obj = unit && !unit.dead ? undefined : this.host.objectAtScreen(t.sx, t.sy);
+    if (obj) this.interact(obj);
+    else this.tapOrder(screenToGround(t.sx, t.sy), unit);
+  }
+
+  /** 瀏覽器畫面 px → 遊戲邏輯 px（舞台有 CSS 縮放） */
+  private clientScale(): number {
+    const game = this.host.scene.game;
+    const w = game.canvas.getBoundingClientRect().width;
+    return w > 0 ? game.scale.width / w : 1;
+  }
+
+  /** 行動版拖曳：單指拖曳移動鏡頭（在任何面板上都算，直到放開）；雙指不縮放（遠近固定），只取消點擊 */
+  private onNativeMove(e: PointerEvent): void {
+    const t = this.tap;
+    if (!t || t.pid === null || e.pointerId !== t.pid) return;
+    const k = this.clientScale();
+    if (this.nativePointers.size > 1) {
+      t.moved = true;
+    } else {
+      if (!t.moved && Math.hypot(e.clientX - t.cx0, e.clientY - t.cy0) * k > 10) t.moved = true;
+      if (t.moved) {
+        const cam = this.host.scene.cameras.main;
+        cam.scrollX -= ((e.clientX - t.cx) * k) / cam.zoom;
+        cam.scrollY -= ((e.clientY - t.cy) * k) / cam.zoom;
+      }
     }
-    if (!this.tap || !p.isDown) return false;
-    if (!this.tap.moved && Math.hypot(p.x - this.tap.x, p.y - this.tap.y) > 10) this.tap.moved = true;
-    if (this.tap.moved) {
-      cam.scrollX -= (p.x - p.prevPosition.x) / cam.zoom;
-      cam.scrollY -= (p.y - p.prevPosition.y) / cam.zoom;
-    }
-    return this.tap.moved;
+    t.cx = e.clientX;
+    t.cy = e.clientY;
+  }
+
+  private onNativeUp(e: PointerEvent): void {
+    this.nativePointers.delete(e.pointerId);
+    const t = this.tap;
+    // 放開的地方可能是面板（Phaser 收不到）：在這裡結束拖曳；在地圖上放開時 Phaser 的 pointerup 會看到 tap 已經結束
+    if (t && t.pid !== null && e.pointerId === t.pid) this.finishTap();
   }
 
   private attackMove(m: Vec): void {
