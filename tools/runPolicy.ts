@@ -23,6 +23,8 @@ import { createRun, livingHeroes } from '../src/run/runState';
 import { rollParty } from '../src/run/classes';
 import { maxHpOf } from '../src/run/upgrades';
 import { HeroScript } from './heroScript';
+import { buyItem, canBuy, canEquip, equipItem } from '../src/run/items';
+import { ITEMS } from '../src/sim/data/items';
 import { DeliberateScript } from './deliberateScript';
 import type { RunStyle } from '../src/run/data/levels';
 
@@ -62,6 +64,7 @@ export function stepRun(r: RunState, scripted = true): RunState {
       return applyBattleResult(r, battleOutcomeFromWorld(world));
     }
     case 'reward': {
+      r = autoEquip(r);
       const id = p.options[0];
       const up = UPGRADES[id];
       if (up.scope === 'party') return chooseReward(r, { upgradeId: id });
@@ -85,9 +88,26 @@ export function stepRun(r: RunState, scripted = true): RunState {
       const i = eventOptions(r).findIndex((o) => o.available);
       return chooseEventOption(r, i);
     }
+    case 'shop': {
+      // 買得起就買最貴的一件，裝給道具最少的存活英雄
+      const can = p.stock.filter((id) => canBuy(r, id)).sort((a, b) => ITEMS[b].price - ITEMS[a].price);
+      if (can.length) return autoEquip(buyItem(r, can[0]));
+      return leaveNode(r);
+    }
     case 'ended':
       return r;
   }
+}
+
+/** 背包裡的道具裝給道具最少的存活英雄（裝不下就留在背包） */
+function autoEquip(r: RunState): RunState {
+  for (const id of [...(r.inventory ?? [])]) {
+    const t = livingHeroes(r)
+      .filter(({ slot }) => canEquip(r, slot, id))
+      .sort((a, b) => (a.hero.items?.length ?? 0) - (b.hero.items?.length ?? 0))[0];
+    if (t) r = equipItem(r, t.slot, id);
+  }
+  return r;
 }
 
 /** 自動遠征的隊伍：random＝4 名都隨機（SPEC_SLICE3 §8，預設）；fixed＝四個 Archetype */

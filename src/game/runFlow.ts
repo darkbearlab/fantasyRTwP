@@ -5,7 +5,7 @@
 import type Phaser from 'phaser';
 import type { RunState } from '../run/runState';
 
-const RUN_SCENES = ['Title', 'PartySelect', 'Map', 'Battle', 'UI', 'Result', 'Event', 'Rest', 'Reward', 'RunEnd'];
+const RUN_SCENES = ['Title', 'PartySelect', 'Map', 'Battle', 'UI', 'Result', 'Event', 'Rest', 'Reward', 'RunEnd', 'Shop'];
 
 export function getRun(scene: Phaser.Scene): RunState {
   return scene.registry.get('run') as RunState;
@@ -32,6 +32,7 @@ export function gotoPhase(scene: Phaser.Scene): void {
     reward: 'Reward',
     event: 'Event',
     rest: 'Rest',
+    shop: 'Shop',
     ended: 'RunEnd',
   }[run.phase.kind];
   switchTo(scene, target, target === 'Battle' ? { run: true } : undefined);

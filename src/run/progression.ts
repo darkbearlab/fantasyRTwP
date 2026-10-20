@@ -15,6 +15,8 @@ import { cloneRun, firstEmptySlot, livingHeroes } from './runState';
 import { pickN, rngFor } from './seed';
 import { grantUpgrade, maxHpOf, recruitInto, rollUpgrades } from './upgrades';
 import { recruitPool } from './classes';
+import { rollItemDrop, rollShopStock } from './items';
+import { ITEMS } from '../sim/data/items';
 
 /** 下一步可以前往的節點 */
 export function availableNodes(run: RunState): MapNode[] {
@@ -58,6 +60,9 @@ export function chooseNode(run: RunState, nodeId: number): RunState {
       r.phase = { kind: 'event', nodeId, eventId, resolved: false };
       break;
     }
+    case 'shop':
+      r.phase = { kind: 'shop', nodeId, stock: rollShopStock(rngFor(r.seed, 'shop', nodeId)), sold: [] };
+      break;
     case 'rest': {
       const rng = rngFor(r.seed, 'rest', nodeId);
       r.phase = {
@@ -133,7 +138,16 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
   const rng = rngFor(r.seed, 'reward', nodeId, fromEvent ? 'event' : 'node');
   const options = rollUpgrades(rng, elite ? ECONOMY.eliteRewardChoices : ECONOMY.rewardChoices, elite);
   r.journal.push(`第 ${node.layer} 層：${encounterFor(run, nodeId, run.phase.encounterId).name}勝利（${outcome.time.toFixed(0)} 秒），獲得 ${gold} 金幣。`);
-  r.phase = { kind: 'reward', nodeId, options, elite, gold };
+  // 沉穩節奏：打贏節點時機率掉落道具（精英必掉；SPEC_SLICE5 §17）
+  let item: string | undefined;
+  if (runStyle(r) === 'deliberate') {
+    item = rollItemDrop(rngFor(r.seed, 'itemDrop', nodeId, fromEvent ? 'event' : 'node'), elite ? 'elite' : fromEvent ? 'event' : 'battle') ?? undefined;
+    if (item) {
+      (r.inventory ??= []).push(item);
+      r.journal.push(`撿到了「${ITEMS[item].name}」。`);
+    }
+  }
+  r.phase = { kind: 'reward', nodeId, options, elite, gold, item };
   return r;
 }
 
@@ -161,7 +175,7 @@ function toMap(r: RunState): RunState {
 /** 離開事件／休息，回到路線圖 */
 export function leaveNode(run: RunState): RunState {
   if (run.phase.kind === 'event' && !run.phase.resolved) throw new Error('事件還沒有選擇');
-  if (run.phase.kind !== 'event' && run.phase.kind !== 'rest') throw new Error('目前不能離開');
+  if (run.phase.kind !== 'event' && run.phase.kind !== 'rest' && run.phase.kind !== 'shop') throw new Error('目前不能離開');
   return toMap(cloneRun(run));
 }
 

@@ -24,6 +24,8 @@ export interface HeroRecord {
   hp: number;
   personality: Personality;
   upgrades: OwnedUpgrade[];
+  /** 裝備的道具（SPEC_SLICE5 §17；舊紀錄沒有） */
+  items?: string[];
   dead: boolean;
   kills: number;
   damageDealt: number;
@@ -41,7 +43,10 @@ export interface BattleBuff {
 export type RunPhase =
   | { kind: 'map' }
   | { kind: 'battle'; nodeId: number; encounterId: string; fromEvent: boolean }
-  | { kind: 'reward'; nodeId: number; options: string[]; elite: boolean; gold: number }
+  /** item：這場掉落的道具（已放進背包） */
+  | { kind: 'reward'; nodeId: number; options: string[]; elite: boolean; gold: number; item?: string }
+  /** 商人（SPEC_SLICE5 §17）：貨架與已售出的道具 */
+  | { kind: 'shop'; nodeId: number; stock: string[]; sold: string[] }
   | { kind: 'event'; nodeId: number; eventId: string; resultText?: string; resolved: boolean }
   | {
       kind: 'rest';
@@ -86,6 +91,8 @@ export interface RunState {
   journal: string[];
   /** 戰鬥形式：deliberate＝沉穩節奏、horde＝大型關卡、tactical＝戰術戰鬥（舊紀錄沒有，視為 tactical） */
   style?: RunStyle;
+  /** 背包：還沒裝備的道具 */
+  inventory?: string[];
 }
 
 export function newHero(classId: string, personality?: Personality): HeroRecord {
@@ -96,6 +103,7 @@ export function newHero(classId: string, personality?: Personality): HeroRecord 
     hp: def.maxHp,
     personality: personality ?? def.personality ?? 'steadfast',
     upgrades: [],
+    items: [],
     dead: false,
     kills: 0,
     damageDealt: 0,
@@ -110,10 +118,11 @@ export function newHero(classId: string, personality?: Personality): HeroRecord 
 export function createRun(seed: number, opts: { layers?: number; party?: string[]; style?: RunStyle } = {}): RunState {
   const party: (HeroRecord | null)[] = (opts.party ?? HERO_ORDER).slice(0, ECONOMY.partySize).map((id) => newHero(id));
   while (party.length < ECONOMY.partySize) party.push(null);
+  const style = opts.style ?? LEVELS.expeditionStyle;
   return {
     version: 1,
     seed: seed >>> 0,
-    map: generateMap(seed, opts.layers ?? ECONOMY.mapLayers),
+    map: generateMap(seed, opts.layers ?? ECONOMY.mapLayers, { shops: style === 'deliberate' }),
     currentNodeId: null,
     path: [],
     gold: ECONOMY.startGold,
@@ -123,7 +132,8 @@ export function createRun(seed: number, opts: { layers?: number; party?: string[
     seenEvents: [],
     stats: { battles: 0, battleTime: 0, battleTimeByType: {}, heroesLost: 0, goldEarned: 0 },
     journal: [],
-    style: opts.style ?? LEVELS.expeditionStyle,
+    style,
+    inventory: [],
   };
 }
 

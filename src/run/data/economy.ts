@@ -30,6 +30,16 @@ export const ECONOMY = {
   trainChoices: 3,
   /** 敵人數值隨層數成長：1 + layerScaling × (layer − 1) */
   layerScaling: 0.05,
+  /** 裝備道具（SPEC_SLICE5 §17）：每名英雄的道具欄數 */
+  itemSlots: 2,
+  /** 打贏節點時掉落道具的機率（依節點類型；事件戰鬥算 battle）、精英掉落稀有道具的機率 */
+  itemDropChance: { battle: 0.3, elite: 1, event: 0.3 } as Record<string, number>,
+  eliteRareChance: 0.5,
+  battleRareChance: 0.15,
+  /** 商人（沉穩節奏的遠征）：路線圖上的商人節點數量（第 2 層起）、貨架上幾件、其中稀有幾件 */
+  shopNodes: [1, 2] as [number, number],
+  shopStock: 4,
+  shopRareStock: 1,
   /** 精英隊長的強化倍率 */
   captain: { hpMult: 2.5, damageMult: 1.4, radiusBonus: 0.1 },
 };

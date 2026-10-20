@@ -4,6 +4,7 @@
  * 全部數值是佔位。只在沉穩節奏（deliberate）生效；怪群模式仍用 horde.ts 的 HORDE_ATTACKS。
  */
 import type { BasicAttackStyle } from './horde';
+import type { LingeringDef } from './types';
 
 /** 數值修正（同一名單位身上的被動相加） */
 export interface PassiveMods {
@@ -20,12 +21,17 @@ export interface PassiveMods {
   range?: number;
 }
 
-/** 普攻命中時的效果；every：每第 N 次普攻命中才觸發；chance：觸發機率 */
+/**
+ * 普攻命中時的效果；every：每第 N 次普攻命中才觸發；chance：觸發機率。
+ * stun／root：暈眩、定身 duration 秒；burn：點燃目標；zone：在目標腳下留下持續區域（radius、lingering）
+ */
 export interface OnHitEffect {
-  kind: 'stun' | 'root';
-  duration: number;
+  kind: 'stun' | 'root' | 'burn' | 'zone';
+  duration?: number;
   chance?: number;
   every?: number;
+  radius?: number;
+  lingering?: LingeringDef;
 }
 
 export interface PassiveDef {
@@ -39,6 +45,8 @@ export interface PassiveDef {
   taunt?: number;
   mods?: PassiveMods;
   onHit?: OnHitEffect[];
+  /** 斬殺：對生命低於 below 比例的目標傷害 +pct */
+  execute?: { below: number; pct: number };
 }
 
 export const PASSIVES: Record<string, PassiveDef> = {
