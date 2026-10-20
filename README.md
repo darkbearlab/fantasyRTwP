@@ -153,6 +153,10 @@ heroes3d 模式下，地圖上的地形物件改用 `public/assets/props3d/` 的
 `.github/workflows/deploy.yml` 會在 `main` 有新提交時跑測試、打包並部署。第一次使用需要到
 **Settings → Pages → Build and deployment → Source** 選 **GitHub Actions**。也可以在 Actions 頁面手動執行「部署到 GitHub Pages」。
 
+## 交接
+
+接手開發請先讀 `HANDOFF.md`（目前進度、工作規則、程式地圖、驗證方法、已知問題）與 `AGENTS.md`。
+
 ## 專案結構
 
 ```
