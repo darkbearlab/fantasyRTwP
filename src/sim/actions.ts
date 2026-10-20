@@ -15,6 +15,7 @@ import { COMBOS } from './data/combos';
 import type { BasicAttackStyle } from './data/horde';
 import { HORDE_ATTACKS, HORDE_CHAIN } from './data/horde';
 import { addZone } from './zones';
+import { advanceCycleOnCast, chargeCycleOnHit } from './cycle';
 
 /** 打斷造成的硬直秒數 */
 export const INTERRUPT_STUN = 0.5;
@@ -145,6 +146,8 @@ export function finishWindup(world: World, u: Unit): void {
   // 消耗一次使用；若沒有正在回復的冷卻就開始計算（冷卻從生效那一刻開始）
   u.charges[def.id] = Math.max(0, (u.charges[def.id] ?? 1) - 1);
   if ((u.cooldowns[def.id] ?? 0) <= 0) u.cooldowns[def.id] = skillCooldownOf(world, u, def.id);
+  // 技能循環：換下一招（SPEC_SLICE5 §16）
+  advanceCycleOnCast(u, def.id);
   const target = a.targetId !== undefined ? world.getUnit(a.targetId) : undefined;
   const dash = applySkillEffect(world, u, def, target, a.point);
   if (u.dead || !u.action) return;
@@ -461,6 +464,10 @@ function applySkillEffect(world: World, u: Unit, def: SkillDef, t: Unit | undefi
       a.hitIds = [];
       return true;
     }
+    case 'curseBurst':
+      if (!t || t.dead) return false;
+      world.spawnProjectile(u, eff.projectileKind ?? 'curse', eff.projectileSpeed ?? 24, { type: 'curseBurst', skillId: def.id }, { unit: t });
+      return false;
     case 'pull':
       if (!t || t.dead) return false;
       pullTo(world, u, t, eff.mult);
@@ -727,6 +734,8 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): Uni
   applyDamage(world, target, final, p.damageType, src, { crit, skillId: p.skillId, freeAttack: p.freeAttack });
   if (target.dead) return target;
   if (p.basic && src.passives.length > 0) passiveOnHit(world, src, target);
+  // 蓄力循環（法師）：普攻命中累積充能
+  if (p.basic && src.cycle && chargeCycleOnHit(src)) world.emit({ type: 'notice', unitId: src.id, text: `${SKILLS[src.cycle.steps[1]].name}準備好了` });
   if (target.dead) return target;
   if (p.interrupts) interrupt(world, src, target);
   if (p.stun) applyStun(world, target, p.stun);
@@ -903,6 +912,20 @@ export function resolveProjectilePayload(world: World, src: Unit, p: Projectile,
     case 'aoeHeal':
       healArea(world, src, p.point!, SKILLS[pl.skillId]);
       break;
+    case 'curseBurst': {
+      const eff = SKILLS[pl.skillId].effect;
+      if (!target || target.dead || eff.kind !== 'curseBurst') break;
+      const cursed = target.curseTime > 0;
+      // 先解除詛咒再結算（引爆本身不吃詛咒的易傷）
+      if (cursed) {
+        target.curseTime = 0;
+        target.hexed = false;
+        world.emit({ type: 'status', unitId: target.id, text: '詛咒爆裂' });
+      }
+      const dmg = rollDamage(world.rng, cursed ? eff.damage : eff.uncursedDamage, damageMultOf(world, src));
+      applyDamage(world, target, applyArmor(dmg, target.armor), 'spell', src, { skillId: pl.skillId });
+      break;
+    }
     case 'root':
       if (target && !target.dead) {
         target.rootTime = Math.max(target.rootTime, pl.duration);

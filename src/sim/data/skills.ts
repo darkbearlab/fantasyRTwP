@@ -114,6 +114,17 @@ export const SKILLS: Record<string, SkillDef> = {
     target: 'ground', range: 10, windup: 0.8, recovery: 0.8, cooldown: 10, requiresLos: false,
     effect: { kind: 'aoe', radius: 2, damage: [10, 14], friendlyFire: false, ignites: true, burns: true, lingering: { duration: 5, affects: 'enemy', effects: [{ kind: 'burn' }], style: 'fire' }, projectileSpeed: 14, projectileKind: 'flask' },
   },
+  // ── 技能循環的第二招（SPEC_SLICE5 §16） ──
+  greatFireball: {
+    id: 'greatFireball', name: '大火球', description: '（充能 5 層後）半徑 3.5 m 範圍傷害 30–40，會傷到友軍',
+    target: 'ground', range: 12, windup: 2.0, recovery: 1.2, cooldown: 4, requiresLos: true,
+    effect: { kind: 'aoe', radius: 3.5, damage: [30, 40], friendlyFire: true, ignites: true, projectileSpeed: 16, projectileKind: 'fireball' },
+  },
+  curseBurst: {
+    id: 'curseBurst', name: '詛咒爆裂', description: '引爆目標身上的詛咒：傷害 20–28 並解除詛咒；目標沒有詛咒時只有 6–9',
+    target: 'enemy', range: 10, windup: 0.5, recovery: 0.8, cooldown: 3, requiresLos: true,
+    effect: { kind: 'curseBurst', damage: [20, 28], uncursedDamage: [6, 9], projectileSpeed: 24, projectileKind: 'curse' },
+  },
   // ── 切片 3 新敵人 ──
   ram: {
     id: 'ram', name: '撞擊', description: '衝向英雄（無視控制區），抵達時攻擊並擊退 2 m',
