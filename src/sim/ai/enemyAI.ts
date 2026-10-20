@@ -6,6 +6,7 @@ import { SKILLS } from '../data/skills';
 import type { Vec } from '../math';
 import { dist } from '../math';
 import { lineWalkable } from '../nav/smooth';
+import { scaleRange } from '../simConfig';
 import type { Unit } from '../unit';
 import type { World } from '../world';
 import { edgeDistance, pinnersAt } from '../zoc';
@@ -100,7 +101,7 @@ export function enemyThink(world: World, u: Unit): void {
       // 撞擊：衝向有一段距離的英雄
       const t = nearest(u, heroes);
       const d = edgeDistance(u, t);
-      if (u.skillReady('ram') && u.def.skills.includes('ram') && d > 2.5 && d <= SKILLS.ram.range && world.canSee(u, t)) {
+      if (u.skillReady('ram') && u.def.skills.includes('ram') && d > 2.5 && d <= scaleRange(world.config, SKILLS.ram.range) && world.canSee(u, t)) {
         world.issueOrder(u, { type: 'skill', skillId: 'ram', targetId: t.id });
         return;
       }
@@ -119,7 +120,7 @@ export function enemyThink(world: World, u: Unit): void {
         }
       }
       if (u.def.skills.includes('bomb') && u.skillReady('bomb')) {
-        const inRange = heroes.filter((h) => dist(u.pos, h.pos) <= SKILLS.bomb.range);
+        const inRange = heroes.filter((h) => dist(u.pos, h.pos) <= scaleRange(world.config, SKILLS.bomb.range));
         const p = inRange.length ? bestClusterPoint(u, inRange, SKILLS.bomb) : null;
         if (p) {
           world.issueOrder(u, { type: 'skill', skillId: 'bomb', point: p });
@@ -296,20 +297,20 @@ function deliberateThink(world: World, u: Unit): void {
 
   switch (u.def.ai) {
     case 'charger':
-      if (ready('rush') && d > 2.5 && d <= SKILLS.rush.range && sees) {
+      if (ready('rush') && d > 2.5 && d <= scaleRange(world.config, SKILLS.rush.range) && sees) {
         world.issueOrder(u, { type: 'skill', skillId: 'rush', point: { ...t.pos } });
         return;
       }
       break;
     case 'assassin':
-      if (ready('leap') && d > 2.5 && d <= SKILLS.leap.range && sees) {
+      if (ready('leap') && d > 2.5 && d <= scaleRange(world.config, SKILLS.leap.range) && sees) {
         world.issueOrder(u, { type: 'skill', skillId: 'leap', point: { ...t.pos } });
         return;
       }
       break;
     case 'hooker': {
       // 優先鉤後排；目標是近戰時就直接打
-      const back = heroes.filter((h) => !h.def.projectsZoc && edgeDistance(u, h) > 2 && edgeDistance(u, h) <= SKILLS.hook.range && world.canSee(u, h));
+      const back = heroes.filter((h) => !h.def.projectsZoc && edgeDistance(u, h) > 2 && edgeDistance(u, h) <= scaleRange(world.config, SKILLS.hook.range) && world.canSee(u, h));
       if (ready('hook') && back.length > 0) {
         const v = back.sort((a, b) => targetScore(world, u, b, -1) - targetScore(world, u, a, -1))[0];
         world.issueOrder(u, { type: 'skill', skillId: 'hook', targetId: v.id });
@@ -320,7 +321,7 @@ function deliberateThink(world: World, u: Unit): void {
     case 'priest': {
       if (ready('mend')) {
         const hurt = world.units
-          .filter((a) => a.team === u.team && a !== u && !a.dead && a.hp / a.maxHp < PRIEST_HEAL_BELOW && edgeDistance(u, a) <= SKILLS.mend.range + 4)
+          .filter((a) => a.team === u.team && a !== u && !a.dead && a.hp / a.maxHp < PRIEST_HEAL_BELOW && edgeDistance(u, a) <= scaleRange(world.config, SKILLS.mend.range) + 4)
           .sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp);
         if (hurt.length > 0) {
           world.issueOrder(u, { type: 'skill', skillId: 'mend', targetId: hurt[0].id });
@@ -341,7 +342,7 @@ function deliberateThink(world: World, u: Unit): void {
     case 'bomber':
       if (keepDistance(world, u, heroes)) return;
       if (u.def.ai === 'bomber' && ready('bomb')) {
-        const inRange = heroes.filter((h) => dist(u.pos, h.pos) <= SKILLS.bomb.range);
+        const inRange = heroes.filter((h) => dist(u.pos, h.pos) <= scaleRange(world.config, SKILLS.bomb.range));
         const p = inRange.length ? bestClusterPoint(u, inRange, SKILLS.bomb) : null;
         if (p) {
           world.issueOrder(u, { type: 'skill', skillId: 'bomb', point: p });
@@ -371,7 +372,7 @@ function deliberateThink(world: World, u: Unit): void {
       }
       break;
     case 'siege':
-      if (ready('ram') && d > 2.5 && d <= SKILLS.ram.range && sees) {
+      if (ready('ram') && d > 2.5 && d <= scaleRange(world.config, SKILLS.ram.range) && sees) {
         world.issueOrder(u, { type: 'skill', skillId: 'ram', targetId: t.id });
         return;
       }

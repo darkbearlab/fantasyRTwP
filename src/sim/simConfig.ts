@@ -47,6 +47,11 @@ export interface SimConfig {
   basicAttackSpeedMult: number;
   /** 技能冷卻倍率（怪群模式 0.6） */
   skillCooldownMult: number;
+  /**
+   * 交戰距離倍率（沉穩節奏 0.6，Alan：整體交戰距離縮短）：套用在 1 m 以上的普攻射程與技能施放距離。
+   * 近戰（< 1 m）、範圍半徑、視野不受影響；換算一律經過 scaleRange。
+   */
+  rangeMult: number;
   /** 攻擊移動：途中自動接戰的距離（邊緣距離，公尺） */
   attackMoveRange: number;
   /**
@@ -77,7 +82,13 @@ export const DEFAULT_SIM_CONFIG: SimConfig = {
   enemyAggroTime: 20,
   basicAttackSpeedMult: 1,
   skillCooldownMult: 1,
+  rangeMult: 1,
   attackMoveRange: 6,
   attackMoveFocus: 'self',
   fogOfWar: true,
 };
+
+/** 射程換算（交戰距離倍率）：近戰（< 1 m）不縮 */
+export function scaleRange(config: SimConfig, range: number): number {
+  return range >= 1 ? range * config.rangeMult : range;
+}

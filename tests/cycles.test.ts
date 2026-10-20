@@ -13,12 +13,14 @@ import { HOLD, makeWorld, run } from './helpers';
 const D = deliberateConfig();
 
 describe('技能循環（SPEC_SLICE5 §16）', () => {
-  it('遠征：法師與咒術師帶齊循環的每一招，技能鈕顯示第一招', () => {
+  it('遠征：咒術師帶齊循環的每一招，技能鈕顯示第一招；法師（Alan 2026-10-20）只有一招火球、沒有循環', () => {
     const r = createRun(5, { party: ['mage', 'hexer', 'warrior', 'cleric'] });
     const w = createBattleFromRun(chooseNode(r, r.map.layers[0][0]));
     const mage = w.units.find((u) => u.def.id === 'mage')!;
     const hexer = w.units.find((u) => u.def.id === 'hexer')!;
-    expect(mage.def.skills).toEqual(ACTIVE_CYCLES.mage.steps);
+    expect(ACTIVE_CYCLES.mage).toBeUndefined();
+    expect(mage.def.skills).toEqual(['flashFireball']);
+    expect(mage.cycle).toBeUndefined();
     expect(hexer.def.skills).toEqual(ACTIVE_CYCLES.hexer.steps);
     expect(currentActiveSkill(mage)).toBe('flashFireball');
     expect(currentActiveSkill(hexer)).toBe('curse');
@@ -26,29 +28,13 @@ describe('技能循環（SPEC_SLICE5 §16）', () => {
     expect(w.units.find((u) => u.def.id === 'warrior')!.cycle).toBeUndefined();
   });
 
-  it('法師：普攻命中 5 次後火球（即時）換成大火球；放完大火球歸零', () => {
-    const def = { ...HEROES.mage, skills: ['flashFireball', 'greatFireball'] };
-    // 標靶：打不死、不還手、好命中
-    const dummy = { ...ENEMIES.minion, maxHp: 9999, defense: 0, damage: [0, 0] as [number, number] };
-    const w = makeWorld([{ defId: 'mage', def, pos: { x: 3, y: 6 } }, { defId: 'minion', def: dummy, pos: { x: 9, y: 6 } }], D, undefined, 1, HOLD);
-    const m = w.getUnit(1)!;
-    w.enqueue({ type: 'attack', unitIds: [1], targetId: 2 });
-    let ticks = 0;
-    while (m.cycleStep === 0 && ticks < 120 * 30) {
-      run(w, 1);
-      ticks++;
-      if (!m.order && !m.action) w.enqueue({ type: 'attack', unitIds: [1], targetId: 2 });
+  it('charge 循環（通用機制，暫時掛在法師上測）：普攻命中 5 次後換成第二招；放完歸零', () => {
+    ACTIVE_CYCLES.mage = { mode: 'charge', steps: ['flashFireball', 'greatFireball'], chargeMax: 5 };
+    try {
+      chargeCycleCase();
+    } finally {
+      delete ACTIVE_CYCLES.mage;
     }
-    expect(m.cycleCharge).toBe(5);
-    expect(currentActiveSkill(m)).toBe('greatFireball');
-    // 放的是第一招：還沒輪到
-    w.enqueue({ type: 'skill', unitId: 1, skillId: 'flashFireball', point: { x: 9, y: 6 } });
-    expect(run(w, 4 * 30).some((e) => e.type === 'notice' && e.text === '還沒輪到這一招')).toBe(true);
-    w.enqueue({ type: 'skill', unitId: 1, skillId: 'greatFireball', point: { x: 9, y: 6 } });
-    const evs = run(w, 12 * 30);
-    expect(evs.some((e) => e.type === 'aoe' && e.skillId === 'greatFireball')).toBe(true);
-    expect(m.cycleStep).toBe(0);
-    expect(m.cycleCharge).toBeLessThan(5);
   });
 
   it('咒術師：衰弱詛咒 → 詛咒爆裂（引爆詛咒、傷害較高）→ 回到衰弱詛咒', () => {
@@ -71,3 +57,28 @@ describe('技能循環（SPEC_SLICE5 §16）', () => {
     expect(currentActiveSkill(h)).toBe('curse');
   });
 });
+
+function chargeCycleCase(): void {
+  const def = { ...HEROES.mage, skills: ['flashFireball', 'greatFireball'] };
+  // 標靶：打不死、不還手、好命中
+  const dummy = { ...ENEMIES.minion, maxHp: 9999, defense: 0, damage: [0, 0] as [number, number] };
+  const w = makeWorld([{ defId: 'mage', def, pos: { x: 3, y: 6 } }, { defId: 'minion', def: dummy, pos: { x: 9, y: 6 } }], D, undefined, 1, HOLD);
+  const m = w.getUnit(1)!;
+  w.enqueue({ type: 'attack', unitIds: [1], targetId: 2 });
+  let ticks = 0;
+  while (m.cycleStep === 0 && ticks < 120 * 30) {
+    run(w, 1);
+    ticks++;
+    if (!m.order && !m.action) w.enqueue({ type: 'attack', unitIds: [1], targetId: 2 });
+  }
+  expect(m.cycleCharge).toBe(5);
+  expect(currentActiveSkill(m)).toBe('greatFireball');
+  // 放的是第一招：還沒輪到
+  w.enqueue({ type: 'skill', unitId: 1, skillId: 'flashFireball', point: { x: 9, y: 6 } });
+  expect(run(w, 4 * 30).some((e) => e.type === 'notice' && e.text === '還沒輪到這一招')).toBe(true);
+  w.enqueue({ type: 'skill', unitId: 1, skillId: 'greatFireball', point: { x: 9, y: 6 } });
+  const evs = run(w, 12 * 30);
+  expect(evs.some((e) => e.type === 'aoe' && e.skillId === 'greatFireball')).toBe(true);
+  expect(m.cycleStep).toBe(0);
+  expect(m.cycleCharge).toBeLessThan(5);
+}

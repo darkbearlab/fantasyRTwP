@@ -99,7 +99,8 @@ describe('沉穩節奏的敵人（SPEC_SLICE5 §15）', () => {
   });
 
   it('鉤手：把後排英雄拉到身前', () => {
-    const w = D([{ defId: 'warrior', pos: { x: 15, y: 2 } }, { defId: 'mage', pos: { x: 4, y: 6 } }, { defId: 'hooker', pos: { x: 11, y: 6 } }]);
+    // 交戰距離 ×0.6：鉤鎖射程 8 → 4.8 m
+    const w = D([{ defId: 'warrior', pos: { x: 15, y: 2 } }, { defId: 'mage', pos: { x: 6.5, y: 6 } }, { defId: 'hooker', pos: { x: 11, y: 6 } }]);
     const evs = run(w, 4 * 30);
     expect(evs.some((e) => e.type === 'actionStart' && e.unitId === 3 && e.skillId === 'hook' && e.targetId === 2)).toBe(true);
     expect(evs.some((e) => e.type === 'status' && e.unitId === 2 && e.text === '被鉤住')).toBe(true);

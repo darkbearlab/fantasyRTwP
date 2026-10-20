@@ -120,4 +120,6 @@ export const ACTIVE_SKILL_OVERRIDE: Record<string, string> = {
   cleric: 'healFlask',
   // Alan v0.4：火焰瓶要真的在地上留下持續效果
   alchemist: 'fireFlask',
+  // Alan（2026-10-20）：法師只有一招火球——不用等準備（沒有地上預告），直接丟出、有飛行時間，放完進冷卻
+  mage: 'flashFireball',
 };
