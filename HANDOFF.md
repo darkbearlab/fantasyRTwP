@@ -84,6 +84,14 @@
   - 手工預製件（交接文件 §10）：`src/run/data/tilePrefabs/*.json`，`BootScene` 用 `import.meta.glob` 登記（`tilePrefabRegistry.ts`）；城內沒有預製件的房子是佔位矩形（首都一系列的圖之後重做）。
   - 像素單位有陣營色外框（`VISUAL.teamOutline`），另外疊一層在樹冠、牆之上，被遮住也看得到。
   - 石牆用拉高版（`FBB_VIEW.tallWalls`，Alan 還沒在兩版之間定案）；調色只做乘色，飽和度還沒做。
+  - **小衝突導演**（Alan：類似 L4D 的 AI 導演，探索永遠有威脅感）：`src/sim/skirmishDirector.ts`、資料 `src/sim/data/skirmish.ts`。
+    - 每 12～18 秒在視野外、和前幾波不同的方向叫出 2～3 名敵人，一波的「估計處理秒數」不超過 10 秒，沒有總數上限。
+    - 導演叫來的還活著 5 名以上就先等。
+    - 波次的敵人沒接戰時沿流場（水流法，`world.flowNext`）往隊伍走，接近後照一般 AI；流場走不到的窄處改用 A*。
+    - 只在沉穩節奏的 fbb 地圖、非頭目關卡（`createBattleFromRun`）。量測：`npx tsx tools/skirmishMeasure.ts`。
+  - **雜魚**：劍兵 `raider`、斧兵 `axeman`（帝國軍 sprite）。生命低、傷害高、優先撲後排；被戰士嘲諷或貼身擋住就打戰士。
+  - **鐵砧**：盾兵不當雜兵；營地、檢查點、城內小隊各一名盾兵站在正中（`SITES.*.anvil`、`TOWN.anvil`），不參與升級。
+  - 角色直徑約 1 m：城內巷子至少 2 格、哨點內側至少 2 格；轉成戰鬥地圖時再用導航格（半徑 0.55）驗一次可達性，不通就換子種子。
   - 素材不在（CI、沒拉素材）時退回程式畫的方塊。試產工具：`tools/fieldPreview.ts`、`tools/townPreview.ts`。
 - **下完指令不取消選取**：`GAME_CONFIG.deselectAfterOrder`（預設 false）。
 - **角色縮放**：`VISUAL.unitScale`（0.8，只影響畫面；`unitHeight()` 已乘上這個值），碰撞半徑與腳下圈不變。

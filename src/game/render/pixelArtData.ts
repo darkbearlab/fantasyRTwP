@@ -63,6 +63,9 @@ export const PIXEL_UNITS: Record<string, PixelUnitArt> = {
   shieldbearer: mw('mw/recolor/Imperial/LanceKnight/LanceKnight_Imperial.png'),
   charger: mw('mw/recolor/Imperial/LanceCavalier/LanceCavalier_ShortHair_Imperial1.png'),
   hooker: mw('mw/recolor/Bandit/SpearFighter/SpearFighter_ShortHair_Bandit1.png'),
+  // 小波次的雜魚（Alan：用劍兵、斧兵的 sprite）：帝國軍
+  raider: mw('mw/recolor/Imperial/SwordFighter/SwordFighter_ShortHair_Imperial1.png'),
+  axeman: mw('mw/recolor/Imperial/AxeFighter/AxeFighter_LongHair_Imperial1.png'),
   // ── 非人類（0x72） ──
   thrall: m72('skelet'),
   minion: m72('skelet'),

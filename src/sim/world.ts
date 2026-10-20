@@ -17,6 +17,8 @@ import { Interactables, approachPoint, distToRect, inInteractRange, rectOf } fro
 import { HORDE, HORDE_VISION } from './data/horde';
 import { Vision } from './vision';
 import { Director } from './director';
+import { SkirmishDirector } from './skirmishDirector';
+import type { SkirmishDef } from './data/skirmish';
 import { FlowField } from './nav/flowField';
 import { hordeThink } from './ai/hordeAI';
 import { autocastOrder, canAutocast } from './ai/autocast';
@@ -75,6 +77,8 @@ export interface WorldOptions {
   horde?: HordeSetup;
   /** 啟用視線與戰爭迷霧（非怪群遭遇用；怪群遭遇看 horde.fog） */
   fog?: boolean;
+  /** 小衝突導演（沉穩節奏的程序生成地圖；layer＝敵人池解鎖的層數） */
+  skirmish?: { def: SkirmishDef; layer: number };
 }
 
 export type ProjectilePayload =
@@ -197,6 +201,8 @@ export class World implements ZocContext {
   readonly vision: Vision | null = null;
   /** 自動出怪（只有設定了 director 的怪群遭遇才有） */
   readonly director: Director | null = null;
+  /** 小衝突導演（沉穩節奏：一直有小波次從不同方向湧上來） */
+  readonly skirmish: SkirmishDirector | null = null;
   private flowTick = -Infinity;
 
   constructor(opts: WorldOptions) {
@@ -247,6 +253,7 @@ export class World implements ZocContext {
       this.vision = new Vision(this.map.width, this.map.height, HORDE_VISION.cell, this.sight);
       this.updateVision();
     }
+    if (opts.skirmish) this.skirmish = new SkirmishDirector(opts.skirmish.def, opts.skirmish.layer, this);
   }
 
   /** 戰爭迷霧是否生效（有迷霧資料且設定沒關掉） */
@@ -528,6 +535,7 @@ export class World implements ZocContext {
     if (this.vision && this.tick % HORDE_VISION.interval === 0) this.updateVision();
     this.updateWaves();
     this.director?.update(this);
+    this.skirmish?.update(this);
     this.updateAggro();
     this.updateAuras();
     this.updateBrushSight();

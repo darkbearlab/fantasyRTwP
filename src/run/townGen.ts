@@ -309,7 +309,7 @@ function tryGenerate(rng: Rng, seed: number, opts: TownOptions): TownLevel | nul
           const pf = pfs[rng.int(0, pfs.length - 1)];
           if (rng.chance(HO.prefabChance) && fits(x, yb - pf.h + 1, pf.w, pf.h)) {
             addHouse(x, yb - pf.h + 1, pf.w, pf.h, pf);
-            x += pf.w + (rng.chance(HO.gapChance) ? 1 : 0);
+            x += pf.w + (rng.chance(HO.gapChance) ? HO.gapWidth : 0);
             continue;
           }
           let w = rng.int(HO.w[0], HO.w[1]);
@@ -319,7 +319,7 @@ function tryGenerate(rng: Rng, seed: number, opts: TownOptions): TownLevel | nul
             continue;
           }
           addHouse(x, yb - d + 1, w, d);
-          x += w + (rng.chance(HO.gapChance) ? 1 : 0);
+          x += w + (rng.chance(HO.gapChance) ? HO.gapWidth : 0);
         }
         yb = yb - d - rng.int(HO.alley[0], HO.alley[1]);
         continue;
@@ -342,7 +342,7 @@ function tryGenerate(rng: Rng, seed: number, opts: TownOptions): TownLevel | nul
         // 剩下太窄放不下另一棟：把這棟拉寬吃掉
         while (w < wMax + 2 && fits(x, yt, w + 1, d) && !fits(x + w + 1, yt, wMin, d)) w++;
         addHouse(x, yt, w, d);
-        x += w + (rng.chance(HO.gapChance) ? 1 : 0);
+        x += w + (rng.chance(HO.gapChance) ? HO.gapWidth : 0);
       }
       yb = yt - 1 - rng.int(HO.alley[0], HO.alley[1]);
     }
@@ -454,7 +454,7 @@ function tryGenerate(rng: Rng, seed: number, opts: TownOptions): TownLevel | nul
       const x = px + qx * j;
       const y = py + qy * j;
       if (!inside(x, y) || blocked[idx(x, y)]) continue;
-      enemies.push({ enemy: pick(T.grunts).enemy, x, y, squad: `s${k}`, facing: face });
+      enemies.push({ enemy: j === 0 && T.anvil ? T.anvil : pick(T.grunts).enemy, x, y, squad: `s${k}`, facing: face });
     }
   });
   if (chosen.length < SQ.count[0]) return null;
@@ -468,6 +468,7 @@ function tryGenerate(rng: Rng, seed: number, opts: TownOptions): TownLevel | nul
       rng,
       enemies.map((_, i) => i),
     )) {
+      if (enemies[i].enemy === T.anvil) continue;
       const cur = all.find((p) => p.enemy === enemies[i].enemy)?.cost ?? 1;
       const price = (p: { cost: number }) => Math.max(1, p.cost - cur);
       const ups = pool.filter((p) => !grunts.has(p.enemy) && p.cost >= cur && price(p) <= points);

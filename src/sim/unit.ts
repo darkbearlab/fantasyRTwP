@@ -139,6 +139,8 @@ export class Unit {
   /** 沉穩節奏的敵人（SPEC_SLICE5 §15）：所屬小隊（一起警覺）、是否已警覺、最近受到的傷害（仇恨） */
   squad?: string;
   alerted = false;
+  /** 小衝突導演叫來的敵人：附近沒有看得到的英雄時沿著流場（水流法）往隊伍走 */
+  hunting = false;
   threatLog: { id: number; amount: number; t: number }[] = [];
   /** 盾兵的盾已破 */
   shieldBroken = false;

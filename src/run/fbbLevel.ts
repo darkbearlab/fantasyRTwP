@@ -18,7 +18,9 @@ import type { MapEdge } from './edgeLayout';
 import type { Facing, FieldLevel } from './fieldGen';
 import { generateField } from './fieldGen';
 import type { GeneratedLevel } from './levelGen';
-import { levelDifficulty } from './levelGen';
+import { floodFrom, levelDifficulty } from './levelGen';
+import { NavGrid } from '../sim/nav/grid';
+import { deriveSeed } from './seed';
 import { mergeCells } from './templateLevelGen';
 import type { TilePrefab } from './tilePrefab';
 import type { TownLevel } from './townGen';
@@ -93,8 +95,38 @@ function wrap(seed: number, kind: 'field' | 'town', opts: FbbLevelOptions, W: nu
 
 const edgeOf = (e: { edge?: MapEdge }): MapEdge => e.edge ?? 'top';
 
+/**
+ * 用戰鬥的導航格（和角色一樣的半徑）確認：出生點走得到每個出口與每名敵人。
+ * 生成器的檢查是「格子相連」，但角色直徑約 1 m，1 格寬的縫走不過去，所以這裡再驗一次。
+ */
+function navOk(level: GeneratedLevel): boolean {
+  const m = level.mapDef;
+  const nav = new NavGrid(m.width, m.height, 0.5, 0.55, m.obstacles);
+  if (!m.heroSpawns.every((p) => nav.isWalkable(p))) return false;
+  const reach = floodFrom(nav, m.heroSpawns[0]);
+  const ok = (p: { x: number; y: number }) => {
+    const c = nav.cellOf(p);
+    return nav.inBounds(c.cx, c.cy) && reach[c.cy * nav.cols + c.cx] === 1;
+  };
+  return m.heroSpawns.every(ok) && (m.exits ?? []).every((e) => ok({ x: e.x + e.w / 2, y: e.y + e.h / 2 })) && level.enemies.every(ok);
+}
+
+/** 生成到導航檢查通過為止（換子種子重來） */
+function withNavCheck(seed: number, make: (s: number) => GeneratedLevel): GeneratedLevel {
+  let last: GeneratedLevel | null = null;
+  for (let k = 0; k < 12; k++) {
+    last = make(k === 0 ? seed : deriveSeed(seed, 'nav', k));
+    if (navOk(last)) return last;
+  }
+  return last!;
+}
+
 /** 野外戰鬥地圖 */
 export function fieldEncounter(seed: number, opts: FbbLevelOptions): GeneratedLevel {
+  return withNavCheck(seed, (s) => fieldOnce(s, opts));
+}
+
+function fieldOnce(seed: number, opts: FbbLevelOptions): GeneratedLevel {
   const lv = generateField(seed, {
     tier: opts.tier,
     layer: opts.layer,
@@ -134,6 +166,10 @@ export function fieldEncounter(seed: number, opts: FbbLevelOptions): GeneratedLe
 
 /** 城內戰鬥地圖（首都突圍） */
 export function townEncounter(seed: number, opts: FbbLevelOptions & { prefabs?: TilePrefab[] }): GeneratedLevel {
+  return withNavCheck(seed, (s) => townOnce(s, opts));
+}
+
+function townOnce(seed: number, opts: FbbLevelOptions & { prefabs?: TilePrefab[] }): GeneratedLevel {
   const lv = generateTown(seed, {
     tier: opts.tier,
     layer: opts.layer,

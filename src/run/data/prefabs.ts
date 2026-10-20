@@ -53,23 +53,28 @@ export interface SiteDef {
   grunts: { enemy: string; weight: number }[];
   upgradePool: string;
   campfire: boolean;
+  /**
+   * 鐵砧（Alan 2026-10-21：盾兵適合預先安排好的點，擋住玩家讓其他敵人支援上來）：站在開口正中、第一個放；不參與升級。
+   */
+  anvil?: string;
 }
 
+/** 據點的雜兵（Alan：盾兵不當雜兵；雜魚用劍兵、斧兵，穿插弓手） */
 const MIXED_GRUNTS = [
-  { enemy: 'shieldbearer', weight: 3 },
+  { enemy: 'raider', weight: 3 },
+  { enemy: 'axeman', weight: 2 },
   { enemy: 'archer', weight: 3 },
-  { enemy: 'exploder', weight: 2 },
-];
+]
 
 export const SITES: Record<'lookout' | 'camp' | 'checkpoint', SiteDef> = {
   lookout: {
     count: [2, 4],
     roadDist: [2, 4],
     shapes: [
-      { id: 'post1', weight: 2, rows: ['###', '#.#'] },
       { id: 'post2', weight: 2, rows: ['####', '#..#'] },
       { id: 'post2deep', weight: 1, rows: ['####', '#..#', '#..#'] },
     ],
+    // 內側至少 2 格寬：1 格寬的口角色走不進去
     enemies: [1, 2],
     grunts: [{ enemy: 'archer', weight: 1 }],
     upgradePool: 'ranged',
@@ -87,6 +92,7 @@ export const SITES: Record<'lookout' | 'camp' | 'checkpoint', SiteDef> = {
     grunts: MIXED_GRUNTS,
     upgradePool: 'mixed',
     campfire: true,
+    anvil: 'shieldbearer',
   },
   checkpoint: {
     count: [1, 1],
@@ -96,6 +102,7 @@ export const SITES: Record<'lookout' | 'camp' | 'checkpoint', SiteDef> = {
     grunts: MIXED_GRUNTS,
     upgradePool: 'mixed',
     campfire: true,
+    anvil: 'shieldbearer',
   },
 };
 
