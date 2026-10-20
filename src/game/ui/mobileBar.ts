@@ -163,7 +163,9 @@ export class MobileHeroBar {
       root.style.order = String(u.heroSlot);
       root.style.setProperty('--hero', hex(u.def.color));
       const fill = el('div', 'm-fill');
-      const head = el('button', 'm-head');
+      // 用 div 而不是 button：iOS（WebKit）的 button 當 flex 容器時，沒有文字的子元素（頭像、生命條）寬度會變成 0、整個看不到
+      const head = el('div', 'm-head');
+      head.setAttribute('role', 'button');
       head.tabIndex = -1;
       const name = el('span', 'm-name', u.def.name);
       const hp = el('div', 'm-hp');
