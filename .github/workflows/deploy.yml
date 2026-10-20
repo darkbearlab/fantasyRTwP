@@ -17,6 +17,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      HAS_ASSET_KEY: ${{ secrets.ASSET_DEPLOY_KEY != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,6 +27,20 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      # 授權素材（Matt Walkden 等，不可公開散布）放在私有 repo，部署時用唯讀 deploy key 拉到 public/assets/licensed/。
+      # 沒有設定 secret 的環境（fork 等）會跳過，遊戲改用佔位圖形。
+      - name: 取得私有素材
+        if: ${{ env.HAS_ASSET_KEY == 'true' }}
+        uses: actions/checkout@v4
+        with:
+          repository: darkbearlab/fantasyRTwP-assets
+          path: public/assets/licensed
+          ssh-key: ${{ secrets.ASSET_DEPLOY_KEY }}
+          persist-credentials: false
+      # 只留遊戲用到的圖：git 資料、換色腳本、README 不打包
+      - name: 清掉素材 repo 的非遊戲檔案
+        if: ${{ env.HAS_ASSET_KEY == 'true' }}
+        run: rm -rf public/assets/licensed/.git public/assets/licensed/tools public/assets/licensed/README.md
       - run: npm run build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
