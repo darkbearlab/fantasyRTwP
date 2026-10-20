@@ -143,6 +143,25 @@ export const ENEMIES: Record<string, UnitDef> = {
     projectsZoc: false,
     skills: ['selfDestruct'],
   },
+  /**
+   * 劍兵（小波次的雜魚，Alan 2026-10-21）：生命低、跑得快、傷害高，優先撲後排。
+   * 被戰士架住（嘲諷、貼身擋路）就很快倒下；沒架住就會重創後排。數值全部佔位。
+   */
+  raider: {
+    id: 'raider', name: '劍兵', letter: 'r', color: 0xb5523a, team: 'enemy', ai: 'brute',
+    maxHp: 34, armor: 0, accuracy: 35, defense: 20, damage: [7, 11],
+    range: 0.3, windup: 0.45, recovery: 0.8, attackSpeed: 1, moveSpeed: 3.4, radius: 0.4,
+    projectsZoc: false, targeting: { distance: 1, lowHp: 0.6, backline: 1.4, threat: 0.3, sticky: 0.5 },
+    skills: [],
+  },
+  /** 斧兵（小波次的雜魚）：比劍兵硬一點、慢一點、砍得更重；同樣優先撲後排。數值全部佔位 */
+  axeman: {
+    id: 'axeman', name: '斧兵', letter: 'x', color: 0x9a3d2a, team: 'enemy', ai: 'brute',
+    maxHp: 48, armor: 2, accuracy: 30, defense: 20, damage: [9, 14],
+    range: 0.3, windup: 0.7, recovery: 1.0, attackSpeed: 1, moveSpeed: 3.0, radius: 0.45,
+    projectsZoc: false, targeting: { distance: 1, lowHp: 0.4, backline: 1.0, threat: 0.4, sticky: 0.6 },
+    skills: [],
+  },
   /** 召喚出來的屍僕（只作為召喚物；完整敵人 AI，不是怪群模式的雜兵） */
   minion: {
     id: 'minion', name: '屍僕', letter: 't', color: 0x8a6d5a, team: 'enemy', ai: 'brute',

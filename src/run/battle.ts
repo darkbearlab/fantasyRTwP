@@ -22,6 +22,7 @@ import { generateTemplateLevel } from './templateLevelGen';
 import { FBB_LEVELS, fieldLookFor } from './data/fbbLevels';
 import { fieldEncounter, townEncounter } from './fbbLevel';
 import { tilePrefabs } from './tilePrefabRegistry';
+import { SKIRMISH } from '../sim/data/skirmish';
 import type { Edge, ExitRequest } from './templateLevelGen';
 import { ROUTE_MAP } from './data/routeMap';
 import { directionTo, neighbors } from './routeMap';
@@ -185,7 +186,9 @@ export function createBattleFromRun(run: RunState, config?: Partial<SimConfig>, 
   const cfg = horde ? { ...config, ...HORDE_CONFIG } : runStyle(run) === 'deliberate' ? { ...config, ...deliberateConfig({ ...DEFAULT_SIM_CONFIG, ...config }) } : config;
   // 戰鬥中召喚的援軍也套用層數成長
   // Alan：沉穩節奏的所有關卡都有戰爭迷霧（舊的手工遭遇也是）
-  return new World({ seed, map, spawns, config: cfg, enemyDefFor: (id, captain) => scaled(id, captain), horde, fog: enc.fog || deliberate });
+  // 小衝突導演（Alan 2026-10-21）：沉穩節奏的 finalbossblues 程序生成地圖，探索途中一直有小波次湧上來
+  const skirmish = deliberate && map.art && enc.tier !== 'boss' ? { def: SKIRMISH, layer } : undefined;
+  return new World({ seed, map, spawns, config: cfg, enemyDefFor: (id, captain) => scaled(id, captain), horde, fog: enc.fog || deliberate, skirmish });
 }
 
 export interface BattleOutcome {

@@ -1,6 +1,7 @@
 /**
  * 敵人 AI（SPEC §10.3、§10.4）：每 1.0 ± 0.2 秒重新評估一次目標。
  */
+import { SKIRMISH } from '../data/skirmish';
 import { ENEMY_ALERT, ENEMY_TARGETING } from '../data/enemies';
 import { SKILLS } from '../data/skills';
 import type { Vec } from '../math';
@@ -278,6 +279,19 @@ export function pickTarget(world: World, u: Unit, heroes: Unit[]): Unit {
 
 function deliberateThink(world: World, u: Unit): void {
   if (!u.alerted) return;
+  // 小衝突導演的波次：還沒接戰時沿流場（水流法）往最近的英雄走（長路徑不必每隻各跑 A*，也不會因為太遠找不到路而停住）
+  if (u.hunting) {
+    const R = SKIRMISH.engageRange;
+    const engaged = world.units.some((h) => h.team !== u.team && !h.dead && dist(u.pos, h.pos) <= R && world.canSee(u, h));
+    // 接戰中照一般 AI；跟丟了（附近沒有看得到的英雄）就再沿流場走
+    // 流場走到盡頭（流場的格子比角色粗，窄巷、門口走不進去）時改用一般的尋路，那時已經很近了
+    const next = !engaged && world.flowDistanceAt(u.pos) > 2 ? world.flowNext(u.pos) : null;
+    if (next) {
+      if (u.order) world.setOrder(u, null);
+      world.stepToward(u, next);
+      return;
+    }
+  }
   // 自爆屍：每個節拍檢查，貼近就開始倒數
   if (u.def.ai === 'exploder' && u.skillReady('selfDestruct')) {
     const close = world.units.some((h) => h.team !== u.team && !h.dead && edgeDistance(u, h) <= EXPLODER_TRIGGER);

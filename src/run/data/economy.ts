@@ -34,6 +34,8 @@ export const ECONOMY = {
   xp: {
     perEnemy: {
       minion: 2,
+      raider: 5,
+      axeman: 7,
       exploder: 6,
       shieldbearer: 10,
       archer: 10,

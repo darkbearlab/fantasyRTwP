@@ -523,7 +523,8 @@ function tryGenerate(rng: Rng, seed: number, opts: FieldOptions): FieldLevel | n
     const n = rng.int(def.enemies[0], def.enemies[1]);
     for (let i = 0; i < n && i < spots.length && enemies.length < E.max; i++) {
       const [x, y] = spots[i];
-      enemies.push({ enemy: pick(def.grunts).enemy, x, y, squad: `${s.kind}${k}`, facing: s.facing });
+      // 第一個（開口正中那一排）是鐵砧
+      enemies.push({ enemy: i === 0 && def.anvil ? def.anvil : pick(def.grunts).enemy, x, y, squad: `${s.kind}${k}`, facing: s.facing });
       enemySite.push(s);
     }
   });
@@ -536,6 +537,7 @@ function tryGenerate(rng: Rng, seed: number, opts: FieldOptions): FieldLevel | n
     const all = LEVEL_POOLS[def.upgradePool] ?? [];
     const pool = all.filter((e) => e.minLayer <= opts.layer);
     const grunts = new Set(def.grunts.map((g) => g.enemy));
+    if (def.anvil && enemies[i].enemy === def.anvil) continue;
     const cur = all.find((p) => p.enemy === enemies[i].enemy)?.cost ?? 1;
     const price = (p: { cost: number }) => Math.max(1, p.cost - cur);
     const ups = pool.filter((p) => !grunts.has(p.enemy) && p.cost >= cur && price(p) <= points);

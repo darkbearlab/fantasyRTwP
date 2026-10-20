@@ -18,14 +18,16 @@ export const TOWN = {
   /**
    * 房子：Alan 手工拼的預製件，或佔位矩形（首都一系列的圖先佔位，之後重做）。門朝下（南）。
    * 佔位：屋頂（roofH 列）＋屋牆（wallH 列）的深度，整個矩形擋路擋視線。
-   * 街區由下往上排成一列一列；兩列之間留 alley 格寬的後巷；同一列的房子之間有 gapChance 的機率留 1 格窄巷。
+   * 街區由下往上排成一列一列；兩列之間留 alley 格寬的後巷；同一列的房子之間有 gapChance 的機率留 gapWidth 格的窄巷。
+   * 巷子至少 2 格：角色直徑約 1 m，1 格寬的巷子走不過去。
    */
   house: {
     w: [4, 7] as [number, number],
     roofH: [2, 3] as [number, number],
     wallH: 2,
-    alley: [1, 2] as [number, number],
+    alley: [2, 2] as [number, number],
     gapChance: 0.35,
+    gapWidth: 2,
     /**
      * 縱向的房子（Alan：要有縱向的）：窄而深，屋脊南北向，屋牆和門在南端（素材只有朝南的立面）。
      * 每一排有 chance 的機率改成「直排」：房子一棟棟並排，每棟寬 w、總深 depth（屋牆 wallH 列，其餘是屋頂）。
@@ -50,11 +52,14 @@ export const TOWN = {
    * 生怪格數量固定，先放雜兵，再用升級點數換成強敵（和野外相同的做法）。
    */
   squads: { count: [4, 6] as [number, number], size: [2, 3] as [number, number], minDistFromEntry: 16, barricade: [1, 2] as [number, number] },
+  /** 雜兵（Alan：盾兵不當雜兵；雜魚用劍兵、斧兵，穿插弓手） */
   grunts: [
-    { enemy: 'shieldbearer', weight: 3 },
+    { enemy: 'raider', weight: 3 },
+    { enemy: 'axeman', weight: 2 },
     { enemy: 'archer', weight: 3 },
-    { enemy: 'exploder', weight: 2 },
   ],
+  /** 鐵砧：每個小隊正中間站一名盾兵，擋住玩家讓其他敵人（含小衝突導演的波次）支援上來；不參與升級 */
+  anvil: 'shieldbearer',
   upgradePool: 'mixed',
   upgrade: { base: 1, perLayer: 0.8, eliteBonus: 3 },
   maxEnemies: 18,
