@@ -114,11 +114,17 @@ export const SKILLS: Record<string, SkillDef> = {
     target: 'ground', range: 10, windup: 0.8, recovery: 0.8, cooldown: 10, requiresLos: false,
     effect: { kind: 'aoe', radius: 2, damage: [10, 14], friendlyFire: false, ignites: true, burns: true, lingering: { duration: 5, affects: 'enemy', effects: [{ kind: 'burn' }], style: 'fire' }, projectileSpeed: 14, projectileKind: 'flask' },
   },
+  // ── 沉穩節奏的法師火球（Alan：即時打出，沒有飛行時間；數值與 fireball 相同） ──
+  flashFireball: {
+    id: 'flashFireball', name: '火球', description: '準備完成後立即在目標點爆炸：半徑 2.5 m 範圍傷害 18–26，會傷到友軍',
+    target: 'ground', range: 12, windup: 2.0, recovery: 1.2, cooldown: 12, requiresLos: true,
+    effect: { kind: 'aoe', radius: 2.5, damage: [18, 26], friendlyFire: true, ignites: true },
+  },
   // ── 技能循環的第二招（SPEC_SLICE5 §16） ──
   greatFireball: {
-    id: 'greatFireball', name: '大火球', description: '（充能 5 層後）半徑 3.5 m 範圍傷害 30–40，會傷到友軍',
+    id: 'greatFireball', name: '大火球', description: '（充能 5 層後）準備完成後立即爆炸：半徑 3.5 m 範圍傷害 30–40，會傷到友軍',
     target: 'ground', range: 12, windup: 2.0, recovery: 1.2, cooldown: 4, requiresLos: true,
-    effect: { kind: 'aoe', radius: 3.5, damage: [30, 40], friendlyFire: true, ignites: true, projectileSpeed: 16, projectileKind: 'fireball' },
+    effect: { kind: 'aoe', radius: 3.5, damage: [30, 40], friendlyFire: true, ignites: true },
   },
   curseBurst: {
     id: 'curseBurst', name: '詛咒爆裂', description: '引爆目標身上的詛咒：傷害 20–28 並解除詛咒；目標沒有詛咒時只有 6–9',

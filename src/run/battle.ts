@@ -142,7 +142,8 @@ export function createBattleFromRun(run: RunState, config?: Partial<SimConfig>, 
   // 沉穩節奏（SPEC_SLICE5）：小地圖遭遇套用變慢的設定
   const cfg = horde ? { ...config, ...HORDE_CONFIG } : runStyle(run) === 'deliberate' ? { ...config, ...deliberateConfig({ ...DEFAULT_SIM_CONFIG, ...config }) } : config;
   // 戰鬥中召喚的援軍也套用層數成長
-  return new World({ seed, map, spawns, config: cfg, enemyDefFor: (id, captain) => scaled(id, captain), horde, fog: enc.fog });
+  // Alan：沉穩節奏的所有關卡都有戰爭迷霧（舊的手工遭遇也是）
+  return new World({ seed, map, spawns, config: cfg, enemyDefFor: (id, captain) => scaled(id, captain), horde, fog: enc.fog || deliberate });
 }
 
 export interface BattleOutcome {

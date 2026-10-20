@@ -64,6 +64,23 @@ const TARGET_HINT: Record<string, string> = {
   allyOrSelf: '請點選友軍',
 };
 
+/** 離點擊位置最近、可以當作目標的單位（敵人要看得到） */
+export function nearestTargetTo(session: BattleSession, def: SkillDef, caster: Unit, point: Vec): Unit | undefined {
+  const w = session.world;
+  let best: Unit | undefined;
+  let bestD = Infinity;
+  for (const u of w.units) {
+    if (!validSkillTarget(def, caster, u)) continue;
+    if (u.team !== caster.team && !w.visibleToTeam(u, caster.team)) continue;
+    const d = Math.hypot(u.pos.x - point.x, u.pos.y - point.y);
+    if (d < bestD) {
+      bestD = d;
+      best = u;
+    }
+  }
+  return best;
+}
+
 /** 左鍵確認目標；成功回傳 true */
 export function confirmTargeting(session: BattleSession, point: Vec, unit: Unit | undefined, now: number): boolean {
   const td = targetingDef(session);
@@ -74,6 +91,8 @@ export function confirmTargeting(session: BattleSession, point: Vec, unit: Unit 
     session.targeting = null;
     return true;
   }
+  // 沉穩節奏（Alan）：點地圖就打點擊位置最靠近的目標（看得到的敵人／友軍），不必精準點到單位
+  if (!validSkillTarget(def, caster, unit) && session.world.config.battleStyle === 'deliberate') unit = nearestTargetTo(session, def, caster, point);
   if (!validSkillTarget(def, caster, unit)) {
     session.showToast(TARGET_HINT[def.target] ?? '無效目標', now, 1000);
     return false;

@@ -1474,7 +1474,7 @@ body {
 .m-card {
   position: relative;
   width: 240px;
-  height: 150px;
+  height: 214px;
   border-radius: 14px;
   border: 3px solid #343a46;
   background: rgba(16, 18, 23, 0.92);
@@ -1641,7 +1641,10 @@ body {
 }
 #stage.compact .m-card {
   width: 220px;
-  height: 112px;
+  height: 160px;
+}
+#stage.compact .m-portrait {
+  height: 44px;
 }
 #stage.compact .m-name,
 #stage.compact .m-skill .sname {
@@ -1712,7 +1715,7 @@ body {
   flex: 1;
   width: auto;
   min-width: 0;
-  height: 156px;
+  height: 220px;
   border-radius: 12px;
 }
 #stage.portrait .m-head,
@@ -1823,4 +1826,66 @@ body {
   border-radius: 6px;
   background: rgba(201, 162, 39, 0.18);
   border: 1px solid #c9a227;
+}
+
+/* 英雄頭像（佔位色塊）：平時朝左的側臉，被選取時轉成正面（Alan，參考 Commandos） */
+.m-portrait {
+  position: relative;
+  height: 60px;
+  flex: none;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #1d2129;
+  perspective: 200px;
+}
+.m-face {
+  position: absolute;
+  left: 50%;
+  top: 8px;
+  width: 40px;
+  height: 46px;
+  margin-left: -20px;
+  border-radius: 45% 45% 40% 40%;
+  background: var(--hero);
+  transform: rotateY(35deg);
+  transition: transform 0.25s ease-out;
+}
+.m-face .eye {
+  position: absolute;
+  top: 16px;
+  width: 6px;
+  height: 7px;
+  border-radius: 50%;
+  background: #12141a;
+  transition: left 0.25s ease-out, opacity 0.2s;
+}
+.m-face .eye.l {
+  left: 6px;
+}
+.m-face .eye.r {
+  left: 18px;
+  opacity: 0;
+}
+.m-face .nose {
+  position: absolute;
+  top: 20px;
+  left: -5px;
+  width: 9px;
+  height: 9px;
+  background: var(--hero);
+  border-radius: 50% 0 0 50%;
+  transition: opacity 0.2s;
+}
+.m-card.selected .m-face {
+  transform: rotateY(0deg);
+}
+.m-card.selected .m-face .eye.l {
+  left: 10px;
+}
+.m-card.selected .m-face .eye.r {
+  left: 24px;
+  opacity: 1;
+}
+.m-card.selected .m-face .nose {
+  opacity: 0;
 }

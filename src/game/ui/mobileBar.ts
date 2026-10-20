@@ -51,6 +51,18 @@ const STATUS_ICONS: [(u: Unit) => boolean, string][] = [
   [(u) => u.stealthTime > 0 && Number.isFinite(u.stealthTime), '🌫'],
 ];
 
+/**
+ * 頭像（Alan：之後放真的頭像；平時是朝左的側臉，被選取時轉成正面，參考魔鬥士 Commandos）。
+ * 現在用色塊佔位：側臉只有一隻眼睛和朝左的鼻子，正面是兩隻眼睛。
+ */
+function portrait(): HTMLElement {
+  const box = el('div', 'm-portrait');
+  const face = el('div', 'm-face');
+  face.append(el('span', 'eye l'), el('span', 'eye r'), el('span', 'nose'));
+  box.appendChild(face);
+  return box;
+}
+
 function statusIcons(u: Unit): string {
   if (u.dead) return '';
   return STATUS_ICONS.filter(([on]) => on(u))
@@ -132,7 +144,7 @@ export class MobileHeroBar {
       const hpText = el('span', 'hptext');
       hp.append(hpFill, hpText);
       const status = el('span', 'm-status');
-      head.append(name, status, hp);
+      head.append(portrait(), name, status, hp);
       head.addEventListener('mousedown', (ev) => ev.preventDefault());
       // 點名字：選取／取消選取（可以同時選多名）
       head.addEventListener('click', () => {
