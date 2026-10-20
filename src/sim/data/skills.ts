@@ -137,6 +137,37 @@ export const SKILLS: Record<string, SkillDef> = {
     oncePerBattle: true, lostOnInterrupt: true,
     effect: { kind: 'warcry', summon: { enemy: 'brute', count: 3 }, damageBuff: 1.2, duration: 10 },
   },
+  // ── 沉穩節奏的新敵人（SPEC_SLICE5 §15.2；全部有預兆；準備時間 ×1.8、冷卻 ×2 後才是實際秒數） ──
+  rush: {
+    id: 'rush', name: '直線衝鋒', description: '地面預兆線約 1.5 秒後直線衝鋒 8 m，撞到的英雄受傷（不擊倒）',
+    target: 'ground', range: 8, windup: 0.85, recovery: 1.2, cooldown: 5, requiresLos: true, telegraph: true,
+    effect: { kind: 'rush', distance: 8, speed: 11, width: 1.2, damage: [10, 15] },
+  },
+  leap: {
+    id: 'leap', name: '跳躍突進', description: '落點預兆圈約 0.8 秒後跳到目標點，落地時攻擊周圍',
+    target: 'ground', range: 9, windup: 0.45, recovery: 0.8, cooldown: 5, requiresLos: true, telegraph: true,
+    effect: { kind: 'leap', speed: 12, radius: 1.3, mult: 1.3 },
+  },
+  hook: {
+    id: 'hook', name: '鉤鎖', description: '預兆線約 1 秒後把目標拉到身前（需要視線，被擋住就落空）',
+    target: 'enemy', range: 8, windup: 0.55, recovery: 1.0, cooldown: 6, requiresLos: true, telegraph: true,
+    effect: { kind: 'pull', mult: 0.6 },
+  },
+  mend: {
+    id: 'mend', name: '治癒禱言', description: '準備約 2.5 秒（可打斷）後恢復一名同伴 30 生命',
+    target: 'ally', range: 9, windup: 1.4, recovery: 1.0, cooldown: 4, requiresLos: true, telegraph: true,
+    effect: { kind: 'heal', amount: 30 },
+  },
+  summonThralls: {
+    id: 'summonThralls', name: '召喚屍僕', description: '召喚圈約 1.5 秒後在身邊召喚 3 隻屍僕；每 15 秒一次',
+    target: 'self', range: 0, windup: 0.85, recovery: 1.0, cooldown: 7.5, requiresLos: false, telegraph: true,
+    effect: { kind: 'summon', enemy: 'minion', count: 3, radius: 1.8 },
+  },
+  selfDestruct: {
+    id: 'selfDestruct', name: '自爆', description: '倒數約 2 秒後以自己為中心爆炸（半徑 2.2 m），然後死亡',
+    target: 'self', range: 0, windup: 1.1, recovery: 0, cooldown: 99, requiresLos: false, telegraph: true,
+    effect: { kind: 'explode', radius: 2.2, damage: [14, 20] },
+  },
   // ── 敵方術士 ──
   hellfire: {
     id: 'hellfire', name: '獄火', description: '準備 2.5 秒後，半徑 2.5 m 範圍傷害 12–18',

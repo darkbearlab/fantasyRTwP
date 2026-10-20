@@ -31,6 +31,7 @@ import {
   groundArc,
   groundCircle,
   groundLine,
+  groundPolygon,
   groundRect,
   groundSector,
   isIso,
@@ -44,6 +45,7 @@ import { InputController } from '../input/inputController';
 import { targetingDef, validSkillTarget } from '../input/targeting';
 import { BattleSession, currentSimConfig } from '../session';
 import { battleSeed, createBattleFromRun, currentEncounter } from '../../run/battle';
+import { rushEnd } from '../../sim/actions';
 import { getRun } from '../runFlow';
 import type { RunState } from '../../run/runState';
 import { createRun } from '../../run/runState';
@@ -917,8 +919,26 @@ export class BattleScene extends Phaser.Scene {
         groundSector(g, p.x, p.y, R, dir - half, dir + half, { stroke: COLORS.telegraph, strokeAlpha: 0.9, width: 3 });
         continue;
       }
-      if (def.effect.kind !== 'aoe') continue;
-      const r = def.effect.radius;
+      if (def.effect.kind === 'rush') {
+        // 直線衝鋒的預兆帶：從自己往目標方向 distance 公尺
+        const p = this.wpos(u);
+        const end = rushEnd(p, a.point, def.effect.distance);
+        const half = def.effect.width / 2;
+        const len = Math.hypot(end.x - p.x, end.y - p.y) || 1;
+        const nx = (-(end.y - p.y) / len) * half;
+        const ny = ((end.x - p.x) / len) * half;
+        const band = (t: number) => [
+          { x: p.x + nx, y: p.y + ny },
+          { x: p.x + (end.x - p.x) * t + nx, y: p.y + (end.y - p.y) * t + ny },
+          { x: p.x + (end.x - p.x) * t - nx, y: p.y + (end.y - p.y) * t - ny },
+          { x: p.x - nx, y: p.y - ny },
+        ];
+        groundPolygon(g, band(1), { fill: COLORS.telegraph, fillAlpha: 0.12 + 0.1 * pulse, stroke: COLORS.telegraph, strokeAlpha: 0.9, width: 3 });
+        groundPolygon(g, band(u.actionProgress), { fill: COLORS.telegraph, fillAlpha: 0.25 });
+        continue;
+      }
+      const r = def.effect.kind === 'aoe' || def.effect.kind === 'leap' ? def.effect.radius : 0;
+      if (r <= 0) continue;
       const enemy = u.team === 'enemy';
       const c = enemy ? COLORS.telegraph : COLORS.ghostSkill;
       groundCircle(g, a.point.x, a.point.y, r, { fill: c, fillAlpha: enemy ? 0.12 + 0.1 * pulse : 0.12 });
@@ -932,10 +952,32 @@ export class BattleScene extends Phaser.Scene {
     const g = this.zoneG;
     for (const u of this.session.world.units) {
       const a = u.action;
+      // 指向單位的預兆（鉤鎖、祭司的治療）：施放者到目標的線
+      if (!u.dead && a && a.phase === 'windup' && a.skillId && a.targetId !== undefined && u.team === 'enemy' && SKILLS[a.skillId].telegraph && !this.hiddenIds.has(u.id)) {
+        const t = this.session.world.getUnit(a.targetId);
+        if (t && !t.dead) {
+          const heal = SKILLS[a.skillId].effect.kind === 'heal';
+          const c = heal ? 0x5dff7a : COLORS.telegraph;
+          const p = this.wpos(u);
+          const q = this.wpos(t);
+          groundLine(g, p, q, 4, c, 0.35 + 0.3 * Math.sin(this.time.now / 80));
+          groundLine(g, p, { x: p.x + (q.x - p.x) * u.actionProgress, y: p.y + (q.y - p.y) * u.actionProgress }, 6, c, 0.9);
+          groundCircle(g, q.x, q.y, t.radius + 0.3, { stroke: c, strokeAlpha: 0.9, width: 3 });
+        }
+        continue;
+      }
       if (u.dead || !a || a.phase !== 'windup' || !a.skillId || a.point || a.targetId !== undefined || this.hiddenIds.has(u.id)) continue;
-      if (!SKILLS[a.skillId].telegraph) continue;
+      const def = SKILLS[a.skillId];
+      if (!def.telegraph) continue;
       const p = this.wpos(u);
       const pulse = 0.5 + 0.5 * Math.sin(this.time.now / 70);
+      // 自爆、召喚：畫出實際範圍
+      if (def.effect.kind === 'explode' || def.effect.kind === 'summon') {
+        const R = def.effect.radius;
+        groundCircle(g, p.x, p.y, R, { fill: COLORS.telegraph, fillAlpha: 0.12 + 0.1 * pulse, stroke: COLORS.telegraph, strokeAlpha: 0.9, width: 3 });
+        groundCircle(g, p.x, p.y, R * u.actionProgress, { fill: COLORS.telegraph, fillAlpha: 0.25 });
+        continue;
+      }
       const r = u.radius + 1.2 + pulse * 0.3;
       groundCircle(g, p.x, p.y, r, { stroke: COLORS.telegraph, strokeAlpha: 0.6 + 0.4 * pulse, width: 4 });
       groundArc(g, p.x, p.y, r + 0.2, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * u.actionProgress, { stroke: 0xffd166, strokeAlpha: 0.9, width: 6 });

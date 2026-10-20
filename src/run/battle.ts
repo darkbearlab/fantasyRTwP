@@ -16,6 +16,7 @@ import { livingHeroes } from './runState';
 import { deriveSeed } from './seed';
 import type { LevelTier } from './levelGen';
 import { generateLevel } from './levelGen';
+import { generateDeliberateLevel } from './deliberateLevelGen';
 import type { MapDef } from '../sim/data/types';
 import type { RunStyle } from './data/levels';
 import { deliberateConfig } from '../sim/data/deliberate';
@@ -68,9 +69,20 @@ export function currentEncounter(run: RunState): EncounterDef {
 
 /** 大型關卡的遭遇編號：level:<節點類型>（每個節點各自生成一張關卡） */
 export const LEVEL_PREFIX = 'level:';
+/** 沉穩節奏的生成關卡：dlevel:<節點類型>（SPEC_SLICE5 §15.3） */
+export const DLEVEL_PREFIX = 'dlevel:';
 
 export function levelEncounterId(tier: LevelTier): string {
   return `${LEVEL_PREFIX}${tier}`;
+}
+
+export function deliberateLevelId(tier: LevelTier): string {
+  return `${DLEVEL_PREFIX}${tier}`;
+}
+
+/** 這個遭遇編號是程序生成的關卡嗎（兩種模式都算） */
+export function isGeneratedEncounter(id: string): boolean {
+  return id.startsWith(LEVEL_PREFIX) || id.startsWith(DLEVEL_PREFIX);
 }
 
 /** 遠征的戰鬥形式（舊紀錄沒有 style，視為戰術戰鬥） */
@@ -82,14 +94,15 @@ const levelCache = new Map<string, EncounterDef>();
 
 /** 依遭遇編號取得遭遇；大型關卡依「遠征種子＋節點」生成（同一趟遠征每次都一樣） */
 export function encounterFor(run: RunState, nodeId: number, encounterId: string): EncounterDef {
-  if (!encounterId.startsWith(LEVEL_PREFIX)) return ENCOUNTERS[encounterId];
-  const tier = encounterId.slice(LEVEL_PREFIX.length) as LevelTier;
+  if (!isGeneratedEncounter(encounterId)) return ENCOUNTERS[encounterId];
+  const dlevel = encounterId.startsWith(DLEVEL_PREFIX);
+  const tier = encounterId.slice(dlevel ? DLEVEL_PREFIX.length : LEVEL_PREFIX.length) as LevelTier;
   const layer = run.map.nodes[nodeId].layer;
   const seed = deriveSeed(run.seed, 'level', nodeId, encounterId);
-  const key = `${seed}:${tier}:${layer}`;
+  const key = `${encounterId}:${seed}:${layer}`;
   let enc = levelCache.get(key);
   if (!enc) {
-    enc = generateLevel(seed, { tier, layer });
+    enc = dlevel ? generateDeliberateLevel(seed, { tier, layer }) : generateLevel(seed, { tier, layer });
     if (levelCache.size > 32) levelCache.clear();
     levelCache.set(key, enc);
   }
@@ -122,11 +135,12 @@ export function createBattleFromRun(run: RunState, config?: Partial<SimConfig>, 
   // 怪群模式：地圖與遭遇的生成點合併，戰鬥模式自動設成 horde，精英與頭目生命下降
   const horde = enc.horde ? { ...enc.horde, spawners: [...(map.spawners ?? []), ...enc.horde.spawners] } : undefined;
   const scaled = (id: string, captain?: boolean) => (horde ? hordeEnemyDef(enemyDef(id, layer, captain)) : enemyDef(id, layer, captain));
-  for (const e of enc.enemies) spawns.push({ defId: e.enemy, def: scaled(e.enemy, e.captain), pos: { x: e.x, y: e.y } });
+  // 沉穩節奏：同小隊一起警覺；舊的手工遭遇沒有小隊，全部算同一隊（看到一名就全體進攻）
+  for (const e of enc.enemies) spawns.push({ defId: e.enemy, def: scaled(e.enemy, e.captain), pos: { x: e.x, y: e.y }, squad: e.squad ?? 'main' });
   // 沉穩節奏（SPEC_SLICE5）：小地圖遭遇套用變慢的設定
   const cfg = horde ? { ...config, ...HORDE_CONFIG } : runStyle(run) === 'deliberate' ? { ...config, ...deliberateConfig({ ...DEFAULT_SIM_CONFIG, ...config }) } : config;
   // 戰鬥中召喚的援軍也套用層數成長
-  return new World({ seed, map, spawns, config: cfg, enemyDefFor: (id, captain) => scaled(id, captain), horde });
+  return new World({ seed, map, spawns, config: cfg, enemyDefFor: (id, captain) => scaled(id, captain), horde, fog: enc.fog });
 }
 
 export interface BattleOutcome {

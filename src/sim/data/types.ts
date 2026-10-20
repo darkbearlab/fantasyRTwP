@@ -1,7 +1,29 @@
 import type { Vec } from '../math';
 
 export type Team = 'hero' | 'enemy';
-export type EnemyArchetype = 'brute' | 'skirmisher' | 'archer' | 'caster' | 'boss' | 'siege' | 'bomber' | 'lurker' | 'horde' | 'nest';
+export type EnemyArchetype =
+  | 'brute' | 'skirmisher' | 'archer' | 'caster' | 'boss' | 'siege' | 'bomber' | 'lurker' | 'horde' | 'nest'
+  // 沉穩節奏的新敵人（SPEC_SLICE5 §15.2）
+  | 'charger' | 'assassin' | 'hooker' | 'priest' | 'summoner' | 'exploder';
+
+/**
+ * 敵人選目標的權重（SPEC_SLICE5 §15.1，只在沉穩節奏生效）：每次評估對看得到的英雄打分，最高分者為目標。
+ * 各因子都先換算成 0–1 再乘權重；sticky 是現任目標的加分（換目標要比現任高出這麼多）。
+ */
+export interface TargetingWeights {
+  /** 距離：越近越高（20 m 以外為 0） */
+  distance: number;
+  /** 生命比例：越低越高 */
+  lowHp: number;
+  /** 後排：不產生控制區的英雄（非戰士系）加分 */
+  backline: number;
+  /** 仇恨：最近 5 秒對自己造成的傷害（40 以上為滿分） */
+  threat: number;
+  /** 標記：帶有負面狀態（暈眩、定身、燃燒、詛咒）的英雄加分 */
+  marked: number;
+  /** 現任目標的黏著度 */
+  sticky: number;
+}
 /** 敵人層級（SPEC_SLICE4 §1）：雜兵大量、簡單；精英少量、有完整 AI。省略視為 elite */
 export type UnitTier = 'fodder' | 'elite';
 /** 投射物外觀種類（畫面層據此決定顏色大小） */
@@ -70,6 +92,10 @@ export interface UnitDef {
   tier?: UnitTier;
   /** 不會被推開（巢穴） */
   immovable?: boolean;
+  /** 盾（盾兵，SPEC_SLICE5 v0.4）：生命高於 hpFrac 之前防禦、護甲較高；跌破後盾破，不再恢復 */
+  shield?: { hpFrac: number; defense: number; armor: number };
+  /** 選目標的權重（沉穩節奏）；省略用 ENEMY_TARGETING.default */
+  targeting?: Partial<TargetingWeights>;
 }
 
 export type SkillTarget = 'enemy' | 'ally' | 'allyOrSelf' | 'ground' | 'self';
@@ -134,7 +160,18 @@ export type SkillEffect =
   | { kind: 'aoeHeal'; radius: number; amount: number; projectileSpeed?: number; projectileKind?: ProjectileKind }
   /** 衝鋒（knockback：抵達時的攻擊附帶擊退，攻城兵的撞擊） */
   | { kind: 'charge'; speedMult: number; maxDuration: number; knockback?: number }
-  | { kind: 'tumble'; speed: number };
+  | { kind: 'tumble'; speed: number }
+  // ── 沉穩節奏的敵人技能（SPEC_SLICE5 §15.2；全部有預兆） ──
+  /** 直線衝鋒：朝目標點方向衝 distance 公尺，途中撞到的英雄各受一次傷害（v0.4：不擊倒）；預兆線寬 width */
+  | { kind: 'rush'; distance: number; speed: number; width: number; damage: [number, number] }
+  /** 跳躍突進：跳到目標點（預兆圈），落地時打 radius 內的敵人 */
+  | { kind: 'leap'; speed: number; radius: number; mult: number }
+  /** 鉤鎖：把目標拉到自己身前（需要視線；被擋住就落空） */
+  | { kind: 'pull'; mult: number; projectileKind?: ProjectileKind }
+  /** 召喚：在自己周圍召喚 count 名 enemy */
+  | { kind: 'summon'; enemy: string; count: number; radius: number }
+  /** 自爆：以自己為中心的範圍傷害，之後死亡 */
+  | { kind: 'explode'; radius: number; damage: [number, number] };
 
 export interface SkillDef {
   id: string;
@@ -149,7 +186,7 @@ export interface SkillDef {
   requiresLos: boolean;
   /** 無視控制區（衝鋒、翻滾） */
   ignoresZoc?: boolean;
-  /** 準備期間在地面顯示紅色預警圈 */
+  /** 準備期間在地面顯示紅色預警（圈、線、扇形依效果而定） */
   telegraph?: boolean;
   /** 每場戰鬥只能用一次 */
   oncePerBattle?: boolean;

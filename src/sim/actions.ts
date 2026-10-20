@@ -450,8 +450,86 @@ function applySkillEffect(world: World, u: Unit, def: SkillDef, t: Unit | undefi
       return false;
     case 'charge':
     case 'tumble':
+    case 'leap':
       return true;
+    case 'rush': {
+      if (!point) return false;
+      // 朝目標點方向衝固定距離（預兆線畫的就是這一段）
+      const a = u.action!;
+      a.dashFrom = { ...u.pos };
+      a.point = rushEnd(u.pos, point, eff.distance);
+      a.hitIds = [];
+      return true;
+    }
+    case 'pull':
+      if (!t || t.dead) return false;
+      pullTo(world, u, t, eff.mult);
+      return false;
+    case 'summon':
+      world.emit({ type: 'aoe', sourceId: u.id, point: { ...u.pos }, radius: eff.radius, skillId: def.id });
+      for (let i = 0; i < eff.count; i++) {
+        const ang = u.facing + (i / eff.count) * Math.PI * 2;
+        const s = world.spawnUnit(world.enemyDefFor(eff.enemy), { x: u.pos.x + Math.cos(ang) * eff.radius, y: u.pos.y + Math.sin(ang) * eff.radius }, u.id);
+        s.squad = u.squad;
+        world.alertUnit(s);
+      }
+      return false;
+    case 'explode': {
+      world.emit({ type: 'aoe', sourceId: u.id, point: { ...u.pos }, radius: eff.radius, skillId: def.id });
+      const center = { ...u.pos };
+      for (const o of [...world.units]) {
+        if (o.dead || o.team === u.team || dist(o.pos, center) > eff.radius + o.radius * 0.5) continue;
+        const dmg = rollDamage(world.rng, eff.damage, damageMultOf(world, u));
+        applyDamage(world, o, applyArmor(dmg, o.armor), 'area', u, { skillId: def.id });
+      }
+      if (!u.dead) kill(world, u);
+      return false;
+    }
   }
+}
+
+/** 直線衝鋒的終點：從 from 朝 toward 方向 distance 公尺 */
+export function rushEnd(from: { x: number; y: number }, toward: { x: number; y: number }, distance: number): { x: number; y: number } {
+  let d = norm(sub(toward, from));
+  if (d.x === 0 && d.y === 0) d = { x: 1, y: 0 };
+  return { x: from.x + d.x * distance, y: from.y + d.y * distance };
+}
+
+/** 直線前進一步（衝鋒、跳躍）：不尋路，撞到障礙物就停；回傳 false 表示被擋住 */
+function stepStraight(world: World, u: Unit, to: { x: number; y: number }, speed: number): boolean {
+  const left = dist(u.pos, to);
+  if (left < 1e-6) return true;
+  const step = Math.min(left, speed * DT);
+  const np = { x: u.pos.x + ((to.x - u.pos.x) / left) * step, y: u.pos.y + ((to.y - u.pos.y) / left) * step };
+  if (!world.navFor(u).isWalkable(np)) return false;
+  u.facing = Math.atan2(to.y - u.pos.y, to.x - u.pos.x);
+  u.pos = np;
+  u.movedThisTick = true;
+  return true;
+}
+
+/** 鉤鎖：沒有視線就落空；否則把目標往自己身前拉（途中撞到障礙物就停），打斷準備並造成傷害 */
+function pullTo(world: World, src: Unit, t: Unit, mult: number): void {
+  if (!world.canSee(src, t)) {
+    world.emit({ type: 'notice', unitId: src.id, text: '落空' });
+    return;
+  }
+  const dir = norm(sub(src.pos, t.pos));
+  const from = { ...t.pos };
+  const want = Math.max(0, dist(src.pos, t.pos) - (src.radius + t.radius + 0.3));
+  const grid = world.navFor(t);
+  let cur = from;
+  for (let d = 0.1; d <= want + 1e-6; d += 0.1) {
+    const np = { x: from.x + dir.x * d, y: from.y + dir.y * d };
+    if (!grid.isWalkable(np)) break;
+    cur = np;
+  }
+  t.pos = cur;
+  t.path = null;
+  world.emit({ type: 'knockback', unitId: t.id, from, to: { ...cur } });
+  world.emit({ type: 'status', unitId: t.id, text: '被鉤住' });
+  interrupt(world, src, t);
+  strike(world, src, t, { melee: false, arc: true, mult, damageType: 'melee', skillId: 'hook' });
 }
 
 /** 範圍治療：範圍內的友軍各自恢復 */
@@ -508,6 +586,38 @@ export function tickDash(world: World, u: Unit): void {
       if (u.dead || !u.action) return;
       enterRecovery(world, u, def.recovery);
       afterSkill(world, u, def, t);
+    }
+    return;
+  }
+  if (eff.kind === 'rush') {
+    const moved = stepStraight(world, u, a.point!, eff.speed);
+    // 撞到的英雄各受一次傷害（不做命中判定、不擊倒）
+    for (const o of [...world.units]) {
+      if (o.dead || o.team === u.team || a.hitIds!.includes(o.id)) continue;
+      if (dist(o.pos, u.pos) > u.radius + o.radius + eff.width / 2 - 0.3) continue;
+      a.hitIds!.push(o.id);
+      const dmg = rollDamage(world.rng, eff.damage, damageMultOf(world, u));
+      applyDamage(world, o, applyArmor(dmg, o.armor), 'melee', u, { skillId: def.id });
+      if (u.dead) return;
+    }
+    if (!moved || dist(u.pos, a.point!) < 0.05 || a.dashTime > eff.distance / eff.speed + 0.5) {
+      enterRecovery(world, u, def.recovery);
+      afterSkill(world, u, def, undefined);
+    }
+    return;
+  }
+  if (eff.kind === 'leap') {
+    const moved = stepStraight(world, u, a.point!, eff.speed);
+    if (!moved || dist(u.pos, a.point!) < 0.05 || a.dashTime > 2) {
+      // 落地：打落點周圍的敵人
+      world.emit({ type: 'aoe', sourceId: u.id, point: { ...u.pos }, radius: eff.radius, skillId: def.id });
+      for (const o of [...world.units]) {
+        if (o.dead || o.team === u.team || dist(o.pos, u.pos) > eff.radius + o.radius) continue;
+        strike(world, u, o, { melee: true, mult: eff.mult, damageType: 'melee', skillId: def.id });
+        if (u.dead || !u.action) return;
+      }
+      enterRecovery(world, u, def.recovery);
+      afterSkill(world, u, def, undefined);
     }
     return;
   }
@@ -597,7 +707,7 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): Uni
   const result = forcedCrit ? 'crit' : rollHit(world.rng, accuracy, defense).result;
   if (result === 'miss') {
     world.emit({ type: 'miss', sourceId: src.id, targetId: target.id, skillId: p.skillId, freeAttack: p.freeAttack });
-    if (target.team === 'enemy') world.triggerAggro();
+    if (target.team === 'enemy') world.triggerAggro(target);
     return null;
   }
   const crit = result === 'crit';
@@ -650,7 +760,14 @@ export function applyDamage(
   src.stats.damageDealt += dealt;
   target.stats.damageTaken += dealt;
   world.emit({ type: 'hit', sourceId: src.id, targetId: target.id, damage: amount, crit, damageType, skillId, freeAttack });
-  if (target.team === 'enemy') world.triggerAggro();
+  if (target.team === 'enemy') world.triggerAggro(target);
+  // 沉穩節奏：敵人記下誰打了自己（仇恨）
+  if (src.team !== target.team && world.config.battleStyle === 'deliberate') target.threatLog.push({ id: src.id, amount: dealt, t: world.time });
+  // 盾兵：生命跌破門檻就盾破
+  if (target.shieldUp && target.hp > 0 && target.hp <= target.maxHp * target.def.shield!.hpFrac) {
+    target.shieldBroken = true;
+    world.emit({ type: 'status', unitId: target.id, text: '破盾' });
+  }
   if (target.hp <= 0) kill(world, target, src);
 }
 
@@ -780,7 +897,7 @@ export function resolveProjectilePayload(world: World, src: Unit, p: Projectile,
         target.curseSlow = pl.actionSlow;
         target.curseVuln = pl.damageTakenPct;
         world.emit({ type: 'status', unitId: target.id, text: '詛咒' });
-        if (target.team === 'enemy') world.triggerAggro();
+        if (target.team === 'enemy') world.triggerAggro(target);
       }
       break;
     case 'aoeHeal':
@@ -791,7 +908,7 @@ export function resolveProjectilePayload(world: World, src: Unit, p: Projectile,
         target.rootTime = Math.max(target.rootTime, pl.duration);
         target.path = null;
         world.emit({ type: 'status', unitId: target.id, text: '定身' });
-        if (target.team === 'enemy') world.triggerAggro();
+        if (target.team === 'enemy') world.triggerAggro(target);
       }
       break;
   }

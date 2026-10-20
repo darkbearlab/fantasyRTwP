@@ -23,6 +23,8 @@ import { createRun, livingHeroes } from '../src/run/runState';
 import { rollParty } from '../src/run/classes';
 import { maxHpOf } from '../src/run/upgrades';
 import { HeroScript } from './heroScript';
+import { DeliberateScript } from './deliberateScript';
+import type { RunStyle } from '../src/run/data/levels';
 
 const MAX_BATTLE_SECONDS = 300;
 
@@ -51,7 +53,7 @@ export function stepRun(r: RunState, scripted = true): RunState {
     }
     case 'battle': {
       const world = createBattleFromRun(r);
-      const script = scripted ? new HeroScript(world) : null;
+      const script = !scripted ? null : world.config.battleStyle === 'deliberate' ? new DeliberateScript(world) : new HeroScript(world);
       const maxTicks = MAX_BATTLE_SECONDS * TICK_RATE;
       while (!world.result && world.tick < maxTicks) {
         script?.update();
@@ -93,8 +95,8 @@ export function autoParty(seed: number, mode: 'random' | 'fixed' = 'random'): st
   return mode === 'random' ? rollParty(seed, []) : undefined;
 }
 
-export function playRun(seed: number, opts: { layers?: number; scripted?: boolean; party?: 'random' | 'fixed' } = {}): RunState {
-  let r = createRun(seed, { layers: opts.layers, party: autoParty(seed, opts.party), style: 'tactical' });
+export function playRun(seed: number, opts: { layers?: number; scripted?: boolean; party?: 'random' | 'fixed'; style?: RunStyle } = {}): RunState {
+  let r = createRun(seed, { layers: opts.layers, party: autoParty(seed, opts.party), style: opts.style ?? 'tactical' });
   for (let guard = 0; guard < 500 && r.phase.kind !== 'ended'; guard++) r = stepRun(r, opts.scripted ?? true);
   return r;
 }
