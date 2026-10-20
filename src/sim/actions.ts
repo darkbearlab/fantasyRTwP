@@ -31,7 +31,7 @@ export interface ActionRequest {
 
 /** 行動條速度：攻擊速度 × 全域倍率 × 詛咒減速（怪群模式的英雄普攻另外加速） */
 export function actionRate(world: World, u: Unit, kind?: 'attack' | 'skill'): number {
-  let r = u.def.attackSpeed * world.config.actionSpeedMult * (u.curseTime > 0 ? 1 - u.curseSlow : 1);
+  let r = u.def.attackSpeed * world.config.actionSpeedMult * (u.curseTime > 0 ? 1 - u.curseSlow : 1) * (u.chillTime > 0 ? 1 - u.chillSlow : 1);
   if (kind === 'attack') r *= 1 + u.mods.attackSpeedPct;
   if (kind === 'attack' && u.team === 'hero') {
     r *= world.config.basicAttackSpeedMult;
@@ -138,7 +138,7 @@ export function finishWindup(world: World, u: Unit): void {
       const style = hordeStyle(world, u);
       world.spawnProjectile(
         u,
-        u.def.projectileKind ?? 'arrow',
+        u.basicProjectile,
         u.def.projectileSpeed ?? 20,
         { type: 'strike', melee: false, mult: 1, damageType: basicDamageType(u.def), arc: u.def.arcAttack, basic: true, pierceLeft: style?.kind === 'pierce' ? style.maxTargets - 1 : undefined },
         { unit: t },
@@ -394,6 +394,16 @@ function applySkillEffect(world: World, u: Unit, def: SkillDef, t: Unit | undefi
         a.blessTime = Math.max(active ? a.blessTime : 0, eff.duration);
         a.blessAccuracy = Math.max(active ? a.blessAccuracy : 0, eff.accuracy);
         a.blessDefense = Math.max(active ? a.blessDefense : 0, eff.defense);
+        world.emit({ type: 'status', unitId: a.id, text: def.name });
+      }
+      return false;
+    case 'enchant':
+      // 和戰吼共用「暫時傷害增益」：重疊時取較高、時間取較長
+      for (const a of world.units) {
+        if (a.dead || a.team !== u.team || dist(a.pos, u.pos) > eff.radius) continue;
+        const active = a.damageBuffTime > 0;
+        a.damageBuffMult = Math.max(active ? a.damageBuffMult : 1, 1 + eff.damagePct);
+        a.damageBuffTime = Math.max(active ? a.damageBuffTime : 0, eff.duration);
         world.emit({ type: 'status', unitId: a.id, text: def.name });
       }
       return false;

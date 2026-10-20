@@ -4,7 +4,7 @@
  * 全部數值是佔位。只在沉穩節奏（deliberate）生效；怪群模式仍用 horde.ts 的 HORDE_ATTACKS。
  */
 import type { BasicAttackStyle } from './horde';
-import type { LingeringDef } from './types';
+import type { LingeringDef, ProjectileKind } from './types';
 
 /** 數值修正（同一名單位身上的被動相加） */
 export interface PassiveMods {
@@ -47,6 +47,15 @@ export interface PassiveDef {
   onHit?: OnHitEffect[];
   /** 斬殺：對生命低於 below 比例的目標傷害 +pct */
   execute?: { below: number; pct: number };
+  /**
+   * 光環（每節拍套用，離開範圍後很快消失）：allies＝範圍內隊友（含自己）命中、防禦加成；
+   * enemies＝範圍內敵人移動速度與行動速度降低 slow 比例
+   */
+  aura?: { radius: number; allies?: { accuracy: number; defense: number }; enemies?: { slow: number } };
+  /** 看穿草叢：這個距離內、看得到的草叢裡的敵人對全隊現形（視野分享） */
+  seesBrush?: number;
+  /** 普攻的投射物外觀（例：法師的小火球） */
+  attackProjectile?: ProjectileKind;
 }
 
 export const PASSIVES: Record<string, PassiveDef> = {
@@ -58,8 +67,32 @@ export const PASSIVES: Record<string, PassiveDef> = {
   },
   tauntAura: {
     id: 'tauntAura', name: '嘲諷光環', source: 'class',
-    description: '3 m 內的敵人優先攻擊戰士',
-    taunt: 3,
+    // Alan 2026-10-20：主動換成盾擊後，嘲諷光環加大、防禦提高，彌補保護能力
+    description: '5 m 內的敵人優先攻擊戰士；防禦 +10',
+    taunt: 5,
+    mods: { defense: 10 },
+  },
+  eagleEye: {
+    id: 'eagleEye', name: '鷹眼', source: 'class',
+    description: '看得見 10 m 內草叢裡的敵人，並分享給全隊',
+    seesBrush: 10,
+  },
+  blessAura: {
+    id: 'blessAura', name: '祝福光環', source: 'class',
+    description: '5 m 內的隊友（含自己）命中 +10、防禦 +5',
+    aura: { radius: 5, allies: { accuracy: 10, defense: 5 } },
+  },
+  emberBolt: {
+    id: 'emberBolt', name: '火彈', source: 'class',
+    description: '普攻是小火球：命中點小範圍爆炸（不傷友軍）；攻擊間隔較長、每一發傷害較高',
+    attack: { kind: 'blast', radius: 1.5, splashMult: 0.8, push: 0 },
+    mods: { damagePct: 0.6, attackSpeedPct: -0.4 },
+    attackProjectile: 'fireball',
+  },
+  chillAura: {
+    id: 'chillAura', name: '寒氣', source: 'class',
+    description: '3 m 內的敵人移動與行動速度 -25%',
+    aura: { radius: 3, enemies: { slow: 0.25 } },
   },
   bloodRage: {
     id: 'bloodRage', name: '橫掃・血怒', source: 'class',
@@ -102,11 +135,12 @@ export const PASSIVES: Record<string, PassiveDef> = {
 export const CLASS_PASSIVES: Record<string, string[]> = {
   warrior: ['cleave', 'tauntAura'],
   berserker: ['bloodRage'],
-  ranger: ['pierce'],
+  ranger: ['pierce', 'eagleEye'],
   rogue: ['assassin'],
-  mage: ['shock'],
+  // Alan 2026-10-20：法師普攻改成小火球，身邊有寒氣光環；震擊（shock）保留給其他用途
+  mage: ['emberBolt', 'chillAura'],
   hexer: ['hexBolt'],
-  cleric: ['smite'],
+  cleric: ['smite', 'blessAura'],
   alchemist: ['grenade'],
 };
 
@@ -116,10 +150,12 @@ export const CLASS_PASSIVES: Record<string, string[]> = {
  */
 export const ACTIVE_SKILL_OVERRIDE: Record<string, string> = {
   // Alan：遊俠的主動技能是瞄準射擊（點地圖時打點擊位置最近的敵人）
-  ranger: 'aimedShot',
+  ranger: 'sureShot',
   cleric: 'healFlask',
   // Alan v0.4：火焰瓶要真的在地上留下持續效果
   alchemist: 'fireFlask',
-  // Alan（2026-10-20）：法師只有一招火球——不用等準備（沒有地上預告），直接丟出、有飛行時間，放完進冷卻
-  mage: 'flashFireball',
+  // Alan 2026-10-20（第二版）：法師的主動是附魔（全隊加攻擊力）；火球改成普攻的小火球
+  mage: 'enchant',
+  // Alan 2026-10-20：戰士的主動換成盾擊（打斷＋暈眩）；遊俠的瞄準射擊加上打斷、命中大幅提高
+  warrior: 'shieldBash',
 };

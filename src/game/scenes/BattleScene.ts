@@ -1198,6 +1198,8 @@ ${node}`, { fontFamily: FONT, fontSize: '14px', color: '#ffe9a8', align: 'center
       }
       if (u.blessTime > 0) groundCircle(this.zoneG, foot.x, foot.y, u.radius + 0.22, { stroke: 0xffe08a, strokeAlpha: 0.7, width: 1.5 });
       if (u.guardTime > 0) groundCircle(this.zoneG, foot.x, foot.y, u.radius + 0.3, { stroke: 0x7fb8ff, strokeAlpha: 0.8, width: 2 });
+      // 寒氣（法師的光環）：淡藍色的圈
+      if (u.chillTime > 0) groundCircle(this.zoneG, foot.x, foot.y, u.radius + 0.18, { fill: 0x9fd8ff, fillAlpha: 0.15, stroke: 0x9fd8ff, strokeAlpha: 0.7, width: 1.5 });
       // 狀態文字：暈眩／定身／燃燒／詛咒
       const label = u.state === UnitState.Stunned ? '暈眩' : u.rooted ? '定身' : u.burnTime > 0 ? '燃燒' : u.curseTime > 0 ? '詛咒' : '';
       if (label) {

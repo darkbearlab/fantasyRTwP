@@ -101,6 +101,9 @@ export type ProjectilePayload =
   | { type: 'aoeHeal'; skillId: string }
   | { type: 'curseBurst'; skillId: string };
 
+/** 光環效果離開範圍後還維持多久（秒） */
+const AURA_LINGER = 0.25;
+
 /** 「還沒到齊」提示的最短間隔（秒） */
 const EXIT_NOTICE_INTERVAL = 4;
 
@@ -364,7 +367,7 @@ export class World implements ZocContext {
   /** 移動倍率：地形 × 敵方區域效果（沼澤） */
   moveMultFor(u: Unit): number {
     // 減速取最慢（地形、地面區域），再乘上被動的移動速度加成
-    return Math.min(this.moveMultAt(u.pos), zoneMoveMult(this, u)) * (1 + u.mods.moveSpeedPct);
+    return Math.min(this.moveMultAt(u.pos), zoneMoveMult(this, u)) * (1 + u.mods.moveSpeedPct) * (u.chillTime > 0 ? 1 - u.chillSlow : 1);
   }
 
   private updateZones(): void {
@@ -396,6 +399,8 @@ export class World implements ZocContext {
     if (!this.terrain.any) return true;
     const patch = this.terrain.patchAt(target.pos);
     if (patch < 0 || target.revealTime > 0) return true;
+    // 遊俠的鷹眼：同一方有人看穿這片草叢
+    if (this.brushSeen.get(viewer.team)?.has(target.id)) return true;
     if (this.terrain.patchAt(viewer.pos) === patch) return true;
     return dist(viewer.pos, target.pos) <= TERRAIN.brushRevealDistance;
   }
@@ -521,6 +526,8 @@ export class World implements ZocContext {
     this.updateWaves();
     this.director?.update(this);
     this.updateAggro();
+    this.updateAuras();
+    this.updateBrushSight();
     this.updateSighting();
     for (const u of this.units) this.tickTimers(u);
     for (const u of this.units) this.updateUnit(u);
@@ -772,6 +779,53 @@ export class World implements ZocContext {
     }
   }
 
+  /**
+   * 光環（被動 aura）：每節拍給範圍內的隊友命中／防禦（沿用祝福的欄位）、給範圍內的敵人寒氣減速；
+   * 效果只維持很短的時間，離開範圍就消失。
+   */
+  private updateAuras(): void {
+    const linger = AURA_LINGER;
+    for (const src of this.units) {
+      if (src.dead) continue;
+      for (const p of src.passives) {
+        const a = p.aura;
+        if (!a) continue;
+        for (const t of this.units) {
+          if (t.dead || dist(t.pos, src.pos) > a.radius + t.radius) continue;
+          if (t.team === src.team && a.allies) {
+            const active = t.blessTime > 0;
+            t.blessTime = Math.max(t.blessTime, linger);
+            t.blessAccuracy = Math.max(active ? t.blessAccuracy : 0, a.allies.accuracy);
+            t.blessDefense = Math.max(active ? t.blessDefense : 0, a.allies.defense);
+          } else if (t.team !== src.team && a.enemies) {
+            const active = t.chillTime > 0;
+            t.chillTime = Math.max(t.chillTime, linger);
+            t.chillSlow = Math.max(active ? t.chillSlow : 0, a.enemies.slow);
+          }
+        }
+      }
+    }
+  }
+
+  /** 看穿草叢（被動 seesBrush）：範圍內、看得到的草叢裡的敵人，對同一方全體現形（視野分享） */
+  private brushSeen = new Map<string, Set<number>>();
+  private updateBrushSight(): void {
+    this.brushSeen.clear();
+    if (!this.terrain.any) return;
+    for (const v of this.units) {
+      if (v.dead) continue;
+      const r = v.passives.reduce((m, p) => Math.max(m, p.seesBrush ?? 0), 0);
+      if (r <= 0) continue;
+      for (const t of this.units) {
+        if (t.dead || t.team === v.team || dist(t.pos, v.pos) > r || this.terrain.patchAt(t.pos) < 0) continue;
+        if (!this.canSee(v, t)) continue;
+        let set = this.brushSeen.get(v.team);
+        if (!set) this.brushSeen.set(v.team, (set = new Set()));
+        set.add(t.id);
+      }
+    }
+  }
+
   /** 讓一名敵人（與同小隊的同伴）警覺 */
   alertUnit(u: Unit): void {
     if (u.team !== 'enemy' || u.alerted) return;
@@ -788,6 +842,7 @@ export class World implements ZocContext {
     if (u.dead) return;
     if (u.revealTime > 0) u.revealTime = Math.max(0, u.revealTime - DT);
     if (u.curseTime > 0) u.curseTime = Math.max(0, u.curseTime - DT);
+    if (u.chillTime > 0) u.chillTime = Math.max(0, u.chillTime - DT);
     if (u.stealthTime > 0) u.stealthTime = Math.max(0, u.stealthTime - DT);
     if (u.burnTime > 0) {
       u.burnTime = Math.max(0, u.burnTime - DT);

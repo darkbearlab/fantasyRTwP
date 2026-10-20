@@ -121,6 +121,17 @@ export const SKILLS: Record<string, SkillDef> = {
     target: 'ground', range: 12, windup: 0, recovery: 1.2, cooldown: 12, requiresLos: true,
     effect: { kind: 'aoe', radius: 2.5, damage: [18, 26], friendlyFire: true, ignites: true, projectileSpeed: 16, projectileKind: 'fireball' },
   },
+  // ── Alan 2026-10-20 英雄技能重整（沉穩節奏；數值佔位） ──
+  sureShot: {
+    id: 'sureShot', name: '瞄準射擊', description: '傷害 ×2.0、命中 +60（幾乎必中），打斷目標',
+    target: 'enemy', range: 12, windup: 1.5, recovery: 1.0, cooldown: 6, requiresLos: true,
+    effect: { kind: 'strike', melee: false, mult: 2.0, accBonus: 60, interrupts: true, projectileSpeed: 30, projectileKind: 'arrow' },
+  },
+  enchant: {
+    id: 'enchant', name: '附魔', description: '6 m 內的隊友（含自己）10 秒內造成的傷害 +30%',
+    target: 'self', range: 0, windup: 0.6, recovery: 0.8, cooldown: 20, requiresLos: false,
+    effect: { kind: 'enchant', radius: 6, duration: 10, damagePct: 0.3 },
+  },
   // ── 技能循環的第二招（SPEC_SLICE5 §16） ──
   greatFireball: {
     id: 'greatFireball', name: '大火球', description: '（充能 5 層後）準備完成後立即爆炸：半徑 3.5 m 範圍傷害 30–40，會傷到友軍',

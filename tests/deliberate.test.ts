@@ -58,7 +58,10 @@ describe('沉穩節奏（SPEC_SLICE5 §1）', () => {
       expect(u.def.skills).toEqual([activeSkillOf(u.def.id)]);
       expect(u.def.skills[activeSkillIndex(u)]).toBe(activeSkillOf(u.def.id));
     }
-    expect(activeSkillOf('warrior')).toBe(CLASSES.warrior.signature);
+    // Alan 2026-10-20：戰士主動換成盾擊、法師換成附魔
+    expect(activeSkillOf('warrior')).toBe('shieldBash');
+    expect(activeSkillOf('mage')).toBe('enchant');
+    expect(CLASSES.warrior.signature).toBe('guard');
     expect(activeSkillOf('cleric')).toBe('healFlask');
     expect(activeSkillOf('alchemist')).toBe('fireFlask');
   });
@@ -101,7 +104,8 @@ describe('Alan 的調整（切片 5 試玩後）', () => {
     s.targeting = { unitId: 1, skillId: 'aimedShot' };
     expect(confirmTargeting(s, { x: 11, y: 8 }, undefined, 0)).toBe(true);
     expect(w.pendingCommands).toContainEqual({ type: 'skill', unitId: 1, skillId: 'aimedShot', targetId: 3 });
-    expect(activeSkillOf('ranger')).toBe('aimedShot');
+    // Alan 2026-10-20：遊俠的主動是會打斷、幾乎必中的瞄準射擊（sureShot）
+    expect(activeSkillOf('ranger')).toBe('sureShot');
   });
 
   it('法師的火球即時爆炸（沒有投射物）；沉穩節奏的手工遭遇也有迷霧', () => {

@@ -13,18 +13,19 @@ import { HOLD, makeWorld, run } from './helpers';
 const D = deliberateConfig();
 
 describe('技能循環（SPEC_SLICE5 §16）', () => {
-  it('遠征：咒術師帶齊循環的每一招，技能鈕顯示第一招；法師（Alan 2026-10-20）只有一招火球、沒有循環', () => {
+  it('遠征：咒術師帶齊循環的每一招，技能鈕顯示第一招；法師（Alan 2026-10-20）只有一招附魔、沒有循環', () => {
     const r = createRun(5, { party: ['mage', 'hexer', 'warrior', 'cleric'] });
     const w = createBattleFromRun(chooseNode(r, r.map.layers[0][0]));
     const mage = w.units.find((u) => u.def.id === 'mage')!;
     const hexer = w.units.find((u) => u.def.id === 'hexer')!;
     expect(ACTIVE_CYCLES.mage).toBeUndefined();
-    expect(mage.def.skills).toEqual(['flashFireball']);
+    // Alan 2026-10-20 第二版：法師主動是附魔，小火球是普攻
+    expect(mage.def.skills).toEqual(['enchant']);
     expect(mage.cycle).toBeUndefined();
     expect(hexer.def.skills).toEqual(ACTIVE_CYCLES.hexer.steps);
-    expect(currentActiveSkill(mage)).toBe('flashFireball');
+    expect(currentActiveSkill(mage)).toBe('enchant');
     expect(currentActiveSkill(hexer)).toBe('curse');
-    expect(mage.def.skills[activeSkillIndex(mage)]).toBe('flashFireball');
+    expect(mage.def.skills[activeSkillIndex(mage)]).toBe('enchant');
     expect(w.units.find((u) => u.def.id === 'warrior')!.cycle).toBeUndefined();
   });
 

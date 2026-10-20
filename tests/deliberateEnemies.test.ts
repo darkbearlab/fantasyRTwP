@@ -55,11 +55,11 @@ describe('沉穩節奏的敵人（SPEC_SLICE5 §15）', () => {
     const w = D([
       { defId: 'warrior', pos: { x: 10, y: 6 } },
       { defId: 'mage', pos: { x: 4, y: 6 } },
-      { defId: 'assassin', pos: { x: 14.5, y: 6 } },
+      { defId: 'assassin', pos: { x: 16.5, y: 6 } },
       { defId: 'brute', pos: { x: 13, y: 9 } },
     ]);
     const [war, mage, ass, brute] = [1, 2, 3, 4].map((i) => w.getUnit(i)!);
-    // 戰士的嘲諷光環 3 m 外
+    // 戰士的嘲諷光環（5 m）外
     expect(pickTarget(w, ass, [war, mage])).toBe(mage);
     expect(pickTarget(w, brute, [war, mage])).toBe(war);
     const before = targetScore(w, brute, mage, -1);

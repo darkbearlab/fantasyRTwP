@@ -1,5 +1,5 @@
 import type { Order } from './commands';
-import type { Personality, Team, UnitDef } from './data/types';
+import type { Personality, Team, UnitDef, ProjectileKind } from './data/types';
 import type { Vec } from './math';
 import type { PassiveDef, PassiveMods } from './data/passives';
 import type { ActiveCycle } from './data/cycles';
@@ -86,6 +86,9 @@ export class Unit {
   curseVuln = 0;
   /** 煙霧彈：隱匿、無視控制區（秒） */
   stealthTime = 0;
+  /** 寒氣（法師的光環）：移動與行動速度降低 chillSlow 比例 */
+  chillTime = 0;
+  chillSlow = 0;
   /** 這場戰鬥已不能再用的技能（一次性、被打斷就失去） */
   spentSkills: string[] = [];
   /** 暫時的傷害增益（頭目戰吼等） */
@@ -167,6 +170,11 @@ export class Unit {
 
   get radius(): number {
     return this.def.radius;
+  }
+
+  /** 普攻投射物的外觀（被動可以改，例：法師的小火球） */
+  get basicProjectile(): ProjectileKind {
+    return this.passives.find((p) => p.attackProjectile)?.attackProjectile ?? this.def.projectileKind ?? 'arrow';
   }
   get maxHp(): number {
     return this.def.maxHp;
