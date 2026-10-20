@@ -27,6 +27,7 @@ import { buyItem, canBuy, canEquip, equipItem } from '../src/run/items';
 import { ITEMS } from '../src/sim/data/items';
 import { DeliberateScript } from './deliberateScript';
 import type { RunStyle } from '../src/run/data/levels';
+import { battleSkillsOf } from '../src/run/loadout';
 
 const MAX_BATTLE_SECONDS = 300;
 
@@ -69,7 +70,7 @@ export function stepRun(r: RunState, scripted = true): RunState {
       const up = UPGRADES[id];
       if (up.scope === 'party') return chooseReward(r, { upgradeId: id });
       const target = livingHeroes(r).reduce((a, b) => (a.hero.upgrades.length <= b.hero.upgrades.length ? a : b));
-      return chooseReward(r, { upgradeId: id, slot: target.slot, skillId: up.needsSkill ? target.hero.skills[0] : undefined });
+      return chooseReward(r, { upgradeId: id, slot: target.slot, skillId: up.needsSkill ? battleSkillsOf(r, target.hero)[0] : undefined });
     }
     case 'rest': {
       if (!p.used) {

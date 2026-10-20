@@ -8,7 +8,7 @@
  * 3. 生怪磚（數字）依池子與權重抽敵人，整關有點數預算上限；精英房的小隊有隊長，頭目房放頭目與護衛。
  * 4. 轉成 MapDef（牆合併成長方形、地形、門），檢查出生點走得到每一名敵人；不通過就換子種子重試。
  */
-import type { InteractableDef, MapDef, Rect, TerrainRect } from '../sim/data/types';
+import type { ExitDef, InteractableDef, MapDef, Rect, TerrainRect } from '../sim/data/types';
 import type { Vec } from '../sim/math';
 import { NavGrid } from '../sim/nav/grid';
 import { Rng } from '../sim/rng';
@@ -25,10 +25,18 @@ import { deriveSeed } from './seed';
 export interface TemplateLevelOptions {
   tier: DeliberateTier;
   layer: number;
+  /**
+   * 出口（SPEC_SLICE6 §2）：一個相鄰節點一個，依路線圖上由左到右的順序排在地圖遠端（畫面上方）由左到右。
+   * 沒給（快速戰鬥、最後的頭目戰）＝沒有出口。
+   */
+  exits?: { id: string; label?: string }[];
 }
 
 /** 擋路的字元 */
 const BLOCKING = new Set(['#', 'o', 'W']);
+
+/** 出口大小（公尺） */
+const EXIT_SIZE = 4;
 
 /** 放在地圖上的一塊模板（已旋轉／鏡像） */
 export interface Placement {
@@ -309,6 +317,63 @@ function carveConnections(grid: string[][], cw: number, ch: number, C: number): 
   }
 }
 
+/** 字元地圖上的洪水填充（擋路的字元不能走） */
+function floodChars(grid: string[][], start: Vec): Uint8Array {
+  const H = grid.length;
+  const W = grid[0].length;
+  const seen = new Uint8Array(W * H);
+  const stack = [start.y * W + start.x];
+  seen[stack[0]] = 1;
+  while (stack.length) {
+    const i = stack.pop()!;
+    const x = i % W;
+    const y = (i - x) / W;
+    for (const [nx, ny] of [
+      [x + 1, y],
+      [x - 1, y],
+      [x, y + 1],
+      [x, y - 1],
+    ]) {
+      if (nx < 0 || ny < 0 || nx >= W || ny >= H || BLOCKING.has(grid[ny][nx])) continue;
+      const j = ny * W + nx;
+      if (seen[j]) continue;
+      seen[j] = 1;
+      stack.push(j);
+    }
+  }
+  return seen;
+}
+
+/**
+ * 出口：沿地圖遠端（x 最大的一邊）平均分配，每個出口 EXIT_SIZE 見方；出口範圍清成地板，
+ * 走不到就往地圖內側一路打通，直到和出生點相連。回傳 null＝打不通。
+ */
+function carveExits(grid: string[][], list: { id: string; label?: string }[]): ExitDef[] | null {
+  if (list.length === 0) return [];
+  const H = grid.length;
+  const W = grid[0].length;
+  const S = EXIT_SIZE;
+  let start: Vec | null = null;
+  for (let y = 0; y < H && !start; y++) for (let x = 0; x < W; x++) if (grid[y][x] === 'S') start = { x, y };
+  if (!start) return null;
+  const out: ExitDef[] = [];
+  list.forEach((e, k) => {
+    const cy = Math.round(((k + 0.5) / list.length) * H);
+    const y0 = Math.max(0, Math.min(H - S, cy - S / 2));
+    const x0 = W - S;
+    for (let y = y0; y < y0 + S; y++) for (let x = x0; x < W; x++) grid[y][x] = 'E';
+    // 往內側打通：寬度和出口一樣
+    for (let x = x0 - 1; x >= 0; x--) {
+      const seen = floodChars(grid, start!);
+      if (seen[(y0 + 1) * W + x0]) break;
+      for (let y = y0; y < y0 + S; y++) if (BLOCKING.has(grid[y][x])) grid[y][x] = '.';
+    }
+    out.push({ id: e.id, x: x0, y: y0, w: S, h: S, label: e.label });
+  });
+  const seen = floodChars(grid, start);
+  return out.every((e) => seen[(e.y + 1) * W + e.x + 1]) ? out : null;
+}
+
 /** 從池子抽一名敵人（只抽已解鎖的層數） */
 function rollFromPool(rng: Rng, pool: string, layer: number): { enemy: string; cost: number } | undefined {
   const list = (LEVEL_POOLS[pool] ?? []).filter((e) => e.minLayer <= layer);
@@ -326,6 +391,8 @@ function tryGenerate(rng: Rng, seed: number, opts: TemplateLevelOptions): { leve
   const C = T.chunk;
   const H = grid.length;
   const W = grid[0].length;
+  const exits = carveExits(grid, opts.exits ?? []);
+  if (!exits) return null;
   const cellsOf = (ch: string) => {
     const out: Vec[] = [];
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (grid[y][x] === ch) out.push({ x, y });
@@ -447,6 +514,8 @@ function tryGenerate(rng: Rng, seed: number, opts: TemplateLevelOptions): { leve
     terrain,
     interactables,
     summonPoints,
+    exits: exits.length ? exits : undefined,
+    exitLock: tier === 'elite' ? 'captain' : tier === 'boss' ? 'boss' : undefined,
   };
   const label = tier === 'boss' ? '最終決戰' : tier === 'elite' ? '精英' : tier === 'event' ? '突發' : '遭遇';
   const level: GeneratedLevel = {

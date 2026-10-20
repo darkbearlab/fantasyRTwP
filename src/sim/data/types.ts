@@ -252,6 +252,25 @@ export interface MapDef {
   interactables?: InteractableDef[];
   /** 主題（生成的關卡用；畫面依主題挑地形物件） */
   theme?: string;
+  /**
+   * 出口（SPEC_SLICE6 §2）：存活英雄全部進入同一個出口就離開（勝利）。有出口時不再以全滅判定勝利。
+   * label：畫面上的說明（例：下一個節點的類型）
+   */
+  exits?: ExitDef[];
+  /**
+   * 勝利條件的門檻：captain＝打倒所有精英隊長、boss＝打倒頭目，出口才打開；
+   * 有門檻但沒有出口（最後的頭目戰）＝達成門檻就勝利。
+   */
+  exitLock?: 'captain' | 'boss';
+}
+
+export interface ExitDef {
+  id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  label?: string;
 }
 
 // ───────────── 互動物件（SPEC_SLICE4 §15.1：通用的「互動 → 觸發動作」） ─────────────

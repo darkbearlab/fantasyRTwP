@@ -1,7 +1,7 @@
 import type { Command, Order } from './commands';
 import { sameOrder } from './commands';
 import { DT, NAV_CELL, RANGE_TOLERANCE } from './constants';
-import { ENEMIES } from './data/enemies';
+import { ENEMIES, enemyRank } from './data/enemies';
 import { ACTIVE_CYCLES } from './data/cycles';
 import { ITEMS } from './data/items';
 import { offCycle } from './cycle';
@@ -101,6 +101,9 @@ export type ProjectilePayload =
   | { type: 'aoeHeal'; skillId: string }
   | { type: 'curseBurst'; skillId: string };
 
+/** 「還沒到齊」提示的最短間隔（秒） */
+const EXIT_NOTICE_INTERVAL = 4;
+
 export interface Projectile {
   id: number;
   sourceId: number;
@@ -154,6 +157,10 @@ export class World implements ZocContext {
   projectiles: Projectile[] = [];
   tick = 0;
   result: Team | null = null;
+  /** 從哪個出口離開（出口制） */
+  exitId: string | null = null;
+  /** 上次發出「還沒到齊」提示的時間與出口（避免每節拍都發） */
+  private exitNotice = { time: -99, key: '' };
   enemyAggro = false;
   /** 已經被我方看到過的敵方小隊（squadSighted 只發一次） */
   private sightedSquads = new Set<string>();
@@ -1411,9 +1418,45 @@ export class World implements ZocContext {
 
   // ───────────── 結束判定 ─────────────
 
+  /** 出口是否打開（SPEC_SLICE6 §2）：精英關卡要打倒所有隊長、頭目關卡要打倒頭目 */
+  exitsOpen(): boolean {
+    const lock = this.map.exitLock;
+    if (!lock) return true;
+    return !this.units.some((u) => u.team === 'enemy' && !u.dead && enemyRank(u.def) === (lock === 'boss' ? 'boss' : 'elite'));
+  }
+
+  /** 出口制：存活英雄全部在同一個出口裡就離開；有人在出口但沒到齊時提示 */
+  private checkExits(heroes: Unit[]): void {
+    const exits = this.map.exits!;
+    const inside = (u: Unit, e: { x: number; y: number; w: number; h: number }) => u.pos.x >= e.x && u.pos.x <= e.x + e.w && u.pos.y >= e.y && u.pos.y <= e.y + e.h;
+    const open = this.exitsOpen();
+    for (const e of exits) {
+      const n = heroes.filter((u) => inside(u, e)).length;
+      if (n === 0) continue;
+      if (open && n === heroes.length) {
+        this.result = 'hero';
+        this.exitId = e.id;
+        return;
+      }
+      const key = `${e.id}:${n}:${open}`;
+      if (key !== this.exitNotice.key || this.time - this.exitNotice.time >= EXIT_NOTICE_INTERVAL) {
+        this.exitNotice = { time: this.time, key };
+        this.emit({ type: 'exitWaiting', exitId: e.id, inside: n, total: heroes.length, locked: !open });
+      }
+    }
+  }
+
   private checkEnd(): void {
     if (this.result) return;
     const heroAlive = this.units.some((u) => u.team === 'hero' && !u.dead);
+    if (!this.horde && (this.map.exits?.length || this.map.exitLock)) {
+      // 出口制（SPEC_SLICE6 §2）：不以全滅判定勝利
+      if (!heroAlive) this.result = 'enemy';
+      else if (this.map.exits?.length) this.checkExits(this.units.filter((u) => u.team === 'hero' && !u.dead));
+      else if (this.exitsOpen()) this.result = 'hero';
+      if (this.result) this.emit({ type: 'battleEnd', winner: this.result, exitId: this.exitId ?? undefined });
+      return;
+    }
     if (this.horde) {
       if (!heroAlive) this.result = 'enemy';
       else if (this.objectiveMet()) this.result = 'hero';

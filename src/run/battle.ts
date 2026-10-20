@@ -101,8 +101,14 @@ export function encounterFor(run: RunState, nodeId: number, encounterId: string)
   const key = `${encounterId}:${seed}:${layer}`;
   let enc = levelCache.get(key);
   if (!enc) {
-    const dgen = LEVELS.deliberateGenerator === 'templates' ? generateTemplateLevel : generateDeliberateLevel;
-    enc = dlevel ? dgen(seed, { tier, layer }) : generateLevel(seed, { tier, layer });
+    if (dlevel && LEVELS.deliberateGenerator === 'templates') {
+      // 出口制（SPEC_SLICE6 §2）：一個下一層節點一個出口，依路線圖由左到右排
+      const exits = run.map.nodes[nodeId].next
+        .map((id) => run.map.nodes[id])
+        .sort((a, b) => a.index - b.index)
+        .map((n) => ({ id: `node:${n.id}`, label: n.type }));
+      enc = generateTemplateLevel(seed, { tier, layer, exits });
+    } else enc = dlevel ? generateDeliberateLevel(seed, { tier, layer }) : generateLevel(seed, { tier, layer });
     if (levelCache.size > 32) levelCache.clear();
     levelCache.set(key, enc);
   }
@@ -147,13 +153,17 @@ export function createBattleFromRun(run: RunState, config?: Partial<SimConfig>, 
 
 export interface BattleOutcome {
   won: boolean;
+  /** 從哪個出口離開＝下一個節點（出口制） */
+  exitNodeId?: number;
   time: number;
   heroes: { slot: number; hp: number; dead: boolean; kills: number; damageDealt: number; damageTaken: number; personality?: Personality }[];
 }
 
 export function battleOutcomeFromWorld(world: World): BattleOutcome {
+  const m = world.exitId?.match(/^node:(\d+)$/);
   return {
     won: world.result === 'hero',
+    exitNodeId: m ? Number(m[1]) : undefined,
     time: world.time,
     heroes: world.units
       .filter((u) => u.team === 'hero')
