@@ -10,12 +10,18 @@ import { FLARE, flareKey } from '../render/art';
 import type { FlareAnimMeta } from '../render/art';
 import { H3D_SHEETS, h3dCharFor, h3dKey, h3dResolve } from '../render/heroes3d';
 import { FONT, hex } from '../render/palette';
+import { staticHeroBar } from '../ui/mobileBar';
+import type { StaticHeroCard } from '../ui/mobileBar';
+import { el, uiRoot } from '../ui/dom';
 import { GAME_CONFIG } from '../../config';
 
 export interface CampfireData {
   /** 圍在火堆旁的英雄（欄位與職業） */
   heroes: { slot: number; classId: string }[];
   lines: CampfireLine[];
+  /** 底部英雄面板（和戰鬥中一樣的外觀，蓋一層半透明黑色、按不到） */
+  cards: StaticHeroCard[];
+  slots: number;
   onDone: () => void;
 }
 
@@ -122,6 +128,11 @@ export class CampfireScene extends Phaser.Scene {
     const W = this.scale.width;
     const H = this.scale.height;
     this.cameras.main.setBackgroundColor('#07080c');
+    // 底部保留原本的英雄面板（只是外觀，蓋半透明黑色）
+    const hud = el('div', 'hud-root mobile');
+    hud.appendChild(staticHeroBar(data.cards, data.slots));
+    uiRoot().appendChild(hud);
+    this.events.once('shutdown', () => hud.remove());
     // 版面（Alan）：畫面下方是英雄面板的位置（戰鬥中四張卡片那一塊），對話框與場景只用它以上的區域
     const reserve = W < H ? GAME_CONFIG.hudBottomHeightPortrait : GAME_CONFIG.hudBottomHeight;
     const areaBottom = H - reserve;
