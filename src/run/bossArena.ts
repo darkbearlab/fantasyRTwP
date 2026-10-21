@@ -52,7 +52,15 @@ export interface BossArena {
   summons: [number, number][];
 }
 
-export function generateBossArena(seed: number): BossArena {
+/** 頭目、護衛、頭目房樣式（camp＝石牆圍起來的營地；clearing＝林中空地，沒有石牆）；totem：四根石柱換成這個敵人 */
+export interface BossArenaSpec {
+  enemy: string;
+  escorts: string[];
+  arena: 'camp' | 'clearing';
+  totem?: string;
+}
+
+export function generateBossArena(seed: number, spec: BossArenaSpec = { ...DELIBERATE_LEVELS.boss, arena: 'camp' }): BossArena {
   const A = ARENA;
   const W = A.width;
   const H = A.height;
@@ -65,11 +73,15 @@ export function generateBossArena(seed: number): BossArena {
   const inCorridor = (x: number, y: number) => x >= c0 && x <= c1 && y >= y1;
   // 石牆：房間外框，下方走道的位置開口
   const walls: [number, number][] = [];
+  // 林中空地沒有石牆：外框那一圈改成密林
+  const clearing = spec.arena === 'clearing';
+  const ring: [number, number][] = [];
   for (let x = x0; x <= x1; x++) {
-    walls.push([x, y0]);
-    if (x < c0 - 1 || x > c1 + 1) walls.push([x, y1]);
+    ring.push([x, y0]);
+    if (x < c0 - 1 || x > c1 + 1) ring.push([x, y1]);
   }
-  for (let y = y0 + 1; y < y1; y++) walls.push([x0, y], [x1, y]);
+  for (let y = y0 + 1; y < y1; y++) ring.push([x0, y], [x1, y]);
+  if (!clearing) walls.push(...ring);
   // 地面：房間裡和走道是泥土地
   const ground: string[] = [];
   for (let y = 0; y < H; y++) {
@@ -83,7 +95,7 @@ export function generateBossArena(seed: number): BossArena {
     for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (wallSet.has(`${x + dx},${y + dy}`) || inCorridor(x + dx, y + dy) || inRoom(x + dx, y + dy)) return true;
     return false;
   };
-  const forest: [number, number][] = [];
+  const forest: [number, number][] = clearing ? [...ring] : [];
   const props: FieldProp[] = [];
   for (let y = 0; y < H; y++)
     for (let x = 0; x < W; x++) {
@@ -92,17 +104,18 @@ export function generateBossArena(seed: number): BossArena {
       const stagger = Math.floor(y / A.trunkStep) % 2;
       if (y % A.trunkStep === 0 && (x + stagger) % A.trunkStep === 0 && y >= 4) props.push({ prefab: rng.chance(0.5) ? 'treeA' : 'treeB', x, y });
     }
-  for (const p of A.pillars) props.push({ prefab: 'pillar', x: p.x, y: p.y });
+  if (!spec.totem) for (const p of A.pillars) props.push({ prefab: 'pillar', x: p.x, y: p.y });
   for (const f of A.fires) props.push({ prefab: 'campfire', x: f.x, y: f.y });
   // 頭目、護衛
-  const L = DELIBERATE_LEVELS.boss;
   const bx = cx;
   const by = y0 + A.boss.dy;
-  const enemies: FieldLevel['enemies'] = [{ enemy: L.enemy, x: bx, y: by, squad: 'boss', facing: 'down' }];
-  L.escorts.forEach((e, i) => {
+  const enemies: FieldLevel['enemies'] = [{ enemy: spec.enemy, x: bx, y: by, squad: 'boss', facing: 'down' }];
+  spec.escorts.forEach((e, i) => {
     const o = A.escorts[i % A.escorts.length];
     enemies.push({ enemy: e, x: cx + o.dx, y: y0 + o.dy, squad: 'boss', facing: 'down' });
   });
+  // 圖騰站在石柱的位置（獸人酋長：打掉圖騰酋長就變弱）
+  if (spec.totem) for (const p of A.pillars) enemies.push({ enemy: spec.totem, x: p.x, y: p.y, squad: 'boss', facing: 'down' });
   const heroSpawns = spawnCells('bottom', cx, W, H).map(([x, y]) => ({ x, y }));
   const level: FieldLevel = { seed, w: W, h: H, ground, walls, forest, props, sites: [], heroSpawns, enemies, exits: [], chunks: ['boss'] };
   return { level, summons: A.summons.map((s) => [s.x, s.y] as [number, number]) };

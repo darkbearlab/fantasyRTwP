@@ -34,6 +34,7 @@ import { deliberateSkillsOf } from './loadout';
 import { DEFAULT_SIM_CONFIG } from '../sim/simConfig';
 import { heroDef, heroPassives } from './upgrades';
 import { currentChapter, depthOffset } from './campaign';
+import { factionOf } from './data/factions';
 
 /** 敵人數值隨層數成長；隊長另外強化 */
 export function enemyDef(enemyId: string, layer: number, captain = false): UnitDef {
@@ -122,7 +123,7 @@ export function encounterFor(run: RunState, nodeId: number, encounterId: string)
     const fbb = dlevel && LEVELS.deliberateGenerator === 'fbb' && !FBB_LEVELS.templateTiers.includes(tier);
     if (fbb) {
       // finalbossblues 地形：前幾層是城內（首都突圍），後面是野外
-      const o = { tier: tier as DeliberateTier, layer, ...exitsFor(run, nodeId), budgetMult: mods.force ? ROUTE_MAP.force.budgetMult : undefined, captainEnemy: mods.champion ? ROUTE_MAP.champion.enemy : undefined };
+      const o = { tier: tier as DeliberateTier, layer, faction: factionOf(chapter.faction), ...exitsFor(run, nodeId), budgetMult: mods.force ? ROUTE_MAP.force.budgetMult : undefined, captainEnemy: mods.champion ? ROUTE_MAP.champion.enemy : undefined };
       enc =
         tier === 'boss'
           ? bossEncounter(seed, { ...o, look: fieldLookFor(node.layer, chapter) })
@@ -198,7 +199,8 @@ export function createBattleFromRun(run: RunState, config?: Partial<SimConfig>, 
   // 戰鬥中召喚的援軍也套用層數成長
   // Alan：沉穩節奏的所有關卡都有戰爭迷霧（舊的手工遭遇也是）
   // 小衝突導演（Alan 2026-10-21）：沉穩節奏的 finalbossblues 程序生成地圖，探索途中一直有小波次湧上來
-  const skirmish = deliberate && map.art && enc.tier !== 'boss' ? { def: SKIRMISH, layer } : undefined;
+  // 小波次的敵人照本章的陣營
+  const skirmish = deliberate && map.art && enc.tier !== 'boss' ? { def: { ...SKIRMISH, pool: factionOf(currentChapter(run).faction).skirmish }, layer } : undefined;
   return new World({ seed, map, spawns, config: cfg, enemyDefFor: (id, captain) => scaled(id, captain), horde, fog: enc.fog || deliberate, skirmish, bag: deliberate ? (run.bag ?? []) : [] });
 }
 

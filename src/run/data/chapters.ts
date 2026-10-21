@@ -3,7 +3,7 @@
  * - 帶到下一章：隊伍、等級、升級、昇變、道具、包包、金幣。每章重來：路線圖、魔王主力、冠軍。
  * - 章節之間全隊回滿生命，陣亡的英雄不復活。
  * - 敵人強度看「全程深度」：前面各章的層數加總 × depthCarry ＋ 本章層數。
- * 第 3～5 章的地圖生成器還沒做，先用野外地圖（冬季陰天）佔位；各章的敵人與頭目擱置（目前都是戰爭領主）。
+ * 第 3～5 章的地圖生成器還沒做，先用野外地圖（冬季陰天）佔位；第 3～5 章的敵人與頭目還沒做（先用帝國叛軍與戰爭領主）。
  */
 import type { FbbLook } from '../fbbLevel';
 
@@ -18,6 +18,8 @@ export interface ChapterDef {
   fieldLooks: FbbLook[];
   /** 章節開始時的過場文字（一行一段） */
   intro: string[];
+  /** 敵方陣營（data/factions.ts） */
+  faction: string;
 }
 
 export const CHAPTER_RULES = {
@@ -27,23 +29,23 @@ export const CHAPTER_RULES = {
 
 export const CHAPTERS: ChapterDef[] = [
   {
-    id: 'capital', name: '首都突圍', layers: 5, townUntilLayer: 3, fieldLooks: ['fallDusk'],
+    id: 'capital', name: '首都突圍', layers: 5, townUntilLayer: 3, fieldLooks: ['fallDusk'], faction: 'empire',
     intro: ['王都陷入火海。', '國王選擇與將士同進退，把最後的希望交給了你們四人：', '找到傳說中的魔法水晶，用它的力量打倒魔王。', '先活著離開這座城。'],
   },
   {
-    id: 'wilds', name: '荒野', layers: 6, townUntilLayer: 0, fieldLooks: ['summer', 'summer', 'summer', 'fallDusk', 'fallDusk', 'fallDusk'],
+    id: 'wilds', name: '荒野', layers: 6, townUntilLayer: 0, fieldLooks: ['summer', 'summer', 'summer', 'fallDusk', 'fallDusk', 'fallDusk'], faction: 'orcs',
     intro: ['回頭望去，王都的火光染紅了半邊天。', '水晶的傳說指向北方的古老神殿。', '魔王的大軍正沿著大道北上——得搶在他們前面。'],
   },
   {
-    id: 'dungeon', name: '試煉地城', layers: 7, townUntilLayer: 0, fieldLooks: ['winterOvercast'],
+    id: 'dungeon', name: '試煉地城', layers: 7, townUntilLayer: 0, fieldLooks: ['winterOvercast'], faction: 'empire',
     intro: ['神殿的大門在你們面前打開。', '守護水晶的衛士們沒有殺意，只是靜靜地擋在路上。', '它們在考驗你們。'],
   },
   {
-    id: 'tunnels', name: '密道', layers: 8, townUntilLayer: 0, fieldLooks: ['winterOvercast'],
+    id: 'tunnels', name: '密道', layers: 8, townUntilLayer: 0, fieldLooks: ['winterOvercast'], faction: 'empire',
     intro: ['水晶在懷中微微發熱。', '通往魔王城的大路早已被封死，只剩下地底的密道。', '黑暗裡，有東西在爬。'],
   },
   {
-    id: 'castle', name: '魔王城', layers: 9, townUntilLayer: 0, fieldLooks: ['winterOvercast'],
+    id: 'castle', name: '魔王城', layers: 9, townUntilLayer: 0, fieldLooks: ['winterOvercast'], faction: 'empire',
     intro: ['魔王城就在眼前。', '一路追著你們的那名冠軍，此刻正站在城門的另一端。', '這是最後一戰。'],
   },
 ];

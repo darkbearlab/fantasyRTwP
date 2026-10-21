@@ -132,6 +132,8 @@ export class Unit {
   enchantAttrTime = 0;
   /** 光環給的傷害加成（狂信者），和祝福同一個計時 */
   blessDamage = 0;
+  /** 疊加型光環給的傷害加成（戰鬥圖騰；每個節拍重算） */
+  stackDamage = 0;
   damageBuffTime = 0;
 
   path: Vec[] | null = null;
@@ -251,7 +253,7 @@ export class Unit {
 
   /** 造成傷害的總倍率 */
   get outgoingDamageMult(): number {
-    return (this.def.damageMult ?? 1) * (1 + this.mods.damagePct) * (this.damageBuffTime > 0 ? this.damageBuffMult : 1) * (this.blessTime > 0 ? 1 + this.blessDamage : 1);
+    return (this.def.damageMult ?? 1) * (1 + this.mods.damagePct) * (this.damageBuffTime > 0 ? this.damageBuffMult : 1) * (this.blessTime > 0 ? 1 + this.blessDamage : 1) * (1 + this.stackDamage);
   }
 
   get isMelee(): boolean {

@@ -12,9 +12,10 @@
  * 7. 敵人：每個據點固定幾個生怪格，先放雜兵，再用升級點數（隨層數增加）換成強敵；面向開口。
  * 8. 檢查：出生點走得到每個出口與每名敵人；不通過就換子種子重來。
  */
+import type { FactionDef } from './data/factions';
+import { FACTIONS } from './data/factions';
 import { Rng } from '../sim/rng';
 import type { DeliberateTier } from './data/deliberateLevels';
-import { LEVEL_POOLS } from './data/levelPools';
 import { FIELD, PREFABS, RUIN_SHAPES, SITES, WALL_JOINS } from './data/prefabs';
 import { deriveSeed } from './seed';
 import { exitRects, inward, roadStart, spawnCells } from './edgeLayout';
@@ -36,6 +37,8 @@ export interface FieldOptions {
   captainEnemy?: string;
   /** 精英隊長的候選（精英關卡） */
   captainPool?: string[];
+  /** 敵方陣營（SPEC_CAMPAIGN；省略＝帝國叛軍，和以前一樣） */
+  faction?: FactionDef;
 }
 
 export interface FieldProp {
@@ -515,8 +518,11 @@ function tryGenerate(rng: Rng, seed: number, opts: FieldOptions): FieldLevel | n
   const E = F.enemies;
   const enemies: FieldLevel['enemies'] = [];
   const enemySite: FieldSite[] = [];
+  const totems: FieldLevel['enemies'] = [];
+  const fac = opts.faction ?? FACTIONS.empire;
   sites.forEach((s, k) => {
     const def = SITES[s.kind];
+    const fs = fac.sites[s.kind];
     // 站在內側；開口那一排優先（看得到外面）
     const [fx, fy] = DIRS[s.facing];
     const spots = shuffle(rng, s.cells.filter(([x, y]) => !blocked[idx(x, y)])).sort((a, b) => b[0] * fx + b[1] * fy - (a[0] * fx + a[1] * fy));
@@ -524,8 +530,13 @@ function tryGenerate(rng: Rng, seed: number, opts: FieldOptions): FieldLevel | n
     for (let i = 0; i < n && i < spots.length && enemies.length < E.max; i++) {
       const [x, y] = spots[i];
       // 第一個（開口正中那一排）是鐵砧
-      enemies.push({ enemy: i === 0 && def.anvil ? def.anvil : pick(def.grunts).enemy, x, y, squad: `${s.kind}${k}`, facing: s.facing });
+      enemies.push({ enemy: i === 0 && fs.anvil ? fs.anvil : pick(fs.grunts).enemy, x, y, squad: `${s.kind}${k}`, facing: s.facing });
       enemySite.push(s);
+    }
+    // 營地的圖騰（獸人部落）：放在最裡面剩下的格子
+    if (fs.totem && n < spots.length) {
+      const [x, y] = spots[spots.length - 1];
+      totems.push({ enemy: fs.totem, x, y, squad: `${s.kind}${k}`, facing: s.facing });
     }
   });
   let points = (E.upgrade.base + E.upgrade.perLayer * (opts.layer - 1) + (opts.tier === 'elite' ? E.upgrade.eliteBonus : 0)) * (opts.upgradeMult ?? 1);
@@ -534,10 +545,11 @@ function tryGenerate(rng: Rng, seed: number, opts: FieldOptions): FieldLevel | n
     enemies.map((_, i) => i),
   )) {
     const def = SITES[enemySite[i].kind];
-    const all = LEVEL_POOLS[def.upgradePool] ?? [];
+    const fs = fac.sites[enemySite[i].kind];
+    const all = fac.pools[def.upgradePool] ?? [];
     const pool = all.filter((e) => e.minLayer <= opts.layer);
-    const grunts = new Set(def.grunts.map((g) => g.enemy));
-    if (def.anvil && enemies[i].enemy === def.anvil) continue;
+    const grunts = new Set(fs.grunts.map((g) => g.enemy));
+    if (fs.anvil && enemies[i].enemy === fs.anvil) continue;
     const cur = all.find((p) => p.enemy === enemies[i].enemy)?.cost ?? 1;
     const price = (p: { cost: number }) => Math.max(1, p.cost - cur);
     const ups = pool.filter((p) => !grunts.has(p.enemy) && p.cost >= cur && price(p) <= points);
@@ -558,6 +570,8 @@ function tryGenerate(rng: Rng, seed: number, opts: FieldOptions): FieldLevel | n
     enemies[i].enemy = id;
     enemies[i].captain = true;
   }
+
+  enemies.push(...totems);
 
   // ── 8. 可達性：出生點走得到每個出口與每名敵人 ──
   const seen = new Uint8Array(W * H);

@@ -42,7 +42,7 @@ export class PixelView implements UnitVisual {
     readonly unit: Unit,
     private readonly art: PixelUnitArt,
   ) {
-    const s = PIXEL.unitScale;
+    const s = art.kind === 'm72' && art.scale ? art.scale : PIXEL.unitScale;
     this.ring = scene.add.graphics();
     if (art.kind === 'mw') {
       this.sprite = scene.add.sprite(0, 0, artKey(art), mwFrame(1, 0, 0)).setOrigin(0.5, PIXEL.mwFootY);

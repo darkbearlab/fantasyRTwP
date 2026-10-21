@@ -62,6 +62,8 @@ export interface PassiveDef {
     enemies?: { slow?: number; vuln?: number };
     /** 吸血光環：範圍內的隊友打中敵人時傷害 +damagePct、依造成的傷害吸血 lifesteal 比例；光環主人扣傷害 × ownerCost 的血（不會扣到死） */
     drain?: { damagePct: number; lifesteal: number; ownerCost: number };
+    /** 疊加：範圍內的同伴（不含自己）每一個來源都讓造成的傷害再 +stackDamagePct（戰鬥圖騰） */
+    stackDamagePct?: number;
     /** 分擔：範圍內的隊友（不含自己）受到的傷害，這個比例改由光環主人承受（守護者） */
     cover?: number;
   };
@@ -193,6 +195,11 @@ export const PASSIVES: Record<string, PassiveDef> = {
     id: 'bloodAura', name: '血之光環', source: 'class',
     description: '5 m 內的隊友打中敵人時傷害 +15%、吸血 20%；異教徒自己扣傷害 8% 的血',
     aura: { radius: 5, drain: { damagePct: 0.15, lifesteal: 0.2, ownerCost: 0.08 } },
+  },
+  warTotemAura: {
+    id: 'warTotemAura', name: '戰鬥圖騰', source: 'class',
+    description: '7 m 內的同伴造成的傷害 +15%（每根圖騰疊加）',
+    aura: { radius: 7, stackDamagePct: 0.15 },
   },
   grenade: {
     id: 'grenade', name: '手榴彈', source: 'class',

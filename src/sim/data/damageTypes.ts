@@ -82,6 +82,12 @@ export const BASIC_ATTACK: Record<string, AttackInfo> = {
   minion: A('phys', 'cut'),
   lurker: A('phys', 'cleave'),
   warlord: A('phys', 'cleave'),
+  goblin: A('phys', 'cut'),
+  orcWarrior: A('phys', 'cleave'),
+  orcShaman: A('spec', 'fire'),
+  goblinSlinger: A('phys', 'blunt'),
+  ogre: A('phys', 'blunt'),
+  orcChief: A('phys', 'cleave'),
 };
 
 /** 技能（依技能 id）；沒列的：照施放者的普攻 */
@@ -102,6 +108,9 @@ export const SKILL_ATTACK: Record<string, AttackInfo> = {
   selfDestruct: A('phys', 'blunt'),
   sweep: A('phys', 'cleave'),
   hurl: A('phys', 'blunt'),
+  clubSweep: A('phys', 'blunt'),
+  chiefLeap: A('phys', 'cleave'),
+  boulder: A('phys', 'blunt'),
   rush: A('phys', 'pierce'),
   ram: A('phys', 'blunt'),
   leap: A('phys', 'cut'),
@@ -123,6 +132,11 @@ export const AFFINITY: Record<string, { resist?: Attribute[]; weak?: Attribute[]
   thrall: { resist: ['cut', 'pierce'], weak: ['blunt', 'holy'] },
   lurker: { weak: ['cold'] },
   warlord: { resist: ['cut', 'cleave'], weak: ['holy'] },
+  goblin: { weak: ['cleave', 'fire'] },
+  orcShaman: { weak: ['cut'] },
+  ogre: { resist: ['blunt'], weak: ['pierce', 'fire'] },
+  warTotem: { resist: ['pierce', 'cut'], weak: ['blunt', 'fire'] },
+  orcChief: { resist: ['cleave'], weak: ['pierce', 'holy'] },
 };
 
 /** 特殊防禦／特殊護甲（依單位 def.id）；沒列的：特殊防禦＝物理防禦的基本值、特殊護甲＝物理護甲的基本值 */
