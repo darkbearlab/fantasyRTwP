@@ -64,3 +64,36 @@ describe('小衝突導演', () => {
     expect(createBattleFromRun(r).skirmish).toBeNull();
   });
 });
+
+describe('頭目房與頭目登場（Alan 2026-10-21）', () => {
+  function bossBattle(seed: number) {
+    const r: RunState = createRun(seed, { style: 'deliberate' });
+    const node = r.map.nodes.find((n) => n.type === 'boss')!;
+    r.currentNodeId = node.id;
+    r.phase = { kind: 'battle', nodeId: node.id, encounterId: deliberateLevelId('boss'), fromEvent: false };
+    return createBattleFromRun(r);
+  }
+  it('頭目房：專屬地圖、有援軍進場點、打倒頭目才算贏、沒有小波次', () => {
+    const w = bossBattle(5);
+    expect(w.map.art?.kind).toBe('fbbField');
+    expect(w.map.exitLock).toBe('boss');
+    expect(w.map.summonPoints?.length).toBeGreaterThan(0);
+    expect(w.units.some((u) => u.def.id === 'warlord')).toBe(true);
+    expect(w.skirmish).toBeNull();
+    // 往前走一點就是頭目：出生點到頭目不到 25 m
+    const h = w.units.find((u) => u.team === 'hero')!;
+    const b = w.units.find((u) => u.def.id === 'warlord')!;
+    expect(Math.hypot(h.pos.x - b.pos.x, h.pos.y - b.pos.y)).toBeLessThan(25);
+  });
+  it('頭目第一次被看到：發出 bossSighted，頭目身邊暫時有視線', () => {
+    const w = bossBattle(5);
+    const heroes = w.units.filter((u) => u.team === 'hero');
+    const b = w.units.find((u) => u.def.id === 'warlord')!;
+    w.enqueue({ type: 'move', unitIds: heroes.map((u) => u.id), point: { x: b.pos.x - 7, y: b.pos.y } });
+    let sighted = false;
+    for (let t = 0; t < 40 / DT && !sighted; t++) for (const ev of w.step()) if (ev.type === 'bossSighted' && ev.unitId === b.id) sighted = true;
+    expect(sighted).toBe(true);
+    // 頭目身後（離英雄更遠）的地方也看得到
+    expect(w.vision!.isVisible({ x: b.pos.x + 2, y: b.pos.y })).toBe(true);
+  });
+});

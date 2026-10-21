@@ -380,6 +380,24 @@ function deliberateThink(world: World, u: Unit): void {
         world.issueOrder(u, { type: 'skill', skillId: 'warcry' });
         return;
       }
+      // 擲人（Alan 2026-10-21）：抓身邊的英雄，丟向遠處的英雄（後排優先、越遠越優先），落點有預兆圈
+      if (ready('hurl')) {
+        const H = SKILLS.hurl;
+        const eff = H.effect;
+        if (eff.kind === 'hurl') {
+          const reach = scaleRange(world.config, H.range) + 0.5;
+          const grab = heroes.filter((h) => !h.thrown && edgeDistance(u, h) <= reach).sort((a, b) => edgeDistance(u, a) - edgeDistance(u, b))[0];
+          const far = grab
+            ? heroes
+                .filter((h) => h !== grab && dist(u.pos, h.pos) >= eff.minDist && dist(u.pos, h.pos) <= eff.maxDist)
+                .sort((a, b) => (a.def.projectsZoc ? 1 : 0) - (b.def.projectsZoc ? 1 : 0) || dist(u.pos, b.pos) - dist(u.pos, a.pos))[0]
+            : undefined;
+          if (grab && far) {
+            world.issueOrder(u, { type: 'skill', skillId: 'hurl', targetId: grab.id, point: { x: far.pos.x, y: far.pos.y } });
+            return;
+          }
+        }
+      }
       if (ready('sweep') && dist(u.pos, t.pos) <= SKILLS.sweep.range + u.radius + 0.6) {
         world.issueOrder(u, { type: 'skill', skillId: 'sweep', point: { x: t.pos.x, y: t.pos.y } });
         return;

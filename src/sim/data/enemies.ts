@@ -176,9 +176,13 @@ export const ENEMIES: Record<string, UnitDef> = {
     maxHp: 630, armor: 6, accuracy: 35, defense: 35, damage: [12, 18],
     range: 0.4, windup: 0.8, recovery: 1.2, attackSpeed: 1, moveSpeed: 2.4, radius: 0.7,
     projectsZoc: true,
-    skills: ['sweep', 'warcry'],
+    // 擲人只有沉穩節奏的 AI 會用（舊模式的 AI 不認得，不影響）
+    skills: ['sweep', 'warcry', 'hurl'],
   },
 };
+
+/** 頭目登場（Alan 2026-10-21）：第一次看到頭目時，頭目身邊 revealRange 公尺內暫時當作有視線，維持 revealSec 秒（戰鬥時間） */
+export const BOSS_INTRO = { revealRange: 9, revealSec: 6 };
 
 /** 敵人選目標的預設權重（SPEC_SLICE5 §15.1；各敵人可用 def.targeting 覆寫；數值佔位） */
 export const ENEMY_TARGETING: TargetingWeights = {

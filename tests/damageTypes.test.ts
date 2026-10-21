@@ -185,3 +185,35 @@ describe('同隊間隔（Alan 2026-10-21：不要擠成一坨）', () => {
     expect(Math.abs(r.a.pos.x - 10)).toBeLessThan(Math.abs(r.b.pos.x - 10.85));
   });
 });
+
+describe('戰爭領主的擲人（Alan 2026-10-21）', () => {
+  it('抓起身邊的英雄丟向遠處的英雄；落點範圍內的英雄受傷，被丟的人暈眩', () => {
+    const w = new World({
+      seed: 2,
+      map: { ...MAP, width: 30, height: 20 },
+      spawns: [
+        { defId: 'warrior', def: { ...HEROES.warrior, skills: [] }, pos: { x: 6, y: 10 } },
+        { defId: 'mage', def: { ...HEROES.mage, skills: [] }, pos: { x: 14, y: 10 } },
+        { defId: 'warlord', def: enemyDef('warlord', 1), pos: { x: 7.2, y: 10 }, squad: 'boss' },
+      ],
+      config: DELIB,
+    });
+    const [war, mage, boss] = w.units;
+    boss.alerted = true;
+    boss.hp = boss.maxHp; // 不要先戰吼
+    let thrownSeen = false;
+    let hurt = 0;
+    const mageHp0 = mage.hp;
+    for (let t = 0; t < 12 / DT; t++) {
+      for (const ev of w.step()) if (ev.type === 'hit' && ev.skillId === 'hurl') hurt++;
+      if (war.thrown) thrownSeen = true;
+      if (hurt > 0) break;
+    }
+    expect(thrownSeen).toBe(true);
+    expect(hurt).toBeGreaterThan(0);
+    // 落點在法師附近：戰士被丟過去
+    expect(Math.hypot(war.pos.x - 14, war.pos.y - 10)).toBeLessThan(3);
+    expect(mage.hp).toBeLessThan(mageHp0);
+    expect(war.stunTime).toBeGreaterThan(0);
+  });
+});

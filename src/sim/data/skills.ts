@@ -160,6 +160,11 @@ export const SKILLS: Record<string, SkillDef> = {
     target: 'ground', range: 3, windup: 1.5, recovery: 1.0, cooldown: 7, requiresLos: false, telegraph: true,
     effect: { kind: 'cone', radius: 3.6, angle: 110, damage: [14, 20], friendlyFire: false },
   },
+  hurl: {
+    id: 'hurl', name: '擲人', description: '抓起身邊的一名英雄，丟向遠處另一名英雄；落點有預兆圈，落地時範圍傷害，被丟的人暈眩',
+    target: 'enemy', range: 0.6, windup: 1.0, recovery: 1.0, cooldown: 12, requiresLos: false, telegraph: true,
+    effect: { kind: 'hurl', radius: 2.0, damage: [14, 20], flight: 0.6, stun: 0.8, minDist: 4, maxDist: 11 },
+  },
   warcry: {
     id: 'warcry', name: '戰吼', description: '召喚 3 名援軍（沉穩節奏是屍僕雜魚，舊模式是蠻兵），全體敵人 10 秒內傷害 +20%；準備 2.0 秒，被打斷就不能再用',
     target: 'self', range: 0, windup: 2.0, recovery: 1.0, cooldown: 999, requiresLos: false, telegraph: true,
