@@ -49,6 +49,18 @@ export const PIXEL_UNITS: Record<string, PixelUnitArt> = {
   berserker: hero('berserker', 'mw/sheets/AxeFighter/AxeFighter_LongHair_Blue1.png'),
   rogue: hero('rogue', 'mw/sheets/Thief/Thief_Blue1.png'),
   hexer: hero('hexer', 'mw/sheets/Wizard/Wizard_Blue2.png'),
+  // 進階職業（SPEC_CLASSES §3 的外觀對照）
+  guardian: hero('guardian', 'mw/sheets/LanceKnight/LanceKnight_Blue.png'),
+  gladiator: hero('gladiator', 'mw/sheets/SwordFighter/SwordFighter_LongHair_Blue1.png'),
+  cutthroat: hero('cutthroat', 'mw/sheets/Thief/Thief_Blue1.png'),
+  sniper: hero('sniper', 'mw/sheets/Archer/Archer_Blue2.png'),
+  arbalest: hero('arbalest', 'mw/sheets/Archer/Archer_Blue3.png'),
+  elementalist: hero('elementalist', 'mw/sheets/Wizard/Wizard_Blue2.png'),
+  deathMage: hero('deathMage', 'mw/sheets/Wizard/Wizard_Blue3.png'),
+  battlemage: hero('battlemage', 'mw/sheets/AxeKnight/AxeKnight_Blue.png'),
+  paladin: hero('paladin', 'mw/sheets/SwordCavalier/SwordCavalier_ShortHair_Blue1.png'),
+  zealot: hero('zealot', 'mw/sheets/SpearFighter/SpearFighter_ShortHair_Blue1.png'),
+  heretic: hero('heretic', 'mw/sheets/Wizard/Wizard_Blue1.png'),
   // Alan 2026-10-21：牧師改用戰士的 sprite（職業色換成黃色）
   cleric: hero('cleric', 'mw/sheets/SwordFighter/SwordFighter_ShortHair_Blue1.png'),
   // 建議表沒有煉金術士：先用法師

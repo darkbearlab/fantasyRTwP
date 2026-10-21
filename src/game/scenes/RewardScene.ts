@@ -43,7 +43,7 @@ export class RewardScene extends DomScene {
     const remain = run.pendingLevelUps ?? 0;
     const title = levelUp ? `升到第 ${p.levelUpTo} 級：選擇一個強化${remain > 1 ? `（還有 ${remain - 1} 次升級）` : ''}` : `選擇一個強化${p.elite ? '（精英：四選一，至少一個稀有）' : ''}`;
     box.appendChild(el('div', 'step-title', title));
-    box.appendChild(upgradePicker(run, p.options, (c) => advance(this, chooseReward(getRun(this), c))));
+    box.appendChild(upgradePicker(run, p.options, (c) => advance(this, chooseReward(getRun(this), c)), undefined, p.optionSlots));
     const row = el('div', 'btn-row');
     row.appendChild(button(`跳過（+${ECONOMY.skipRewardGold} 金幣）`, '', () => advance(this, chooseReward(getRun(this), 'skip'))));
     box.appendChild(row);

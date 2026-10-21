@@ -98,6 +98,8 @@ export class Unit {
   /** 寒氣（法師的光環）：移動與行動速度降低 chillSlow 比例 */
   chillTime = 0;
   chillSlow = 0;
+  /** 凋零光環：受到的傷害增加比例（和寒氣同一個計時） */
+  chillVuln = 0;
   /** 破甲（命中附帶減益，SPEC_CLASSES §2）：層數、每層降低的物理與特殊護甲、剩餘秒數 */
   sunderStacks = 0;
   sunderArmor = 0;

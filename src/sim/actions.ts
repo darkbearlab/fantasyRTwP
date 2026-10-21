@@ -762,13 +762,13 @@ export function matchup(target: Unit, info: AttackInfo): { w: number; r: number 
 /** 目標的防禦（物理含盾與祝福；特殊用特殊防禦表，祝福也算） */
 export function defenseOf(target: Unit, cat: DamageCategory): number {
   if (cat === 'phys') return target.defense;
-  return (SPEC_DEFENSE[target.def.id]?.defense ?? target.def.defense) + target.mods.defense + (target.blessTime > 0 ? target.blessDefense : 0);
+  return (SPEC_DEFENSE[target.def.id]?.defense ?? target.def.defense) + (target.def.specDefenseBonus ?? 0) + target.mods.defense + (target.blessTime > 0 ? target.blessDefense : 0);
 }
 
 /** 目標的護甲（物理含盾；特殊用特殊護甲表） */
 export function armorOf(target: Unit, cat: DamageCategory): number {
   if (cat === 'phys') return target.armor;
-  return (SPEC_DEFENSE[target.def.id]?.armor ?? target.def.armor) + target.mods.armor - target.sunderAmount;
+  return (SPEC_DEFENSE[target.def.id]?.armor ?? target.def.armor) + (target.def.specArmorBonus ?? 0) + target.mods.armor - target.sunderAmount;
 }
 
 /** 打進去的傷害：傷害 × weakDamage^w × K ÷（K ＋ 護甲 × resistArmor^r） */
@@ -929,6 +929,8 @@ export function applyDamage(
   if (foe && src.drainAuraTime > 0) amount = Math.round(amount * (1 + src.drainAuraDamagePct));
   // 衰弱詛咒：受到傷害增加
   if (target.curseTime > 0) amount = Math.round(amount * (1 + target.curseVuln));
+  // 凋零光環：受到傷害增加
+  if (target.chillTime > 0 && target.chillVuln > 0) amount = Math.round(amount * (1 + target.chillVuln));
   // 聖域：範圍內的友軍減傷（取最強的一個）
   const ward = wardReduction(world, target);
   if (ward > 0) amount = Math.max(1, Math.round(amount * (1 - ward)));

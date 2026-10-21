@@ -3,6 +3,8 @@
  */
 import { CLASS_ORDER, CLASSES, LINES } from '../sim/data/classes';
 import { ECONOMY } from './data/economy';
+import { STARTER_CLASSES } from './data/branches';
+import type { RunStyle } from './data/levels';
 import type { RunState } from './runState';
 import { cloneRun, livingHeroes } from './runState';
 import { rngFor } from './seed';
@@ -26,10 +28,16 @@ export function rollParty(seed: number, picks: string[], maxPicks = ECONOMY.part
 
 /** 招募候選池：不允許重複職業時排除隊上存活者的職業 */
 export function recruitPool(run: RunState): string[] {
-  if (ECONOMY.allowDuplicateClasses) return CLASS_ORDER;
-  const taken = new Set(livingHeroes(run).map(({ hero }) => hero.classId));
-  const pool = CLASS_ORDER.filter((id) => !taken.has(id));
-  return pool.length ? pool : CLASS_ORDER;
+  const all = classChoices(run.style);
+  if (ECONOMY.allowDuplicateClasses) return all;
+  const taken = new Set(livingHeroes(run).flatMap(({ hero }) => [hero.classId, hero.baseClass ?? hero.classId]));
+  const pool = all.filter((id) => !taken.has(id));
+  return pool.length ? pool : all;
+}
+
+/** 可以選、可以招募的職業：沉穩節奏只有四個基本職業（進階職業靠昇變，SPEC_CLASSES） */
+export function classChoices(style?: RunStyle): string[] {
+  return style === 'deliberate' ? STARTER_CLASSES : CLASS_ORDER;
 }
 
 /**

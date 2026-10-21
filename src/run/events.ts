@@ -8,7 +8,7 @@ import { EVENTS } from './data/events';
 import { UPGRADES } from './data/upgrades';
 import type { RunState } from './runState';
 import { cloneRun, firstEmptySlot, livingHeroes } from './runState';
-import { grantUpgrade, maxHpOf, recruitInto } from './upgrades';
+import { generalUpgradeIds, grantUpgrade, maxHpOf, recruitInto } from './upgrades';
 import { recruitPool } from './classes';
 import { rngFor } from './seed';
 import { deliberateLevelId, levelEncounterId, runStyle } from './battle';
@@ -17,7 +17,7 @@ import { battleSkillsOf } from './loadout';
 export function conditionMet(run: RunState, c: EventCondition | undefined): boolean {
   if (!c) return true;
   if (c.minGold !== undefined && run.gold < c.minGold) return false;
-  if (c.hasClass && !livingHeroes(run).some(({ hero }) => hero.classId === c.hasClass)) return false;
+  if (c.hasClass && !livingHeroes(run).some(({ hero }) => hero.classId === c.hasClass || hero.baseClass === c.hasClass)) return false;
   if (c.hasEmptySlot && firstEmptySlot(run) < 0) return false;
   return true;
 }
@@ -110,7 +110,7 @@ export function applyEffect(r: RunState, e: EventEffect, rng: Rng): string {
       const alive = livingHeroes(r);
       if (alive.length === 0) return '';
       const { slot, hero } = alive[rng.int(0, alive.length - 1)];
-      const pool = Object.values(UPGRADES).filter((u) => u.scope === 'hero' && (!e.rare || u.rare));
+      const pool = generalUpgradeIds(r.style).map((id) => UPGRADES[id]).filter((u) => u.scope === 'hero' && (!e.rare || u.rare));
       const up = pool[rng.int(0, pool.length - 1)];
       const skills = battleSkillsOf(r, hero);
       return grantUpgrade(r, up.id, slot, up.needsSkill ? skills[rng.int(0, skills.length - 1)] : undefined);

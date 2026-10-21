@@ -1167,6 +1167,36 @@ body {
   box-shadow: 0 0 0 2px #f5d142 inset;
 }
 
+/* 專屬升級（SPEC_CLASSES §5）：英雄名、分支進度；會昇變的那一張金框 */
+.upgrade-card.exclusive {
+  border-color: #4a6fa8;
+  background: #1d2433;
+}
+
+.upgrade-card.evolve {
+  border-color: #f5c542;
+  background: #2e2814;
+  box-shadow: 0 0 10px rgba(245, 197, 66, 0.45);
+}
+
+.up-hero {
+  font-size: 12px;
+  color: #9fb6dc;
+  margin-bottom: 2px;
+}
+
+.up-branch {
+  font-size: 12px;
+  color: #c9d1de;
+  margin-top: 6px;
+  letter-spacing: 1px;
+}
+
+.upgrade-card.evolve .up-scope {
+  color: #f5c542;
+  font-weight: bold;
+}
+
 .up-name {
   font-weight: bold;
   font-size: 16px;

@@ -22,7 +22,10 @@ export interface OwnedUpgrade {
 }
 
 export interface HeroRecord {
+  /** 目前的職業（昇變後是進階職業） */
   classId: string;
+  /** 昇變前的基本職業（SPEC_CLASSES；還沒昇變時沒有） */
+  baseClass?: string;
   /** 目前裝備的 3 個技能：[專用, 共用, 共用]（SPEC_SLICE3 §1.1） */
   skills: string[];
   hp: number;
@@ -69,6 +72,8 @@ export type RunPhase =
       /** 經驗值（沉穩節奏）：這場獲得多少；正在選第幾級的升級（沒有升級時省略） */
       xpGained?: number;
       levelUpTo?: number;
+      /** 和 options 對齊：專屬升級固定給哪一名英雄（欄位）；通用升級是 null（SPEC_CLASSES §1） */
+      optionSlots?: (number | null)[];
     }
   /** 商人（SPEC_SLICE5 §17）：貨架與已售出的道具 */
   | { kind: 'shop'; nodeId: number; stock: string[]; sold: string[] }
@@ -118,6 +123,8 @@ export interface RunState {
   xp?: number;
   /** 還沒選的升級三選一次數 */
   pendingLevelUps?: number;
+  /** 剛昇變、畫面還沒演出的英雄（SPEC_CLASSES §5；畫面演完就清掉） */
+  evolutionShow?: { slot: number; from: string; to: string; line: string }[];
   /** FTL 式路線圖（SPEC_SLICE6 §4，沉穩節奏）：回合、造訪次數、主力、冠軍 */
   overworld?: Overworld;
   /** 已出現過的事件（避免重複） */

@@ -16,4 +16,6 @@ export const ACTIVE_CYCLES: Record<string, ActiveCycle> = {
   // charge 模式保留給之後其他職業使用；大火球 greatFireball 的資料還留在 skills.ts。
   // 咒術師：衰弱詛咒 → 詛咒爆裂（引爆目標身上的詛咒）→ 衰弱詛咒…
   hexer: { mode: 'sequence', steps: ['curse', 'curseBurst'] },
+  // 死亡法師（SPEC_CLASSES §3）：回收咒術師的詛咒 → 詛咒爆裂
+  deathMage: { mode: 'sequence', steps: ['curse', 'curseBurst'] },
 };

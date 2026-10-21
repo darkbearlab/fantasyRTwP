@@ -62,6 +62,8 @@ export interface UnitSpawn {
   squad?: string;
   /** 英雄裝備的道具（沉穩節奏：每件提供一個被動，SPEC_SLICE5 §17） */
   items?: string[];
+  /** 額外的被動（升級給的，PASSIVES 的 id；沉穩節奏） */
+  passives?: string[];
   /** 初始面向（弧度）；省略時英雄朝 +x、敵人朝 −x */
   facing?: number;
 }
@@ -235,6 +237,7 @@ export class World implements ZocContext {
       if (def.team === 'hero' && this.config.battleStyle === 'deliberate') {
         for (const id of CLASS_PASSIVES[def.id] ?? []) u.addPassive(PASSIVES[id]);
         for (const id of s.items ?? []) if (ITEMS[id]) u.addPassive(ITEMS[id].passive);
+        for (const id of s.passives ?? []) if (PASSIVES[id]) u.addPassive(PASSIVES[id]);
         // 技能循環（SPEC_SLICE5 §16）：英雄帶齊循環的每一招才啟用
         const cyc = ACTIVE_CYCLES[def.id];
         if (cyc && cyc.steps.every((sk) => def.skills.includes(sk))) u.cycle = cyc;
@@ -909,7 +912,8 @@ export class World implements ZocContext {
           } else if (t.team !== src.team && a.enemies) {
             const active = t.chillTime > 0;
             t.chillTime = Math.max(t.chillTime, linger);
-            t.chillSlow = Math.max(active ? t.chillSlow : 0, a.enemies.slow);
+            t.chillSlow = Math.max(active ? t.chillSlow : 0, a.enemies.slow ?? 0);
+            t.chillVuln = Math.max(active ? t.chillVuln : 0, a.enemies.vuln ?? 0);
           }
         }
       }

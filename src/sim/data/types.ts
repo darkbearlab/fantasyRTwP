@@ -79,6 +79,9 @@ export interface UnitDef {
   lowHpDamageBonus?: number;
   /** 從目標背後普攻的傷害倍率（盜賊） */
   backstabMult?: number;
+  /** 升級給的特殊防禦、特殊護甲加成（沉穩節奏的物理／特殊公式） */
+  specDefenseBonus?: number;
+  specArmorBonus?: number;
   /** 普攻為拋物線：不需視線、不受掩體影響（煉金術士） */
   arcAttack?: boolean;
   /** 無視控制區（攻城兵） */
