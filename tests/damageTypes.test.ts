@@ -106,3 +106,24 @@ describe('牧師的聖鎚', () => {
     expect(interrupted).toBeGreaterThan(0);
   });
 });
+
+describe('手感調整（Alan 2026-10-21：太泥濘）', () => {
+  it('沉穩節奏：一般敵人生命減半、精英隊長與頭目不變；英雄技能效果 ×1.5、普攻速度 ×1.5', async () => {
+    const { createRun } = await import('../src/run/runState');
+    const { createBattleFromRun, deliberateLevelId } = await import('../src/run/battle');
+    const { DELIBERATE_PACE } = await import('../src/sim/data/deliberate');
+    const r = createRun(3, { style: 'deliberate' });
+    const node = r.map.nodes.find((n) => n.layer === 4)!;
+    r.currentNodeId = node.id;
+    r.phase = { kind: 'battle', nodeId: node.id, encounterId: deliberateLevelId('elite'), fromEvent: false };
+    const w = createBattleFromRun(r);
+    const layer = node.layer;
+    for (const u of w.units.filter((x) => x.team === 'enemy')) {
+      const full = enemyDef(u.def.id, layer, u.def.rank === 'elite').maxHp;
+      expect(u.maxHp).toBe(u.def.rank === 'elite' ? full : Math.round(full * DELIBERATE_PACE.enemyHpMult));
+    }
+    expect(w.units.some((u) => u.def.rank === 'elite')).toBe(true);
+    expect(w.config.heroSkillPowerMult).toBe(DELIBERATE_PACE.heroSkillPower);
+    expect(w.config.basicAttackSpeedMult).toBe(DELIBERATE_PACE.heroAttackSpeed);
+  });
+});

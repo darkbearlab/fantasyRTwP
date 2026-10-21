@@ -45,6 +45,8 @@ export interface SimConfig {
   enemyAggroTime: number;
   /** 英雄普攻準備＋恢復的速度倍率（怪群模式 1.6） */
   basicAttackSpeedMult: number;
+  /** 英雄技能的效果倍率（傷害、治療、增益的強度；不影響冷卻、時間、範圍；沉穩節奏 1.5） */
+  heroSkillPowerMult: number;
   /** 技能冷卻倍率（怪群模式 0.6） */
   skillCooldownMult: number;
   /**
@@ -81,6 +83,7 @@ export const DEFAULT_SIM_CONFIG: SimConfig = {
   enemyAggroRange: 10,
   enemyAggroTime: 20,
   basicAttackSpeedMult: 1,
+  heroSkillPowerMult: 1,
   skillCooldownMult: 1,
   rangeMult: 1,
   attackMoveRange: 6,

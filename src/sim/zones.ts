@@ -3,7 +3,7 @@
  * 任何技能都可以在地上留下一個區域：持續一段時間，對範圍內的敵人／友軍套用一組效果（減速、燃燒、每秒傷害、每秒回復）。
  * 沼澤、火焰瓶的地面火都用這一套；之後的道具、敵人技能也一樣。
  */
-import { applyDamage } from './actions';
+import { applyDamage, skillPower } from './actions';
 import { DT } from './constants';
 import { TERRAIN } from './data/terrain';
 import type { LingeringDef } from './data/types';
@@ -66,9 +66,10 @@ export function updateZones(world: World): void {
           u.burnTime = Math.max(u.burnTime, TERRAIN.burnDuration);
           u.burnSourceId = z.sourceId;
         } else if (e.kind === 'damage' && secondTick && src) {
-          applyDamage(world, u, e.perSecond, 'area', src, { skillId: z.skillId });
+          // 英雄技能留下的地面效果也套技能效果倍率（沉穩節奏）
+          applyDamage(world, u, Math.round(e.perSecond * skillPower(world, src)), 'area', src, { skillId: z.skillId });
         } else if (e.kind === 'heal' && secondTick && !u.dead) {
-          const healed = Math.min(e.perSecond, u.maxHp - u.hp);
+          const healed = Math.min(src ? Math.round(e.perSecond * skillPower(world, src)) : e.perSecond, u.maxHp - u.hp);
           if (healed <= 0) continue;
           u.hp += healed;
           if (src) src.stats.healing += healed;

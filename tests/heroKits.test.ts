@@ -67,7 +67,8 @@ describe('英雄技能重整（Alan 2026-10-20）', () => {
     w.enqueue({ type: 'skill', unitId: 1, skillId: 'enchant' });
     run(w, 3 * 30);
     expect(w.getUnit(2)!.damageBuffTime).toBeGreaterThan(0);
-    expect(w.getUnit(2)!.outgoingDamageMult).toBeCloseTo(HEROES.warrior.damageMult ?? 1 * 1.3, 1);
+    // 附魔 +30% × 英雄技能效果倍率（沉穩節奏）
+    expect(w.getUnit(2)!.outgoingDamageMult).toBeCloseTo((HEROES.warrior.damageMult ?? 1) * (1 + 0.3 * w.config.heroSkillPowerMult), 1);
   });
 
   it('遊俠的鷹眼：看得見 10 m 內草叢裡的敵人，並分享給全隊', () => {
