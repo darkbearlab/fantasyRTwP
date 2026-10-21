@@ -16,7 +16,7 @@ import { TERRAIN } from './data/terrain';
 import { COMBOS } from './data/combos';
 import type { BasicAttackStyle } from './data/horde';
 import { HORDE_ATTACKS, HORDE_CHAIN } from './data/horde';
-import { addZone } from './zones';
+import { addZone, wardReduction } from './zones';
 import { advanceCycleOnCast, chargeCycleOnHit } from './cycle';
 
 /** 打斷造成的硬直秒數 */
@@ -875,6 +875,9 @@ export function applyDamage(
   const { crit = false, skillId, freeAttack } = opts;
   // 衰弱詛咒：受到傷害增加
   if (target.curseTime > 0) amount = Math.round(amount * (1 + target.curseVuln));
+  // 聖域：範圍內的友軍減傷（取最強的一個）
+  const ward = wardReduction(world, target);
+  if (ward > 0) amount = Math.max(1, Math.round(amount * (1 - ward)));
   const dealt = Math.min(amount, target.hp);
   target.hp -= amount;
   src.stats.damageDealt += dealt;

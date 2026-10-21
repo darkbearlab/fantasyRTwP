@@ -57,7 +57,7 @@ export class MapScene extends DomScene {
     );
     // 背包與裝備（沉穩節奏，SPEC_SLICE5 §17）
     if (run.style === 'deliberate') {
-      const n = run.inventory?.length ?? 0;
+      const n = (run.inventory?.length ?? 0) + (run.bag?.length ?? 0);
       side.appendChild(
         button(this.bagOpen ? '收起背包' : `🎒 背包與裝備${n ? `（${n}）` : ''}`, 'small bag-toggle', () => {
           this.bagOpen = !this.bagOpen;

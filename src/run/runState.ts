@@ -2,6 +2,7 @@
  * 遠征狀態 RunState（SPEC_SLICE2 §3.1）：純資料、可序列化成 JSON（之後做存檔用）。
  * 所有規則函式都是「舊狀態 → 新狀態」，不修改傳入的物件。
  */
+import { BAG } from '../sim/data/consumables';
 import { defaultLoadout } from '../sim/data/classes';
 import { HERO_ORDER, HEROES } from '../sim/data/heroes';
 import type { Personality } from '../sim/data/types';
@@ -63,6 +64,8 @@ export type RunPhase =
       elite: boolean;
       gold: number;
       item?: string;
+      /** 撿到的消耗品 */
+      consumable?: string;
       /** 經驗值（沉穩節奏）：這場獲得多少；正在選第幾級的升級（沒有升級時省略） */
       xpGained?: number;
       levelUpTo?: number;
@@ -126,6 +129,8 @@ export interface RunState {
   style?: RunStyle;
   /** 背包：還沒裝備的道具 */
   inventory?: string[];
+  /** 包包：消耗品（隊伍共用，不分配給英雄；Alan 2026-10-21） */
+  bag?: string[];
 }
 
 export function newHero(classId: string, personality?: Personality): HeroRecord {
@@ -171,6 +176,7 @@ export function createRun(seed: number, opts: { layers?: number; party?: string[
     xp: 0,
     pendingLevelUps: 0,
     inventory: [],
+    bag: style === 'deliberate' ? [...BAG.start] : [],
   };
   if (style === 'deliberate' && opts.layers === undefined) run.overworld = initOverworld(run);
   return run;

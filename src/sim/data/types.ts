@@ -225,7 +225,13 @@ export interface Rect {
 
 /** 戰術地形種類（SPEC_SLICE3 §2） */
 /** 持續區域的效果：減速、燃燒（維持燃燒狀態）、每秒傷害、每秒回復 */
-export type ZoneEffect = { kind: 'slow'; moveMult: number } | { kind: 'burn' } | { kind: 'damage'; perSecond: number } | { kind: 'heal'; perSecond: number };
+export type ZoneEffect =
+  | { kind: 'slow'; moveMult: number }
+  | { kind: 'burn' }
+  | { kind: 'damage'; perSecond: number }
+  | { kind: 'heal'; perSecond: number }
+  /** 庇護（牧師的聖域）：範圍內受到的傷害 ×(1 − reduction)；重疊取最強 */
+  | { kind: 'ward'; reduction: number };
 
 /** 持續區域的定義（Alan：持續效果做成通用的 helper）；style 只影響畫面顏色 */
 export interface LingeringDef {

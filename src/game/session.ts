@@ -79,6 +79,8 @@ export class BattleSession {
   acc = 0;
   selection: number[] = [];
   targeting: Targeting | null = null;
+  /** 正在選消耗品的目標（點英雄卡；Alan 2026-10-21） */
+  itemTargeting: string | null = null;
   /** 數字鍵二段式：剛用數字鍵選了哪名英雄、到什麼時候前再按數字就是放技能（畫面時間，毫秒） */
   chord: { slot: number; until: number } | null = null;
   hoverUnitId: number | null = null;
