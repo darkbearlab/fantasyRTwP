@@ -65,7 +65,7 @@ describe('第 2 章「荒野」：獸人部落（SPEC_CAMPAIGN）', () => {
     const ids = w.units.filter((u) => u.team === 'enemy').map((u) => u.def.id);
     expect(ids).toContain('orcChief');
     expect(ids.filter((id) => id === 'warTotem')).toHaveLength(4);
-    const art = w.map.art as { level: { walls: unknown[] } };
+    const art = w.map.art as unknown as { level: { walls: unknown[] } };
     expect(art.level.walls).toHaveLength(0);
     expect(w.map.name).toContain('獸人酋長');
   });
