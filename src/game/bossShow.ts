@@ -2,7 +2,9 @@
  * 頭目演出（Alan 2026-10-21）：
  * - 登場：頭目第一次進入視線（sim 的 bossSighted；迷霧在 sim 那邊暫時解開）→ 遊戲暫停、鏡頭帶到頭目身上；
  *   畫面上方的頭目血條先從左往右把槽拉滿，槽滿了血才逐漸填滿，期間頭目喊話；填滿後鏡頭回到原本的位置，遊戲維持暫停。
- * - 擊敗：先定格，再轉成紅黑雙色，一邊左右抖動一邊往下沉進地面消失，演完才跳勝利畫面。
+ * - 擊敗（Alan 2026-10-21 第三版：頓點要更強、更久）：畫面暫停 → 鏡頭移到頭目 → 停 0.8 秒 → 原圖抖一下 → 頓一下
+ *   → 變成紅黑雙色 → 停 0.8 秒
+ *   → 約 3 秒左右抖動、往下沉、逐漸變透明直到消失，演完才跳勝利畫面。
  * 時間與台詞都在 BOSS_SHOW、BOSS_LINES。
  */
 import Phaser from 'phaser';
@@ -19,9 +21,15 @@ export const BOSS_SHOW = {
   fillMs: 1100,
   /** 填滿後多停一下再回鏡頭 */
   holdMs: 700,
-  /** 擊敗：定格、沉下去（毫秒）；抖動的幅度（px）與頻率（每次換邊的毫秒） */
-  freezeMs: 450,
-  sinkMs: 1700,
+  /** 擊敗：鏡頭移過去、原色定格、紅黑定格、抖動下沉變透明（毫秒）；抖動的幅度（px）與頻率（每次換邊的毫秒） */
+  defeatPanMs: 500,
+  freezeMs: 800,
+  /** 轉紅黑之前：原圖抖一下、再頓一下 */
+  joltMs: 250,
+  joltHoldMs: 500,
+  joltPx: 7,
+  toneHoldMs: 800,
+  sinkMs: 3000,
   shakePx: 5,
   shakeEveryMs: 45,
   /** 紅黑雙色的分界（亮度 0～1）與顏色 */
@@ -129,22 +137,25 @@ export class BossShow {
     this.hpEl!.style.width = `${show * 100}%`;
   }
 
-  /** 頭目被擊敗：定格 → 紅黑雙色 → 左右抖動往下沉，回傳演出長度（毫秒） */
+  /** 頭目被擊敗：暫停 → 鏡頭帶過去 → 原色定格 → 紅黑定格 → 抖動下沉變透明，回傳演出長度（毫秒） */
   defeat(boss: Unit): number {
     const { scene } = this.host;
-    const total = BOSS_SHOW.freezeMs + BOSS_SHOW.sinkMs + 200;
+    const B = BOSS_SHOW;
+    const total = B.defeatPanMs + B.freezeMs + B.joltMs + B.joltHoldMs + B.toneHoldMs + B.sinkMs + 200;
     this.doneAt = scene.time.now + total;
     this.bar?.classList.add('defeated');
+    this.host.session().setPaused(true, '頭目擊敗');
     // 鏡頭帶到頭目身上（倒下的地方可能在畫面外）
     const p = worldToScreen(boss.pos.x, boss.pos.y);
-    scene.cameras.main.pan(p.x, p.y, Math.min(BOSS_SHOW.panMs, BOSS_SHOW.freezeMs), 'Sine.easeOut');
+    scene.cameras.main.pan(p.x, p.y, B.defeatPanMs, 'Sine.easeOut');
     const sp = this.host.bossSprite(boss.id);
     if (!sp) return total;
     const key = twoToneTexture(scene, sp);
     if (!key) return total;
     this.host.hideUnit(boss.id);
+    // 先用原本的樣子定格，之後才換成紅黑雙色
     const img = scene.add
-      .image(sp.parentContainer ? sp.parentContainer.x + sp.x : sp.x, sp.parentContainer ? sp.parentContainer.y + sp.y : sp.y, key)
+      .image(sp.parentContainer ? sp.parentContainer.x + sp.x : sp.x, sp.parentContainer ? sp.parentContainer.y + sp.y : sp.y, sp.texture.key, sp.frame.name)
       .setOrigin(sp.originX, sp.originY)
       .setScale(sp.scaleX, sp.scaleY)
       .setFlipX(sp.flipX)
@@ -153,12 +164,28 @@ export class BossShow {
     const y0 = img.y;
     const h = img.height;
     const footFrac = sp.originY;
-    // 定格：先停在原地
-    scene.time.delayedCall(BOSS_SHOW.freezeMs, () => {
+    // 原圖抖一下（左右快速換邊），停回原位頓一下，再換成紅黑雙色
+    const tJolt = B.defeatPanMs + B.freezeMs;
+    scene.time.delayedCall(tJolt, () => {
       scene.tweens.addCounter({
         from: 0,
         to: 1,
-        duration: BOSS_SHOW.sinkMs,
+        duration: B.joltMs,
+        onUpdate: (tw) => {
+          const k = tw.getValue() ?? 1;
+          const side = Math.floor(scene.time.now / B.shakeEveryMs) % 2 ? 1 : -1;
+          img.x = x0 + side * B.joltPx * (1 - k);
+        },
+        onComplete: () => (img.x = x0),
+      });
+    });
+    const tTone = tJolt + B.joltMs + B.joltHoldMs;
+    scene.time.delayedCall(tTone, () => img.setTexture(key));
+    scene.time.delayedCall(tTone + B.toneHoldMs, () => {
+      scene.tweens.addCounter({
+        from: 0,
+        to: 1,
+        duration: B.sinkMs,
         ease: 'Sine.easeIn',
         onUpdate: (tw) => {
           const k = tw.getValue() ?? 1;
@@ -167,7 +194,8 @@ export class BossShow {
           img.setCrop(0, 0, img.width, Math.max(0, h * footFrac - sunk + (1 - footFrac) * 0));
           img.y = y0 + sunk * img.scaleY;
           const side = Math.floor(scene.time.now / BOSS_SHOW.shakeEveryMs) % 2 ? 1 : -1;
-          img.x = x0 + side * BOSS_SHOW.shakePx * (1 - k * 0.5);
+          img.x = x0 + side * B.shakePx * (1 - k * 0.5);
+          img.setAlpha(1 - k);
         },
         onComplete: () => img.destroy(),
       });
