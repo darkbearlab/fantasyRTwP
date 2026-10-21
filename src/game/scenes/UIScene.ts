@@ -23,6 +23,9 @@ import type { ProjectionMode } from '../render/projection';
 import type { BattleSession, DebugFlags } from '../session';
 import type { BattleScene } from './BattleScene';
 import { MobileHeroBar } from '../ui/mobileBar';
+import { RouteMini } from '../ui/routeMini';
+import { exitInfos } from '../exitInfo';
+import type { RunState } from '../../run/runState';
 import { AUTO_PAUSE_OPTIONS, LOW_HP_THRESHOLDS } from '../autoPause';
 import { portraitSheetUrl } from '../render/pixelArt';
 
@@ -86,6 +89,8 @@ export class UIScene extends Phaser.Scene {
   private logLast: unknown = null;
   /** 沉穩節奏（SPEC_SLICE5）用行動版的四卡片英雄列 */
   private mobileBar!: MobileHeroBar;
+  private routeMini!: RouteMini;
+  private routeBtn!: HTMLElement;
   private mobile = false;
 
   constructor() {
@@ -113,6 +118,8 @@ export class UIScene extends Phaser.Scene {
     this.root.appendChild(this.mobileBar.root);
     this.toastEl = el('div', 'toast');
     this.root.appendChild(this.toastEl);
+    this.routeMini = new RouteMini();
+    this.root.appendChild(this.routeMini.root);
   }
 
   private get battle(): BattleScene {
@@ -142,7 +149,15 @@ export class UIScene extends Phaser.Scene {
     noFocus(gear);
     gear.addEventListener('click', () => this.toggleSettings());
     const hint = el('div', 'pill hint', '空白鍵 暫停　1–4 選人→再按 1–3 放技能　Tab 切換　右鍵技能鈕 自動施放　右鍵 移動・攻擊・跟隨　F＋點擊／Ctrl＋右鍵 攻擊移動　WASD 鏡頭　G 切換性格　H 停止　` 除錯');
-    top.append(this.timeEl, this.speedEl, gear, hint);
+    // 迷你路線圖（遠征中才有）：出口通往大地圖的哪裡
+    this.routeBtn = el('div', 'pill route-btn interactive', '🗺');
+    this.routeBtn.title = '路線圖（出口通往哪裡）';
+    noFocus(this.routeBtn);
+    this.routeBtn.addEventListener('click', () => {
+      const s = this.cur();
+      s.routeOpen = !s.routeOpen;
+    });
+    top.append(this.timeEl, this.speedEl, gear, this.routeBtn, hint);
     this.root.appendChild(top);
     this.settingsEl = el('div', 'settings-panel interactive');
     this.root.appendChild(this.settingsEl);
@@ -553,9 +568,16 @@ export class UIScene extends Phaser.Scene {
       this.heroBar.innerHTML = '';
       if (this.mobile) this.mobileBar.build(s);
       else this.buildHeroBar(s);
+      // 迷你路線圖：遠征中的戰鬥才有
+      const run = s.mode === 'run' ? (this.registry.get('run') as RunState | undefined) : undefined;
+      this.routeBtn.style.display = run ? '' : 'none';
+      if (run) this.routeMini.build(run, exitInfos(s.world, run));
+      else s.routeOpen = false;
       this.logCount = -1;
     }
     if (this.mobile) this.mobileBar.update(s);
+    this.routeMini.update(s, this.time.now);
+    this.routeBtn.classList.toggle('active', s.routeOpen);
     const w = s.world;
     const t = w.time;
     const mm = Math.floor(t / 60);

@@ -2297,3 +2297,67 @@ body {
   font-size: 13px;
   padding: 4px 6px;
 }
+
+/* 戰鬥中的迷你路線圖（Alan 2026-10-21：出口通往哪裡） */
+.route-btn.active {
+  border-color: #f5d142;
+  color: #f5d142;
+}
+.route-mini {
+  display: none;
+  position: absolute;
+  top: 52px;
+  left: 8px;
+  padding: 6px;
+  background: rgba(14, 16, 20, 0.9);
+  border: 1px solid #343a46;
+  border-radius: 8px;
+  z-index: 25;
+  pointer-events: none;
+}
+.route-mini.open {
+  display: block;
+}
+.rm-legend {
+  font-size: 11px;
+  color: #8a93a3;
+  margin-bottom: 2px;
+}
+.rm-line {
+  stroke: #3d4452;
+  stroke-width: 1.5;
+}
+.rm-node {
+  fill: #1d2128;
+  stroke: #4a5160;
+  stroke-width: 1.5;
+}
+.rm-node.visited {
+  fill: #2a3140;
+}
+.rm-node.occupied {
+  fill: #5a1a1a;
+}
+.rm-node.current {
+  stroke: #ffffff;
+  stroke-width: 3;
+}
+.rm-node.ping {
+  animation: rm-ping 0.4s ease-in-out 4;
+}
+@keyframes rm-ping {
+  50% {
+    r: 14;
+    fill: #f5d142;
+  }
+}
+.rm-icon {
+  font-size: 10px;
+}
+.rm-letter {
+  font-size: 13px;
+  font-weight: bold;
+  paint-order: stroke;
+  stroke: #000;
+  stroke-width: 3px;
+}

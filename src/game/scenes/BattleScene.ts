@@ -12,6 +12,8 @@ import { bakeGraphics } from '../render/bake';
 import { DebugOverlay } from '../render/debugOverlay';
 import { Fx } from '../render/fx';
 import { BossShow } from '../bossShow';
+import { exitInfos } from '../exitInfo';
+import type { ExitInfo } from '../exitInfo';
 import { enemyRank } from '../../sim/data/enemies';
 import { AOE_STYLE, COLORS, FONT, PROJECTILE_STYLE } from '../render/palette';
 import type { SkillDef } from '../../sim/data/types';
@@ -54,8 +56,6 @@ import { InputController } from '../input/inputController';
 import { nearestTargetTo, targetingDef, validSkillTarget } from '../input/targeting';
 import { BattleSession, currentSimConfig } from '../session';
 import { installAutoPause } from '../autoPause';
-import { NODE_ICON, NODE_LABEL } from '../../run/mapGen';
-import type { NodeType } from '../../run/mapGen';
 import { battleSeed, createBattleFromRun, currentEncounter } from '../../run/battle';
 import { rushEnd } from '../../sim/actions';
 import { getRun } from '../runFlow';
@@ -140,6 +140,7 @@ export class BattleScene extends Phaser.Scene {
   /** 出口（SPEC_SLICE6 §2）：地面上的範圍＋名稱，畫在迷霧上面 */
   private exitG!: Phaser.GameObjects.Graphics;
   private exitTexts: Phaser.GameObjects.Text[] = [];
+  private exitInfo: ExitInfo[] = [];
   /** 互動物件（門、拉桿）的外觀與滑鼠提示 */
   private interactView!: InteractablesView;
   private objectLabel!: Phaser.GameObjects.Text;
@@ -217,15 +218,16 @@ export class BattleScene extends Phaser.Scene {
     });
     this.edgeG = this.add.graphics().setScrollFactor(0).setDepth(2900);
     this.exitG = this.add.graphics().setDepth(905);
-    this.exitTexts = (this.session.world.map.exits ?? []).map((e) => {
-      const node = e.label ? `${NODE_ICON[e.label as NodeType] ?? ''} ${NODE_LABEL[e.label as NodeType] ?? ''}` : '出口';
-      return this.add
-        .text(0, 0, `出口
-${node}`, { fontFamily: FONT, fontSize: '14px', color: '#ffe9a8', align: 'center', fontStyle: 'bold' })
+    // 出口通往哪裡（Alan 2026-10-21）：字母＋方向＋節點類型，第二行是層數與危險；每個出口一個顏色
+    this.exitInfo = exitInfos(this.session.world, this.session.mode === 'run' ? getRun(this) : null);
+    this.exitTexts = this.exitInfo.map((info) =>
+      this.add
+        .text(0, 0, info.detail ? `${info.title}
+${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.css, align: 'center', fontStyle: 'bold' })
         .setOrigin(0.5, 1)
         .setStroke('#000000', 4)
-        .setDepth(1150);
-    });
+        .setDepth(1150),
+    );
     // 暫停時的變暗層：scrollFactor 0 仍會跟著鏡頭縮放（以畫面中心縮放），做成三倍大，縮小到最小倍率也能蓋滿畫面
     this.dim = this.add
       .rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width * 3, this.scale.height * 3, 0x000000, 0.22)
@@ -1536,9 +1538,11 @@ ${node}`, { fontFamily: FONT, fontSize: '14px', color: '#ffe9a8', align: 'center
     const pulse = 0.55 + 0.45 * Math.sin(this.time.now / 260);
     const color = open ? 0xffd23f : 0x9a5a5a;
     exits.forEach((e, i) => {
-      groundRect(g, e.x, e.y, e.w, e.h, { fill: color, fillAlpha: 0.12 + 0.12 * pulse, stroke: color, strokeAlpha: 0.6 + 0.4 * pulse, width: 3 });
+      // 每個出口自己的顏色（和迷你路線圖上的字母一致）；還沒開的出口暗紅
+      const c = open ? (this.exitInfo[i]?.color ?? color) : color;
+      groundRect(g, e.x, e.y, e.w, e.h, { fill: c, fillAlpha: 0.12 + 0.12 * pulse, stroke: c, strokeAlpha: 0.6 + 0.4 * pulse, width: 3 });
       const top = worldToScreen(e.x + e.w / 2, e.y + e.h / 2, 0.6);
-      this.exitTexts[i]?.setPosition(top.x, top.y).setColor(open ? '#ffe9a8' : '#c9a0a0');
+      this.exitTexts[i]?.setPosition(top.x, top.y).setColor(open ? (this.exitInfo[i]?.css ?? '#ffe9a8') : '#c9a0a0');
     });
     // 畫面外的出口：邊緣的金色三角形
     const cam = this.cameras.main;
@@ -1547,7 +1551,7 @@ ${node}`, { fontFamily: FONT, fontSize: '14px', color: '#ffe9a8', align: 'center
     const y1 = this.scale.height - this.hudBottom();
     const cx = x1 / 2;
     const cy = y1 / 2;
-    for (const e of exits) {
+    for (const [i, e] of exits.entries()) {
       const p = worldToScreen(e.x + e.w / 2, e.y + e.h / 2);
       const sx = (p.x - cam.worldView.x) * cam.zoom;
       const sy = (p.y - cam.worldView.y) * cam.zoom;
@@ -1559,7 +1563,7 @@ ${node}`, { fontFamily: FONT, fontSize: '14px', color: '#ffe9a8', align: 'center
       const ey = cy + dy * t;
       const a = Math.atan2(dy, dx);
       const r = 12;
-      eg.fillStyle(color, 0.95);
+      eg.fillStyle(open ? (this.exitInfo[i]?.color ?? color) : color, 0.95);
       eg.fillTriangle(ex + Math.cos(a) * r, ey + Math.sin(a) * r, ex + Math.cos(a + 2.4) * r, ey + Math.sin(a + 2.4) * r, ex + Math.cos(a - 2.4) * r, ey + Math.sin(a - 2.4) * r);
     }
   }

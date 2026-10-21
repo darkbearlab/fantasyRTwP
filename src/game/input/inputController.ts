@@ -298,6 +298,9 @@ export class InputController {
       s.showToast('先點英雄卡上的名字選人', this.now(), 1200);
       return;
     }
+    // 點到出口方塊：迷你路線圖上對應的節點閃一下（Alan 2026-10-21：出口通往哪裡）
+    const ex = (s.world.map.exits ?? []).find((e) => m.x >= e.x && m.x <= e.x + e.w && m.y >= e.y && m.y <= e.y + e.h);
+    if (ex) s.exitPing = { id: ex.id, at: this.now() };
     const enemy = unit && !unit.dead && unit.team === 'enemy';
     if (attack || enemy) this.attackMove(enemy ? { x: unit!.pos.x, y: unit!.pos.y } : m);
     else s.enqueue({ type: 'move', unitIds: s.selectedUnits().map((u) => u.id), point: m });
