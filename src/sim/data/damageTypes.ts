@@ -109,6 +109,11 @@ export const SKILL_ATTACK: Record<string, AttackInfo> = {
   sweep: A('phys', 'cleave'),
   hurl: A('phys', 'blunt'),
   clubSweep: A('phys', 'blunt'),
+  sentinelSweep: A('phys', 'cleave'),
+  sentinelRush: A('phys', 'blunt'),
+  sentinelStomp: A('phys', 'blunt'),
+  sentinelSweepRush: A('phys', 'cleave'),
+  sentinelBreath: A('spec', 'fire', 'dark'),
   chiefLeap: A('phys', 'cleave'),
   boulder: A('phys', 'blunt'),
   rush: A('phys', 'pierce'),
@@ -137,6 +142,7 @@ export const AFFINITY: Record<string, { resist?: Attribute[]; weak?: Attribute[]
   ogre: { resist: ['blunt'], weak: ['pierce', 'fire'] },
   warTotem: { resist: ['pierce', 'cut'], weak: ['blunt', 'fire'] },
   orcChief: { resist: ['cleave'], weak: ['pierce', 'holy'] },
+  champion: { resist: ['cut', 'dark'], weak: ['holy'] },
 };
 
 /** 特殊防禦／特殊護甲（依單位 def.id）；沒列的：特殊防禦＝物理防禦的基本值、特殊護甲＝物理護甲的基本值 */

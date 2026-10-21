@@ -18,8 +18,12 @@ export interface Overworld {
     node: number | null;
     /** 已經發現玩家（之後一直追） */
     hunting: boolean;
-    /** 第幾回合重新出現 */
+    /** 第幾回合重新出現（舊存檔；Alan 2026-10-22：打倒後本章不再出現，見 defeated） */
     respawnAt: number;
+    /** 這一章已經被打倒 */
+    defeated?: boolean;
+    /** 上一個所在的節點（被追上時從那個方向進場） */
+    from?: number;
   };
   /** 已經處理過的事件節點（重複訪問時不再觸發） */
   clearedEvents: number[];
@@ -77,11 +81,13 @@ function championStep(run: RunState, rng: ReturnType<typeof rngFor>, force = fal
   };
   detect();
   // Alan 2026-10-21：冠軍不進頭目節點（玩家在頭目節點時，冠軍就在門外等）
+  const before = c.node;
   if (c.hunting || force) c.node = stepToward(run.map, c.node, player, (t) => run.map.nodes[t].type === 'boss');
   else if (rng.chance(C.wanderChance)) {
     const opts = neighbors(run.map, c.node).filter((t) => run.map.nodes[t].type !== 'boss');
     if (opts.length) c.node = opts[rng.int(0, opts.length - 1)];
   }
+  if (c.node !== before) c.from = before;
   detect();
 }
 
@@ -106,7 +112,7 @@ export function advanceTurn(run: RunState, nodeId: number): { revisit: boolean }
   if (revisit) for (let k = 0; k < R.force.revisitExtra; k++) spreadForce(run, nodeId);
   if (ow.turn % R.force.spreadEvery === 0) for (let k = 0; k < R.force.spreadPerTick; k++) spreadForce(run);
   const c = ow.champion;
-  if (c.node === null && R.champion.count > 0 && ow.turn >= c.respawnAt && ow.force.length) {
+  if (c.node === null && !c.defeated && R.champion.count > 0 && ow.turn >= c.respawnAt && ow.force.length) {
     c.node = ow.force[rng.int(0, ow.force.length - 1)];
     c.hunting = false;
   }
@@ -123,9 +129,9 @@ export function campfireSmoke(run: RunState): void {
   for (let k = 0; k < ROUTE_MAP.champion.restSmokeSteps && !caught(run); k++) championStep(run, rng, true);
 }
 
-/** 冠軍被打倒：一段時間後從主力佔領的節點重新出現 */
+/** 冠軍被打倒：這一章不再出現（Alan 2026-10-22；下一章重新開始的路線圖會再放一名） */
 export function championDefeated(run: RunState): void {
   const ow = run.overworld;
   if (!ow) return;
-  ow.champion = { node: null, hunting: false, respawnAt: ow.turn + ROUTE_MAP.champion.respawnTurns };
+  ow.champion = { node: null, hunting: false, respawnAt: 0, defeated: true };
 }

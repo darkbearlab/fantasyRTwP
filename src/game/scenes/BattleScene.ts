@@ -12,6 +12,7 @@ import { bakeGraphics } from '../render/bake';
 import { DebugOverlay } from '../render/debugOverlay';
 import { Fx } from '../render/fx';
 import { BossShow } from '../bossShow';
+import { ROUTE_MAP } from '../../run/data/routeMap';
 import { exitInfos } from '../exitInfo';
 import type { ExitInfo } from '../exitInfo';
 import { enemyRank } from '../../sim/data/enemies';
@@ -732,9 +733,22 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
         }
         case 'bossSighted': {
           const u = w.getUnit(ev.unitId);
-          if (u) this.bossShow.intro(u);
+          // 魔王的冠軍：台詞依章節（前兩章不說話）
+          if (u) this.bossShow.intro(u, u.def.id === ROUTE_MAP.champion.enemy ? w.championLine : undefined);
           break;
         }
+        case 'championIncoming': {
+          // Alan 2026-10-22：冠軍以獵人身分加入地圖，先預告從哪個方向來
+          const h = w.units.find((x) => x.team === 'hero' && !x.dead);
+          const side = h ? directionWord(h.pos, ev.point) : '';
+          const msg = ev.seconds <= 3 ? `⚠ 魔王的冠軍追上來了！${side}` : `⚠ 魔王的冠軍逼近中：約 ${Math.round(ev.seconds)} 秒後${side}出現`;
+          s.showToast(msg, this.time.now, 3600);
+          s.addLog(msg, 'warn');
+          break;
+        }
+        case 'championArrived':
+          s.addLog('魔王的冠軍進入了戰場！', 'warn');
+          break;
         case 'death': {
           const u = w.getUnit(ev.unitId)!;
           if (enemyRank(u.def) === 'boss') this.bossShow.defeat(u);
@@ -1119,6 +1133,24 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
         ];
         groundPolygon(g, band(1), { fill: COLORS.telegraph, fillAlpha: 0.12 + 0.1 * pulse, stroke: COLORS.telegraph, strokeAlpha: 0.9, width: 3 });
         groundPolygon(g, band(u.actionProgress), { fill: COLORS.telegraph, fillAlpha: 0.25 });
+        // 橫掃衝鋒：右側平行的帶狀區域（和 sim 一樣：衝鋒方向的右側 offset 公尺）
+        const side = def.effect.side;
+        if (side) {
+          const ux = (end.x - p.x) / len;
+          const uy = (end.y - p.y) / len;
+          const ox = uy * side.offset;
+          const oy = -ux * side.offset;
+          const sx = -uy * (side.width / 2);
+          const sy = ux * (side.width / 2);
+          const sband = (t: number) => [
+            { x: p.x + ox + sx, y: p.y + oy + sy },
+            { x: p.x + ox + (end.x - p.x) * t + sx, y: p.y + oy + (end.y - p.y) * t + sy },
+            { x: p.x + ox + (end.x - p.x) * t - sx, y: p.y + oy + (end.y - p.y) * t - sy },
+            { x: p.x + ox - sx, y: p.y + oy - sy },
+          ];
+          groundPolygon(g, sband(1), { fill: COLORS.telegraph, fillAlpha: 0.12 + 0.1 * pulse, stroke: COLORS.telegraph, strokeAlpha: 0.9, width: 3 });
+          groundPolygon(g, sband(u.actionProgress), { fill: COLORS.telegraph, fillAlpha: 0.25 });
+        }
         continue;
       }
       const r = def.effect.kind === 'aoe' || def.effect.kind === 'leap' || def.effect.kind === 'hurl' ? def.effect.radius : 0;
@@ -1212,7 +1244,7 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
       const p = this.wpos(u);
       const pulse = 0.5 + 0.5 * Math.sin(this.time.now / 70);
       // 自爆、召喚：畫出實際範圍
-      if (def.effect.kind === 'explode' || def.effect.kind === 'summon') {
+      if (def.effect.kind === 'explode' || def.effect.kind === 'summon' || def.effect.kind === 'quake') {
         const R = def.effect.radius;
         groundCircle(g, p.x, p.y, R, { fill: COLORS.telegraph, fillAlpha: 0.12 + 0.1 * pulse, stroke: COLORS.telegraph, strokeAlpha: 0.9, width: 3 });
         groundCircle(g, p.x, p.y, R * u.actionProgress, { fill: COLORS.telegraph, fillAlpha: 0.25 });
@@ -1662,4 +1694,12 @@ function randomSeed(): number {
   const q = new URLSearchParams(window.location.search).get('seed');
   if (q && /^\d+$/.test(q)) return Number(q);
   return 1 + Math.floor(Math.random() * 999999);
+}
+
+/** 從 from 看 to 在哪個方向（世界座標 +x＝畫面上、+y＝畫面右） */
+function directionWord(from: { x: number; y: number }, to: { x: number; y: number }): string {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  if (Math.abs(dx) >= Math.abs(dy)) return dx > 0 ? '從上方' : '從下方';
+  return dy > 0 ? '從右方' : '從左方';
 }

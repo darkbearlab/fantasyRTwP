@@ -1,6 +1,7 @@
 /**
  * 遠征 ↔ 戰鬥的介面（SPEC_SLICE2 §10.2）：由 RunState 建立 World、把戰鬥結果寫回。
  */
+import { dist } from '../sim/math';
 import { ENEMIES, enemyRank } from '../sim/data/enemies';
 import { HORDE_CONFIG, HORDE_ENEMY_HP } from '../sim/data/horde';
 import { MAPS } from '../sim/data/maps';
@@ -115,7 +116,8 @@ export function encounterFor(run: RunState, nodeId: number, encounterId: string)
   const layer = node.layer + levelBonus(mods) + depthOffset(run);
   const chapter = currentChapter(run);
   // 第一次造訪、沒有修飾時種子和以前一樣
-  const extra = [visit > 1 ? `v${visit}` : '', mods.force ? 'force' : '', mods.champion ? 'champion' : ''].filter(Boolean);
+  // 冠軍不再改變地圖（Alan 2026-10-22：冠軍以獵人身分加入當下的地圖）
+  const extra = [visit > 1 ? `v${visit}` : '', mods.force ? 'force' : ''].filter(Boolean);
   const seed = deriveSeed(run.seed, 'level', nodeId, encounterId, ...extra);
   const key = `${encounterId}:${seed}:${layer}`;
   let enc = levelCache.get(key);
@@ -123,7 +125,7 @@ export function encounterFor(run: RunState, nodeId: number, encounterId: string)
     const fbb = dlevel && LEVELS.deliberateGenerator === 'fbb' && !FBB_LEVELS.templateTiers.includes(tier);
     if (fbb) {
       // finalbossblues 地形：前幾層是城內（首都突圍），後面是野外
-      const o = { tier: tier as DeliberateTier, layer, faction: factionOf(chapter.faction), ...exitsFor(run, nodeId), budgetMult: mods.force ? ROUTE_MAP.force.budgetMult : undefined, captainEnemy: mods.champion ? ROUTE_MAP.champion.enemy : undefined };
+      const o = { tier: tier as DeliberateTier, layer, faction: factionOf(chapter.faction), ...exitsFor(run, nodeId), budgetMult: mods.force ? ROUTE_MAP.force.budgetMult : undefined };
       enc =
         tier === 'boss'
           ? bossEncounter(seed, { ...o, look: fieldLookFor(node.layer, chapter) })
@@ -132,7 +134,7 @@ export function encounterFor(run: RunState, nodeId: number, encounterId: string)
             : fieldEncounter(seed, { ...o, look: fieldLookFor(node.layer, chapter) });
     } else if (dlevel && LEVELS.deliberateGenerator !== 'classic') {
       // 出口制（SPEC_SLICE6 §2）：一個下一層節點一個出口，依路線圖由左到右排
-      enc = generateTemplateLevel(seed, { tier, layer, ...exitsFor(run, nodeId), budgetMult: mods.force ? ROUTE_MAP.force.budgetMult : undefined, captainEnemy: mods.champion ? ROUTE_MAP.champion.enemy : undefined });
+      enc = generateTemplateLevel(seed, { tier, layer, ...exitsFor(run, nodeId), budgetMult: mods.force ? ROUTE_MAP.force.budgetMult : undefined });
     } else enc = dlevel ? generateDeliberateLevel(seed, { tier, layer }) : generateLevel(seed, { tier, layer });
     if (levelCache.size > 32) levelCache.clear();
     levelCache.set(key, enc);
@@ -140,9 +142,30 @@ export function encounterFor(run: RunState, nodeId: number, encounterId: string)
   return enc;
 }
 
-/** 敵人層數加成：被主力佔領的節點、冠軍戰 */
-export function levelBonus(mods: { force?: boolean; champion?: boolean }): number {
-  return (mods.force ? ROUTE_MAP.force.layerBonus : 0) + (mods.champion ? ROUTE_MAP.champion.layerBonus : 0);
+/** 敵人層數加成：被主力佔領的節點（冠軍本人的加成在 championSpawn） */
+export function levelBonus(mods: { force?: boolean }): number {
+  return mods.force ? ROUTE_MAP.force.layerBonus : 0;
+}
+
+/**
+ * 冠軍進場（Alan 2026-10-22）：從他上一個所在節點那個方向的出口進來；沒有的話從離出生點最遠的出口。
+ * 招式依章節解鎖（每章多一招），台詞從第 3 章開始。
+ */
+function championSpawn(run: RunState, map: MapDef, layer: number, mods: { championOnly?: boolean; smoke?: boolean }) {
+  const C = ROUTE_MAP.champion;
+  const ch = run.chapter ?? 0;
+  const base = enemyDef(C.enemy, layer + C.layerBonus);
+  const moves = C.moveOrder.slice(0, C.moves[Math.min(ch, C.moves.length - 1)]);
+  const def: UnitDef = { ...base, skills: base.skills.filter((s) => moves.includes(s)) };
+  const exits = map.exits ?? [];
+  const from = run.overworld?.champion.from;
+  const spawn = map.heroSpawns[0] ?? { x: map.width / 2, y: map.height / 2 };
+  const center = (e: { x: number; y: number; w: number; h: number }) => ({ x: e.x + e.w / 2, y: e.y + e.h / 2 });
+  const byFrom = exits.find((e) => e.id === `node:${from}`);
+  const far = [...exits].sort((a, b) => dist(center(b), spawn) - dist(center(a), spawn))[0];
+  const pos = byFrom && dist(center(byFrom), spawn) > 8 ? center(byFrom) : far ? center(far) : { x: map.width - 2, y: map.height / 2 };
+  const delay = mods.championOnly || mods.smoke ? C.arriveNow : C.arriveDelay;
+  return { def, pos, delay, line: C.lines[Math.min(ch, C.lines.length - 1)] };
 }
 
 /**
@@ -196,12 +219,16 @@ export function createBattleFromRun(run: RunState, config?: Partial<SimConfig>, 
   for (const e of enc.enemies) spawns.push({ defId: e.enemy, def: scaled(e.enemy, e.captain), pos: { x: e.x, y: e.y }, squad: e.squad ?? 'main', facing: e.facing });
   // 沉穩節奏（SPEC_SLICE5）：小地圖遭遇套用變慢的設定
   const cfg = horde ? { ...config, ...HORDE_CONFIG } : runStyle(run) === 'deliberate' ? { ...config, ...deliberateConfig({ ...DEFAULT_SIM_CONFIG, ...config }) } : config;
+  // 冠軍以獵人身分加入（Alan 2026-10-22）；本來沒有戰鬥的節點：地圖上只有冠軍
+  const mods = run.phase.kind === 'battle' ? (run.phase.mods ?? {}) : {};
+  if (mods.championOnly) for (let i = spawns.length - 1; i >= 0; i--) if (spawns[i].def?.team === 'enemy') spawns.splice(i, 1);
+  const champion = deliberate && mods.champion ? championSpawn(run, map, layer, mods) : undefined;
   // 戰鬥中召喚的援軍也套用層數成長
   // Alan：沉穩節奏的所有關卡都有戰爭迷霧（舊的手工遭遇也是）
   // 小衝突導演（Alan 2026-10-21）：沉穩節奏的 finalbossblues 程序生成地圖，探索途中一直有小波次湧上來
   // 小波次的敵人照本章的陣營
-  const skirmish = deliberate && map.art && enc.tier !== 'boss' ? { def: { ...SKIRMISH, pool: factionOf(currentChapter(run).faction).skirmish }, layer } : undefined;
-  return new World({ seed, map, spawns, config: cfg, enemyDefFor: (id, captain) => scaled(id, captain), horde, fog: enc.fog || deliberate, skirmish, bag: deliberate ? (run.bag ?? []) : [] });
+  const skirmish = deliberate && map.art && enc.tier !== 'boss' && !mods.championOnly ? { def: { ...SKIRMISH, pool: factionOf(currentChapter(run).faction).skirmish }, layer } : undefined;
+  return new World({ seed, map, spawns, config: cfg, enemyDefFor: (id, captain) => scaled(id, captain), horde, fog: enc.fog || deliberate, skirmish, champion, bag: deliberate ? (run.bag ?? []) : [] });
 }
 
 export interface BattleOutcome {

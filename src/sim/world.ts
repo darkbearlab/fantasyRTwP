@@ -83,6 +83,8 @@ export interface WorldOptions {
   fog?: boolean;
   /** 小衝突導演（沉穩節奏的程序生成地圖；layer＝敵人池解鎖的層數） */
   skirmish?: { def: SkirmishDef; layer: number };
+  /** 魔王的冠軍（Alan 2026-10-22）：開戰 delay 秒後從 pos（他來的方向的地圖邊緣）進場，已經知道玩家在哪；line：登場台詞 */
+  champion?: { def: UnitDef; pos: Vec; delay: number; line?: string };
   /** 隊伍包包裡的消耗品（戰鬥中可以用；戰後把剩下的寫回遠征） */
   bag?: string[];
 }
@@ -263,6 +265,8 @@ export class World implements ZocContext {
       this.updateVision();
     }
     if (opts.skirmish) this.skirmish = new SkirmishDirector(opts.skirmish.def, opts.skirmish.layer, this);
+    this.championPending = opts.champion ?? null;
+    this.championLine = opts.champion?.line;
     this.bag = [...(opts.bag ?? [])];
   }
 
@@ -603,6 +607,7 @@ export class World implements ZocContext {
     this.updateWaves();
     this.director?.update(this);
     this.skirmish?.update(this);
+    this.updateChampion();
     this.updateAggro();
     this.updateAuras();
     this.updateBrushSight();
@@ -931,6 +936,28 @@ export class World implements ZocContext {
         }
       }
     }
+  }
+
+  /** 魔王的冠軍：還沒進場的資料、登場台詞、是否已經預告 */
+  private championPending: { def: UnitDef; pos: Vec; delay: number } | null = null;
+  championLine: string | undefined;
+  private championWarned = false;
+
+  /** 冠軍：開戰時預告，時間到從地圖邊緣進場，直接進入追獵（沿流場朝隊伍走） */
+  private updateChampion(): void {
+    const c = this.championPending;
+    if (!c) return;
+    if (!this.championWarned) {
+      this.championWarned = true;
+      this.emit({ type: 'championIncoming', seconds: c.delay, point: { ...c.pos } });
+    }
+    if (this.time < c.delay) return;
+    this.championPending = null;
+    const u = this.spawnUnit(c.def, c.pos);
+    u.squad = 'champion';
+    u.alerted = true;
+    u.hunting = true;
+    this.emit({ type: 'championArrived', unitId: u.id });
   }
 
   /** 看穿草叢（被動 seesBrush）：範圍內、看得到的草叢裡的敵人，對同一方全體現形（視野分享） */

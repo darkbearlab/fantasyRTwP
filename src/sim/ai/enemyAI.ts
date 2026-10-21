@@ -345,6 +345,33 @@ function deliberateThink(world: World, u: Unit): void {
       if (keepDistance(world, u, heroes)) return;
       break;
     }
+    case 'champion': {
+      // 魔王的冠軍（Alan 2026-10-22）：沒有普攻；所有攻擊都有預兆、間隔短。依距離挑能用的招式，沒有就靠近目標
+      const d0 = dist(u.pos, t.pos);
+      const around = heroes.filter((h) => dist(u.pos, h.pos) <= 2.6 + h.radius).length;
+      if (ready('sentinelStomp') && (around >= 2 || (around >= 1 && !ready('sentinelSweep')))) {
+        world.issueOrder(u, { type: 'skill', skillId: 'sentinelStomp' });
+        return;
+      }
+      if (ready('sentinelSweep') && d0 <= 3.2 + t.radius) {
+        world.issueOrder(u, { type: 'skill', skillId: 'sentinelSweep', point: { ...t.pos } });
+        return;
+      }
+      if (ready('sentinelBreath') && d0 >= 2.5 && d0 <= 6.5 && sees) {
+        world.issueOrder(u, { type: 'skill', skillId: 'sentinelBreath', point: { ...t.pos } });
+        return;
+      }
+      for (const rush of ['sentinelSweepRush', 'sentinelRush']) {
+        if (ready(rush) && d0 >= 3 && d0 <= 9 && sees) {
+          world.issueOrder(u, { type: 'skill', skillId: rush, point: { ...t.pos } });
+          return;
+        }
+      }
+      // 沒有能用的招式：貼近目標（不普攻）
+      if (d0 > u.radius + t.radius + 0.8) world.setOrder(u, { type: 'move', point: { ...t.pos } });
+      else if (u.order) world.setOrder(u, null);
+      return;
+    }
     case 'shaman': {
       // 獸人薩滿：先補血，再替附近的同伴狂暴，其餘時間保持距離
       if (ready('mend')) {

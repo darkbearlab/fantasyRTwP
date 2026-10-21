@@ -506,6 +506,18 @@ function applySkillEffect(world: World, u: Unit, def: SkillDef, t: Unit | undefi
       }
       return false;
     }
+    case 'quake': {
+      // 以自己為中心的範圍攻擊並往外擊退
+      world.emit({ type: 'aoe', sourceId: u.id, point: { ...u.pos }, radius: eff.radius, skillId: def.id });
+      const center = { ...u.pos };
+      for (const o of [...world.units]) {
+        if (o.dead || o.team === u.team || dist(o.pos, center) > eff.radius + o.radius) continue;
+        const dmg = rollDamage(world.rng, eff.damage, damageMultOf(world, u));
+        applyDamage(world, o, mitigate(world, u, o, dmg, def.id, 'area'), 'area', u, { skillId: def.id });
+        if (!o.dead) knockbackFrom(world, u, center, o, eff.knockback);
+      }
+      return false;
+    }
     case 'warcry': {
       world.emit({ type: 'warcry', unitId: u.id });
       const pts = world.map.summonPoints ?? [];
@@ -707,7 +719,28 @@ export function tickDash(world: World, u: Unit): void {
       applyDamage(world, o, mitigate(world, u, o, dmg, def.id, 'melee'), 'melee', u, { skillId: def.id });
       if (u.dead) return;
     }
-    if (!moved || dist(u.pos, a.point!) < 0.05 || a.dashTime > eff.distance / eff.speed + 0.5) {
+    // 側邊帶（橫掃衝鋒）：衝鋒方向右側 offset 公尺、寬 width 的平行帶
+    if (eff.side && a.dashFrom) {
+      const dir = norm(sub(a.point!, a.dashFrom));
+      const right = { x: dir.y, y: -dir.x };
+      const c = { x: u.pos.x + right.x * eff.side.offset, y: u.pos.y + right.y * eff.side.offset };
+      for (const o of [...world.units]) {
+        if (o.dead || o.team === u.team || a.hitIds!.includes(o.id)) continue;
+        if (dist(o.pos, c) > o.radius + eff.side.width / 2) continue;
+        a.hitIds!.push(o.id);
+        const dmg = rollDamage(world.rng, eff.side.damage, damageMultOf(world, u));
+        applyDamage(world, o, mitigate(world, u, o, dmg, def.id, 'melee'), 'melee', u, { skillId: def.id });
+        if (u.dead) return;
+      }
+    }
+    const arrived = dist(u.pos, a.point!) < 0.05;
+    if (!moved || arrived || a.dashTime > eff.distance / eff.speed + 0.5) {
+      // 撞牆：還沒衝到底就被擋住
+      if (!moved && !arrived && eff.wallStun) {
+        world.emit({ type: 'status', unitId: u.id, text: '撞牆' });
+        applyStun(world, u, eff.wallStun, true);
+        return;
+      }
       enterRecovery(world, u, def.recovery);
       afterSkill(world, u, def, undefined);
     }
@@ -909,7 +942,7 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): Uni
   if (p.basic && src.cycle && chargeCycleOnHit(src)) world.emit({ type: 'notice', unitId: src.id, text: `${SKILLS[src.cycle.steps[1]].name}準備好了` });
   if (target.dead) return target;
   if (tier && tier !== critTierOf(100)) world.emit({ type: 'status', unitId: target.id, text: tier.name });
-  if (p.interrupts || tier?.interrupts) interrupt(world, src, target);
+  if (p.interrupts || tier?.interrupts) interrupt(world, src, target, p.interrupts ? p.skillId : undefined);
   if (p.stun || tier?.stun) applyStun(world, target, Math.max(p.stun ?? 0, tier?.stun ?? 0));
   if (p.knockback) {
     const hitWall = knockback(world, src, target, p.knockback);
@@ -1005,8 +1038,10 @@ export function kill(world: World, u: Unit, killer?: Unit): void {
 }
 
 /** 打斷：準備中的動作取消、不進冷卻，並硬直 0.5 秒 */
-export function interrupt(world: World, src: Unit, t: Unit): boolean {
+export function interrupt(world: World, src: Unit, t: Unit, bySkill?: string): boolean {
   if (!t.action || t.action.phase !== 'windup') return false;
+  // 只有指定的技能打得斷（魔王的冠軍：盾擊、瞄準射擊）
+  if (t.def.interruptibleBy && !(bySkill && t.def.interruptibleBy.includes(bySkill))) return false;
   const { skillId, point } = t.action;
   t.action = null;
   if (skillId && SKILLS[skillId].lostOnInterrupt && !t.spentSkills.includes(skillId)) t.spentSkills.push(skillId);
@@ -1019,7 +1054,9 @@ export function interrupt(world: World, src: Unit, t: Unit): boolean {
   return true;
 }
 
-export function applyStun(world: World, t: Unit, seconds: number): void {
+export function applyStun(world: World, t: Unit, seconds: number, force = false): void {
+  // 只有指定技能打得斷的單位（魔王的冠軍）也不吃一般的暈眩；撞牆暈眩用 force
+  if (t.def.interruptibleBy && !force) return;
   t.stunTime = Math.max(t.stunTime, seconds);
   if (t.action) {
     t.action = null;
@@ -1038,6 +1075,8 @@ export function knockback(world: World, src: Unit, t: Unit, distance: number): b
 
 /** 從某點往外擊退（爆裂把雜兵推開也用這個）；怪群模式下撞到其他敵人時兩者都受傷 */
 export function knockbackFrom(world: World, src: Unit, from0: { x: number; y: number }, t: Unit, distance: number): boolean {
+  // 不會被擊退的單位（魔王的冠軍）
+  if (t.def.knockbackImmune) return false;
   let dir = norm(sub(t.pos, from0));
   if (dir.x === 0 && dir.y === 0) dir = { x: Math.cos(src.facing), y: Math.sin(src.facing) };
   const grid = world.navFor(t);
@@ -1083,7 +1122,7 @@ export function explode(world: World, src: Unit, point: { x: number; y: number }
     if (mult <= 0) continue;
     const dmg = rollDamage(world.rng, eff.damage, mult);
     applyDamage(world, u, mitigate(world, src, u, dmg, def.id, 'area'), 'area', src, { skillId: def.id });
-    if (!u.dead && eff.interrupts) interrupt(world, src, u);
+    if (!u.dead && eff.interrupts) interrupt(world, src, u, def.id);
     if (!u.dead && eff.burns) {
       if (u.burnTime <= 0) u.burnTick = 1;
       u.burnTime = Math.max(u.burnTime, TERRAIN.burnDuration);

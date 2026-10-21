@@ -5,6 +5,8 @@ import { applyBattleResult, availableNodes, chooseNode, restCamp } from '../src/
 import { directionTo, distances, generateRouteMap, neighbors, stepToward, validateRouteMap } from '../src/run/routeMap';
 import type { RunState } from '../src/run/runState';
 import { createRun } from '../src/run/runState';
+import { createBattleFromRun, deliberateLevelId } from '../src/run/battle';
+import { DT } from '../src/sim/constants';
 import { generateTemplateLevel } from '../src/run/templateLevelGen';
 
 /** 移開冠軍（只測其他規則） */
@@ -59,7 +61,7 @@ describe('FTL 式路線圖（SPEC_SLICE6 §4）', () => {
     expect(r.phase.kind === 'battle' && r.phase.mods?.force).toBe(true);
   });
 
-  it('冠軍：發現玩家後每回合追一格；追到就進入冠軍戰；打倒後一段時間才重新出現', () => {
+  it('冠軍：發現玩家後每回合追一格；追到就被抓到；打倒後這一章不再出現', () => {
     const r = createRun(6);
     const ow = r.overworld!;
     ow.force = [];
@@ -75,18 +77,27 @@ describe('FTL 式路線圖（SPEC_SLICE6 §4）', () => {
     expect(caught(r)).toBe(true);
     championDefeated(r);
     expect(ow.champion.node).toBeNull();
-    expect(ow.champion.respawnAt).toBe(ow.turn + ROUTE_MAP.champion.respawnTurns);
+    ow.force = [a];
+    for (let k = 0; k < 30; k++) advanceTurn(r, a);
+    expect(ow.champion.node).toBeNull();
   });
 
-  it('走進冠軍所在的節點：直接冠軍戰（精英關卡、隊長換成冠軍）', () => {
+  it('走進冠軍所在的節點：照常進這個節點的地圖，冠軍之後以獵人身分加入', () => {
     let r = createRun(7);
     r.overworld!.force = [];
     const t = r.map.layers[0][1];
     r.overworld!.champion.node = t;
     r = chooseNode(r, t);
     expect(r.phase.kind === 'battle' && r.phase.mods?.champion).toBe(true);
-    const lv = generateTemplateLevel(1, { tier: 'elite', layer: 3, captainEnemy: ROUTE_MAP.champion.enemy });
-    expect(lv.enemies.find((e) => e.captain)!.enemy).toBe(ROUTE_MAP.champion.enemy);
+    expect(r.phase.kind === 'battle' && r.phase.encounterId).toBe(deliberateLevelId('battle'));
+    const w = createBattleFromRun(r);
+    expect(w.units.some((u) => u.def.id === ROUTE_MAP.champion.enemy)).toBe(false);
+    for (let k = 0; k < (ROUTE_MAP.champion.arriveDelay + 0.5) / DT; k++) w.step();
+    const c = w.units.find((u) => u.def.id === ROUTE_MAP.champion.enemy)!;
+    expect(c).toBeDefined();
+    expect(c.alerted).toBe(true);
+    // 第 1 章：兩招
+    expect(c.def.skills).toEqual(ROUTE_MAP.champion.moveOrder.slice(0, ROUTE_MAP.champion.moves[0]));
   });
 
   it('休息：營火的煙讓冠軍立刻往玩家走一格', () => {
@@ -112,8 +123,14 @@ describe('FTL 式路線圖（SPEC_SLICE6 §4）', () => {
     const t = r.map.layers[0][2];
     r.overworld!.champion.node = t;
     r = chooseNode(r, t);
-    r = applyBattleResult(r, { won: true, time: 30, killed: [], heroes: r.party.flatMap((h, slot) => (h ? [{ slot, hp: h.hp, dead: false, kills: 0, damageDealt: 0, damageTaken: 0 }] : [])) });
+    const heroes = r.party.flatMap((h, slot) => (h ? [{ slot, hp: h.hp, dead: false, kills: 0, damageDealt: 0, damageTaken: 0 }] : []));
+    // 沒打倒就離開：冠軍還在，繼續追
+    const fled = applyBattleResult(r, { won: true, time: 30, killed: [], heroes });
+    expect(fled.overworld!.champion.node).not.toBeNull();
+    // 打倒了：這一章不再出現
+    r = applyBattleResult(r, { won: true, time: 30, killed: [{ enemy: ROUTE_MAP.champion.enemy, captain: false }], heroes });
     expect(r.overworld!.champion.node).toBeNull();
+    expect(r.overworld!.champion.defeated).toBe(true);
   });
 
   it('出口與入口方向：下一層在上、前一層在下、同層在左右；從上方進來時出生點在上方', () => {

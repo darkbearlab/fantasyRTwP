@@ -7,7 +7,9 @@ export type EnemyArchetype =
   // 沉穩節奏的新敵人（SPEC_SLICE5 §15.2）
   | 'charger' | 'assassin' | 'hooker' | 'priest' | 'summoner' | 'exploder'
   // 第 2 章：獸人部落
-  | 'shaman' | 'ogre';
+  | 'shaman' | 'ogre'
+  // 魔王的冠軍（Alan 2026-10-22）
+  | 'champion';
 
 /**
  * 敵人選目標的權重（SPEC_SLICE5 §15.1，只在沉穩節奏生效）：每次評估對看得到的英雄打分，最高分者為目標。
@@ -82,6 +84,10 @@ export interface UnitDef {
   lowHpDamageBonus?: number;
   /** 從目標背後普攻的傷害倍率（盜賊） */
   backstabMult?: number;
+  /** 不會被擊退、拉動（魔王的冠軍） */
+  knockbackImmune?: boolean;
+  /** 只有這些技能打得斷（例：冠軍只能被盾擊、瞄準射擊打斷；普攻、爆擊的打斷都無效） */
+  interruptibleBy?: string[];
   /** 帶著的被動（PASSIVES 的 id；沉穩節奏，敵我都適用；例：戰鬥圖騰的光環） */
   passives?: string[];
   /** 升級給的特殊防禦、特殊護甲加成（沉穩節奏的物理／特殊公式） */
@@ -183,7 +189,13 @@ export type SkillEffect =
   | { kind: 'tumble'; speed: number }
   // ── 沉穩節奏的敵人技能（SPEC_SLICE5 §15.2；全部有預兆） ──
   /** 直線衝鋒：朝目標點方向衝 distance 公尺，途中撞到的英雄各受一次傷害（v0.4：不擊倒）；預兆線寬 width */
-  | { kind: 'rush'; distance: number; speed: number; width: number; damage: [number, number] }
+  /**
+   * wallStun：衝到一半撞到障礙物就自己暈眩這麼多秒；
+   * side：衝鋒路徑旁邊（右側）平行的一條帶狀區域也有傷害（把武器橫在那一側一起帶過去）
+   */
+  | { kind: 'rush'; distance: number; speed: number; width: number; damage: [number, number]; wallStun?: number; side?: { offset: number; width: number; damage: [number, number] } }
+  /** 以自己為中心的範圍攻擊並往外擊退（冠軍的馬匹震地） */
+  | { kind: 'quake'; radius: number; damage: [number, number]; knockback: number }
   /**
    * 抓起來丟（戰爭領主，Alan 2026-10-21）：抓住身邊的一名英雄（單位目標），丟向遠處另一名英雄所在的位置（地面點，預兆圈）；
    * 飛行 flight 秒，落地時對落點 radius 內的英雄（含被丟的）造成傷害；被丟的人落地後再暈眩 stun 秒。

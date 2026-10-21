@@ -68,7 +68,8 @@ export class BossShow {
   }
 
   /** 頭目登場 */
-  intro(boss: Unit): void {
+  /** line：覆寫台詞（魔王的冠軍依章節；undefined 表示不說話） */
+  intro(boss: Unit, line: string | undefined = BOSS_LINES[boss.def.id]?.intro): void {
     const { scene } = this.host;
     const s = this.host.session();
     this.bossId = boss.id;
@@ -79,7 +80,6 @@ export class BossShow {
     const p = worldToScreen(boss.pos.x, boss.pos.y);
     cam.pan(p.x, p.y, BOSS_SHOW.panMs, 'Sine.easeInOut');
     // 喊話：頭目頭上的對話框
-    const line = BOSS_LINES[boss.def.id]?.intro;
     let bubble: Phaser.GameObjects.Text | null = null;
     if (line) {
       const hp = worldToScreen(boss.pos.x, boss.pos.y, 2.6);
