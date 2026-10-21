@@ -15,6 +15,8 @@ export type Command =
   | { type: 'attackMove'; unitIds: number[]; point: Vec }
   /** 技能自動施放開關（SPEC_SLICE4 §3.4） */
   | { type: 'setAutocast'; unitId: number; skillId: string; on: boolean }
+  /** 使用包包裡的消耗品（不佔英雄的動作，共用冷卻；Alan 2026-10-21） */
+  | { type: 'useConsumable'; itemId: string; targetId?: number }
   /** 和地圖物件互動（開關門、拉桿）：走過去再互動（SPEC_SLICE4 §15.1） */
   | { type: 'interact'; unitId: number; objectId: string };
 

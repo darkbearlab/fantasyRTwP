@@ -13,6 +13,7 @@ import { currentActiveSkill } from '../../sim/cycle';
 import { HEROES } from '../../sim/data/heroes';
 import { SKILLS } from '../../sim/data/skills';
 import type { Unit } from '../../sim/unit';
+import { CONSUMABLES } from '../../sim/data/consumables';
 import { beginSkill, confirmTargeting, targetingDef, validSkillTarget } from '../input/targeting';
 import type { BattleSession } from '../session';
 import { hex } from '../render/palette';
@@ -142,18 +143,71 @@ export class MobileHeroBar {
       const s = this.host.session();
       if (!s.world.result) s.selection = [];
     });
+    // 包包（消耗品，Alan 2026-10-21）：打開清單直接用；要選目標的點英雄卡
+    this.bagBtn = el('button', 'm-selall m-bagbtn', '🎒');
+    this.bagBtn.tabIndex = -1;
+    this.bagBtn.title = '包包（消耗品）';
+    this.bagBtn.addEventListener('mousedown', (ev) => ev.preventDefault());
+    this.bagBtn.addEventListener('click', () => {
+      const s = this.host.session();
+      if (s.itemTargeting) s.itemTargeting = null;
+      else this.bagOpen = !this.bagOpen;
+      this.renderBag();
+    });
+    this.bagPop = el('div', 'm-bag-pop');
     // 控制鈕列：依設定排列，對齊卡片列的左／中／右
     const mc = GAME_CONFIG.mobileControls;
-    const buttons: Record<string, HTMLElement> = { pause: this.pauseBtn, selectAll: this.selectAllBtn, deselectAll: this.deselectBtn };
+    const buttons: Record<string, HTMLElement> = { pause: this.pauseBtn, selectAll: this.selectAllBtn, deselectAll: this.deselectBtn, bag: this.bagBtn };
     const pauseRow = el('div', 'm-pause-row');
     for (const k of mc.order) if (buttons[k]) pauseRow.appendChild(buttons[k]);
     const pauseCol = el('div', `m-pause-col align-${mc.align}`);
-    pauseCol.append(this.pauseLabel, pauseRow);
+    pauseCol.append(this.pauseLabel, this.bagPop, pauseRow);
     this.row = el('div', 'm-cards');
     // 控制鈕列與卡片列包在一起，寬度跟著卡片列
     const dock = el('div', 'm-dock');
     dock.append(pauseCol, this.row);
     this.root.append(dock);
+  }
+
+  private bagBtn: HTMLElement;
+  private bagPop: HTMLElement;
+  private bagOpen = false;
+  /** 包包清單的內容（變了才重畫） */
+  private bagKey = '';
+
+  /** 包包清單：每種消耗品一顆按鈕（冷卻中、戰鬥結束時不能按） */
+  private renderBag(): void {
+    const s = this.host.session();
+    const w = s.world;
+    const cd = Math.max(0, w.consumableReadyAt - w.time);
+    const key = `${this.bagOpen}|${w.bag.join(',')}|${Math.ceil(cd)}|${s.itemTargeting}`;
+    this.bagBtn.classList.toggle('active', this.bagOpen || !!s.itemTargeting);
+    this.bagBtn.textContent = s.itemTargeting ? '✕' : `🎒${w.bag.length ? w.bag.length : ''}`;
+    if (key === this.bagKey) return;
+    this.bagKey = key;
+    this.bagPop.innerHTML = '';
+    this.bagPop.classList.toggle('open', this.bagOpen);
+    if (!this.bagOpen) return;
+    if (w.bag.length === 0) this.bagPop.appendChild(el('div', 'm-bag-empty', '包包是空的'));
+    for (const id of [...new Set(w.bag)]) {
+      const def = CONSUMABLES[id];
+      const n = w.bag.filter((x) => x === id).length;
+      const b = el('button', 'm-bag-item', `${def.name} ×${n}${cd > 0 ? `（${Math.ceil(cd)}）` : ''}`);
+      b.title = def.description;
+      (b as HTMLButtonElement).disabled = cd > 0 || !!w.result || !def.inBattle;
+      b.addEventListener('mousedown', (ev) => ev.preventDefault());
+      b.addEventListener('click', () => {
+        if (def.target === 'party') s.enqueue({ type: 'useConsumable', itemId: id });
+        else {
+          s.targeting = null;
+          s.itemTargeting = id;
+          s.showToast(def.target === 'fallen' ? '點陣亡英雄的卡片' : '點英雄卡選目標', this.host.now(), 1400);
+        }
+        this.bagOpen = false;
+        this.renderBag();
+      });
+      this.bagPop.appendChild(b);
+    }
   }
 
   build(s: BattleSession): void {
@@ -191,6 +245,14 @@ export class MobileHeroBar {
       // 點名字：選取／取消選取（可以同時選多名）
       head.addEventListener('click', () => {
         const s2 = this.host.session();
+        // 選消耗品的目標：點卡片就用（陣亡的英雄也可以，鳳凰羽毛）
+        if (s2.itemTargeting) {
+          if (s2.world.canUseConsumable(s2.itemTargeting, u.id)) {
+            s2.enqueue({ type: 'useConsumable', itemId: s2.itemTargeting, targetId: u.id });
+            s2.itemTargeting = null;
+          }
+          return;
+        }
         if (u.dead) return;
         // 正在瞄準以友軍為目標的技能：點卡片＝選這名英雄當目標，不改變選取（Alan 2026-10-21）
         const td = targetingDef(s2);
@@ -241,6 +303,7 @@ export class MobileHeroBar {
   }
 
   update(s: BattleSession): void {
+    this.renderBag();
     this.pauseBtn.classList.toggle('paused', s.paused);
     this.selectAllBtn.classList.toggle('active', this.allSelected(s));
     this.deselectBtn.classList.toggle('dim', s.selection.length === 0);
@@ -252,7 +315,8 @@ export class MobileHeroBar {
     for (const c of this.cards) {
       const u = c.unit;
       c.root.classList.toggle('selected', sel.has(u.id));
-      c.root.classList.toggle('targetable', allyAim && validSkillTarget(td!.def, td!.caster, u));
+      const itemAim = !!s.itemTargeting && s.world.canUseConsumable(s.itemTargeting, u.id);
+      c.root.classList.toggle('targetable', (allyAim && validSkillTarget(td!.def, td!.caster, u)) || itemAim);
       c.root.classList.toggle('dead', u.dead);
       const frac = Math.max(0, u.hp / u.maxHp);
       c.hpFill.style.width = `${frac * 100}%`;

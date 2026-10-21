@@ -1,3 +1,4 @@
+import { CONSUMABLES } from '../../sim/data/consumables';
 import { ECONOMY } from '../../run/data/economy';
 import { chooseReward, continueFromReward } from '../../run/progression';
 import { xpBar } from '../ui/xpBar';
@@ -27,6 +28,7 @@ export class RewardScene extends DomScene {
     if (results) {
       // 掉落的道具（SPEC_SLICE5 §17）：已放進背包，回到路線圖再裝備
       if (p.item) box.appendChild(el('div', 'item-drop', `🎁 撿到道具：${itemLabel(p.item)}（已放進背包，在路線圖的「背包」裝備）`));
+      if (p.consumable) box.appendChild(el('div', 'item-drop', `🧪 撿到消耗品：${CONSUMABLES[p.consumable].name}（${CONSUMABLES[p.consumable].description}；已放進包包）`));
       box.appendChild(el('div', 'meta', `獲得 ${p.gold} 金幣（目前 ${run.gold}）。`));
       if (p.xpGained !== undefined) box.appendChild(xpBar(run, p.xpGained));
     }

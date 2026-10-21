@@ -82,6 +82,12 @@ export const SKILLS: Record<string, SkillDef> = {
     target: 'ground', range: 10, windup: 0.8, recovery: 0.8, cooldown: 14, requiresLos: true,
     effect: { kind: 'zone', radius: 2.5, lingering: { duration: 8, affects: 'enemy', effects: [{ kind: 'slow', moveMult: 0.5 }], style: 'swamp' } },
   },
+  /** 牧師的主動（Alan 2026-10-21：換掉治療藥瓶，回血改靠戰後的被動與消耗品） */
+  sanctuary: {
+    id: 'sanctuary', name: '聖域', description: '地上一圈聖光：5 秒內，範圍內的友軍受到的傷害 −30%',
+    target: 'ground', range: 6, windup: 0.6, recovery: 0.8, cooldown: 12, requiresLos: false,
+    effect: { kind: 'zone', radius: 2.5, lingering: { duration: 5, affects: 'ally', effects: [{ kind: 'ward', reduction: 0.3 }], style: 'holy' } },
+  },
   healFlask: {
     id: 'healFlask', name: '治療藥瓶', description: '拋物線投擲（不需視線）：半徑 2 m 友軍恢復 20 生命',
     target: 'ground', range: 10, windup: 0.8, recovery: 0.8, cooldown: 12, requiresLos: false,

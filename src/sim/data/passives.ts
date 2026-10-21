@@ -82,6 +82,11 @@ export const PASSIVES: Record<string, PassiveDef> = {
     description: '5 m 內的隊友（含自己）命中 +10、防禦 +5',
     aura: { radius: 5, allies: { accuracy: 10, defense: 5 } },
   },
+  /** 戰地救護（Alan 2026-10-21）：只是說明；效果在遠征層（打贏時有牧師活著才有戰後整補，ECONOMY.fieldCareClasses） */
+  fieldCare: {
+    id: 'fieldCare', name: '戰地救護', source: 'class',
+    description: '打贏戰鬥時只要牧師還活著，全隊回復本場損失生命的一半（牧師陣亡就沒有）',
+  },
   emberBolt: {
     id: 'emberBolt', name: '火彈', source: 'class',
     description: '普攻是小火球：命中點小範圍爆炸（不傷友軍）；攻擊間隔較長、每一發傷害較高',
@@ -141,7 +146,7 @@ export const CLASS_PASSIVES: Record<string, string[]> = {
   // Alan 2026-10-20：法師普攻改成小火球，身邊有寒氣光環；震擊（shock）保留給其他用途
   mage: ['emberBolt', 'chillAura'],
   hexer: ['hexBolt'],
-  cleric: ['smite', 'blessAura'],
+  cleric: ['smite', 'blessAura', 'fieldCare'],
   alchemist: ['grenade'],
 };
 
@@ -152,7 +157,8 @@ export const CLASS_PASSIVES: Record<string, string[]> = {
 export const ACTIVE_SKILL_OVERRIDE: Record<string, string> = {
   // Alan：遊俠的主動技能是瞄準射擊（點地圖時打點擊位置最近的敵人）
   ranger: 'sureShot',
-  cleric: 'healFlask',
+  // Alan 2026-10-21：牧師的主動換成聖域（減傷區域）；回血改成戰後被動「戰地救護」與消耗品
+  cleric: 'sanctuary',
   // Alan v0.4：火焰瓶要真的在地上留下持續效果
   alchemist: 'fireFlask',
   // Alan 2026-10-20（第二版）：法師的主動是附魔（全隊加攻擊力）；火球改成普攻的小火球

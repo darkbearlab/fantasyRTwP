@@ -39,6 +39,20 @@ export function zoneAffects(z: GroundZone, u: Unit): boolean {
   return dist(u.pos, z.point) <= z.radius + u.radius * 0.5;
 }
 
+/** 範圍內庇護效果的減傷比例（取最強的；施放者是英雄時套技能效果倍率，最多 80%） */
+export function wardReduction(world: World, u: Unit): number {
+  let r = 0;
+  for (const z of world.zones) {
+    if (!zoneAffects(z, u)) continue;
+    for (const e of z.effects) {
+      if (e.kind !== 'ward') continue;
+      const src = world.getUnit(z.sourceId);
+      r = Math.max(r, Math.min(0.8, e.reduction * (src ? skillPower(world, src) : 1)));
+    }
+  }
+  return r;
+}
+
 /** 範圍內減速效果的移動倍率（取最慢的） */
 export function zoneMoveMult(world: World, u: Unit): number {
   let m = 1;

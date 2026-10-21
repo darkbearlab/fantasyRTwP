@@ -2,6 +2,8 @@
  * 遠征流程（SPEC_SLICE2 §3–§5、§8、§9）：選節點、戰鬥結算、獎勵、休息、復活、招募。
  * 每個函式都回傳新的 RunState，不修改傳入的物件。
  */
+import { CONSUMABLES } from '../sim/data/consumables';
+import { addToBag, rollConsumableDrop } from './consumables';
 import { HEROES } from '../sim/data/heroes';
 import { ECONOMY } from './data/economy';
 import { ENCOUNTERS } from './data/encounters';
@@ -127,6 +129,10 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
   const { nodeId, fromEvent } = run.phase;
   const node = r.map.nodes[nodeId];
   let recovered = 0;
+  // 沉穩節奏：戰後整補是牧師的被動（戰地救護），牧師要活著
+  const fieldCare =
+    runStyle(r) !== 'deliberate' ||
+    outcome.heroes.some((o) => !o.dead && ECONOMY.fieldCareClasses.includes(r.party[o.slot]?.classId ?? ''));
   for (const o of outcome.heroes) {
     const h = r.party[o.slot];
     if (!h) continue;
@@ -134,7 +140,7 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
     const startHp = h.hp;
     h.hp = o.dead ? 0 : Math.max(1, Math.min(maxHpOf(h), Math.round(o.hp)));
     // 戰後整補（參考永恆之柱）：勝利後存活者回復本場損失生命的一部分，其餘是長期傷勢
-    if (outcome.won && !o.dead && startHp > h.hp) {
+    if (outcome.won && fieldCare && !o.dead && startHp > h.hp) {
       const heal = Math.round((startHp - h.hp) * ECONOMY.postBattleRecoveryRatio);
       h.hp = Math.min(maxHpOf(h), h.hp + heal);
       recovered += heal;
@@ -146,6 +152,8 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
     h.battles++;
     if (o.personality) h.personality = o.personality;
   }
+  // 包包：戰鬥中用掉的消耗品拿掉
+  if (runStyle(r) === 'deliberate' && outcome.bag) r.bag = [...outcome.bag];
   r.nextBattleBuff = null;
   r.stats.battles++;
   r.stats.battleTime += outcome.time;
@@ -165,7 +173,7 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
     r.phase = { kind: 'ended', result: 'won' };
     return r;
   }
-  if (recovered > 0) r.journal.push(`戰後整補：全隊回復 ${recovered} 生命。`);
+  if (recovered > 0) r.journal.push(runStyle(r) === 'deliberate' ? `戰地救護：牧師為全隊回復 ${recovered} 生命。` : `戰後整補：全隊回復 ${recovered} 生命。`);
   if (run.phase.mods?.champion) {
     championDefeated(r);
     r.journal.push(`第 ${node.layer} 層：擊退了魔王的冠軍！`);
@@ -199,7 +207,16 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
       r.journal.push(`撿到了「${ITEMS[item].name}」。`);
     }
   }
-  r.phase = { kind: 'reward', nodeId, options, elite: elite && !deliberate, gold, item, xpGained, levelUpTo: options.length ? nextLevelUpTo(r) : undefined };
+  // 消耗品掉落（精英必掉；包包滿了就撿不了）
+  let consumable: string | undefined;
+  if (deliberate) {
+    const c = rollConsumableDrop(rngFor(r.seed, 'consumableDrop', nodeId, fromEvent ? 'event' : 'node'), elite ? 'elite' : fromEvent ? 'event' : 'battle');
+    if (c && addToBag(r, c)) {
+      consumable = c;
+      r.journal.push(`撿到了「${CONSUMABLES[c].name}」。`);
+    }
+  }
+  r.phase = { kind: 'reward', nodeId, options, elite: elite && !deliberate, gold, item, consumable, xpGained, levelUpTo: options.length ? nextLevelUpTo(r) : undefined };
   return r;
 }
 

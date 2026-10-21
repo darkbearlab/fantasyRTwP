@@ -2,6 +2,7 @@ import type { Command, Order } from './commands';
 import { sameOrder } from './commands';
 import { DT, NAV_CELL, RANGE_TOLERANCE } from './constants';
 import { BOSS_INTRO, ENEMIES, enemyRank } from './data/enemies';
+import { BAG, CONSUMABLES } from './data/consumables';
 import { ACTIVE_CYCLES } from './data/cycles';
 import { ITEMS } from './data/items';
 import { offCycle } from './cycle';
@@ -79,6 +80,8 @@ export interface WorldOptions {
   fog?: boolean;
   /** 小衝突導演（沉穩節奏的程序生成地圖；layer＝敵人池解鎖的層數） */
   skirmish?: { def: SkirmishDef; layer: number };
+  /** 隊伍包包裡的消耗品（戰鬥中可以用；戰後把剩下的寫回遠征） */
+  bag?: string[];
 }
 
 export type ProjectilePayload =
@@ -254,6 +257,57 @@ export class World implements ZocContext {
       this.updateVision();
     }
     if (opts.skirmish) this.skirmish = new SkirmishDirector(opts.skirmish.def, opts.skirmish.layer, this);
+    this.bag = [...(opts.bag ?? [])];
+  }
+
+  /** 包包（消耗品）：剩下的；戰鬥中用掉就拿掉 */
+  bag: string[] = [];
+  /** 消耗品的共用冷卻：到這個時間才能再用 */
+  consumableReadyAt = 0;
+
+  /** 能不能用這個消耗品（在包包裡、冷卻好了、目標合理） */
+  canUseConsumable(itemId: string, targetId?: number): boolean {
+    const def = CONSUMABLES[itemId];
+    if (!def || !def.inBattle || !this.bag.includes(itemId) || this.time < this.consumableReadyAt || this.result) return false;
+    if (def.target === 'party') return true;
+    const t = targetId !== undefined ? this.getUnit(targetId) : undefined;
+    if (!t || t.team !== 'hero') return false;
+    return def.target === 'fallen' ? t.dead : !t.dead;
+  }
+
+  private useConsumable(itemId: string, targetId?: number): void {
+    if (!this.canUseConsumable(itemId, targetId)) return;
+    const def = CONSUMABLES[itemId];
+    this.bag.splice(this.bag.indexOf(itemId), 1);
+    this.consumableReadyAt = this.time + BAG.cooldown;
+    const heroes = this.units.filter((u) => u.team === 'hero' && !u.dead);
+    const heal = (u: Unit, frac: number) => {
+      const amount = Math.min(Math.round(u.maxHp * frac), u.maxHp - u.hp);
+      if (amount <= 0) return;
+      u.hp += amount;
+      this.emit({ type: 'heal', sourceId: u.id, targetId: u.id, amount });
+    };
+    const t = targetId !== undefined ? this.getUnit(targetId) : undefined;
+    if (def.heal) for (const u of def.target === 'party' ? heroes : t ? [t] : []) heal(u, def.heal);
+    if (def.revive && t?.dead) this.reviveUnit(t, def.revive);
+    if (def.stealth)
+      for (const u of heroes) {
+        u.stealthTime = Math.max(u.stealthTime, def.stealth);
+        u.revealTime = 0;
+      }
+    this.emit({ type: 'itemUsed', itemId, targetId });
+  }
+
+  /** 陣亡的單位復活（鳳凰羽毛） */
+  reviveUnit(u: Unit, hpFrac: number): void {
+    if (!u.dead) return;
+    u.dead = false;
+    u.hp = Math.max(1, Math.round(u.maxHp * hpFrac));
+    u.action = null;
+    u.order = null;
+    u.stunTime = 0;
+    u.prevPos = { ...u.pos };
+    this.emit({ type: 'revive', unitId: u.id });
   }
 
   /** 戰爭迷霧是否生效（有迷霧資料且設定沒關掉） */
@@ -620,6 +674,9 @@ export class World implements ZocContext {
         });
         break;
       }
+      case 'useConsumable':
+        this.useConsumable(cmd.itemId, cmd.targetId);
+        break;
       case 'interact': {
         const u = this.getUnit(cmd.unitId);
         const s = this.interactables.get(cmd.objectId);

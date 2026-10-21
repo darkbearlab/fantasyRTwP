@@ -2252,3 +2252,48 @@ body {
   opacity: 0;
   transition: opacity 1.2s ease-in 0.6s;
 }
+
+/* 戰鬥中的包包（消耗品，Alan 2026-10-21） */
+.m-pause-col {
+  position: relative;
+}
+.m-bagbtn.active {
+  border-color: #f5d142;
+  color: #f5d142;
+}
+.m-bag-pop {
+  display: none;
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 6px;
+  padding: 6px;
+  border-radius: 10px;
+  background: rgba(16, 18, 23, 0.95);
+  border: 2px solid #343a46;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 20;
+  min-width: 170px;
+  pointer-events: auto;
+}
+.m-bag-pop.open {
+  display: flex;
+}
+.m-bag-item {
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #4a5160;
+  background: #222730;
+  color: #e6e9ef;
+  font-size: 14px;
+}
+.m-bag-item:disabled {
+  opacity: 0.45;
+}
+.m-bag-empty {
+  color: #8a93a3;
+  font-size: 13px;
+  padding: 4px 6px;
+}

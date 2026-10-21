@@ -6,6 +6,10 @@ export type SimEvent =
   | { type: 'actionStart'; unitId: number; skillId?: string; targetId?: number; point?: Vec }
   /** 一隊敵人第一次出現在我方視野內（同一小隊只發一次；沒有小隊的敵人各自算一隊）。unitIds＝當下看得到的成員 */
   | { type: 'squadSighted'; squad: string; unitIds: number[] }
+  /** 用了消耗品 */
+  | { type: 'itemUsed'; itemId: string; targetId?: number }
+  /** 陣亡的單位復活 */
+  | { type: 'revive'; unitId: number }
   /** 頭目第一次進入我方視線（頭目登場演出；頭目身邊的迷霧暫時解開） */
   | { type: 'bossSighted'; unitId: number }
   | { type: 'hit'; sourceId: number; targetId: number; damage: number; crit: boolean; damageType: DamageType; skillId?: string; freeAttack?: boolean }

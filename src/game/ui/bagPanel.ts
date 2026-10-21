@@ -3,6 +3,8 @@
  * 路線圖與商人畫面共用。只透過 src/run/items 的純函式改變遠征狀態。
  */
 import { ECONOMY } from '../../run/data/economy';
+import { bagOf, canUseOnMap, useOnMap } from '../../run/consumables';
+import { BAG, CONSUMABLES } from '../../sim/data/consumables';
 import { canEquip, equipItem, itemLabel, unequipItem } from '../../run/items';
 import type { RunState } from '../../run/runState';
 import { HEROES } from '../../sim/data/heroes';
@@ -10,8 +12,34 @@ import { ITEMS } from '../../sim/data/items';
 import { hex } from '../render/palette';
 import { button, el } from './dom';
 
+/** 消耗品（Alan 2026-10-21）：隊伍共用的包包，路線圖上可以直接用（煙霧彈只能在戰鬥中用） */
+export function consumablePanel(run: RunState, onChange: (r: RunState) => void): HTMLElement {
+  const box = el('div', 'bag-panel');
+  const bag = bagOf(run);
+  box.appendChild(el('div', 'bag-title', `🧪 包包（消耗品 ${bag.length}／${BAG.capacity}）`));
+  if (bag.length === 0) box.appendChild(el('div', 'bag-empty', '包包是空的。打贏戰鬥有機會撿到，商人那裡也買得到。'));
+  for (const id of [...new Set(bag)]) {
+    const def = CONSUMABLES[id];
+    const n = bag.filter((x) => x === id).length;
+    const it = el('div', 'bag-item');
+    it.appendChild(el('span', 'bag-desc', `${def.name} ×${n}：${def.description}`));
+    const btns = el('div', 'bag-btns');
+    if (!def.onMap) btns.appendChild(el('span', 'bag-note', '戰鬥中才能用'));
+    else if (def.target === 'party') btns.appendChild(button('使用', 'small', () => onChange(useOnMap(run, id)), !canUseOnMap(run, id)));
+    else
+      run.party.forEach((h, slot) => {
+        if (!h || (def.target === 'fallen') !== h.dead) return;
+        btns.appendChild(button(`給${HEROES[h.classId].name}`, 'small', () => onChange(useOnMap(run, id, slot)), !canUseOnMap(run, id, slot)));
+      });
+    it.appendChild(btns);
+    box.appendChild(it);
+  }
+  return box;
+}
+
 export function bagPanel(run: RunState, onChange: (r: RunState) => void): HTMLElement {
   const box = el('div', 'bag-panel');
+  box.appendChild(consumablePanel(run, onChange));
   box.appendChild(el('div', 'bag-title', '🎒 裝備（每名英雄 2 格）'));
   run.party.forEach((h, slot) => {
     if (!h) return;

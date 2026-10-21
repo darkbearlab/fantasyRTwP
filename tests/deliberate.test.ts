@@ -50,7 +50,7 @@ describe('沉穩節奏（SPEC_SLICE5 §1）', () => {
     expect(w.config.moveSpeedMult).toBeCloseTo(DEFAULT_SIM_CONFIG.moveSpeedMult * DELIBERATE_PACE.move);
   });
 
-  it('每名英雄只有一招主動技能：職業的專用技能；牧師是治療藥瓶、煉金術士是會留下地面火的火焰瓶（v0.4）', () => {
+  it('每名英雄只有一招主動技能：職業的專用技能；牧師是聖域、煉金術士是會留下地面火的火焰瓶（v0.4）', () => {
     const r = createRun(5, { party: ['warrior', 'cleric', 'alchemist', 'mage'] });
     const w = createBattleFromRun(chooseNode(r, r.map.layers[0][0]));
     // 法師有技能循環（S5-4）：帶齊循環的每一招，技能鈕顯示目前這一招
@@ -62,7 +62,7 @@ describe('沉穩節奏（SPEC_SLICE5 §1）', () => {
     expect(activeSkillOf('warrior')).toBe('shieldBash');
     expect(activeSkillOf('mage')).toBe('enchant');
     expect(CLASSES.warrior.signature).toBe('guard');
-    expect(activeSkillOf('cleric')).toBe('healFlask');
+    expect(activeSkillOf('cleric')).toBe('sanctuary'); // Alan 2026-10-21：牧師的主動改成聖域
     expect(activeSkillOf('alchemist')).toBe('fireFlask');
   });
 });

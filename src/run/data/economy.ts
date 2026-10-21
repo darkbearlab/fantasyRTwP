@@ -23,6 +23,11 @@ export const ECONOMY = {
   lateJoinLayersPerUpgrade: 2,
   /** 戰後整補：勝利後存活者回復「本場損失生命」的比例（參考永恆之柱的耐力／生命；Alan 決定 0.5） */
   postBattleRecoveryRatio: 0.5,
+  /**
+   * 牧師的被動「戰地救護」（Alan 2026-10-21，沉穩節奏）：戰後整補只有在這些職業有人活著時才有；
+   * 牧師陣亡就沒有戰後回血，只能靠消耗品和休息。
+   */
+  fieldCareClasses: ['cleric'] as string[],
   /** 紮營恢復最大生命的比例 */
   campHealRatio: 0.4,
   rewardChoices: 3,

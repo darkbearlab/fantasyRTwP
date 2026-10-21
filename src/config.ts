@@ -77,7 +77,7 @@ export const GAME_CONFIG = {
    * 行動版卡片上方的控制鈕（Alan：之後要做成可以調整，先把排列抽出來）：
    * align＝整排靠左／置中／靠右（對齊卡片列）；order＝由左到右的順序。
    */
-  mobileControls: { align: 'left' as 'left' | 'center' | 'right', order: ['pause', 'selectAll', 'deselectAll'] as ('pause' | 'selectAll' | 'deselectAll')[] },
+  mobileControls: { align: 'left' as 'left' | 'center' | 'right', order: ['pause', 'selectAll', 'deselectAll', 'bag'] as ('pause' | 'selectAll' | 'deselectAll' | 'bag')[] },
   /** 行動版：點地圖下完攻擊移動指令後是否自動取消選取（Alan 2026-10-20：先關掉） */
   deselectAfterOrder: false,
   /**

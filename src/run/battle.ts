@@ -195,11 +195,13 @@ export function createBattleFromRun(run: RunState, config?: Partial<SimConfig>, 
   // Alan：沉穩節奏的所有關卡都有戰爭迷霧（舊的手工遭遇也是）
   // 小衝突導演（Alan 2026-10-21）：沉穩節奏的 finalbossblues 程序生成地圖，探索途中一直有小波次湧上來
   const skirmish = deliberate && map.art && enc.tier !== 'boss' ? { def: SKIRMISH, layer } : undefined;
-  return new World({ seed, map, spawns, config: cfg, enemyDefFor: (id, captain) => scaled(id, captain), horde, fog: enc.fog || deliberate, skirmish });
+  return new World({ seed, map, spawns, config: cfg, enemyDefFor: (id, captain) => scaled(id, captain), horde, fog: enc.fog || deliberate, skirmish, bag: deliberate ? (run.bag ?? []) : [] });
 }
 
 export interface BattleOutcome {
   won: boolean;
+  /** 戰後包包裡剩下的消耗品（戰鬥中可能用掉） */
+  bag?: string[];
   /** 從哪個出口離開＝下一個節點（出口制） */
   exitNodeId?: number;
   /** 被打倒的敵人（經驗值用） */
@@ -215,6 +217,7 @@ export function battleOutcomeFromWorld(world: World): BattleOutcome {
     exitNodeId: m ? Number(m[1]) : undefined,
     killed: world.units.filter((u) => u.team === 'enemy' && u.dead).map((u) => ({ enemy: u.def.id, captain: u.def.rank === 'elite' })),
     time: world.time,
+    bag: [...world.bag],
     heroes: world.units
       .filter((u) => u.team === 'hero')
       .map((u) => ({ slot: u.heroSlot, hp: u.hp, dead: u.dead, kills: u.stats.kills, damageDealt: u.stats.damageDealt, damageTaken: u.stats.damageTaken, personality: u.personality })),
