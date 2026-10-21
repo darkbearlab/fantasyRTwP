@@ -61,9 +61,13 @@ export interface PassiveDef {
     enemies?: { slow?: number; vuln?: number };
     /** 吸血光環：範圍內的隊友打中敵人時傷害 +damagePct、依造成的傷害吸血 lifesteal 比例；光環主人扣傷害 × ownerCost 的血（不會扣到死） */
     drain?: { damagePct: number; lifesteal: number; ownerCost: number };
+    /** 分擔：範圍內的隊友（不含自己）受到的傷害，這個比例改由光環主人承受（守護者） */
+    cover?: number;
   };
   /** 吸血：對敵人造成的傷害有這個比例轉成自己的生命 */
   lifesteal?: number;
+  /** 打斷敵人後，下一次攻擊必定爆擊（角鬥士） */
+  critAfterInterrupt?: boolean;
   /** 看穿草叢：這個距離內、看得到的草叢裡的敵人對全隊現形（視野分享） */
   seesBrush?: number;
   /** 普攻的投射物外觀（例：法師的小火球） */
@@ -157,6 +161,17 @@ export const PASSIVES: Record<string, PassiveDef> = {
     aura: { radius: 4, drain: { damagePct: 0.05, lifesteal: 0.08, ownerCost: 0.05 } },
   },
   hunger: { id: 'hunger', name: '飢渴', source: 'class', description: '對敵人造成的傷害 10% 轉成自己的生命', lifesteal: 0.1 },
+  // ── 昇變被動（SPEC_CLASSES §3：戰士、遊俠）──
+  bulwark: {
+    id: 'bulwark', name: '守護', source: 'class',
+    description: '4 m 內的隊友受到的傷害，30% 改由守護者承受',
+    aura: { radius: 4, cover: 0.3 },
+  },
+  duelist: {
+    id: 'duelist', name: '決鬥', source: 'class',
+    description: '打斷敵人後，下一次攻擊必定爆擊；盾擊可以存 2 次',
+    critAfterInterrupt: true,
+  },
   grenade: {
     id: 'grenade', name: '手榴彈', source: 'class',
     description: '拋物線普攻，命中點小範圍爆炸（不傷友軍、無視掩體）',
@@ -176,8 +191,8 @@ export const CLASS_PASSIVES: Record<string, string[]> = {
   cleric: ['smite', 'blessAura', 'fieldCare'],
   alchemist: ['grenade'],
   // ── 進階職業（SPEC_CLASSES §3）：先帶基本職業的被動，昇變被動在各階段補上 ──
-  guardian: ['cleave', 'tauntAura'],
-  gladiator: ['cleave', 'tauntAura'],
+  guardian: ['cleave', 'tauntAura', 'bulwark'],
+  gladiator: ['cleave', 'tauntAura', 'duelist'],
   cutthroat: ['assassin'],
   sniper: ['pierce', 'eagleEye'],
   arbalest: ['pierce', 'eagleEye'],
@@ -207,7 +222,6 @@ export const ACTIVE_SKILL_OVERRIDE: Record<string, string> = {
   // 進階職業（SPEC_CLASSES §3）
   guardian: 'shieldBash',
   gladiator: 'shieldBash',
-  sniper: 'sureShot',
   arbalest: 'sureShot',
   elementalist: 'enchant',
   battlemage: 'enchant',
