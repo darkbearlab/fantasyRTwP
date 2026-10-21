@@ -23,18 +23,18 @@ function setup(heroes: { id: string; x: number; y?: number }[], cx = 20, map: Ma
   });
   return { w, heroes: w.units.slice(0, heroes.length), c: w.units[heroes.length] };
 }
-const windup = (w: World, c: { action: unknown; id: number }) =>
+const windup = (c: { action: unknown }) =>
   (c.action = { kind: 'skill', skillId: 'sentinelSweep', point: { x: 0, y: 8 }, phase: 'windup', ticksLeft: 30, ticksTotal: 30 } as never);
 
 describe('魔王的冠軍（Alan 2026-10-22）', () => {
   it('只有盾擊、瞄準射擊打得斷；普攻（聖鎚）、爆擊的打斷都無效', () => {
     const { w, heroes, c } = setup([{ id: 'cleric', x: 19 }]);
-    windup(w, c);
+    windup(c);
     expect(interrupt(w, heroes[0], c)).toBe(false);
     expect(interrupt(w, heroes[0], c, 'holySmite')).toBe(false);
     expect(c.action).not.toBeNull();
     expect(interrupt(w, heroes[0], c, 'shieldBash')).toBe(true);
-    windup(w, c);
+    windup(c);
     expect(interrupt(w, heroes[0], c, 'sureShot')).toBe(true);
   });
 
