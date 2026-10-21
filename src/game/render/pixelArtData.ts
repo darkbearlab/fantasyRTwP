@@ -15,7 +15,8 @@ import { HEROES } from '../../sim/data/heroes';
 export type PixelUnitArt =
   /** recolor：把藍隊的兩個隊伍色換成這兩個顏色（英雄用職業色，見 heroTeamColors） */
   | { kind: 'mw'; path: string; recolor?: { dark: number; light: number } }
-  | { kind: 'm72'; idle: string; run: string; frames: number };
+  /** scale：整數的放大倍率（省略用 PIXEL.unitScale；例：獸人酋長用獸人戰士放大） */
+  | { kind: 'm72'; idle: string; run: string; frames: number; scale?: number };
 
 const mw = (path: string): PixelUnitArt => ({ kind: 'mw', path });
 
@@ -91,6 +92,14 @@ export const PIXEL_UNITS: Record<string, PixelUnitArt> = {
   bomber: m72('goblin'),
   exploder: m72('muddy', true),
   nest: m72('swampy', true),
+  // 第 2 章：獸人部落（酋長用獸人戰士放大）
+  goblin: m72('goblin'),
+  goblinSlinger: m72('goblin'),
+  orcWarrior: m72('orc_warrior'),
+  orcShaman: m72('orc_shaman'),
+  ogre: m72('ogre'),
+  warTotem: m72('totem', true),
+  orcChief: { kind: 'm72', idle: 'orc_warrior_idle_anim', run: 'orc_warrior_run_anim', frames: 4, scale: 5 },
 };
 
 /** 像素畫面的設定（只影響畫面） */

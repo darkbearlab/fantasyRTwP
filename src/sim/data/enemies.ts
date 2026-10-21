@@ -170,6 +170,63 @@ export const ENEMIES: Record<string, UnitDef> = {
     projectsZoc: false,
     skills: [],
   },
+  // ── 第 2 章「荒野」：獸人部落（SPEC_CAMPAIGN，Alan 2026-10-21；外觀用 0x72，數值佔位） ──
+  /** 哥布林：快、血少、成群從草叢衝出來（小波次的雜魚） */
+  goblin: {
+    id: 'goblin', name: '哥布林', letter: 'g', color: 0x6a9a3a, team: 'enemy', ai: 'brute',
+    maxHp: 22, armor: 0, accuracy: 32, defense: 24, damage: [4, 7],
+    range: 0.3, windup: 0.35, recovery: 0.7, attackSpeed: 1, moveSpeed: 3.9, radius: 0.34,
+    projectsZoc: false, targeting: { distance: 1, lowHp: 0.8, backline: 1.4, threat: 0.2, sticky: 0.4 },
+    skills: [],
+  },
+  /** 獸人戰士：劈砍、中等血量（取代劍兵、斧兵） */
+  orcWarrior: {
+    id: 'orcWarrior', name: '獸人戰士', letter: 'o', color: 0x4f7a2a, team: 'enemy', ai: 'brute',
+    maxHp: 52, armor: 2, accuracy: 32, defense: 22, damage: [9, 14],
+    range: 0.3, windup: 0.6, recovery: 0.95, attackSpeed: 1, moveSpeed: 3.0, radius: 0.45,
+    projectsZoc: false, targeting: { distance: 1, lowHp: 0.4, backline: 1.0, threat: 0.4, sticky: 0.6 },
+    skills: [],
+  },
+  /** 獸人薩滿：替附近的獸人補血、狂暴（傷害上升）→ 優先目標 */
+  orcShaman: {
+    id: 'orcShaman', name: '獸人薩滿', letter: 's', color: 0x7a5aa0, team: 'enemy', ai: 'shaman',
+    maxHp: 55, armor: 0, accuracy: 30, defense: 20, damage: [3, 6],
+    range: 8, windup: 0.8, recovery: 1.2, attackSpeed: 1, moveSpeed: 2.8, radius: 0.4,
+    projectsZoc: false, projectileSpeed: 16, projectileKind: 'bolt', attackDamageType: 'spell',
+    skills: ['mend', 'frenzy'],
+  },
+  /** 哥布林投石手：遠程、拋物線（不需視線、無視掩體） */
+  goblinSlinger: {
+    id: 'goblinSlinger', name: '投石手', letter: 'y', color: 0x8a9a4a, team: 'enemy', ai: 'archer',
+    maxHp: 26, armor: 0, accuracy: 30, defense: 22, damage: [5, 8],
+    range: 8, windup: 0.7, recovery: 1.1, attackSpeed: 1, moveSpeed: 3.2, radius: 0.34,
+    projectsZoc: false, projectileSpeed: 12, projectileKind: 'flask', arcAttack: true,
+    skills: [],
+  },
+  /** 食人魔：鐵砧（取代盾兵）。血厚、橫掃擊退；怕穿刺與火、抗衝擊 */
+  ogre: {
+    id: 'ogre', name: '食人魔', letter: 'O', color: 0x8a6a4a, team: 'enemy', ai: 'ogre',
+    maxHp: 150, armor: 3, accuracy: 26, defense: 18, damage: [10, 15],
+    range: 0.4, windup: 0.9, recovery: 1.3, attackSpeed: 1, moveSpeed: 2.2, radius: 0.6,
+    projectsZoc: true, pushWeight: 3,
+    skills: ['clubSweep'],
+  },
+  /** 戰鬥圖騰：不會動、不會攻擊；附近的獸人傷害上升（每根疊加），可以打掉 */
+  warTotem: {
+    id: 'warTotem', name: '戰鬥圖騰', letter: 'T', color: 0x9a3a2a, team: 'enemy', ai: 'nest',
+    maxHp: 90, armor: 3, accuracy: 0, defense: 0, damage: [0, 0],
+    range: 0, windup: 1, recovery: 1, attackSpeed: 1, moveSpeed: 0, radius: 0.5,
+    projectsZoc: false, immovable: true, passives: ['warTotemAura'],
+    skills: [],
+  },
+  /** 頭目：獸人酋長（第 2 章）。戰吼叫來哥布林、跳斬後排、投擲巨石；四周的圖騰讓他更強 */
+  orcChief: {
+    id: 'orcChief', name: '獸人酋長', letter: 'C', color: 0x3f6a1a, team: 'enemy', ai: 'boss',
+    maxHp: 560, armor: 5, accuracy: 35, defense: 32, damage: [12, 18],
+    range: 0.4, windup: 0.8, recovery: 1.2, attackSpeed: 1, moveSpeed: 2.6, radius: 0.65,
+    projectsZoc: true,
+    skills: ['clubSweep', 'orcWarcry', 'chiefLeap', 'boulder'],
+  },
   /** 頭目：戰爭領主（SPEC_SLICE2 §7.3） */
   warlord: {
     id: 'warlord', name: '戰爭領主', letter: 'L', color: 0x7a0d0d, team: 'enemy', ai: 'boss',

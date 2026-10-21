@@ -242,6 +242,8 @@ export class World implements ZocContext {
         const cyc = ACTIVE_CYCLES[def.id];
         if (cyc && cyc.steps.every((sk) => def.skills.includes(sk))) u.cycle = cyc;
       }
+      // 單位定義本身帶的被動（例：戰鬥圖騰的光環）
+      if (this.config.battleStyle === 'deliberate') for (const id of def.passives ?? []) if (PASSIVES[id]) u.addPassive(PASSIVES[id]);
       // 錯開敵人 AI 評估時間
       u.aiTimer = this.rng.range(0, 0.4);
       this.units.push(u);
@@ -889,6 +891,8 @@ export class World implements ZocContext {
    */
   private updateAuras(): void {
     const linger = AURA_LINGER;
+    // 疊加型光環（戰鬥圖騰）每個節拍重算
+    for (const u of this.units) u.stackDamage = 0;
     for (const src of this.units) {
       if (src.dead) continue;
       for (const p of src.passives) {
@@ -903,6 +907,8 @@ export class World implements ZocContext {
             t.blessDefense = Math.max(active ? t.blessDefense : 0, a.allies.defense);
             t.blessDamage = Math.max(active ? t.blessDamage : 0, a.allies.damagePct ?? 0);
           }
+          // 疊加型光環：每個來源都加一次
+          if (t.team === src.team && a.stackDamagePct && t !== src) t.stackDamage += a.stackDamagePct;
           // 分擔光環：範圍內的隊友（不含主人自己）受到的傷害，一部分改由主人承受
           if (t.team === src.team && a.cover && t !== src) {
             t.coverTime = Math.max(t.coverTime, linger);

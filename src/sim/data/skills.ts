@@ -224,6 +224,33 @@ export const SKILLS: Record<string, SkillDef> = {
     target: 'enemy', range: 8, windup: 0.55, recovery: 1.0, cooldown: 6, requiresLos: true, telegraph: true,
     effect: { kind: 'pull', mult: 0.6 },
   },
+  // ── 第 2 章：獸人部落（數值佔位） ──
+  frenzy: {
+    id: 'frenzy', name: '狂暴', description: '6 m 內的同伴 8 秒內傷害 +25%；準備 1.2 秒，可打斷',
+    target: 'self', range: 0, windup: 1.2, recovery: 1.0, cooldown: 14, requiresLos: false, telegraph: true,
+    effect: { kind: 'enchant', radius: 6, duration: 8, damagePct: 0.25 },
+  },
+  clubSweep: {
+    id: 'clubSweep', name: '巨棒橫掃', description: '前方扇形範圍攻擊並擊退，準備 1.2 秒，可打斷',
+    target: 'ground', range: 2.5, windup: 1.2, recovery: 1.0, cooldown: 7, requiresLos: false, telegraph: true,
+    effect: { kind: 'cone', radius: 2.8, angle: 100, damage: [12, 17], friendlyFire: false },
+  },
+  orcWarcry: {
+    id: 'orcWarcry', name: '戰吼', description: '叫來 4 名哥布林，全體敵人 10 秒內傷害 +20%；準備 2.0 秒，被打斷就不能再用',
+    target: 'self', range: 0, windup: 2.0, recovery: 1.0, cooldown: 999, requiresLos: false, telegraph: true,
+    oncePerBattle: true, lostOnInterrupt: true,
+    effect: { kind: 'warcry', summon: { enemy: 'goblin', count: 4 }, damageBuff: 1.2, duration: 10 },
+  },
+  chiefLeap: {
+    id: 'chiefLeap', name: '跳斬', description: '落點預兆圈後跳到後排，落地時攻擊周圍',
+    target: 'ground', range: 11, windup: 0.9, recovery: 1.2, cooldown: 10, requiresLos: true, telegraph: true,
+    effect: { kind: 'leap', speed: 11, radius: 2, mult: 1.5 },
+  },
+  boulder: {
+    id: 'boulder', name: '投擲巨石', description: '拋物線投擲（不需視線）：落點預兆圈，半徑 2.2 m 傷害 14–20',
+    target: 'ground', range: 13, windup: 1.6, recovery: 1.2, cooldown: 9, requiresLos: false, telegraph: true,
+    effect: { kind: 'aoe', radius: 2.2, damage: [14, 20], friendlyFire: false, projectileSpeed: 10, projectileKind: 'flask' },
+  },
   mend: {
     id: 'mend', name: '治癒禱言', description: '準備約 2.5 秒（可打斷）後恢復一名同伴 30 生命',
     target: 'ally', range: 9, windup: 1.4, recovery: 1.0, cooldown: 4, requiresLos: true, telegraph: true,

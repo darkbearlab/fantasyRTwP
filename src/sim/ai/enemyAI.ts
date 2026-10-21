@@ -345,6 +345,35 @@ function deliberateThink(world: World, u: Unit): void {
       if (keepDistance(world, u, heroes)) return;
       break;
     }
+    case 'shaman': {
+      // 獸人薩滿：先補血，再替附近的同伴狂暴，其餘時間保持距離
+      if (ready('mend')) {
+        const hurt = world.units
+          .filter((a) => a.team === u.team && a !== u && !a.dead && a.def.ai !== 'nest' && a.hp / a.maxHp < PRIEST_HEAL_BELOW && edgeDistance(u, a) <= scaleRange(world.config, SKILLS.mend.range) + 4)
+          .sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp);
+        if (hurt.length > 0) {
+          world.issueOrder(u, { type: 'skill', skillId: 'mend', targetId: hurt[0].id });
+          return;
+        }
+      }
+      if (ready('frenzy')) {
+        const eff = SKILLS.frenzy.effect;
+        const r = eff.kind === 'enchant' ? eff.radius : 6;
+        const near = world.units.filter((a) => a.team === u.team && a !== u && !a.dead && a.def.ai !== 'nest' && dist(a.pos, u.pos) <= r).length;
+        if (near >= 2) {
+          world.issueOrder(u, { type: 'skill', skillId: 'frenzy' });
+          return;
+        }
+      }
+      if (keepDistance(world, u, heroes)) return;
+      break;
+    }
+    case 'ogre':
+      if (ready('clubSweep') && dist(u.pos, t.pos) <= SKILLS.clubSweep.range + u.radius + 0.6) {
+        world.issueOrder(u, { type: 'skill', skillId: 'clubSweep', point: { x: t.pos.x, y: t.pos.y } });
+        return;
+      }
+      break;
     case 'summoner':
       if (ready('summonThralls')) {
         world.issueOrder(u, { type: 'skill', skillId: 'summonThralls' });
@@ -375,9 +404,35 @@ function deliberateThink(world: World, u: Unit): void {
       }
       break;
     }
-    case 'boss':
-      if (u.hp < u.maxHp * 0.5 && ready('warcry')) {
-        world.issueOrder(u, { type: 'skill', skillId: 'warcry' });
+    case 'boss': {
+      // 戰吼（各頭目有自己的版本，例：獸人酋長叫哥布林）
+      const cry = u.def.skills.find((sk) => SKILLS[sk]?.effect.kind === 'warcry');
+      if (cry && u.hp < u.maxHp * 0.5 && u.skillReady(cry)) {
+        world.issueOrder(u, { type: 'skill', skillId: cry });
+        return;
+      }
+      // 跳斬（獸人酋長）：跳到後排、離得夠遠的英雄身上
+      if (ready('chiefLeap')) {
+        const reach = scaleRange(world.config, SKILLS.chiefLeap.range);
+        const back = heroes
+          .filter((h) => dist(u.pos, h.pos) > 4 && dist(u.pos, h.pos) <= reach && world.canSee(u, h))
+          .sort((a, b) => (a.def.projectsZoc ? 1 : 0) - (b.def.projectsZoc ? 1 : 0) || dist(u.pos, b.pos) - dist(u.pos, a.pos))[0];
+        if (back) {
+          world.issueOrder(u, { type: 'skill', skillId: 'chiefLeap', point: { ...back.pos } });
+          return;
+        }
+      }
+      // 投擲巨石：瞄準遠處英雄最密的地方
+      if (ready('boulder')) {
+        const far = heroes.filter((h) => dist(u.pos, h.pos) > 3.5 && dist(u.pos, h.pos) <= scaleRange(world.config, SKILLS.boulder.range));
+        const p = far.length ? bestClusterPoint(u, far, SKILLS.boulder) : null;
+        if (p) {
+          world.issueOrder(u, { type: 'skill', skillId: 'boulder', point: p });
+          return;
+        }
+      }
+      if (ready('clubSweep') && dist(u.pos, t.pos) <= SKILLS.clubSweep.range + u.radius + 0.6) {
+        world.issueOrder(u, { type: 'skill', skillId: 'clubSweep', point: { x: t.pos.x, y: t.pos.y } });
         return;
       }
       // 擲人（Alan 2026-10-21）：抓身邊的英雄，丟向遠處的英雄（後排優先、越遠越優先），落點有預兆圈
@@ -403,6 +458,7 @@ function deliberateThink(world: World, u: Unit): void {
         return;
       }
       break;
+    }
     case 'siege':
       if (ready('ram') && d > 2.5 && d <= scaleRange(world.config, SKILLS.ram.range) && sees) {
         world.issueOrder(u, { type: 'skill', skillId: 'ram', targetId: t.id });

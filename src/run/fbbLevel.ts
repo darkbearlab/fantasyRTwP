@@ -23,6 +23,8 @@ import { floodFrom, levelDifficulty } from './levelGen';
 import { NavGrid } from '../sim/nav/grid';
 import { deriveSeed } from './seed';
 import { mergeCells } from './templateLevelGen';
+import type { FactionDef } from './data/factions';
+import { FACTIONS } from './data/factions';
 import type { TilePrefab } from './tilePrefab';
 import type { TownLevel } from './townGen';
 import { generateTown } from './townGen';
@@ -41,6 +43,8 @@ export interface FbbLevelOptions {
   /** 冠軍戰：精英隊長換成這個敵人 */
   captainEnemy?: string;
   look?: FbbLook;
+  /** 敵方陣營（SPEC_CAMPAIGN；省略＝帝國叛軍） */
+  faction?: FactionDef;
 }
 
 /** 生成格子 → 世界格（左下角）；中心再加 0.5 */
@@ -155,7 +159,8 @@ function fieldOnce(seed: number, opts: FbbLevelOptions): GeneratedLevel {
     entry: opts.entry,
     upgradeMult: opts.budgetMult,
     captainEnemy: opts.captainEnemy,
-    captainPool: DELIBERATE_LEVELS.captainPool,
+    captainPool: opts.faction?.captainPool ?? DELIBERATE_LEVELS.captainPool,
+    faction: opts.faction,
   });
   return fieldLevelToEncounter(seed, opts, lv, '荒野');
 }
@@ -164,8 +169,9 @@ function fieldOnce(seed: number, opts: FbbLevelOptions): GeneratedLevel {
  * 頭目房（Alan 2026-10-21：專屬房間，往前走一點就是頭目）。最後的頭目戰沒有出口，打倒頭目就勝利。
  */
 export function bossEncounter(seed: number, opts: FbbLevelOptions): GeneratedLevel {
-  const { level, summons } = generateBossArena(seed);
-  const enc = fieldLevelToEncounter(seed, { ...opts, tier: 'boss' }, level, '戰爭領主的營地');
+  const boss = (opts.faction ?? FACTIONS.empire).boss;
+  const { level, summons } = generateBossArena(seed, boss);
+  const enc = fieldLevelToEncounter(seed, { ...opts, tier: 'boss' }, level, boss.place);
   const H = level.h;
   enc.mapDef.summonPoints = summons.map(([x, y]) => {
     const w = gridToWorld(x, y, H);

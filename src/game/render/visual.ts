@@ -34,6 +34,13 @@ const UNIT_HEIGHT: Record<string, number> = {
   bomber: 1.7,
   lurker: 1.6,
   warlord: 3.0,
+  goblin: 1.3,
+  goblinSlinger: 1.3,
+  orcWarrior: 1.9,
+  orcShaman: 1.8,
+  ogre: 2.6,
+  warTotem: 2.4,
+  orcChief: 3.0,
   // 沉穩節奏的新敵人（借用現有素材）
   shieldbearer: 2.1,
   charger: 2.2,

@@ -5,7 +5,9 @@ export type Team = 'hero' | 'enemy';
 export type EnemyArchetype =
   | 'brute' | 'skirmisher' | 'archer' | 'caster' | 'boss' | 'siege' | 'bomber' | 'lurker' | 'horde' | 'nest'
   // 沉穩節奏的新敵人（SPEC_SLICE5 §15.2）
-  | 'charger' | 'assassin' | 'hooker' | 'priest' | 'summoner' | 'exploder';
+  | 'charger' | 'assassin' | 'hooker' | 'priest' | 'summoner' | 'exploder'
+  // 第 2 章：獸人部落
+  | 'shaman' | 'ogre';
 
 /**
  * 敵人選目標的權重（SPEC_SLICE5 §15.1，只在沉穩節奏生效）：每次評估對看得到的英雄打分，最高分者為目標。
@@ -80,6 +82,8 @@ export interface UnitDef {
   lowHpDamageBonus?: number;
   /** 從目標背後普攻的傷害倍率（盜賊） */
   backstabMult?: number;
+  /** 帶著的被動（PASSIVES 的 id；沉穩節奏，敵我都適用；例：戰鬥圖騰的光環） */
+  passives?: string[];
   /** 升級給的特殊防禦、特殊護甲加成（沉穩節奏的物理／特殊公式） */
   specDefenseBonus?: number;
   specArmorBonus?: number;
