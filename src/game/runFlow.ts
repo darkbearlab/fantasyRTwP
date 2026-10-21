@@ -4,6 +4,7 @@
  */
 import type Phaser from 'phaser';
 import type { RunState } from '../run/runState';
+import { saveRun } from './save';
 
 const RUN_SCENES = ['Title', 'PartySelect', 'Map', 'Battle', 'UI', 'Result', 'Event', 'Rest', 'Reward', 'RunEnd', 'Shop'];
 
@@ -11,8 +12,16 @@ export function getRun(scene: Phaser.Scene): RunState {
   return scene.registry.get('run') as RunState;
 }
 
+/** 更新遠征狀態（並自動存檔到 localStorage；遠征結束時刪除存檔） */
 export function setRun(scene: Phaser.Scene, run: RunState): void {
   scene.registry.set('run', run);
+  saveRun(run);
+}
+
+/** 讀檔繼續：放回遠征狀態，前往存檔時的那一步（戰鬥中存的＝從那場戰鬥開頭重來） */
+export function continueRun(scene: Phaser.Scene, run: RunState): void {
+  scene.registry.set('run', run);
+  gotoPhase(scene);
 }
 
 /** 切換到某個場景（停止其他遠征場景） */

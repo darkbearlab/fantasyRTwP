@@ -835,6 +835,20 @@ body {
   line-height: 1.7;
 }
 
+/* 標題：讀檔繼續 */
+.continue-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.continue-info {
+  color: #9aa3b2;
+  font-size: 13px;
+  max-width: 92vw;
+}
+
 .title-hint {
   color: #6f7888;
   font-size: 12px;

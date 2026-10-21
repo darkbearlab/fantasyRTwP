@@ -99,6 +99,11 @@
   - 傷害：傷害 × 相剋倍率 × K ÷（K ＋ 護甲 × 被剋倍率）。
   - 資料都在 `src/sim/data/damageTypes.ts`：普攻表、技能表、抗性與弱點、特殊防禦。結算在 `actions.ts` 的 `strike()` 與 `mitigate()`。
   - 盾兵舉盾改成物理防禦 ＋20、護甲 ＋4，抗切割、穿刺，怕衝擊。
+- **存檔**（2026-10-21）：`src/game/save.ts`，localStorage 鍵 `fantasyRTwP.run`。
+  - `runFlow.setRun` 每次都自動存；遠征結束（phase ended）就刪掉存檔。
+  - 標題畫面有存檔時顯示「繼續遠征」和摘要；開新遠征會先確認再覆蓋。
+  - 戰鬥中的狀態不存：讀檔後從那場戰鬥開頭重來（關卡依種子重新生成）。
+  - localStorage 不能用時當作沒有存檔。
 - **下完指令不取消選取**：`GAME_CONFIG.deselectAfterOrder`（預設 false）。
 - **角色縮放**：`VISUAL.unitScale`（0.8，只影響畫面；`unitHeight()` 已乘上這個值），碰撞半徑與腳下圈不變。
 - **交戰距離縮短**（2026-10-20）：沉穩節奏 `SimConfig.rangeMult` ＝ 0.6（`DELIBERATE_PACE.range`），套用在 1 m 以上的普攻射程與技能施放距離（換算一律經過 `scaleRange`）；敵人察覺距離、攻擊移動接戰距離也 ×0.6。近戰、範圍半徑、視野不變；舊模式 `rangeMult` ＝ 1。
