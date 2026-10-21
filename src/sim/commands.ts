@@ -26,8 +26,8 @@ export type Order =
   | { type: 'attack'; targetId: number; leashed?: boolean }
   | { type: 'follow'; targetId: number }
   | { type: 'skill'; skillId: string; targetId?: number; point?: Vec }
-  /** targetId：途中接戰的目標（執行時填入） */
-  | { type: 'attackMove'; point: Vec; targetId?: number }
+  /** targetId：途中接戰的目標（執行時填入）；engaged：已經出過手（沉穩節奏的英雄接戰後就地駐守） */
+  | { type: 'attackMove'; point: Vec; targetId?: number; engaged?: boolean }
   /** point：走過去的站位（第一次執行時決定） */
   | { type: 'interact'; objectId: string; point?: Vec };
 

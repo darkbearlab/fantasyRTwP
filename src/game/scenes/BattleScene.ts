@@ -847,7 +847,7 @@ ${node}`, { fontFamily: FONT, fontSize: '14px', color: '#ffe9a8', align: 'center
     this.drawBars();
     this.drawProjectiles();
     this.ghostG.clear();
-    if (!w.result) this.drawGhostLines();
+    if (!w.result) this.drawGhostLines(selected);
     this.drawTargeting();
     this.drawCoverHint();
     this.drawBoxSelect();
@@ -875,7 +875,10 @@ ${node}`, { fontFamily: FONT, fontSize: '14px', color: '#ffe9a8', align: 'center
       if (!t || t.dead || t.team === u.team) continue;
       const a = this.wpos(u);
       const b = this.wpos(t);
-      if (u.team === 'hero') groundLine(g, a, b, selected.has(u.id) ? 2.5 : 1.5, COLORS.ghostMove, selected.has(u.id) ? 0.85 : 0.45);
+      // 英雄的目標線只畫被選取的（Alan 2026-10-21）
+      if (u.team === 'hero') {
+        if (selected.has(u.id)) groundLine(g, a, b, 2.5, COLORS.ghostMove, 0.85);
+      }
       else groundLine(g, a, b, 1.5, COLORS.ghostAttack, 0.4);
     }
   }
@@ -1188,6 +1191,17 @@ ${node}`, { fontFamily: FONT, fontSize: '14px', color: '#ffe9a8', align: 'center
   private drawBars(): void {
     const g = this.overG;
     g.clear();
+    // 長按攻擊移動的進度圈（Alan 2026-10-21：輕點＝移動、按住＝攻擊移動）
+    const pr = this.input2.pressProgress();
+    if (pr) {
+      const r = 26 / this.cameras.main.zoom;
+      g.lineStyle(3 / this.cameras.main.zoom, 0x000000, 0.5);
+      g.strokeCircle(pr.sx, pr.sy, r);
+      g.lineStyle(4 / this.cameras.main.zoom, COLORS.ghostAttack, 0.95);
+      g.beginPath();
+      g.arc(pr.sx, pr.sy, r, -Math.PI / 2, -Math.PI / 2 + pr.k * Math.PI * 2, false);
+      g.strokePath();
+    }
     const iso = hasHeight();
     for (const u of this.session.world.units) {
       const st = this.statusTexts.get(u.id);
@@ -1275,7 +1289,7 @@ ${node}`, { fontFamily: FONT, fontSize: '14px', color: '#ffe9a8', align: 'center
    * 英雄的指令線（Alan 2026-10-21：常駐）：暫停中下的（還沒送進 sim）與正在執行的指令。
    * 指令一換就是全亮，之後依 VISUAL.routeLine 變淡變細。
    */
-  private drawGhostLines(): void {
+  private drawGhostLines(selected: Set<number>): void {
     const w = this.session.world;
     const ghost = new Map<number, Order | null>();
     for (const c of w.pendingCommands) {
@@ -1314,6 +1328,8 @@ ${node}`, { fontFamily: FONT, fontSize: '14px', color: '#ffe9a8', align: 'center
     const g = this.ghostG;
     for (const u of w.units) {
       if (u.team !== 'hero' || u.dead) continue;
+      // Alan 2026-10-21：只顯示被選取英雄的指令線（新舊照樣記，選回來時淡化程度正確）
+      const shown = selected.has(u.id);
       let o: Order | null;
       if (ghost.has(u.id)) o = ghost.get(u.id)!;
       else if (u.nextOrder !== undefined) o = u.nextOrder;
@@ -1334,6 +1350,7 @@ ${node}`, { fontFamily: FONT, fontSize: '14px', color: '#ffe9a8', align: 'center
       /** 透明度與線寬依指令的新舊 */
       const fa = (a: number) => a * (1 - k) + R.minAlpha * k;
       const fw = (wd: number) => wd * (1 - k * (1 - R.minWidth));
+      if (!shown) continue;
       const from = this.wpos(u);
       const targetPos = (id: number): Vec | null => {
         const t = w.getUnit(id);

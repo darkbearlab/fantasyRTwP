@@ -108,6 +108,13 @@
   - 一般敵人生命 ×0.5（`enemyHpMult`；精英隊長、頭目不變；在 `createBattleFromRun` 套用）。
   - 英雄技能效果 ×1.5（`heroSkillPower` → `SimConfig.heroSkillPowerMult`）：技能傷害、範圍傷害、治療、附魔增益、技能留下的地面效果。冷卻、時間、範圍、暈眩長度不變。
   - 英雄普攻速度 ×1.5（`heroAttackSpeed` → `basicAttackSpeedMult`）。
+- **地圖操作**（Alan 2026-10-21）：
+  - 輕點地面＝純移動（途中不理敵人）。
+  - 原地按住 `GAME_CONFIG.longPressSec`（1 秒）＝攻擊移動：有進度圈；拖曳過就不算，要另外放下手指按住才算。滑鼠右鍵也是攻擊移動。
+  - 點敵人＝攻擊移動到那裡。點我方英雄 sprite＝只選那名。
+  - 攻擊移動一出手就記 `engaged`：目標被推開、死掉時沉穩節奏的英雄就地駐守，遠程不追出射程（`World.executeAttackMove`）。
+  - 指令線只畫被選取的英雄，指令更新後變淡變細（`VISUAL.routeLine`）。
+  - 以友軍為目標的技能瞄準中，可以當目標的英雄卡出現「▼ 目標」，點卡片就是選目標。
 - **下完指令不取消選取**：`GAME_CONFIG.deselectAfterOrder`（預設 false）。
 - **角色縮放**：`VISUAL.unitScale`（0.8，只影響畫面；`unitHeight()` 已乘上這個值），碰撞半徑與腳下圈不變。
 - **交戰距離縮短**（2026-10-20）：沉穩節奏 `SimConfig.rangeMult` ＝ 0.6（`DELIBERATE_PACE.range`），套用在 1 m 以上的普攻射程與技能施放距離（換算一律經過 `scaleRange`）；敵人察覺距離、攻擊移動接戰距離也 ×0.6。近戰、範圍半徑、視野不變；舊模式 `rangeMult` ＝ 1。
