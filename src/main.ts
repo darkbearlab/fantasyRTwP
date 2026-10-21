@@ -45,7 +45,8 @@ function fitStage(): void {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
   let s = Math.min(vw / WIDTH, vh / HEIGHT);
-  if (window.matchMedia('(pointer: coarse)').matches) s = Math.max(s, MIN_TOUCH_SCALE);
+  const touch = window.matchMedia('(pointer: coarse)').matches;
+  if (touch) s = Math.max(s, MIN_TOUCH_SCALE);
   const w = Math.round(vw / s);
   const h = Math.round(vh / s);
   stage.style.width = `${w}px`;
@@ -55,6 +56,8 @@ function fitStage(): void {
   stage.style.top = '0px';
   stage.classList.toggle('compact', h < COMPACT_HEIGHT);
   stage.classList.toggle('portrait', w < h);
+  // 電腦（滑鼠、橫向）：戰鬥下方的英雄卡片列收窄（Alan 2026-10-22）
+  stage.classList.toggle('desktop', !touch && w >= h);
   if (game.scale.width !== w || game.scale.height !== h) game.scale.resize(w, h);
   else game.scale.refresh();
 }
