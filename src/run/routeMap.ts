@@ -139,10 +139,10 @@ export function distances(map: RunMap, from: number): Map<number, number> {
 }
 
 /** 從 from 往 to 走一步（最短路徑上的下一個節點；相同的距離時取 id 小的，保持決定論） */
-export function stepToward(map: RunMap, from: number, to: number): number {
+export function stepToward(map: RunMap, from: number, to: number, avoid?: (id: number) => boolean): number {
   if (from === to) return from;
   const d = distances(map, to);
-  const opts = neighbors(map, from).filter((t) => d.has(t));
+  const opts = neighbors(map, from).filter((t) => d.has(t) && !avoid?.(t));
   if (opts.length === 0) return from;
   return opts.reduce((a, b) => (d.get(b)! < d.get(a)! || (d.get(b) === d.get(a) && b < a) ? b : a));
 }

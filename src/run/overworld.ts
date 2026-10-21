@@ -76,7 +76,8 @@ function championStep(run: RunState, rng: ReturnType<typeof rngFor>, force = fal
     if (dist <= C.detectRange) c.hunting = true;
   };
   detect();
-  if (c.hunting || force) c.node = stepToward(run.map, c.node, player);
+  // Alan 2026-10-21：冠軍不進頭目節點（玩家在頭目節點時，冠軍就在門外等）
+  if (c.hunting || force) c.node = stepToward(run.map, c.node, player, (t) => run.map.nodes[t].type === 'boss');
   else if (rng.chance(C.wanderChance)) {
     const opts = neighbors(run.map, c.node).filter((t) => run.map.nodes[t].type !== 'boss');
     if (opts.length) c.node = opts[rng.int(0, opts.length - 1)];
