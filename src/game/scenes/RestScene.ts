@@ -15,6 +15,7 @@ import { campfireTalk } from '../../run/campfire';
 import { battleSkillsOf } from '../../run/loadout';
 import { maxHpOf } from '../../run/upgrades';
 import { DomScene } from './DomScene';
+import { showEvolutions } from '../ui/evolutionShow';
 
 type Mode = 'menu' | 'revive' | 'train';
 type Tab = 'rest' | 'skills';
@@ -69,11 +70,7 @@ export class RestScene extends DomScene {
     if (this.campfireOpen) return;
     const box = el('div', 'panel wide');
     box.append(el('h2', '', '🔥 營火'), el('div', 'meta', `💰 ${run.gold} 金幣`));
-    const set = (r: typeof run) => {
-      setRun(this, r);
-      this.mode = 'menu';
-      this.rebuild();
-    };
+    const set = (r: typeof run) => this.afterTrain(r);
     const tabs = el('div', 'tabs');
     const tabBtn = (t: Tab, label: string) => {
       const b = button(label, `tab${this.tab === t ? ' active' : ''}`, () => {
@@ -99,17 +96,20 @@ export class RestScene extends DomScene {
 
     if (!p.used) {
       if (this.mode === 'menu') {
-        box.appendChild(el('div', 'step-title', '選擇一項（三選一）：'));
+        box.appendChild(el('div', 'step-title', '選擇一項：'));
         const row = el('div', 'rest-options');
-        row.appendChild(button(`紮營：全隊恢復 ${ECONOMY.campHealRatio * 100}% 生命`, 'rest-option', () => set(restCamp(getRun(this)))));
-        row.appendChild(button(`救人：花 ${ECONOMY.reviveCost} 金幣復活一名陣亡者（${ECONOMY.reviveHpRatio * 100}% 生命）`, 'rest-option', () => {
-          this.mode = 'revive';
-          this.rebuild();
-        }, !canRevive(run)));
-        row.appendChild(button('訓練：一名英雄從 3 個強化中選 1', 'rest-option', () => {
+        // Alan 2026-10-22：在營火停留（紮營、訓練、救人）會引來冠軍；繼續趕路不會
+        const smoke = run.overworld ? '（營火的煙會引來冠軍）' : '';
+        row.appendChild(button(`紮營：全隊恢復 ${ECONOMY.campHealRatio * 100}% 生命${smoke}`, 'rest-option', () => set(restCamp(getRun(this)))));
+        row.appendChild(button(deliberate ? `訓練：一次升級三選一（不提升隊伍等級）${smoke}` : '訓練：一名英雄從 3 個強化中選 1', 'rest-option', () => {
           this.mode = 'train';
           this.rebuild();
         }));
+        row.appendChild(button(`救人：花 ${ECONOMY.reviveCost} 金幣復活一名陣亡者（${ECONOMY.reviveHpRatio * 100}% 生命）${smoke}`, 'rest-option', () => {
+          this.mode = 'revive';
+          this.rebuild();
+        }, !canRevive(run)));
+        row.appendChild(button('繼續趕路：跳過這裡（不會引來冠軍）', 'rest-option', () => advance(this, leaveNode(getRun(this)))));
         box.appendChild(row);
       } else if (this.mode === 'revive') {
         box.appendChild(el('div', 'step-title', '要救誰？'));
@@ -117,7 +117,7 @@ export class RestScene extends DomScene {
         box.appendChild(button('返回', 'small', () => ((this.mode = 'menu'), this.rebuild())));
       } else {
         box.appendChild(el('div', 'step-title', '訓練：選擇強化'));
-        box.appendChild(upgradePicker(run, p.trainOptions, (c) => set(restTrain(getRun(this), c.slot!, c.upgradeId, c.skillId))));
+        box.appendChild(upgradePicker(run, p.trainOptions, (c) => this.afterTrain(restTrain(getRun(this), c.slot, c.upgradeId, c.skillId)), undefined, p.trainSlots));
         box.appendChild(button('返回', 'small', () => ((this.mode = 'menu'), this.rebuild())));
       }
     } else box.appendChild(el('div', 'event-result', p.resultText ?? ''));
@@ -141,8 +141,21 @@ export class RestScene extends DomScene {
     box.appendChild(rec);
 
     box.appendChild(partyPanel(run));
-    box.appendChild(button(p.used ? '繼續上路' : '不休息，繼續上路', p.used ? 'primary' : '', () => advance(this, leaveNode(getRun(this)))));
+    if (p.used) box.appendChild(button('繼續上路', 'primary', () => advance(this, leaveNode(getRun(this)))));
     this.root.appendChild(box);
+    // 訓練完剛好昇變：在這裡演出（SPEC_CLASSES §5）
+    showEvolutions(this, this.root, () => this.rebuild());
+  }
+
+  /** 訓練、紮營、救人之後：被冠軍追上就直接開打，否則留在營火畫面 */
+  private afterTrain(r: ReturnType<typeof getRun>): void {
+    this.mode = 'menu';
+    if (r.phase.kind !== 'rest') {
+      advance(this, r);
+      return;
+    }
+    setRun(this, r);
+    this.rebuild();
   }
 
   /** 技能分頁（SPEC_SLICE3 §1.1）：第 1 欄專用技能固定，第 2、3 欄從同系共用池替換 */

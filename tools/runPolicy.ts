@@ -90,6 +90,9 @@ export function stepRun(r: RunState, scripted = true): RunState {
         if (deadSlot >= 0 && canRevive(r, deadSlot)) return restRevive(r, deadSlot);
         if (avgHpRatio(r) < 0.85) return restCamp(r);
         const id = p.trainOptions[0];
+        const own = p.trainSlots?.[0];
+        if (own !== undefined && own !== null) return restTrain(r, own, id);
+        if (UPGRADES[id].scope === 'party') return restTrain(r, undefined, id);
         const { slot, hero } = livingHeroes(r)[0];
         return restTrain(r, slot, id, UPGRADES[id].needsSkill ? hero.skills[0] : undefined);
       }

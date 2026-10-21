@@ -127,3 +127,52 @@ describe('冠軍不會搶走頭目戰（Alan 2026-10-21 回報）', () => {
     expect(after.phase.kind).not.toBe('ended');
   });
 });
+
+describe('休息節點：訓練＝升級三選一、繼續趕路（Alan 2026-10-22）', () => {
+  async function atRest(seed: number) {
+    const { chooseNode } = await import('../src/run/progression');
+    const { distances } = await import('../src/run/routeMap');
+    let r = createRun(seed, { style: 'deliberate' });
+    const rest = r.map.nodes.find((n) => n.type === 'rest')!;
+    // 直接站到休息節點旁邊再走進去（路線圖的可前往判定）
+    const nb = (r.map.nodes[rest.id].links ?? [])[0];
+    r.currentNodeId = nb;
+    r.overworld!.force = [];
+    const far = [...distances(r.map, rest.id)].filter(([, d]) => d >= 3).map(([id]) => id)[0];
+    r.overworld!.champion = { node: far, hunting: false, respawnAt: 0 };
+    r = chooseNode(r, rest.id);
+    return { r, rest, far };
+  }
+
+  it('訓練是兩個專屬＋一個通用，選了不提升隊伍等級', async () => {
+    const { restTrain } = await import('../src/run/progression');
+    const { r } = await atRest(21);
+    if (r.phase.kind !== 'rest') throw new Error('應該在休息節點');
+    const p = r.phase;
+    expect(p.trainOptions).toHaveLength(3);
+    expect(p.trainSlots?.slice(0, 2).every((s) => s !== null)).toBe(true);
+    expect(p.trainSlots?.[2]).toBeNull();
+    const level = r.level;
+    // 專屬升級給別人不行
+    const wrong = [0, 1, 2, 3].find((x) => x !== p.trainSlots![0])!;
+    expect(() => restTrain(r, wrong, p.trainOptions[0])).toThrow();
+    const after = restTrain(r, p.trainSlots![0]!, p.trainOptions[0]);
+    expect(after.level).toBe(level);
+    expect(after.party[p.trainSlots![0]!]!.upgrades.some((o) => o.id === p.trainOptions[0])).toBe(true);
+  });
+
+  it('紮營、訓練會引來冠軍；繼續趕路不會', async () => {
+    const { leaveNode, restCamp, restTrain } = await import('../src/run/progression');
+    const { distances } = await import('../src/run/routeMap');
+    const { r, rest, far } = await atRest(22);
+    if (r.phase.kind !== 'rest') throw new Error('應該在休息節點');
+    const start = r.overworld!.champion.node!;
+    const d0 = distances(r.map, rest.id).get(start)!;
+    const closer = (x: RunState) => distances(x.map, rest.id).get(x.overworld!.champion.node ?? far)! < d0;
+    expect(closer(restCamp(r))).toBe(true);
+    expect(closer(restTrain(r, r.phase.trainSlots![0]!, r.phase.trainOptions[0]))).toBe(true);
+    const left = leaveNode(r);
+    expect(left.phase.kind).toBe('map');
+    expect(left.overworld!.champion.node).toBe(start);
+  });
+});
