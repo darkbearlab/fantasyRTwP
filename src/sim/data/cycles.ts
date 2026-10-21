@@ -18,4 +18,6 @@ export const ACTIVE_CYCLES: Record<string, ActiveCycle> = {
   hexer: { mode: 'sequence', steps: ['curse', 'curseBurst'] },
   // 死亡法師（SPEC_CLASSES §3）：回收咒術師的詛咒 → 詛咒爆裂
   deathMage: { mode: 'sequence', steps: ['curse', 'curseBurst'] },
+  // 狙擊手（SPEC_CLASSES §3）：集中 → 瞄準射擊；集中越久這一發越痛，移動或被打就中斷（回到集中）
+  sniper: { mode: 'sequence', steps: ['focus', 'aimedShot'] },
 };

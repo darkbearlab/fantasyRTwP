@@ -863,7 +863,10 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): Uni
   const behind = p.melee && isBehind(src, target);
   if (typed && behind && (p.behindMult || (!p.skillId && src.def.backstabMult))) accuracy += BACKSTAB_ACCURACY;
   // 背刺暈眩中的目標：必定爆擊（不做命中判定）
-  const forcedCrit = !!p.critVsStunned && target.stunTime > 0;
+  // 角鬥士：打斷敵人後的下一擊必定爆擊
+  const pendingCrit = src.critPending;
+  src.critPending = false;
+  const forcedCrit = (!!p.critVsStunned && target.stunTime > 0) || pendingCrit;
   const rolled = forcedCrit ? null : rollHit(world.rng, accuracy, defense);
   const result = rolled ? rolled.result : 'crit';
   if (result === 'miss') {
@@ -934,6 +937,17 @@ export function applyDamage(
   // 聖域：範圍內的友軍減傷（取最強的一個）
   const ward = wardReduction(world, target);
   if (ward > 0) amount = Math.max(1, Math.round(amount * (1 - ward)));
+  // 分擔（守護者）：一部分傷害改由光環主人承受
+  if (foe && target.coverTime > 0 && amount > 1) {
+    const guard = world.getUnit(target.coverBy);
+    if (guard && !guard.dead && guard !== target) {
+      const shared = Math.round(amount * target.coverPct);
+      if (shared > 0) {
+        amount -= shared;
+        applyDamage(world, guard, shared, damageType, src, { skillId: 'cover' });
+      }
+    }
+  }
   const dealt = Math.min(amount, target.hp);
   target.hp -= amount;
   src.stats.damageDealt += dealt;
@@ -991,6 +1005,10 @@ export function interrupt(world: World, src: Unit, t: Unit): boolean {
   if (skillId && SKILLS[skillId].lostOnInterrupt && !t.spentSkills.includes(skillId)) t.spentSkills.push(skillId);
   if (!t.def.interruptStunImmune) t.stunTime = Math.max(t.stunTime, INTERRUPT_STUN);
   world.emit({ type: 'interrupt', sourceId: src.id, targetId: t.id, skillId, point });
+  if (src.team !== t.team && src.passives.some((p) => p.critAfterInterrupt)) {
+    src.critPending = true;
+    world.emit({ type: 'notice', unitId: src.id, text: '下一擊必定爆擊' });
+  }
   return true;
 }
 

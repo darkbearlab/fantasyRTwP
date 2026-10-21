@@ -35,7 +35,8 @@ export function heroDef(h: HeroRecord, buff?: BattleBuff | null): UnitDef {
   let specDefense = 0;
   let specArmor = 0;
   let stunImmune = base.interruptStunImmune ?? false;
-  const skillMods: Record<string, { cooldownMult?: number; charges?: number }> = {};
+  // 職業本身的技能修飾（例：角鬥士的盾擊可存 2 次）先放進來，升級再疊上去
+  const skillMods: Record<string, { cooldownMult?: number; charges?: number }> = JSON.parse(JSON.stringify(base.skillMods ?? {}));
   for (const o of h.upgrades) {
     const m = modsOf(o);
     if (!m) continue;

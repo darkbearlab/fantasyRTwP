@@ -85,10 +85,11 @@ function evolved(): Record<string, UnitDef> {
   };
   const list: UnitDef[] = [
     { ...W, id: 'guardian', name: '守護者', letter: 'G', color: 0x2f5fb0, maxHp: 160, armor: 7 },
-    { ...W, id: 'gladiator', name: '角鬥士', letter: 'L', color: 0x5aa0e6, accuracy: 36, damage: [11, 17] },
+    { ...W, id: 'gladiator', name: '角鬥士', letter: 'L', color: 0x5aa0e6, accuracy: 36, damage: [11, 17], skillMods: { shieldBash: { charges: 2 } } },
     { ...R, id: 'cutthroat', name: '刺客', letter: 'K', color: 0x2c9c8a, maxHp: 85, accuracy: 44, defense: 36, damage: [8, 13], range: 0.3, windup: 0.4, recovery: 0.8, moveSpeed: 3.8, projectileSpeed: undefined, projectileKind: undefined, personality: undefined, backstabMult: 1.5, skills: ['backstab'] },
-    { ...R, id: 'sniper', name: '狙擊手', letter: 'S', color: 0x2e8b3a, accuracy: 45, damage: [9, 15] },
-    { ...R, id: 'arbalest', name: '連弩手', letter: 'A', color: 0x7cc576, damage: [6, 10] },
+    { ...R, id: 'sniper', name: '狙擊手', letter: 'S', color: 0x2e8b3a, accuracy: 45, damage: [9, 15], skills: ['focus', 'aimedShot'] },
+    // 連弩手：攻擊間距極短、單發較輕
+    { ...R, id: 'arbalest', name: '連弩手', letter: 'A', color: 0x7cc576, damage: [5, 8], attackSpeed: 2.2 },
     { ...M, id: 'elementalist', name: '元素法師', letter: 'E', color: 0xc062e0 },
     { ...M, id: 'deathMage', name: '死亡法師', letter: 'D', color: 0x6b2f8a, maxHp: 65, accuracy: 32, defense: 22, damage: [5, 9], projectileKind: 'curse', skills: ['curse', 'curseBurst'] },
     { ...M, id: 'battlemage', name: '戰法師', letter: 'B', color: 0x8e5fc0, maxHp: 110, armor: 4, defense: 32, damage: [9, 14], range: 0.3, windup: 0.5, recovery: 0.9, projectileSpeed: undefined, projectileKind: undefined, attackDamageType: undefined, personality: undefined, projectsZoc: true },

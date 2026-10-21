@@ -902,6 +902,12 @@ export class World implements ZocContext {
             t.blessAccuracy = Math.max(active ? t.blessAccuracy : 0, a.allies.accuracy);
             t.blessDefense = Math.max(active ? t.blessDefense : 0, a.allies.defense);
           }
+          // 分擔光環：範圍內的隊友（不含主人自己）受到的傷害，一部分改由主人承受
+          if (t.team === src.team && a.cover && t !== src) {
+            t.coverTime = Math.max(t.coverTime, linger);
+            t.coverBy = src.id;
+            t.coverPct = a.cover;
+          }
           // 吸血光環：範圍內的隊友（不含主人自己）打中敵人時傷害上升並吸血，主人扣血
           if (t.team === src.team && a.drain && t !== src) {
             t.drainAuraTime = Math.max(t.drainAuraTime, linger);
@@ -957,6 +963,7 @@ export class World implements ZocContext {
     if (u.curseTime > 0) u.curseTime = Math.max(0, u.curseTime - DT);
     if (u.chillTime > 0) u.chillTime = Math.max(0, u.chillTime - DT);
     if (u.drainAuraTime > 0) u.drainAuraTime = Math.max(0, u.drainAuraTime - DT);
+    if (u.coverTime > 0) u.coverTime = Math.max(0, u.coverTime - DT);
     if (u.sunderTime > 0) {
       u.sunderTime = Math.max(0, u.sunderTime - DT);
       if (u.sunderTime === 0) u.sunderStacks = 0;

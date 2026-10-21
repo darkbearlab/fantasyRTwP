@@ -110,6 +110,12 @@ export class Unit {
   drainAuraDamagePct = 0;
   drainAuraLifesteal = 0;
   drainAuraOwnerCost = 0;
+  /** 分擔（守護者的光環）：受到的傷害有 coverPct 比例改由 coverBy 承受 */
+  coverTime = 0;
+  coverBy = -1;
+  coverPct = 0;
+  /** 打斷敵人後下一次攻擊必定爆擊（角鬥士） */
+  critPending = false;
   /** 集中（引導，SPEC_CLASSES §2）：開始的時間（< 0 表示沒有在集中）、開始的位置、每秒加成與上限 */
   focusStart = -1;
   focusPos: Vec = { x: 0, y: 0 };
