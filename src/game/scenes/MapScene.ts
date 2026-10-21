@@ -13,6 +13,7 @@ import { advance, getRun, setRun } from '../runFlow';
 import { DomScene } from './DomScene';
 import { xpBar } from '../ui/xpBar';
 import { ROUTE_MAP } from '../../run/data/routeMap';
+import { showEvolutions } from '../ui/evolutionShow';
 
 const NODE_DESC: Record<string, string> = {
   battle: '一般戰鬥。勝利後獲得金幣與強化。',
@@ -181,5 +182,7 @@ export class MapScene extends DomScene {
     area.appendChild(tip);
     if (portrait) this.root.append(area, side);
     else this.root.append(side, area);
+    // 昇變演出（SPEC_CLASSES §5）
+    showEvolutions(this, this.root);
   }
 }

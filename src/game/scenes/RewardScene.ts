@@ -7,6 +7,7 @@ import { button, el } from '../ui/dom';
 import { upgradePicker } from '../ui/upgradePicker';
 import { advance, getRun } from '../runFlow';
 import { DomScene } from './DomScene';
+import { showEvolutions } from '../ui/evolutionShow';
 
 /** 戰後獎勵（SPEC_SLICE2 §9）：金幣＋三選一強化（精英四選一），可跳過拿金幣 */
 export class RewardScene extends DomScene {
@@ -48,5 +49,7 @@ export class RewardScene extends DomScene {
     row.appendChild(button(`跳過（+${ECONOMY.skipRewardGold} 金幣）`, '', () => advance(this, chooseReward(getRun(this), 'skip'))));
     box.appendChild(row);
     this.root.appendChild(box);
+    // 連續升級時，上一次選完就昇變的英雄在這裡演出（SPEC_CLASSES §5）
+    showEvolutions(this, this.root, () => this.rebuild());
   }
 }
