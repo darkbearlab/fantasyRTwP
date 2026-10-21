@@ -284,14 +284,12 @@ export class InputController {
 
   /**
    * 行動版的點擊（SPEC_SLICE5 §4）：所有攻擊都是攻擊移動。
-   * 點英雄＝選取／取消；點敵人＝攻擊移動到那個位置（不鎖定目標）；點地面＝攻擊移動。
+   * 點英雄＝只選這名英雄（Alan 2026-10-21：先全部取消再選；多選用英雄卡）；點敵人＝攻擊移動到那個位置（不鎖定目標）；點地面＝攻擊移動。
    */
   private tapOrder(m: Vec, unit: Unit | undefined): void {
     const s = this.session;
     if (unit && !unit.dead && unit.team === 'hero') {
-      const i = s.selection.indexOf(unit.id);
-      if (i >= 0) s.selection.splice(i, 1);
-      else s.selection.push(unit.id);
+      s.selection = [unit.id];
       return;
     }
     if (s.selectedUnits().length === 0) {
