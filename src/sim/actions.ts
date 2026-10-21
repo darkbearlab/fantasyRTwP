@@ -35,6 +35,7 @@ export interface ActionRequest {
 export function actionRate(world: World, u: Unit, kind?: 'attack' | 'skill'): number {
   let r = u.def.attackSpeed * world.config.actionSpeedMult * (u.curseTime > 0 ? 1 - u.curseSlow : 1) * (u.chillTime > 0 ? 1 - u.chillSlow : 1);
   if (kind === 'attack') r *= 1 + u.mods.attackSpeedPct;
+  if (kind === 'attack' && u.team === 'enemy') r *= world.config.enemyAttackSpeedMult;
   if (kind === 'attack' && u.team === 'hero') {
     r *= world.config.basicAttackSpeedMult;
     const style = hordeStyle(world, u);

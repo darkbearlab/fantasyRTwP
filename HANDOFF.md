@@ -107,7 +107,7 @@
 - **手感調整**（2026-10-21，Alan：「很真實世界，但作為遊戲太泥濘」；`DELIBERATE_PACE`，只用在沉穩節奏）：
   - 一般敵人生命 ×0.5（`enemyHpMult`；精英隊長、頭目不變；在 `createBattleFromRun` 套用）。
   - 英雄技能效果 ×1.5（`heroSkillPower` → `SimConfig.heroSkillPowerMult`）：技能傷害、範圍傷害、治療、附魔增益、技能留下的地面效果。冷卻、時間、範圍、暈眩長度不變。
-  - 英雄普攻速度 ×1.5（`heroAttackSpeed` → `basicAttackSpeedMult`）。
+  - 英雄普攻速度 ×1.5（`heroAttackSpeed` → `basicAttackSpeedMult`）；敵人普攻速度也 ×1.5（`enemyAttackSpeed` → `enemyAttackSpeedMult`）。
 - **地圖操作**（Alan 2026-10-21）：
   - 輕點地面＝純移動（途中不理敵人）。
   - 原地按住 `GAME_CONFIG.longPressSec`（1 秒）＝攻擊移動：有進度圈；拖曳過就不算，要另外放下手指按住才算。滑鼠右鍵也是攻擊移動。
