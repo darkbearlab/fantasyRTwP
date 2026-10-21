@@ -96,3 +96,21 @@ describe('牧師的戰地救護', () => {
     expect(hpA).toBeGreaterThan(hpB);
   });
 });
+
+describe('出口通往哪裡（Alan 2026-10-21）', () => {
+  it('每個出口有字母、顏色、方向、節點類型與層數', async () => {
+    const { exitInfos } = await import('../src/game/exitInfo');
+    const r = createRun(3, { style: 'deliberate' });
+    const w = battle(r);
+    const infos = exitInfos(w, r);
+    expect(infos.length).toBe(w.map.exits!.length);
+    infos.forEach((info, i) => {
+      expect(info.letter).toBe(String.fromCharCode(65 + i));
+      expect(info.nodeId).toBeDefined();
+      expect(info.title).toMatch(/^[A-Z] [↑↓←→]/);
+      expect(info.detail).toMatch(/層/);
+    });
+    // 沒有遠征資料（快速戰鬥）時也不會壞
+    expect(exitInfos(w, null).every((x) => x.detail === '')).toBe(true);
+  });
+});

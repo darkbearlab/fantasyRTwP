@@ -134,6 +134,12 @@
     - 戰鬥中：🎒 鈕直接使用（`useConsumable` 指令、共用冷卻 3 秒、要選目標的點英雄卡），戰後剩下的寫回遠征。
     - 路線圖：背包面板裡使用。
     - 取得：商人買、戰後掉落（`src/run/consumables.ts`）。
+- **出口通往哪裡**（Alan 2026-10-21）：
+  - 每個出口有字母和顏色（`src/game/exitInfo.ts`）。地上的方塊、出口文字、畫面外的指示三角形都用同一組字母和顏色。
+  - 出口文字有兩行：第一行是字母、方向、節點類型；第二行是層數、主力佔領、冠軍、去過。
+  - 上方 🗺 鈕開關迷你路線圖（`src/game/ui/routeMini.ts`），出口通往的節點會用同色框加字母標出來。
+  - 點地上的出口方塊時（`session.exitPing`），迷你路線圖會自動打開，對應的節點閃一下。
+- **昇變（轉職）系統**：規劃在 `SPEC_CLASSES.md`（Alan 已確認），分五個階段做。
 - **下完指令不取消選取**：`GAME_CONFIG.deselectAfterOrder`（預設 false）。
 - **角色縮放**：`VISUAL.unitScale`（0.8，只影響畫面；`unitHeight()` 已乘上這個值），碰撞半徑與腳下圈不變。
 - **交戰距離縮短**（2026-10-20）：沉穩節奏 `SimConfig.rangeMult` ＝ 0.6（`DELIBERATE_PACE.range`），套用在 1 m 以上的普攻射程與技能施放距離（換算一律經過 `scaleRange`）；敵人察覺距離、攻擊移動接戰距離也 ×0.6。近戰、範圍半徑、視野不變；舊模式 `rangeMult` ＝ 1。
