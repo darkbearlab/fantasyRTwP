@@ -17,6 +17,7 @@ import { FIELD, PREFABS } from './data/prefabs';
 import type { MapEdge } from './edgeLayout';
 import type { Facing, FieldLevel } from './fieldGen';
 import { generateField } from './fieldGen';
+import { generateBossArena } from './bossArena';
 import type { GeneratedLevel } from './levelGen';
 import { floodFrom, levelDifficulty } from './levelGen';
 import { NavGrid } from '../sim/nav/grid';
@@ -136,6 +137,26 @@ function fieldOnce(seed: number, opts: FbbLevelOptions): GeneratedLevel {
     captainEnemy: opts.captainEnemy,
     captainPool: DELIBERATE_LEVELS.captainPool,
   });
+  return fieldLevelToEncounter(seed, opts, lv, '荒野');
+}
+
+/**
+ * 頭目房（Alan 2026-10-21：專屬房間，往前走一點就是頭目）。最後的頭目戰沒有出口，打倒頭目就勝利。
+ */
+export function bossEncounter(seed: number, opts: FbbLevelOptions): GeneratedLevel {
+  const { level, summons } = generateBossArena(seed);
+  const enc = fieldLevelToEncounter(seed, { ...opts, tier: 'boss' }, level, '戰爭領主的營地');
+  const H = level.h;
+  enc.mapDef.summonPoints = summons.map(([x, y]) => {
+    const w = gridToWorld(x, y, H);
+    return { x: w.x + 0.5, y: w.y + 0.5 };
+  });
+  enc.mapDef.exitLock = 'boss';
+  return enc;
+}
+
+/** 野外格式的地圖（野外、頭目房）→ 遭遇 */
+function fieldLevelToEncounter(seed: number, opts: FbbLevelOptions, lv: FieldLevel, place: string): GeneratedLevel {
   const { w: W, h: H } = lv;
   const cells = new Map<string, '#' | 'o'>();
   for (const [x, y] of lv.walls) cells.set(`${x},${y}`, '#');
@@ -160,7 +181,7 @@ function fieldOnce(seed: number, opts: FbbLevelOptions): GeneratedLevel {
     H,
     { obstacles: obstaclesFrom(cells, W, H), heroSpawns, exits: lv.exits.length ? exitDefs(lv.exits, H) : undefined, landmarks: { cameraStart: heroSpawns[0] }, art },
     enemiesFrom(lv.enemies, H),
-    '荒野',
+    place,
   );
 }
 

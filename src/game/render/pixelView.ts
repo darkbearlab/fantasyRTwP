@@ -87,6 +87,11 @@ export class PixelView implements UnitVisual {
     this.overlay.setVisible(show).setAlpha(VISUAL.teamOutline.overlayAlpha * this.container.alpha);
   }
 
+  /** 身體的 sprite（頭目擊敗演出用） */
+  get bodySprite(): Phaser.GameObjects.Sprite {
+    return this.sprite;
+  }
+
   onHit(simTime: number): void {
     this.hitUntil = simTime + PIXEL.hitFlashSec;
   }
@@ -98,6 +103,8 @@ export class PixelView implements UnitVisual {
     const p = worldToScreen(this.wx, this.wy);
     this.x = p.x;
     this.y = p.y;
+    // 被丟出去時（擲人）：身體離地，腳下的圈留在地上
+    const lift = heightPx(u.airZ);
     this.container.setPosition(this.x, this.y);
     this.container.setDepth(u.dead ? DEAD_DEPTH : OBJECT_DEPTH_BASE + depthOf(this.wx, this.wy));
     if (u.dead && this.deathStart < 0) this.deathStart = simTime;
@@ -119,7 +126,7 @@ export class PixelView implements UnitVisual {
     const a = u.action;
     const act = a ? { phase: a.phase, progress: u.actionProgress } : undefined;
     let flash = simTime < this.hitUntil;
-    this.sprite.setPosition(0, 0).setAngle(0);
+    this.sprite.setPosition(0, -lift).setAngle(0);
     if (this.art.kind === 'mw') {
       const { action, frame } = mwAnim({ time: simTime, dead: u.dead, deathStart: this.deathStart, moving: u.movedThisTick, action: act });
       this.sprite.setFrame(mwFrame(this.block, action, frame));
@@ -140,7 +147,7 @@ export class PixelView implements UnitVisual {
         if (l.push > 0) {
           const len = Math.hypot(fsx, fsy) || 1;
           const d = PIXEL.lungePx * PIXEL.unitScale * l.push;
-          this.sprite.setPosition((fsx / len) * d, (fsy / len) * d);
+          this.sprite.setPosition((fsx / len) * d, (fsy / len) * d - lift);
         }
         flash ||= l.flash;
       }

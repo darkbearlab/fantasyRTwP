@@ -231,6 +231,18 @@ function healLowestAlly(world: World, u: Unit, amount: number, radius: number): 
   world.emit({ type: 'heal', sourceId: u.id, targetId: best.id, amount: healed });
 }
 
+/** 擲人落地：落點 radius 內、被丟的人那一隊的單位（含被丟的人）受到傷害 */
+export function landHurl(world: World, src: Unit, thrown: Unit, point: { x: number; y: number }, def: SkillDef): void {
+  const eff = def.effect;
+  if (eff.kind !== 'hurl') return;
+  world.emit({ type: 'aoe', sourceId: src.id, point: { ...point }, radius: eff.radius, skillId: def.id });
+  for (const o of [...world.units]) {
+    if (o.dead || o.team !== thrown.team || dist(o.pos, point) > eff.radius + o.radius * 0.5) continue;
+    const dmg = rollDamage(world.rng, eff.damage, damageMultOf(world, src));
+    applyDamage(world, o, mitigate(world, src, o, dmg, def.id, 'area'), 'area', src, { skillId: def.id });
+  }
+}
+
 /** 範圍濺射：不做命中判定、不傷友軍；push > 0 時把範圍內的雜兵推開 */
 function splashAround(world: World, src: Unit, point: { x: number; y: number }, exclude: Unit, radius: number, mult: number, push: number): void {
   world.emit({ type: 'aoe', sourceId: src.id, point: { ...point }, radius, skillId: 'splash' });
@@ -380,6 +392,29 @@ function applySkillEffect(world: World, u: Unit, def: SkillDef, t: Unit | undefi
       t.hp += amount;
       u.stats.healing += amount;
       world.emit({ type: 'heal', sourceId: u.id, targetId: t.id, amount });
+      return false;
+    }
+    case 'hurl': {
+      // 擲人：抓住身邊的英雄（準備期間跑遠了就抓空），丟向準備開始時決定的落點
+      if (!t || t.dead || !point || t.thrown) return false;
+      if (edgeDistance(u, t) > world.skillRange(u, def) + 0.8) {
+        world.emit({ type: 'notice', unitId: u.id, text: '抓空' });
+        return false;
+      }
+      interrupt(world, u, t);
+      t.action = null;
+      world.setOrder(t, null);
+      const grid = world.navGrid(t.radius);
+      let to = { ...point };
+      if (!grid.isWalkable(to)) {
+        const c = grid.cellOf(to);
+        const n = grid.nearestWalkableCell(c.cx, c.cy);
+        if (n) to = grid.cellCenter(n.cx, n.cy);
+      }
+      t.thrown = { from: { ...t.pos }, to, t: 0, dur: eff.flight, srcId: u.id, skillId: def.id };
+      // 飛行中與落地後都不能行動
+      t.stunTime = Math.max(t.stunTime, eff.flight + eff.stun);
+      world.emit({ type: 'status', unitId: t.id, text: '被抓起來！' });
       return false;
     }
     case 'guard':

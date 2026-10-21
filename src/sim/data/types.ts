@@ -173,6 +173,12 @@ export type SkillEffect =
   // ── 沉穩節奏的敵人技能（SPEC_SLICE5 §15.2；全部有預兆） ──
   /** 直線衝鋒：朝目標點方向衝 distance 公尺，途中撞到的英雄各受一次傷害（v0.4：不擊倒）；預兆線寬 width */
   | { kind: 'rush'; distance: number; speed: number; width: number; damage: [number, number] }
+  /**
+   * 抓起來丟（戰爭領主，Alan 2026-10-21）：抓住身邊的一名英雄（單位目標），丟向遠處另一名英雄所在的位置（地面點，預兆圈）；
+   * 飛行 flight 秒，落地時對落點 radius 內的英雄（含被丟的）造成傷害；被丟的人落地後再暈眩 stun 秒。
+   * minDist～maxDist：丟的距離（公尺，AI 挑目標用）。
+   */
+  | { kind: 'hurl'; radius: number; damage: [number, number]; flight: number; stun: number; minDist: number; maxDist: number }
   /** 跳躍突進：跳到目標點（預兆圈），落地時打 radius 內的敵人 */
   | { kind: 'leap'; speed: number; radius: number; mult: number }
   /** 鉤鎖：把目標拉到自己身前（需要視線；被擋住就落空） */

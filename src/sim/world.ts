@@ -1,7 +1,7 @@
 import type { Command, Order } from './commands';
 import { sameOrder } from './commands';
 import { DT, NAV_CELL, RANGE_TOLERANCE } from './constants';
-import { ENEMIES, enemyRank } from './data/enemies';
+import { BOSS_INTRO, ENEMIES, enemyRank } from './data/enemies';
 import { ACTIVE_CYCLES } from './data/cycles';
 import { ITEMS } from './data/items';
 import { offCycle } from './cycle';
@@ -41,7 +41,7 @@ import { DEFAULT_SIM_CONFIG, scaleRange } from './simConfig';
 import { Unit } from './unit';
 import type { ZocContext } from './zoc';
 import { disengagedFrom, edgeDistance, pinBlocker, zoneDistance } from './zoc';
-import { applyDamage, finishWindup, freeAttack, resolveProjectilePayload, skillCooldownOf, startAction, tickDash } from './actions';
+import { applyDamage, finishWindup, freeAttack, landHurl, resolveProjectilePayload, skillCooldownOf, startAction, tickDash } from './actions';
 import type { IdleBehavior } from './ai/idleBehavior';
 import { IDLE_BEHAVIORS, leashedApproachPoint, returnToGuard, withinLeash } from './ai/idleBehavior';
 import { enemyThink } from './ai/enemyAI';
@@ -261,9 +261,16 @@ export class World implements ZocContext {
     return !!this.vision && this.config.fogOfWar;
   }
 
+  /** 暫時的視野（頭目登場：頭目身邊的迷霧解開）：跟著單位走，到 until 為止 */
+  private reveals: { unitId: number; range: number; until: number }[] = [];
+  /** 已經登場過的頭目 */
+  private bossesSighted = new Set<number>();
+
   private updateVision(): void {
     if (!this.vision) return;
-    this.vision.update(this.units.filter((u) => u.team === 'hero' && !u.dead).map((u) => ({ pos: u.pos, range: HORDE_VISION.heroSightRange })));
+    this.reveals = this.reveals.filter((r) => r.until > this.time && !this.getUnit(r.unitId)?.dead);
+    const extra = this.reveals.map((r) => ({ pos: this.getUnit(r.unitId)!.pos, range: r.range }));
+    this.vision.update([...this.units.filter((u) => u.team === 'hero' && !u.dead).map((u) => ({ pos: u.pos, range: HORDE_VISION.heroSightRange })), ...extra]);
   }
 
   // ───────────── 公開查詢 ─────────────
@@ -540,6 +547,7 @@ export class World implements ZocContext {
     this.updateAuras();
     this.updateBrushSight();
     this.updateSighting();
+    this.updateThrown();
     for (const u of this.units) this.tickTimers(u);
     for (const u of this.units) this.updateUnit(u);
     this.updateProjectiles();
@@ -773,6 +781,22 @@ export class World implements ZocContext {
    * 敵方小隊第一次進入我方視野（迷霧、草叢隱匿都算；沒有迷霧時開場就全部看得到）：發 squadSighted。
    * 畫面層用來自動暫停等；每 3 個節拍檢查一次。
    */
+  /** 被丟出去的單位：沿直線飛到落點，落地時範圍傷害（擲人） */
+  private updateThrown(): void {
+    for (const u of this.units) {
+      const th = u.thrown;
+      if (!th || u.dead) continue;
+      th.t += DT;
+      const s = Math.min(1, th.t / th.dur);
+      u.pos = { x: th.from.x + (th.to.x - th.from.x) * s, y: th.from.y + (th.to.y - th.from.y) * s };
+      u.movedThisTick = true;
+      if (s < 1) continue;
+      u.thrown = null;
+      const src = this.getUnit(th.srcId);
+      if (src) landHurl(this, src, u, th.to, SKILLS[th.skillId]);
+    }
+  }
+
   private updateSighting(): void {
     if (this.tick % 3 !== 0) return;
     const fresh = new Map<string, number[]>();
@@ -787,6 +811,14 @@ export class World implements ZocContext {
     for (const [squad, unitIds] of fresh) {
       this.sightedSquads.add(squad);
       this.emit({ type: 'squadSighted', squad, unitIds });
+    }
+    // 頭目登場：第一次看到頭目本人時，頭目身邊暫時有視線（演出時看得清楚）
+    for (const e of this.units) {
+      if (e.team !== 'enemy' || e.dead || this.bossesSighted.has(e.id) || enemyRank(e.def) !== 'boss' || !this.visibleToTeam(e, 'hero')) continue;
+      this.bossesSighted.add(e.id);
+      this.reveals.push({ unitId: e.id, range: BOSS_INTRO.revealRange, until: this.time + BOSS_INTRO.revealSec });
+      this.updateVision();
+      this.emit({ type: 'bossSighted', unitId: e.id });
     }
   }
 
@@ -1148,7 +1180,7 @@ export class World implements ZocContext {
     }
     const melee = def.effect.kind === 'strike' && def.effect.melee;
     if (edgeDistance(u, t) <= this.skillRange(u, def) + RANGE_TOLERANCE && (!def.requiresLos || this.canSee(u, t))) {
-      startAction(this, u, { kind: 'skill', skillId: def.id, targetId: t.id });
+      startAction(this, u, { kind: 'skill', skillId: def.id, targetId: t.id, point: o.point ? { ...o.point } : undefined });
       return;
     }
     const r = this.approachUnit(u, t, melee);

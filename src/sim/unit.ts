@@ -63,6 +63,15 @@ export class Unit {
   action: Action | null = null;
 
   stunTime = 0;
+  /** 被丟出去的飛行中（戰爭領主的擲人）：起點、落點、已飛時間、總時間、丟的人、技能 */
+  thrown: { from: { x: number; y: number }; to: { x: number; y: number }; t: number; dur: number; srcId: number; skillId: string } | null = null;
+  /** 畫面用：被丟出去時離地的高度（公尺） */
+  get airZ(): number {
+    const th = this.thrown;
+    if (!th) return 0;
+    const s = Math.min(1, th.t / th.dur);
+    return 4 * 2 * s * (1 - s);
+  }
   rootTime = 0;
   blessTime = 0;
   blessAccuracy = 0;

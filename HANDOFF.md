@@ -118,6 +118,14 @@
 - **同隊間隔**（Alan 2026-10-21：不要擠成一坨；控制區不做）：沉穩節奏的同隊單位之間保持 0.5 m（`DELIBERATE_PACE.unitSpacing` → `SimConfig.unitSpacing`），軟性推開（`unitSpacingRate`），在 `nav/avoidance.ts` 的 `separateUnits`。
   - 單位可以用 `UnitDef.spacing` 要更大的間隔，`pushWeight` 越大越不容易被推開。
   - 敵對單位之間不套用（近戰要貼身）。
+- **頭目**（Alan 2026-10-21）：
+  - 頭目關卡走專屬的頭目房（`src/run/bossArena.ts`，`fbbLevel.bossEncounter`）：短走道進到石牆圍起來的房間，往前走一點就是頭目，房外是密林。
+  - 頭目第一次被看到：sim 發 `bossSighted`，頭目身邊暫時有視線（`BOSS_INTRO`）。畫面（`src/game/bossShow.ts`）的流程：
+    1. 暫停，鏡頭帶到頭目。
+    2. 上方的頭目血條槽先拉滿、再填血，頭目喊話（`BOSS_LINES`）。
+    3. 鏡頭回到原位，遊戲維持暫停。
+  - 頭目擊敗：鏡頭帶過去 → 定格 → 紅黑雙色 → 左右抖動往下沉，演完才跳勝利畫面。
+  - 戰爭領主新招「擲人」（`hurl`）：抓身邊的英雄，丟向遠處的英雄（後排優先），落點有預兆圈，落地範圍傷害、被丟的人暈眩。
 - **下完指令不取消選取**：`GAME_CONFIG.deselectAfterOrder`（預設 false）。
 - **角色縮放**：`VISUAL.unitScale`（0.8，只影響畫面；`unitHeight()` 已乘上這個值），碰撞半徑與腳下圈不變。
 - **交戰距離縮短**（2026-10-20）：沉穩節奏 `SimConfig.rangeMult` ＝ 0.6（`DELIBERATE_PACE.range`），套用在 1 m 以上的普攻射程與技能施放距離（換算一律經過 `scaleRange`）；敵人察覺距離、攻擊移動接戰距離也 ×0.6。近戰、範圍半徑、視野不變；舊模式 `rangeMult` ＝ 1。

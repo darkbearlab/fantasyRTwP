@@ -87,6 +87,7 @@ export const SKILL_ATTACK: Record<string, AttackInfo> = {
   bomb: A('phys', 'blunt'),
   selfDestruct: A('phys', 'blunt'),
   sweep: A('phys', 'cleave'),
+  hurl: A('phys', 'blunt'),
   rush: A('phys', 'pierce'),
   ram: A('phys', 'blunt'),
   leap: A('phys', 'cut'),

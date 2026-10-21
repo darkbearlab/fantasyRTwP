@@ -2214,3 +2214,41 @@ body {
   color: #ff7a6a;
   font-weight: bold;
 }
+
+/* 頭目血條（Alan 2026-10-21：專屬的血條位置；登場時槽先從左往右拉滿，再填血） */
+.boss-bar {
+  position: fixed;
+  top: 52px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(560px, 78vw);
+  z-index: 30;
+  pointer-events: none;
+  text-align: center;
+}
+.boss-name {
+  color: #ffd9b0;
+  font-weight: bold;
+  font-size: 15px;
+  letter-spacing: 3px;
+  text-shadow: 0 0 6px #000, 0 0 10px #a00;
+  margin-bottom: 3px;
+}
+.boss-slot {
+  width: 0;
+  height: 14px;
+  border: 2px solid #c9a24a;
+  border-radius: 3px;
+  background: rgba(20, 6, 8, 0.85);
+  box-shadow: 0 0 10px rgba(200, 30, 30, 0.5);
+  overflow: hidden;
+}
+.boss-hp {
+  width: 0;
+  height: 100%;
+  background: linear-gradient(#e0473a, #8e1414);
+}
+.boss-bar.defeated {
+  opacity: 0;
+  transition: opacity 1.2s ease-in 0.6s;
+}

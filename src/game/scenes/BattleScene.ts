@@ -11,6 +11,8 @@ import { T_BRUSH, T_HEDGE, T_HIGH, T_SHALLOW } from '../../sim/terrain';
 import { bakeGraphics } from '../render/bake';
 import { DebugOverlay } from '../render/debugOverlay';
 import { Fx } from '../render/fx';
+import { BossShow } from '../bossShow';
+import { enemyRank } from '../../sim/data/enemies';
 import { AOE_STYLE, COLORS, FONT, PROJECTILE_STYLE } from '../render/palette';
 import type { SkillDef } from '../../sim/data/types';
 import { OBJECT_DEPTH_BASE, UnitView } from '../render/unitView';
@@ -116,6 +118,10 @@ export class BattleScene extends Phaser.Scene {
   private builtH3d = false;
   /** 目前畫面是否用 props3d 畫地形物件（heroes3d 模式且素材已載入） */
   private builtProps = false;
+  /** 頭目演出（登場、擊敗） */
+  private bossShow!: BossShow;
+  /** 擊敗演出中藏起來的單位 */
+  private vanished = new Set<number>();
   /** finalbossblues 地形的地圖畫面（程序生成的野外、城內；素材不在時是 null，改用程式畫法） */
   private fbbView: FbbMapView | null = null;
   /** 草叢上的灌木（燒掉的格子要隱藏） */
@@ -199,6 +205,16 @@ export class BattleScene extends Phaser.Scene {
       .setDepth(1200)
       .setVisible(false);
     this.fx = new Fx(this);
+    this.vanished.clear();
+    this.bossShow = new BossShow({
+      scene: this,
+      session: () => this.session,
+      bossSprite: (id) => {
+        const v = this.views.get(id);
+        return v instanceof PixelView ? v.bodySprite : undefined;
+      },
+      hideUnit: (id) => this.vanished.add(id),
+    });
     this.edgeG = this.add.graphics().setScrollFactor(0).setDepth(2900);
     this.exitG = this.add.graphics().setDepth(905);
     this.exitTexts = (this.session.world.map.exits ?? []).map((e) => {
@@ -712,8 +728,14 @@ ${node}`, { fontFamily: FONT, fontSize: '14px', color: '#ffe9a8', align: 'center
           s.addLog(`${L(ev.sourceId)} 打斷了 ${L(t.id)}${def ? `的「${def.name}」` : ''}！`, 'interrupt');
           break;
         }
+        case 'bossSighted': {
+          const u = w.getUnit(ev.unitId);
+          if (u) this.bossShow.intro(u);
+          break;
+        }
         case 'death': {
           const u = w.getUnit(ev.unitId)!;
+          if (enemyRank(u.def) === 'boss') this.bossShow.defeat(u);
           this.fx.text(u.pos, '陣亡', '#c0c4cc', 16, 20, 1400, this.headZ(u));
           s.addLog(`${L(u.id)} 被 ${ev.killerId !== undefined ? L(ev.killerId) : '?'} 擊倒`, 'death');
           s.selection = s.selection.filter((id) => id !== u.id);
@@ -816,7 +838,8 @@ ${node}`, { fontFamily: FONT, fontSize: '14px', color: '#ffe9a8', align: 'center
           s.targeting = null;
           if (!this.resultShown) {
             this.resultShown = true;
-            this.time.delayedCall(1100, () => this.scene.launch('Result'));
+            // 頭目擊敗演出要先演完才跳勝利畫面
+            this.time.delayedCall(Math.max(1100, this.bossShow.doneAt - this.time.now + 300), () => this.scene.launch('Result'));
           }
           break;
       }
@@ -835,6 +858,7 @@ ${node}`, { fontFamily: FONT, fontSize: '14px', color: '#ffe9a8', align: 'center
     const simTime = w.time + this.alpha * DT;
     for (const v of this.views.values()) v.update(this.alpha, selected.has(v.unit.id), s.hoverUnitId === v.unit.id, simTime);
     this.fbbView?.update(this.time.now / 1000);
+    this.bossShow.update();
     this.drawDynamicTerrain();
     this.drawInteractables();
     this.drawFog();
@@ -994,7 +1018,8 @@ ${node}`, { fontFamily: FONT, fontSize: '14px', color: '#ffe9a8', align: 'center
     for (const v of this.views.values()) {
       const u = v.unit;
       if (u.dead) {
-        v.setConcealment('normal');
+        // 頭目擊敗演出：原本的倒地外觀藏起來，改由紅黑消失的演出接手
+        v.setConcealment(this.vanished.has(u.id) ? 'hidden' : 'normal');
         continue;
       }
       if (u.team === 'enemy') {
@@ -1094,7 +1119,16 @@ ${node}`, { fontFamily: FONT, fontSize: '14px', color: '#ffe9a8', align: 'center
         groundPolygon(g, band(u.actionProgress), { fill: COLORS.telegraph, fillAlpha: 0.25 });
         continue;
       }
-      const r = def.effect.kind === 'aoe' || def.effect.kind === 'leap' ? def.effect.radius : 0;
+      const r = def.effect.kind === 'aoe' || def.effect.kind === 'leap' || def.effect.kind === 'hurl' ? def.effect.radius : 0;
+      // 擲人：被抓的英雄身上畫一圈，連一條線到落點
+      if (def.effect.kind === 'hurl' && a.targetId !== undefined) {
+        const held = w.getUnit(a.targetId);
+        if (held && !held.dead) {
+          const hp = this.wpos(held);
+          groundCircle(g, hp.x, hp.y, held.radius + 0.25, { stroke: COLORS.telegraph, strokeAlpha: 0.6 + 0.4 * pulse, width: 3 });
+          groundLine(g, hp, a.point, 2, COLORS.telegraph, 0.5);
+        }
+      }
       if (r <= 0) continue;
       const enemy = u.team === 'enemy';
       const c = enemy ? COLORS.telegraph : COLORS.ghostSkill;

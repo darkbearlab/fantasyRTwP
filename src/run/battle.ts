@@ -20,7 +20,7 @@ import { generateLevel } from './levelGen';
 import { generateDeliberateLevel } from './deliberateLevelGen';
 import { generateTemplateLevel } from './templateLevelGen';
 import { FBB_LEVELS, fieldLookFor } from './data/fbbLevels';
-import { fieldEncounter, townEncounter } from './fbbLevel';
+import { bossEncounter, fieldEncounter, townEncounter } from './fbbLevel';
 import { tilePrefabs } from './tilePrefabRegistry';
 import { SKIRMISH } from '../sim/data/skirmish';
 import type { Edge, ExitRequest } from './templateLevelGen';
@@ -120,7 +120,12 @@ export function encounterFor(run: RunState, nodeId: number, encounterId: string)
     if (fbb) {
       // finalbossblues 地形：前幾層是城內（首都突圍），後面是野外
       const o = { tier: tier as DeliberateTier, layer, ...exitsFor(run, nodeId), budgetMult: mods.force ? ROUTE_MAP.force.budgetMult : undefined, captainEnemy: mods.champion ? ROUTE_MAP.champion.enemy : undefined };
-      enc = node.layer <= FBB_LEVELS.townUntilLayer ? townEncounter(seed, { ...o, prefabs: tilePrefabs() }) : fieldEncounter(seed, { ...o, look: fieldLookFor(node.layer) });
+      enc =
+        tier === 'boss'
+          ? bossEncounter(seed, { ...o, look: fieldLookFor(node.layer) })
+          : node.layer <= FBB_LEVELS.townUntilLayer
+            ? townEncounter(seed, { ...o, prefabs: tilePrefabs() })
+            : fieldEncounter(seed, { ...o, look: fieldLookFor(node.layer) });
     } else if (dlevel && LEVELS.deliberateGenerator !== 'classic') {
       // 出口制（SPEC_SLICE6 §2）：一個下一層節點一個出口，依路線圖由左到右排
       enc = generateTemplateLevel(seed, { tier, layer, ...exitsFor(run, nodeId), budgetMult: mods.force ? ROUTE_MAP.force.budgetMult : undefined, captainEnemy: mods.champion ? ROUTE_MAP.champion.enemy : undefined });
