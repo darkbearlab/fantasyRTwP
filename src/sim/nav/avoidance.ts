@@ -10,16 +10,28 @@ const PAIR_MARGIN = 0.5;
  * - 同隊：移動中的單位擠到閒置單位時，閒置者讓位。
  * - 敵對：移動中的單位撞到靜止的敵人時，由移動者退回（不能推開敵人）。
  */
-export function separateUnits(units: readonly Unit[], gridFor: (u: Unit) => NavGrid): void {
+/** 同隊間隔（沉穩節奏）：gap＝預設間隔（UnitDef.spacing 可覆寫）、rate＝每節拍推開不足量的幾成 */
+export interface SpacingOptions {
+  gap: number;
+  rate: number;
+}
+
+export function separateUnits(units: readonly Unit[], gridFor: (u: Unit) => NavGrid, spacing?: SpacingOptions): void {
   // 空間分格篩選候選（SPEC_SLICE4 §8）；配對順序與兩兩檢查相同（依陣列順序 i < j），結果維持決定論
   let maxR = 0;
-  for (const u of units) if (!u.dead && u.radius > maxR) maxR = u.radius;
+  let maxGap = 0;
+  const gapOf = (u: Unit) => u.def.spacing ?? spacing?.gap ?? 0;
+  for (const u of units) {
+    if (u.dead) continue;
+    if (u.radius > maxR) maxR = u.radius;
+    if (spacing) maxGap = Math.max(maxGap, gapOf(u));
+  }
   const hash = new SpatialHash(2);
   hash.rebuild(units);
   for (let i = 0; i < units.length; i++) {
     const a = units[i];
     if (a.dead) continue;
-    for (const j of hash.queryIndices(a.pos.x, a.pos.y, a.radius + maxR + PAIR_MARGIN)) {
+    for (const j of hash.queryIndices(a.pos.x, a.pos.y, a.radius + maxR + PAIR_MARGIN + maxGap)) {
       if (j <= i) continue;
       const b = units[j];
       if (b.dead) continue;
@@ -27,7 +39,22 @@ export function separateUnits(units: readonly Unit[], gridFor: (u: Unit) => NavG
       let dy = b.pos.y - a.pos.y;
       let d = Math.hypot(dx, dy);
       const minD = a.radius + b.radius;
-      if (d >= minD) continue;
+      // 同隊間隔（軟性）：身體沒有重疊、但間隔不足時，每個節拍推開不足量的一部分；推動權重大的比較不容易被推開
+      if (d >= minD) {
+        if (!spacing || a.team !== b.team || d < 1e-6) continue;
+        const want = minD + Math.max(gapOf(a), gapOf(b));
+        if (d >= want) continue;
+        const push = (want - d) * spacing.rate;
+        const ma = a.def.immovable ? Infinity : (a.def.pushWeight ?? 1);
+        const mb = b.def.immovable ? Infinity : (b.def.pushWeight ?? 1);
+        const sa = Number.isFinite(ma) ? (Number.isFinite(mb) ? mb / (ma + mb) : 1) : 0;
+        const sb = Number.isFinite(mb) ? (Number.isFinite(ma) ? ma / (ma + mb) : 1) : 0;
+        const ux = dx / d;
+        const uy = dy / d;
+        pushUnit(a, -ux * push * sa, -uy * push * sa, gridFor(a));
+        pushUnit(b, ux * push * sb, uy * push * sb, gridFor(b));
+        continue;
+      }
       if (d < 1e-6) {
         // 完全重疊：以 id 決定方向，保持決定論
         const ang = ((a.id * 7 + b.id * 13) % 16) * (Math.PI / 8);

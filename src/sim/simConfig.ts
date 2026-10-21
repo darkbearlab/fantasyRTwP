@@ -49,6 +49,13 @@ export interface SimConfig {
   heroSkillPowerMult: number;
   /** 敵人普攻準備＋恢復的速度倍率（沉穩節奏 1.5，對標英雄普攻速度） */
   enemyAttackSpeedMult: number;
+  /**
+   * 同隊單位之間保持的間隔（公尺，身體邊緣之間；Alan 2026-10-21：不要擠成一坨）。0＝只避免重疊（舊模式）。
+   * 單位可以用 UnitDef.spacing 覆寫，兩人取較大的；敵對單位之間不套用（近戰要貼身）。
+   */
+  unitSpacing: number;
+  /** 間隔不足時每個節拍推開不足量的幾成（軟性推開，不像重疊那樣一次推完） */
+  unitSpacingRate: number;
   /** 技能冷卻倍率（怪群模式 0.6） */
   skillCooldownMult: number;
   /**
@@ -87,6 +94,8 @@ export const DEFAULT_SIM_CONFIG: SimConfig = {
   basicAttackSpeedMult: 1,
   heroSkillPowerMult: 1,
   enemyAttackSpeedMult: 1,
+  unitSpacing: 0,
+  unitSpacingRate: 0.15,
   skillCooldownMult: 1,
   rangeMult: 1,
   attackMoveRange: 6,

@@ -94,6 +94,10 @@ export interface UnitDef {
   rank?: 'elite' | 'boss';
   /** 不會被推開（巢穴） */
   immovable?: boolean;
+  /** 和同隊保持的間隔（公尺，身體邊緣之間）；省略時用 SimConfig.unitSpacing。大型單位可以要大一點 */
+  spacing?: number;
+  /** 保持間隔時的推動權重（越大越不容易被同伴推開，預設 1） */
+  pushWeight?: number;
   /** 盾（盾兵，SPEC_SLICE5 v0.4）：生命高於 hpFrac 之前防禦、護甲較高；跌破後盾破，不再恢復 */
   shield?: { hpFrac: number; defense: number; armor: number };
   /** 選目標的權重（沉穩節奏）；省略用 ENEMY_TARGETING.default */

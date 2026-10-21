@@ -545,7 +545,7 @@ export class World implements ZocContext {
     this.updateProjectiles();
     this.updateFire();
     this.updateZones();
-    separateUnits(this.units, (u) => this.navFor(u));
+    separateUnits(this.units, (u) => this.navFor(u), this.config.unitSpacing > 0 ? { gap: this.config.unitSpacing, rate: this.config.unitSpacingRate } : undefined);
     this.checkEnd();
     this.tick++;
     return this.events;

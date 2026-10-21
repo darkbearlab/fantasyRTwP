@@ -31,7 +31,8 @@ describe('被動框架（SPEC_SLICE5 §14）', () => {
   });
 
   it('戰士橫掃：普攻同時打到前方扇形內的兩名敵人', () => {
-    const w = makeWorld([{ defId: 'warrior', pos: { x: 5, y: 6 } }, { defId: 'brute', pos: { x: 6.1, y: 5.6 } }, { defId: 'brute', pos: { x: 6.1, y: 6.4 } }], { ...D, enemyAggroRange: 0 }, undefined, 2);
+    // 驗的是扇形本身：兩名敵人貼在一起，關掉同隊間隔（不然會被推開到扇形外）
+    const w = makeWorld([{ defId: 'warrior', pos: { x: 5, y: 6 } }, { defId: 'brute', pos: { x: 6.1, y: 5.6 } }, { defId: 'brute', pos: { x: 6.1, y: 6.4 } }], { ...D, enemyAggroRange: 0, unitSpacing: 0 }, undefined, 2);
     w.enqueue({ type: 'attackMove', unitIds: [1], point: { x: 6.1, y: 5.6 } });
     const evs = run(w, 10 * 30);
     const hitTargets = new Set(evs.filter((e) => e.type === 'hit' && e.sourceId === 1).map((e) => (e as { targetId: number }).targetId));
