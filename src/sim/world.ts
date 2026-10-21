@@ -28,6 +28,7 @@ import type { SimEvent } from './events';
 import { canSeeCircle, canSeePoint, clearLine, segmentClear } from './los';
 import type { Vec } from './math';
 import { dist, norm, sub } from './math';
+import { tickFocus } from './focus';
 import { findPath } from './nav/astar';
 import { separateUnits } from './nav/avoidance';
 import { NavGrid } from './nav/grid';
@@ -897,6 +898,14 @@ export class World implements ZocContext {
             t.blessTime = Math.max(t.blessTime, linger);
             t.blessAccuracy = Math.max(active ? t.blessAccuracy : 0, a.allies.accuracy);
             t.blessDefense = Math.max(active ? t.blessDefense : 0, a.allies.defense);
+          }
+          // 吸血光環：範圍內的隊友（不含主人自己）打中敵人時傷害上升並吸血，主人扣血
+          if (t.team === src.team && a.drain && t !== src) {
+            t.drainAuraTime = Math.max(t.drainAuraTime, linger);
+            t.drainAuraOwner = src.id;
+            t.drainAuraDamagePct = a.drain.damagePct;
+            t.drainAuraLifesteal = a.drain.lifesteal;
+            t.drainAuraOwnerCost = a.drain.ownerCost;
           } else if (t.team !== src.team && a.enemies) {
             const active = t.chillTime > 0;
             t.chillTime = Math.max(t.chillTime, linger);
@@ -943,6 +952,12 @@ export class World implements ZocContext {
     if (u.revealTime > 0) u.revealTime = Math.max(0, u.revealTime - DT);
     if (u.curseTime > 0) u.curseTime = Math.max(0, u.curseTime - DT);
     if (u.chillTime > 0) u.chillTime = Math.max(0, u.chillTime - DT);
+    if (u.drainAuraTime > 0) u.drainAuraTime = Math.max(0, u.drainAuraTime - DT);
+    if (u.sunderTime > 0) {
+      u.sunderTime = Math.max(0, u.sunderTime - DT);
+      if (u.sunderTime === 0) u.sunderStacks = 0;
+    }
+    tickFocus(this, u);
     if (u.stealthTime > 0) u.stealthTime = Math.max(0, u.stealthTime - DT);
     if (u.burnTime > 0) {
       u.burnTime = Math.max(0, u.burnTime - DT);
@@ -1253,6 +1268,8 @@ export class World implements ZocContext {
         return t.team === u.team && t !== u;
       case 'allyOrSelf':
         return t.team === u.team;
+      case 'unit':
+        return t !== u;
       default:
         return false;
     }

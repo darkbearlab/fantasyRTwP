@@ -311,7 +311,7 @@ export class MobileHeroBar {
     if (this.pauseLabel.textContent !== label) this.pauseLabel.textContent = label;
     const sel = new Set(s.selection);
     const td = targetingDef(s);
-    const allyAim = !!td && (td.def.target === 'ally' || td.def.target === 'allyOrSelf');
+    const allyAim = !!td && (td.def.target === 'ally' || td.def.target === 'allyOrSelf' || td.def.target === 'unit');
     for (const c of this.cards) {
       const u = c.unit;
       c.root.classList.toggle('selected', sel.has(u.id));

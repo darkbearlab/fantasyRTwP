@@ -50,6 +50,17 @@ export const SKILLS: Record<string, SkillDef> = {
     target: 'enemy', range: 10, windup: 0.2, recovery: 0.6, cooldown: 5, requiresLos: true,
     effect: { kind: 'strike', melee: false, mult: 1, flatDamage: [8, 12], damageType: 'spell', interrupts: true, projectileSpeed: 26, projectileKind: 'missile' },
   },
+  // ── 昇變用的通用機制（SPEC_CLASSES §2；還沒有職業使用，數值佔位） ──
+  focus: {
+    id: 'focus', name: '集中', description: '進入集中：每秒讓下一發威力 +25%（最多 4 秒）；移動或受傷就中斷',
+    target: 'self', range: 0, windup: 0.2, recovery: 0.2, cooldown: 2, requiresLos: false,
+    effect: { kind: 'focus', perSec: 0.25, maxSec: 4 },
+  },
+  drainLife: {
+    id: 'drainLife', name: '吸血', description: '從敵人或友軍身上吸取生命補給自己；吸友軍吸得比較多，但都不是 1:1',
+    target: 'unit', range: 8, windup: 0.6, recovery: 0.8, cooldown: 10, requiresLos: true,
+    effect: { kind: 'drain', enemy: { damage: [12, 16], convert: 0.5 }, ally: { damage: [16, 20], convert: 0.6 } },
+  },
   // ── 牧師 ──
   heal: {
     id: 'heal', name: '治療', description: '恢復 35 生命',

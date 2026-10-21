@@ -54,6 +54,8 @@ export function validSkillTarget(def: SkillDef, caster: Unit, unit: Unit | undef
       return unit.team === caster.team && unit !== caster;
     case 'allyOrSelf':
       return unit.team === caster.team;
+    case 'unit':
+      return unit !== caster;
     default:
       return false;
   }
@@ -63,6 +65,7 @@ const TARGET_HINT: Record<string, string> = {
   enemy: '請點選敵人',
   ally: '請點選其他友軍',
   allyOrSelf: '請點選友軍',
+  unit: '請點選敵人或友軍',
 };
 
 /** 離點擊位置最近、可以當作目標的單位（敵人要看得到） */

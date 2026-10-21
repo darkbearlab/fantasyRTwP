@@ -140,6 +140,14 @@
   - 上方 🗺 鈕開關迷你路線圖（`src/game/ui/routeMini.ts`），出口通往的節點會用同色框加字母標出來。
   - 點地上的出口方塊時（`session.exitPing`），迷你路線圖會自動打開，對應的節點閃一下。
 - **昇變（轉職）系統**：規劃在 `SPEC_CLASSES.md`（Alan 已確認），分五個階段做。
+  - 第一階段（引擎機制，只用在沉穩節奏）已完成：
+    - 爆擊分級（`CRIT_TIERS`，damageTypes.ts）：≥100 ×1.5、≥120 ×2＋打斷、≥150 ×2.5＋暈眩 0.5 秒。
+    - 背刺改成加命中 `BACKSTAB_ACCURACY`。
+    - 相剋取最有利的屬性（`matchup`）。
+    - 命中附帶破甲（被動 onHit `sunder`）。
+    - 吸血：被動 `lifesteal`、光環 `aura.drain`、技能效果 `drain`（目標類型 `unit`）。
+    - 集中狀態（`src/sim/focus.ts`、技能效果 `focus`）。
+    - 佔位技能 `focus`、`drainLife` 還沒有職業在用。測試在 `tests/classEngine.test.ts`。
 - **下完指令不取消選取**：`GAME_CONFIG.deselectAfterOrder`（預設 false）。
 - **角色縮放**：`VISUAL.unitScale`（0.8，只影響畫面；`unitHeight()` 已乘上這個值），碰撞半徑與腳下圈不變。
 - **交戰距離縮短**（2026-10-20）：沉穩節奏 `SimConfig.rangeMult` ＝ 0.6（`DELIBERATE_PACE.range`），套用在 1 m 以上的普攻射程與技能施放距離（換算一律經過 `scaleRange`）；敵人察覺距離、攻擊移動接戰距離也 ×0.6。近戰、範圍半徑、視野不變；舊模式 `rangeMult` ＝ 1。
