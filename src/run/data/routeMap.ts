@@ -50,8 +50,16 @@ export const ROUTE_MAP = {
     restSmokeSteps: 1,
     /** 被打倒後幾回合重新出現（從主力佔領的節點） */
     respawnTurns: 8,
-    /** 冠軍本人（精英隊長的強化版）與層數加成 */
-    enemy: 'charger',
+    /** 冠軍本人（Alan 2026-10-22：以獵人身分加入當下的地圖，不再是專屬的冠軍戰）與層數加成 */
+    enemy: 'champion',
     layerBonus: 3,
+    /** 開戰後幾秒從他來的方向進場（營火的煙引來、或在沒有戰鬥的節點被追上時：arriveNow 秒） */
+    arriveDelay: 15,
+    arriveNow: 2,
+    /** Alan：每一章多學一招（第 i 章用前 moves[i] 個招式；第 5 章＝魔王第一階段的全套） */
+    moveOrder: ['sentinelSweep', 'sentinelRush', 'sentinelStomp', 'sentinelSweepRush', 'sentinelBreath'],
+    moves: [2, 3, 4, 5, 5],
+    /** Alan：台詞漸進——前兩章不說話，拿到水晶後才開口（參考《斑鳩》，少而冷） */
+    lines: [undefined, undefined, '……那顆光。', '還在逃嗎。', '這一次，也一樣。'] as (string | undefined)[],
   },
 };

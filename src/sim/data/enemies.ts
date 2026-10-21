@@ -227,6 +227,18 @@ export const ENEMIES: Record<string, UnitDef> = {
     projectsZoc: true,
     skills: ['clubSweep', 'orcWarcry', 'chiefLeap', 'boulder'],
   },
+  /**
+   * 魔王的冠軍（Alan 2026-10-22，參考《艾爾登法環》的大樹守衛）：沒有普攻，所有攻擊都有預兆、間隔短；
+   * 不會被擊退，只有盾擊、瞄準射擊打得斷；衝鋒撞牆會暈眩。每一章多學一招（ROUTE_MAP.champion.moves）。
+   * 外觀是騎兵（之後魔王第一階段的受肉也用這個樣子）。
+   */
+  champion: {
+    id: 'champion', name: '魔王的冠軍', letter: 'Ψ', color: 0x3a1a4a, team: 'enemy', ai: 'champion', rank: 'boss',
+    maxHp: 420, armor: 5, accuracy: 38, defense: 34, damage: [0, 0],
+    range: 0.4, windup: 1, recovery: 1, attackSpeed: 1, moveSpeed: 3.3, radius: 0.65,
+    projectsZoc: false, knockbackImmune: true, interruptibleBy: ['shieldBash', 'aimedShot', 'sureShot'], pushWeight: 4,
+    skills: ['sentinelSweep', 'sentinelRush', 'sentinelStomp', 'sentinelSweepRush', 'sentinelBreath'],
+  },
   /** 頭目：戰爭領主（SPEC_SLICE2 §7.3） */
   warlord: {
     id: 'warlord', name: '戰爭領主', letter: 'L', color: 0x7a0d0d, team: 'enemy', ai: 'boss',

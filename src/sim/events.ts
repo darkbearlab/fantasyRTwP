@@ -12,6 +12,9 @@ export type SimEvent =
   | { type: 'revive'; unitId: number }
   /** 頭目第一次進入我方視線（頭目登場演出；頭目身邊的迷霧暫時解開） */
   | { type: 'bossSighted'; unitId: number }
+  /** 魔王的冠軍（Alan 2026-10-22）：逼近中（seconds 秒後從 point 進場）、已經進場 */
+  | { type: 'championIncoming'; seconds: number; point: Vec }
+  | { type: 'championArrived'; unitId: number }
   | { type: 'hit'; sourceId: number; targetId: number; damage: number; crit: boolean; damageType: DamageType; skillId?: string; freeAttack?: boolean }
   /** blocked：投射物在飛行途中撞到障礙物（point 為撞擊位置） */
   | { type: 'miss'; sourceId: number; targetId: number; skillId?: string; freeAttack?: boolean; blocked?: boolean; point?: Vec }

@@ -34,6 +34,7 @@ const UNIT_HEIGHT: Record<string, number> = {
   bomber: 1.7,
   lurker: 1.6,
   warlord: 3.0,
+  champion: 2.4,
   goblin: 1.3,
   goblinSlinger: 1.3,
   orcWarrior: 1.9,

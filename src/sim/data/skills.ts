@@ -224,6 +224,32 @@ export const SKILLS: Record<string, SkillDef> = {
     target: 'enemy', range: 8, windup: 0.55, recovery: 1.0, cooldown: 6, requiresLos: true, telegraph: true,
     effect: { kind: 'pull', mult: 0.6 },
   },
+  // ── 魔王的冠軍（Alan 2026-10-22；數值佔位） ──
+  sentinelSweep: {
+    id: 'sentinelSweep', name: '扇形揮擊', description: '前方扇形範圍攻擊',
+    target: 'ground', range: 2.5, windup: 0.8, recovery: 0.6, cooldown: 2, requiresLos: false, telegraph: true,
+    effect: { kind: 'cone', radius: 3.4, angle: 120, damage: [14, 20], friendlyFire: false },
+  },
+  sentinelRush: {
+    id: 'sentinelRush', name: '直線衝鋒', description: '直線衝鋒 9 m，撞到的英雄受傷；撞牆會自己暈眩',
+    target: 'ground', range: 9, windup: 0.9, recovery: 0.8, cooldown: 4, requiresLos: true, telegraph: true,
+    effect: { kind: 'rush', distance: 9, speed: 12, width: 1.4, damage: [14, 20], wallStun: 2 },
+  },
+  sentinelStomp: {
+    id: 'sentinelStomp', name: '馬匹震地', description: '以自己為中心的範圍攻擊並擊退',
+    target: 'self', range: 0, windup: 0.8, recovery: 0.6, cooldown: 4, requiresLos: false, telegraph: true,
+    effect: { kind: 'quake', radius: 2.6, damage: [10, 15], knockback: 2.2 },
+  },
+  sentinelSweepRush: {
+    id: 'sentinelSweepRush', name: '橫掃衝鋒', description: '直線衝鋒，武器橫在右側一起帶過去：衝鋒路徑和旁邊的一條帶狀區域都有傷害；撞牆會自己暈眩',
+    target: 'ground', range: 9, windup: 1.1, recovery: 0.9, cooldown: 6, requiresLos: true, telegraph: true,
+    effect: { kind: 'rush', distance: 9, speed: 12, width: 1.4, damage: [12, 18], wallStun: 2, side: { offset: 2, width: 1.6, damage: [14, 20] } },
+  },
+  sentinelBreath: {
+    id: 'sentinelBreath', name: '吐息', description: '細長扇形的火焰與黑暗吐息（火＋暗屬性）',
+    target: 'ground', range: 6, windup: 1.4, recovery: 1.0, cooldown: 6, requiresLos: false, telegraph: true,
+    effect: { kind: 'cone', radius: 7, angle: 34, damage: [16, 24], friendlyFire: false },
+  },
   // ── 第 2 章：獸人部落（數值佔位） ──
   frenzy: {
     id: 'frenzy', name: '狂暴', description: '6 m 內的同伴 8 秒內傷害 +25%；準備 1.2 秒，可打斷',

@@ -57,7 +57,8 @@ export type RunPhase =
       fromEvent: boolean;
       /** FTL 式路線圖：第幾次造訪（重新生成地圖用）、被主力佔領的強化戰鬥、冠軍戰 */
       visit?: number;
-      mods?: { force?: boolean; champion?: boolean };
+      /** champion：冠軍會加入這張地圖；championOnly：本來沒有戰鬥的節點（地圖上只有冠軍）；smoke：被營火的煙引來（馬上到） */
+      mods?: { force?: boolean; champion?: boolean; championOnly?: boolean; smoke?: boolean };
     }
   /** item：這場掉落的道具（已放進背包） */
   | {
