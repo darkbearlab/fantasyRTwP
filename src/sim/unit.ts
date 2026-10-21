@@ -98,6 +98,22 @@ export class Unit {
   /** 寒氣（法師的光環）：移動與行動速度降低 chillSlow 比例 */
   chillTime = 0;
   chillSlow = 0;
+  /** 破甲（命中附帶減益，SPEC_CLASSES §2）：層數、每層降低的物理與特殊護甲、剩餘秒數 */
+  sunderStacks = 0;
+  sunderArmor = 0;
+  sunderTime = 0;
+  /** 吸血光環（異教徒，SPEC_CLASSES §2）：在光環裡時，打中敵人傷害上升並吸血，光環主人扣血 */
+  drainAuraTime = 0;
+  drainAuraOwner = -1;
+  drainAuraDamagePct = 0;
+  drainAuraLifesteal = 0;
+  drainAuraOwnerCost = 0;
+  /** 集中（引導，SPEC_CLASSES §2）：開始的時間（< 0 表示沒有在集中）、開始的位置、每秒加成與上限 */
+  focusStart = -1;
+  focusPos: Vec = { x: 0, y: 0 };
+  focusSkill = '';
+  focusPerSec = 0;
+  focusMaxSec = 0;
   /** 這場戰鬥已不能再用的技能（一次性、被打斷就失去） */
   spentSkills: string[] = [];
   /** 暫時的傷害增益（頭目戰吼等） */
@@ -195,7 +211,11 @@ export class Unit {
     return !!this.def.shield && !this.shieldBroken;
   }
   get armor(): number {
-    return this.def.armor + this.mods.armor + (this.shieldUp ? this.def.shield!.armor : 0);
+    return this.def.armor + this.mods.armor + (this.shieldUp ? this.def.shield!.armor : 0) - this.sunderAmount;
+  }
+  /** 破甲降低的護甲（物理與特殊都扣） */
+  get sunderAmount(): number {
+    return this.sunderTime > 0 ? this.sunderStacks * this.sunderArmor : 0;
   }
   get accuracy(): number {
     return this.def.accuracy + this.mods.accuracy + (this.blessTime > 0 ? this.blessAccuracy : 0);

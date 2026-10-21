@@ -26,7 +26,10 @@ export interface PassiveMods {
  * stun／root：暈眩、定身 duration 秒；burn：點燃目標；zone：在目標腳下留下持續區域（radius、lingering）
  */
 export interface OnHitEffect {
-  kind: 'stun' | 'root' | 'burn' | 'zone';
+  /** sunder：破甲，目標的物理與特殊護甲每層降低 armor、最多 maxStacks 層，持續 duration 秒（再打中會刷新） */
+  kind: 'stun' | 'root' | 'burn' | 'zone' | 'sunder';
+  armor?: number;
+  maxStacks?: number;
   duration?: number;
   chance?: number;
   every?: number;
@@ -51,7 +54,15 @@ export interface PassiveDef {
    * 光環（每節拍套用，離開範圍後很快消失）：allies＝範圍內隊友（含自己）命中、防禦加成；
    * enemies＝範圍內敵人移動速度與行動速度降低 slow 比例
    */
-  aura?: { radius: number; allies?: { accuracy: number; defense: number }; enemies?: { slow: number } };
+  aura?: {
+    radius: number;
+    allies?: { accuracy: number; defense: number };
+    enemies?: { slow: number };
+    /** 吸血光環：範圍內的隊友打中敵人時傷害 +damagePct、依造成的傷害吸血 lifesteal 比例；光環主人扣傷害 × ownerCost 的血（不會扣到死） */
+    drain?: { damagePct: number; lifesteal: number; ownerCost: number };
+  };
+  /** 吸血：對敵人造成的傷害有這個比例轉成自己的生命 */
+  lifesteal?: number;
   /** 看穿草叢：這個距離內、看得到的草叢裡的敵人對全隊現形（視野分享） */
   seesBrush?: number;
   /** 普攻的投射物外觀（例：法師的小火球） */

@@ -104,7 +104,8 @@ export interface UnitDef {
   targeting?: Partial<TargetingWeights>;
 }
 
-export type SkillTarget = 'enemy' | 'ally' | 'allyOrSelf' | 'ground' | 'self';
+/** unit：敵人或其他友軍都可以（異教徒的吸血） */
+export type SkillTarget = 'enemy' | 'ally' | 'allyOrSelf' | 'unit' | 'ground' | 'self';
 
 export type SkillEffect =
   | {
@@ -188,7 +189,14 @@ export type SkillEffect =
   /** 詛咒爆裂（咒術師的循環第二招）：目標身上有詛咒就引爆（傷害 damage、解除詛咒），沒有就只造成 uncursedDamage */
   | { kind: 'curseBurst'; damage: [number, number]; uncursedDamage: [number, number]; projectileSpeed?: number; projectileKind?: ProjectileKind }
   /** 自爆：以自己為中心的範圍傷害，之後死亡 */
-  | { kind: 'explode'; radius: number; damage: [number, number] };
+  | { kind: 'explode'; radius: number; damage: [number, number] }
+  /** 進入集中（src/sim/focus.ts）：之後的下一招傷害技能威力 ×（1 ＋ perSec × min(秒數, maxSec)） */
+  | { kind: 'focus'; perSec: number; maxSec: number }
+  /**
+   * 吸血：從目標（敵人或我方）身上吸生命補給自己。damage：吸走的量（敵人走減傷公式、我方直接扣）；
+   * convert：吸到的量有幾成變成自己的生命（都不是 1:1，吸我方的比較多）
+   */
+  | { kind: 'drain'; enemy: { damage: [number, number]; convert: number }; ally: { damage: [number, number]; convert: number } };
 
 export interface SkillDef {
   id: string;

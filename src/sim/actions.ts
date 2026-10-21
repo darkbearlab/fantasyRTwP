@@ -2,8 +2,8 @@
  * 動作狀態機（準備 → 生效 → 恢復）與效果結算（SPEC §5、§6、§10.2）。
  */
 import { applyArmor, CRIT_MULT, rollDamage, rollHit } from './combat';
-import { AFFINITY, BASIC_ATTACK, DAMAGE_FORMULA, SKILL_ATTACK, SPEC_DEFENSE } from './data/damageTypes';
-import type { AttackInfo, DamageCategory } from './data/damageTypes';
+import { AFFINITY, BACKSTAB_ACCURACY, BASIC_ATTACK, critTierOf, DAMAGE_FORMULA, SKILL_ATTACK, SPEC_DEFENSE } from './data/damageTypes';
+import type { AttackInfo, CritTier, DamageCategory } from './data/damageTypes';
 import { DT, RANGE_TOLERANCE, secondsToTicks } from './constants';
 import { SKILLS } from './data/skills';
 import type { DamageType, SkillDef, UnitDef } from './data/types';
@@ -18,6 +18,7 @@ import type { BasicAttackStyle } from './data/horde';
 import { HORDE_ATTACKS, HORDE_CHAIN } from './data/horde';
 import { addZone, wardReduction } from './zones';
 import { advanceCycleOnCast, chargeCycleOnHit } from './cycle';
+import { breakFocus, consumeFocus, focusing, startFocus } from './focus';
 
 /** 打斷造成的硬直秒數 */
 export const INTERRUPT_STUN = 0.5;
@@ -72,6 +73,11 @@ function passiveOnHit(world: World, src: Unit, t: Unit): void {
         t.burnTime = Math.max(t.burnTime, e.duration ?? TERRAIN.burnDuration);
         t.burnSourceId = src.id;
         world.emit({ type: 'status', unitId: t.id, text: '燃燒' });
+      } else if (e.kind === 'sunder') {
+        t.sunderStacks = Math.min(e.maxStacks ?? 1, (t.sunderTime > 0 ? t.sunderStacks : 0) + 1);
+        t.sunderArmor = Math.max(t.sunderTime > 0 ? t.sunderArmor : 0, e.armor ?? 1);
+        t.sunderTime = e.duration ?? 4;
+        world.emit({ type: 'status', unitId: t.id, text: `破甲 ${t.sunderStacks}` });
       } else if (e.lingering) {
         addZone(world, src, t.pos, e.radius ?? 1.5, e.lingering, p.id);
       }
@@ -157,10 +163,12 @@ export function finishWindup(world: World, u: Unit): void {
   // 消耗一次使用；若沒有正在回復的冷卻就開始計算（冷卻從生效那一刻開始）
   u.charges[def.id] = Math.max(0, (u.charges[def.id] ?? 1) - 1);
   if ((u.cooldowns[def.id] ?? 0) <= 0) u.cooldowns[def.id] = skillCooldownOf(world, u, def.id);
+  // 集中中放出的傷害技能：用掉集中、威力放大（SPEC_CLASSES §2）
+  const power = def.effect.kind === 'strike' && focusing(u) ? consumeFocus(world, u) : 1;
   // 技能循環：換下一招（SPEC_SLICE5 §16）
   advanceCycleOnCast(u, def.id);
   const target = a.targetId !== undefined ? world.getUnit(a.targetId) : undefined;
-  const dash = applySkillEffect(world, u, def, target, a.point);
+  const dash = applySkillEffect(world, u, def, target, a.point, power);
   if (u.dead || !u.action) return;
   if (dash) {
     a.phase = 'dash';
@@ -215,6 +223,30 @@ function hordeMelee(world: World, u: Unit, t: Unit, style: BasicAttackStyle): vo
     default:
       strike(world, u, t, base);
   }
+}
+
+/** 回復生命（吸血、吸取用）；回傳實際回復量 */
+function restoreHp(world: World, src: Unit, t: Unit, amount: number): number {
+  const healed = Math.min(Math.round(amount), t.maxHp - t.hp);
+  if (healed <= 0 || t.dead) return 0;
+  t.hp += healed;
+  src.stats.healing += healed;
+  world.emit({ type: 'heal', sourceId: src.id, targetId: t.id, amount: healed });
+  return healed;
+}
+
+/** 吸血技能：敵人走減傷公式；我方直接扣（不會扣到死）；吸到的量依 convert 轉成自己的生命 */
+function drain(world: World, u: Unit, t: Unit, def: SkillDef): void {
+  const eff = def.effect;
+  if (eff.kind !== 'drain') return;
+  const ally = t.team === u.team;
+  const d = ally ? eff.ally : eff.enemy;
+  const raw = world.rng.int(d.damage[0], d.damage[1]) * skillPower(world, u);
+  const amount = ally ? Math.min(Math.max(1, Math.round(raw)), Math.max(0, t.hp - 1)) : mitigate(world, u, t, raw, def.id, 'spell');
+  if (amount <= 0) return;
+  const before = t.hp;
+  applyDamage(world, t, amount, 'spell', u, { skillId: def.id });
+  restoreHp(world, u, u, (before - Math.max(0, t.hp)) * d.convert);
 }
 
 /** 聖鎚：為附近生命比例最低的隊友（含自己）回復 */
@@ -353,14 +385,20 @@ function afterSkill(world: World, u: Unit, def: SkillDef, target: Unit | undefin
 }
 
 /** 回傳 true 表示進入衝刺階段 */
-function applySkillEffect(world: World, u: Unit, def: SkillDef, t: Unit | undefined, point: { x: number; y: number } | undefined): boolean {
+function applySkillEffect(world: World, u: Unit, def: SkillDef, t: Unit | undefined, point: { x: number; y: number } | undefined, power = 1): boolean {
   const eff = def.effect;
   switch (eff.kind) {
+    case 'focus':
+      startFocus(world, u, def.id, eff.perSec, eff.maxSec);
+      return false;
+    case 'drain':
+      if (t && !t.dead) drain(world, u, t, def);
+      return false;
     case 'strike':
       if (!t || t.dead) return false;
       if (eff.melee) {
         strike(world, u, t, {
-          melee: true, damageType: eff.damageType ?? 'melee', mult: eff.mult, accBonus: eff.accBonus, flatDamage: eff.flatDamage,
+          melee: true, damageType: eff.damageType ?? 'melee', mult: eff.mult * power, accBonus: eff.accBonus, flatDamage: eff.flatDamage,
           interrupts: eff.interrupts, stun: eff.stun, knockback: eff.knockback, skillId: def.id,
           shatters: eff.shatters, behindMult: eff.behindMult, critVsStunned: eff.critVsStunned, wallStun: eff.wallStun,
         });
@@ -369,7 +407,7 @@ function applySkillEffect(world: World, u: Unit, def: SkillDef, t: Unit | undefi
           u,
           eff.projectileKind ?? 'arrow',
           eff.projectileSpeed ?? 24,
-          { type: 'strike', melee: false, damageType: eff.damageType ?? 'projectile', mult: eff.mult, accBonus: eff.accBonus, flatDamage: eff.flatDamage, interrupts: eff.interrupts, stun: eff.stun, knockback: eff.knockback, skillId: def.id },
+          { type: 'strike', melee: false, damageType: eff.damageType ?? 'projectile', mult: eff.mult * power, accBonus: eff.accBonus, flatDamage: eff.flatDamage, interrupts: eff.interrupts, stun: eff.stun, knockback: eff.knockback, skillId: def.id },
           { unit: t },
         );
       }
@@ -709,11 +747,16 @@ export function attackInfo(src: Unit, skillId: string | undefined, damageType: D
   return BASIC_ATTACK[src.def.id] ?? { cat: damageType === 'spell' ? 'spec' : 'phys', attrs: [] };
 }
 
-/** 這一招的屬性中，目標弱的（相剋）有幾個、抗的（被剋）有幾個 */
+/**
+ * 相剋取最有利的屬性（SPEC_CLASSES §2，Alan 2026-10-21）：一招有多個屬性時，只看對目標最有利的那一個——
+ * 任一屬性打到弱點就算相剋（w = 1）；全部屬性都被抗才算被剋（r = 1）；其他是普通。
+ */
 export function matchup(target: Unit, info: AttackInfo): { w: number; r: number } {
   const a = AFFINITY[target.def.id];
-  if (!a) return { w: 0, r: 0 };
-  return { w: info.attrs.filter((x) => a.weak?.includes(x)).length, r: info.attrs.filter((x) => a.resist?.includes(x)).length };
+  if (!a || info.attrs.length === 0) return { w: 0, r: 0 };
+  if (info.attrs.some((x) => a.weak?.includes(x))) return { w: 1, r: 0 };
+  if (info.attrs.every((x) => a.resist?.includes(x))) return { w: 0, r: 1 };
+  return { w: 0, r: 0 };
 }
 
 /** 目標的防禦（物理含盾與祝福；特殊用特殊防禦表，祝福也算） */
@@ -725,7 +768,7 @@ export function defenseOf(target: Unit, cat: DamageCategory): number {
 /** 目標的護甲（物理含盾；特殊用特殊護甲表） */
 export function armorOf(target: Unit, cat: DamageCategory): number {
   if (cat === 'phys') return target.armor;
-  return (SPEC_DEFENSE[target.def.id]?.armor ?? target.def.armor) + target.mods.armor;
+  return (SPEC_DEFENSE[target.def.id]?.armor ?? target.def.armor) + target.mods.armor - target.sunderAmount;
 }
 
 /** 打進去的傷害：傷害 × weakDamage^w × K ÷（K ＋ 護甲 × resistArmor^r） */
@@ -816,40 +859,48 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): Uni
       if (srcHigh) terrainMult = TERRAIN.highDamageMult;
     }
   }
+  // 沉穩節奏：背刺改成加命中（BACKSTAB_ACCURACY），不再乘傷害倍率
+  const behind = p.melee && isBehind(src, target);
+  if (typed && behind && (p.behindMult || (!p.skillId && src.def.backstabMult))) accuracy += BACKSTAB_ACCURACY;
   // 背刺暈眩中的目標：必定爆擊（不做命中判定）
   const forcedCrit = !!p.critVsStunned && target.stunTime > 0;
-  const result = forcedCrit ? 'crit' : rollHit(world.rng, accuracy, defense).result;
+  const rolled = forcedCrit ? null : rollHit(world.rng, accuracy, defense);
+  const result = rolled ? rolled.result : 'crit';
   if (result === 'miss') {
     world.emit({ type: 'miss', sourceId: src.id, targetId: target.id, skillId: p.skillId, freeAttack: p.freeAttack });
     if (target.team === 'enemy') world.triggerAggro(target);
     return null;
   }
   const crit = result === 'crit';
+  // 爆擊分級（沉穩節奏）：判定結果越高越重；必定爆擊算最低一級
+  const tier: CritTier | null = typed && crit ? (rolled ? critTierOf(rolled.roll) : critTierOf(100)) : null;
+  const critMult = tier ? tier.mult : crit ? CRIT_MULT : 1;
   let comboMult = 1;
-  if (p.melee) {
-    const behind = isBehind(src, target);
-    if (behind && p.behindMult) comboMult *= p.behindMult;
-    else if (behind && !p.skillId && src.def.backstabMult) comboMult *= src.def.backstabMult;
-    if (p.shatters && target.rootTime > 0) {
-      comboMult *= COMBOS.shatterMult;
-      target.rootTime = 0;
-      world.emit({ type: 'status', unitId: target.id, text: '碎冰' });
-    }
+  // 舊模式：背刺乘傷害倍率
+  if (behind && !typed) {
+    if (p.behindMult) comboMult *= p.behindMult;
+    else if (!p.skillId && src.def.backstabMult) comboMult *= src.def.backstabMult;
+  }
+  if (p.melee && p.shatters && target.rootTime > 0) {
+    comboMult *= COMBOS.shatterMult;
+    target.rootTime = 0;
+    world.emit({ type: 'status', unitId: target.id, text: '碎冰' });
   }
   // 斬殺（被動）：對低生命的目標傷害提高
   for (const ps of src.passives) if (ps.execute && target.hp / target.maxHp < ps.execute.below) comboMult *= 1 + ps.execute.pct;
   const power = p.skillId && SKILLS[p.skillId] ? skillPower(world, src) : 1;
   const base = rollDamage(world.rng, p.flatDamage ?? src.def.damage, p.mult * damageMultOf(world, src) * terrainMult * comboMult * power);
-  const final = info ? typedDamage(base * (crit ? CRIT_MULT : 1), target, info, mu) : applyArmor(base * (crit ? CRIT_MULT : 1), target.armor);
-  if (info && (mu.w > 0 || mu.r > 0)) world.emit({ type: 'status', unitId: target.id, text: mu.w > mu.r ? '有效！' : mu.r > mu.w ? '抵抗' : '有效・抵抗' });
+  const final = info ? typedDamage(base * critMult, target, info, mu) : applyArmor(base * critMult, target.armor);
+  if (info && (mu.w > 0 || mu.r > 0)) world.emit({ type: 'status', unitId: target.id, text: mu.w > 0 ? '有效！' : '抵抗' });
   applyDamage(world, target, final, p.damageType, src, { crit, skillId: p.skillId, freeAttack: p.freeAttack });
   if (target.dead) return target;
   if (p.basic && src.passives.length > 0) passiveOnHit(world, src, target);
   // 蓄力循環（法師）：普攻命中累積充能
   if (p.basic && src.cycle && chargeCycleOnHit(src)) world.emit({ type: 'notice', unitId: src.id, text: `${SKILLS[src.cycle.steps[1]].name}準備好了` });
   if (target.dead) return target;
-  if (p.interrupts) interrupt(world, src, target);
-  if (p.stun) applyStun(world, target, p.stun);
+  if (tier && tier !== critTierOf(100)) world.emit({ type: 'status', unitId: target.id, text: tier.name });
+  if (p.interrupts || tier?.interrupts) interrupt(world, src, target);
+  if (p.stun || tier?.stun) applyStun(world, target, Math.max(p.stun ?? 0, tier?.stun ?? 0));
   if (p.knockback) {
     const hitWall = knockback(world, src, target, p.knockback);
     if (hitWall && p.wallStun && !target.dead) {
@@ -873,6 +924,9 @@ export function applyDamage(
   opts: { crit?: boolean; skillId?: string; freeAttack?: boolean } = {},
 ): void {
   const { crit = false, skillId, freeAttack } = opts;
+  const foe = src.team !== target.team;
+  // 吸血光環：在光環裡打中敵人，傷害上升
+  if (foe && src.drainAuraTime > 0) amount = Math.round(amount * (1 + src.drainAuraDamagePct));
   // 衰弱詛咒：受到傷害增加
   if (target.curseTime > 0) amount = Math.round(amount * (1 + target.curseVuln));
   // 聖域：範圍內的友軍減傷（取最強的一個）
@@ -884,6 +938,22 @@ export function applyDamage(
   target.stats.damageTaken += dealt;
   world.emit({ type: 'hit', sourceId: src.id, targetId: target.id, damage: amount, crit, damageType, skillId, freeAttack });
   if (target.team === 'enemy') world.triggerAggro(target);
+  // 集中：受到傷害就中斷
+  if (dealt > 0 && focusing(target)) breakFocus(world, target);
+  // 吸血（被動）與吸血光環：依造成的傷害回復自己；光環主人扣血（不會扣到死）
+  if (foe && dealt > 0 && !src.dead) {
+    const aura = src.drainAuraTime > 0;
+    const steal = src.passives.reduce((m, ps) => m + (ps.lifesteal ?? 0), 0) + (aura ? src.drainAuraLifesteal : 0);
+    if (steal > 0) restoreHp(world, src, src, dealt * steal);
+    const owner = aura ? world.getUnit(src.drainAuraOwner) : undefined;
+    if (owner && !owner.dead && src.drainAuraOwnerCost > 0) {
+      const cost = Math.min(Math.round(dealt * src.drainAuraOwnerCost), owner.hp - 1);
+      if (cost > 0) {
+        owner.hp -= cost;
+        world.emit({ type: 'hit', sourceId: owner.id, targetId: owner.id, damage: cost, crit: false, damageType: 'spell', skillId: 'drainAura' });
+      }
+    }
+  }
   // 沉穩節奏：敵人記下誰打了自己（仇恨）
   if (src.team !== target.team && world.config.battleStyle === 'deliberate') target.threatLog.push({ id: src.id, amount: dealt, t: world.time });
   // 盾兵：生命跌破門檻就盾破
