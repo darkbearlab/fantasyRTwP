@@ -99,3 +99,31 @@ describe('戰役：五章（SPEC_CAMPAIGN）', () => {
     for (const id of common) expect(b.get(id)!, id).toBeGreaterThan(a.get(id)!);
   });
 });
+
+describe('冠軍不會搶走頭目戰（Alan 2026-10-21 回報）', () => {
+  it('玩家走進頭目節點時，追獵中的冠軍停在門外，不會進頭目節點', async () => {
+    const { advanceTurn, caught } = await import('../src/run/overworld');
+    const { neighbors } = await import('../src/run/routeMap');
+    const r = createRun(12, { style: 'deliberate' });
+    const boss = r.map.nodes.find((n) => n.type === 'boss')!;
+    const next = neighbors(r.map, boss.id)[0];
+    r.overworld!.champion = { node: next, hunting: true, respawnAt: 0 };
+    r.currentNodeId = boss.id;
+    for (let k = 0; k < 5; k++) {
+      advanceTurn(r, boss.id);
+      expect(r.overworld!.champion.node).not.toBe(boss.id);
+      expect(caught(r)).toBe(false);
+    }
+  });
+
+  it('就算冠軍戰發生在頭目節點，打贏也不算打倒頭目', () => {
+    const r = createRun(13, { style: 'deliberate' });
+    const boss = r.map.nodes.find((n) => n.type === 'boss')!;
+    r.currentNodeId = boss.id;
+    r.phase = { kind: 'battle', nodeId: boss.id, encounterId: deliberateLevelId('elite'), fromEvent: false, mods: { champion: true } };
+    const after = applyBattleResult(r, { won: true, time: 30, killed: [], heroes: r.party.map((_h, slot) => ({ slot, hp: 50, dead: false, kills: 0, damageDealt: 0, damageTaken: 0 })) });
+    expect(after.chapterCleared).toBeFalsy();
+    expect(after.phase.kind).not.toBe('interlude');
+    expect(after.phase.kind).not.toBe('ended');
+  });
+});

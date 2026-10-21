@@ -59,7 +59,8 @@ export function chooseNode(run: RunState, nodeId: number): RunState {
     // FTL 式路線圖（SPEC_SLICE6 §4）：一回合——主力擴散、冠軍行動
     const { revisit } = advanceTurn(r, nodeId);
     const visit = r.overworld.visits[nodeId];
-    if (caught(r)) {
+    // 頭目節點一定打頭目（冠軍不會進頭目節點，這裡再保險一次）
+    if (caught(r) && node.type !== 'boss') {
       r.journal.push(`第 ${node.layer} 層：魔王的冠軍追上來了！`);
       r.phase = { kind: 'battle', nodeId, encounterId: deliberateLevelId('elite'), fromEvent: false, visit, mods: { champion: true } };
       return r;
@@ -169,7 +170,7 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
     r.phase = { kind: 'ended', result: 'lost' };
     return r;
   }
-  if (node.type === 'boss' && !fromEvent) {
+  if (node.type === 'boss' && !fromEvent && !run.phase.mods?.champion) {
     r.journal.push(`第 ${node.layer} 層：擊敗了頭目！`);
     // 戰役（SPEC_CAMPAIGN）：不是最後一章就照常拿戰果與升級，回路線圖之前進章節過場
     if (runStyle(r) !== 'deliberate' || isFinalChapter(r)) {
