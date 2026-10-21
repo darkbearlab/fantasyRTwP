@@ -29,6 +29,7 @@ import { ITEMS } from '../src/sim/data/items';
 import { DeliberateScript } from './deliberateScript';
 import type { RunStyle } from '../src/run/data/levels';
 import { battleSkillsOf } from '../src/run/loadout';
+import { startChapter } from '../src/run/campaign';
 
 const MAX_BATTLE_SECONDS = 300;
 
@@ -75,9 +76,14 @@ export function stepRun(r: RunState, scripted = true): RunState {
       const id = p.options[0];
       const up = UPGRADES[id];
       if (up.scope === 'party') return chooseReward(r, { upgradeId: id });
+      // 專屬升級（SPEC_CLASSES）固定給抽到的英雄
+      const own = p.optionSlots?.[0];
+      if (own !== undefined && own !== null) return chooseReward(r, { upgradeId: id, slot: own });
       const target = livingHeroes(r).reduce((a, b) => (a.hero.upgrades.length <= b.hero.upgrades.length ? a : b));
       return chooseReward(r, { upgradeId: id, slot: target.slot, skillId: up.needsSkill ? battleSkillsOf(r, target.hero)[0] : undefined });
     }
+    case 'interlude':
+      return startChapter(r);
     case 'rest': {
       if (!p.used) {
         const deadSlot = r.party.findIndex((h) => h?.dead);

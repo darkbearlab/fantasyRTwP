@@ -54,7 +54,7 @@ export class PartySelectScene extends DomScene {
     const btns = el('div', 'btn-row');
     btns.append(
       button('返回標題', 'small', () => switchTo(this, 'Title')),
-      button('出發', 'primary', () => advance(this, createRun(this.seed, { party: rollParty(this.seed, this.picks) })), this.picks.length !== need),
+      button('出發', 'primary', () => advance(this, createRun(this.seed, { party: rollParty(this.seed, this.picks), intro: true })), this.picks.length !== need),
     );
     box.appendChild(btns);
     this.root.appendChild(box);

@@ -163,6 +163,13 @@
       - 附魔帶屬性：`enchant.attrs`。
       - 區域效果：`zone.extra`（同一點再放第二個區域）。
     - **測試**：`tests/branches.test.ts`、`tests/evolvedClasses.test.ts`。
+- **戰役骨架**（Alan 2026-10-21，`SPEC_CAMPAIGN.md`）：
+  - **章節**：一趟遠征五章（`src/run/data/chapters.ts`），層數 5／6／7／8／9。
+  - **頭目與過場**（`src/run/campaign.ts`）：
+    - 打倒本章頭目照常拿戰果與升級，回路線圖前進過場（`InterludeScene`）。
+    - 過場時全隊回滿，陣亡的英雄不復活；按出發才產生下一章的路線圖、主力與冠軍。
+  - **敵人強度**：看全程深度（前面各章的層數加總，`depthOffset`）。
+  - **佔位**：第 3～5 章先用冬季野外，各章頭目都還是戰爭領主（敵人與頭目擱置中）。
 - **下完指令不取消選取**：`GAME_CONFIG.deselectAfterOrder`（預設 false）。
 - **角色縮放**：`VISUAL.unitScale`（0.8，只影響畫面；`unitHeight()` 已乘上這個值），碰撞半徑與腳下圈不變。
 - **交戰距離縮短**（2026-10-20）：沉穩節奏 `SimConfig.rangeMult` ＝ 0.6（`DELIBERATE_PACE.range`），套用在 1 m 以上的普攻射程與技能施放距離（換算一律經過 `scaleRange`）；敵人察覺距離、攻擊移動接戰距離也 ×0.6。近戰、範圍半徑、視野不變；舊模式 `rangeMult` ＝ 1。

@@ -14,6 +14,7 @@ import { DomScene } from './DomScene';
 import { xpBar } from '../ui/xpBar';
 import { ROUTE_MAP } from '../../run/data/routeMap';
 import { showEvolutions } from '../ui/evolutionShow';
+import { currentChapter } from '../../run/campaign';
 
 const NODE_DESC: Record<string, string> = {
   battle: '一般戰鬥。勝利後獲得金幣與強化。',
@@ -74,7 +75,8 @@ export class MapScene extends DomScene {
         );
     }
     const layer = run.currentNodeId === null ? 0 : run.map.nodes[run.currentNodeId].layer;
-    side.appendChild(el('div', 'map-progress', `第 ${layer} / ${run.map.layerCount} 層　·　種子 ${run.seed}`));
+    const chapter = run.style === 'deliberate' ? `第 ${(run.chapter ?? 0) + 1} 章「${currentChapter(run).name}」　·　` : '';
+    side.appendChild(el('div', 'map-progress', `${chapter}第 ${layer} / ${run.map.layerCount} 層　·　種子 ${run.seed}`));
     // FTL 式路線圖（SPEC_SLICE6 §4）：回合、主力、冠軍
     const ow = run.overworld;
     if (ow) {

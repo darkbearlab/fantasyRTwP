@@ -1,0 +1,101 @@
+import { describe, expect, it } from 'vitest';
+import { createBattleFromRun, deliberateLevelId } from '../src/run/battle';
+import type { BattleOutcome } from '../src/run/battle';
+import { depthOffset, startChapter } from '../src/run/campaign';
+import { CHAPTERS } from '../src/run/data/chapters';
+import { applyBattleResult, chooseReward, continueFromReward } from '../src/run/progression';
+import { createRun } from '../src/run/runState';
+import type { RunState } from '../src/run/runState';
+import { validateRouteMap } from '../src/run/routeMap';
+import { maxHpOf } from '../src/run/upgrades';
+
+/** 打贏本章頭目（第 1 名英雄陣亡、其他人受傷） */
+function beatBoss(r: RunState): RunState {
+  const boss = r.map.nodes.find((n) => n.type === 'boss')!;
+  r.currentNodeId = boss.id;
+  r.phase = { kind: 'battle', nodeId: boss.id, encounterId: deliberateLevelId('boss'), fromEvent: false };
+  const outcome: BattleOutcome = {
+    won: true,
+    time: 60,
+    killed: [{ enemy: 'warlord', captain: false }],
+    heroes: r.party.map((_h, slot) => ({ slot, hp: slot === 0 ? 0 : 10, dead: slot === 0, kills: 0, damageDealt: 0, damageTaken: 0 })),
+  };
+  let next = applyBattleResult(r, outcome);
+  // 戰果與升級照常（升級都選第一個）
+  for (let i = 0; i < 20 && next.phase.kind === 'reward'; i++) {
+    const p = next.phase;
+    if (p.options.length === 0) next = continueFromReward(next);
+    else next = chooseReward(next, { upgradeId: p.options[0], slot: p.optionSlots?.[0] ?? 1 });
+  }
+  return next;
+}
+
+describe('戰役：五章（SPEC_CAMPAIGN）', () => {
+  it('第一章 5 層；組隊後先看開場過場，出發後還是同一張路線圖', () => {
+    const r = createRun(4, { style: 'deliberate', intro: true });
+    expect(r.chapter).toBe(0);
+    expect(r.map.layerCount).toBe(CHAPTERS[0].layers);
+    expect(r.phase).toEqual({ kind: 'interlude', chapter: 0 });
+    const s = startChapter(r);
+    expect(s.phase.kind).toBe('map');
+    expect(s.map).toEqual(r.map);
+  });
+
+  it('各章的層數越來越多，路線圖都合法', () => {
+    for (let i = 1; i < CHAPTERS.length; i++) expect(CHAPTERS[i].layers).toBeGreaterThan(CHAPTERS[i - 1].layers);
+    let r = createRun(6, { style: 'deliberate' });
+    for (let c = 1; c < CHAPTERS.length; c++) {
+      r = beatBoss(r);
+      expect(r.phase).toEqual({ kind: 'interlude', chapter: c });
+      r = startChapter(r);
+      expect(r.map.layerCount).toBe(CHAPTERS[c].layers);
+      expect(validateRouteMap(r.map)).toEqual([]);
+    }
+  });
+
+  it('打倒本章頭目：照常拿經驗值，接著進過場；全隊回滿、陣亡的不復活；下一章重新開始路線圖', () => {
+    const r = createRun(5, { style: 'deliberate' });
+    const xp = r.xp ?? 0;
+    const after = beatBoss(r);
+    expect(after.phase).toEqual({ kind: 'interlude', chapter: 1 });
+    expect((after.level ?? 1) > 1 || (after.xp ?? 0) > xp).toBe(true);
+    expect(after.party[0]!.dead).toBe(true);
+    for (const h of after.party.slice(1)) expect(h!.hp).toBe(maxHpOf(h!));
+    const next = startChapter(after);
+    expect(next.chapter).toBe(1);
+    expect(next.phase.kind).toBe('map');
+    expect(next.currentNodeId).toBeNull();
+    expect(next.path).toEqual([]);
+    expect(next.overworld!.turn).toBe(0);
+    expect(next.party[0]!.dead).toBe(true);
+  });
+
+  it('最後一章的頭目打倒就是遠征勝利', () => {
+    let r = createRun(8, { style: 'deliberate' });
+    for (let c = 1; c < CHAPTERS.length; c++) r = startChapter(beatBoss(r));
+    expect(r.chapter).toBe(CHAPTERS.length - 1);
+    r = beatBoss(r);
+    expect(r.phase).toEqual({ kind: 'ended', result: 'won' });
+  });
+
+  it('敵人強度看全程深度：後面章節同一層的敵人比較強', () => {
+    const hp = (r: RunState) => {
+      const node = r.map.nodes.find((n) => n.layer === 2)!;
+      r.currentNodeId = node.id;
+      r.phase = { kind: 'battle', nodeId: node.id, encounterId: deliberateLevelId('battle'), fromEvent: false };
+      const w = createBattleFromRun(r);
+      const out = new Map<string, number>();
+      for (const u of w.units) if (u.team === 'enemy' && u.def.rank !== 'elite') out.set(u.def.id, u.maxHp);
+      return out;
+    };
+    const r0 = createRun(9, { style: 'deliberate' });
+    const r2 = createRun(9, { style: 'deliberate' });
+    r2.chapter = 2;
+    expect(depthOffset(r2)).toBe(CHAPTERS[0].layers + CHAPTERS[1].layers);
+    const a = hp(r0);
+    const b = hp(r2);
+    const common = [...a.keys()].filter((id) => b.has(id));
+    expect(common.length).toBeGreaterThan(0);
+    for (const id of common) expect(b.get(id)!, id).toBeGreaterThan(a.get(id)!);
+  });
+});

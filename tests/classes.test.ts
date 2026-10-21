@@ -105,7 +105,7 @@ describe('職業體系（SPEC_SLICE3 §1、§7-3/4）', () => {
     expect(lateJoinUpgradeCount(2)).toBe(1);
     expect(lateJoinUpgradeCount(5)).toBe(2);
     expect(lateJoinUpgradeCount(7)).toBe(3);
-    for (const layer of [1, 3, 6]) {
+    for (const layer of [1, 3, 4]) {
       const s = JSON.parse(JSON.stringify(r)) as RunState;
       s.currentNodeId = s.map.nodes.find((n) => n.layer === layer)!.id;
       recruitInto(s, 2, 'mage', new Rng(layer));

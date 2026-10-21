@@ -10,6 +10,7 @@ import { ECONOMY } from './data/economy';
 import type { NodeType, RunMap } from './mapGen';
 import { generateMap } from './mapGen';
 import { generateRouteMap } from './routeMap';
+import { CHAPTERS } from './data/chapters';
 import { initOverworld } from './overworld';
 import type { Overworld } from './overworld';
 import { LEVELS } from './data/levels';
@@ -91,6 +92,8 @@ export type RunPhase =
       trainOptions: string[];
       resultText?: string;
     }
+  /** 章節之間的過場（SPEC_CAMPAIGN）：chapter＝即將開始的章節（從 0 開始） */
+  | { kind: 'interlude'; chapter: number }
   | { kind: 'ended'; result: 'won' | 'lost' };
 
 export interface RunStats {
@@ -123,6 +126,9 @@ export interface RunState {
   xp?: number;
   /** 還沒選的升級三選一次數 */
   pendingLevelUps?: number;
+  /** 戰役（SPEC_CAMPAIGN）：目前第幾章（從 0 開始；舊存檔沒有＝第 0 章）；打倒本章頭目、還沒進過場時為 true */
+  chapter?: number;
+  chapterCleared?: boolean;
   /** 剛昇變、畫面還沒演出的英雄（SPEC_CLASSES §5；畫面演完就清掉） */
   evolutionShow?: { slot: number; from: string; to: string; line: string }[];
   /** FTL 式路線圖（SPEC_SLICE6 §4，沉穩節奏）：回合、造訪次數、主力、冠軍 */
@@ -160,7 +166,7 @@ export function newHero(classId: string, personality?: Personality): HeroRecord 
 /**
  * 建立遠征。opts.party：隊伍職業（組隊畫面用 rollParty 產生）；省略時為四個 Archetype。
  */
-export function createRun(seed: number, opts: { layers?: number; party?: string[]; style?: RunStyle } = {}): RunState {
+export function createRun(seed: number, opts: { layers?: number; party?: string[]; style?: RunStyle; intro?: boolean } = {}): RunState {
   const party: (HeroRecord | null)[] = (opts.party ?? HERO_ORDER).slice(0, ECONOMY.partySize).map((id) => newHero(id));
   while (party.length < ECONOMY.partySize) party.push(null);
   const style = opts.style ?? LEVELS.expeditionStyle;
@@ -168,7 +174,7 @@ export function createRun(seed: number, opts: { layers?: number; party?: string[
     version: 1,
     seed: seed >>> 0,
     // 沉穩節奏用 FTL 式路線圖（SPEC_SLICE6 §4）；封存模式維持單向分層路線圖
-    map: style === 'deliberate' && opts.layers === undefined ? generateRouteMap(seed) : generateMap(seed, opts.layers ?? ECONOMY.mapLayers, { shops: style === 'deliberate' }),
+    map: style === 'deliberate' && opts.layers === undefined ? generateRouteMap(seed, CHAPTERS[0].layers) : generateMap(seed, opts.layers ?? ECONOMY.mapLayers, { shops: style === 'deliberate' }),
     currentNodeId: null,
     path: [],
     gold: ECONOMY.startGold,
@@ -185,7 +191,12 @@ export function createRun(seed: number, opts: { layers?: number; party?: string[
     inventory: [],
     bag: style === 'deliberate' ? [...BAG.start] : [],
   };
-  if (style === 'deliberate' && opts.layers === undefined) run.overworld = initOverworld(run);
+  if (style === 'deliberate' && opts.layers === undefined) {
+    run.overworld = initOverworld(run);
+    run.chapter = 0;
+    // 組隊後先看第一章的開場過場
+    if (opts.intro) run.phase = { kind: 'interlude', chapter: 0 };
+  }
   return run;
 }
 

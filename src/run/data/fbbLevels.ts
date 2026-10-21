@@ -15,8 +15,9 @@ export const FBB_LEVELS = {
   templateTiers: [] as string[],
 };
 
-/** 野外第 layer 層的季節 */
-export function fieldLookFor(layer: number): FbbLook {
-  const L = FBB_LEVELS.fieldLooks;
-  return L[Math.min(L.length - 1, Math.max(0, layer - FBB_LEVELS.townUntilLayer - 1))];
+/** 野外第 layer 層的季節；有章節時照章節的設定（SPEC_CAMPAIGN） */
+export function fieldLookFor(layer: number, chapter?: { townUntilLayer: number; fieldLooks: FbbLook[] }): FbbLook {
+  const L = chapter?.fieldLooks ?? FBB_LEVELS.fieldLooks;
+  const town = chapter?.townUntilLayer ?? FBB_LEVELS.townUntilLayer;
+  return L[Math.min(L.length - 1, Math.max(0, layer - town - 1))];
 }

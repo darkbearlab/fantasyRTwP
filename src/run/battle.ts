@@ -33,6 +33,7 @@ import { DELIBERATE_PACE, deliberateConfig } from '../sim/data/deliberate';
 import { deliberateSkillsOf } from './loadout';
 import { DEFAULT_SIM_CONFIG } from '../sim/simConfig';
 import { heroDef, heroPassives } from './upgrades';
+import { currentChapter, depthOffset } from './campaign';
 
 /** 敵人數值隨層數成長；隊長另外強化 */
 export function enemyDef(enemyId: string, layer: number, captain = false): UnitDef {
@@ -109,7 +110,9 @@ export function encounterFor(run: RunState, nodeId: number, encounterId: string)
   const ph = run.phase.kind === 'battle' && run.phase.nodeId === nodeId ? run.phase : null;
   const visit = ph?.visit ?? 1;
   const mods = ph?.mods ?? {};
-  const layer = node.layer + levelBonus(mods);
+  // 戰役：敵人強度看全程深度（前面各章累積的層數）
+  const layer = node.layer + levelBonus(mods) + depthOffset(run);
+  const chapter = currentChapter(run);
   // 第一次造訪、沒有修飾時種子和以前一樣
   const extra = [visit > 1 ? `v${visit}` : '', mods.force ? 'force' : '', mods.champion ? 'champion' : ''].filter(Boolean);
   const seed = deriveSeed(run.seed, 'level', nodeId, encounterId, ...extra);
@@ -122,10 +125,10 @@ export function encounterFor(run: RunState, nodeId: number, encounterId: string)
       const o = { tier: tier as DeliberateTier, layer, ...exitsFor(run, nodeId), budgetMult: mods.force ? ROUTE_MAP.force.budgetMult : undefined, captainEnemy: mods.champion ? ROUTE_MAP.champion.enemy : undefined };
       enc =
         tier === 'boss'
-          ? bossEncounter(seed, { ...o, look: fieldLookFor(node.layer) })
-          : node.layer <= FBB_LEVELS.townUntilLayer
+          ? bossEncounter(seed, { ...o, look: fieldLookFor(node.layer, chapter) })
+          : node.layer <= chapter.townUntilLayer
             ? townEncounter(seed, { ...o, prefabs: tilePrefabs() })
-            : fieldEncounter(seed, { ...o, look: fieldLookFor(node.layer) });
+            : fieldEncounter(seed, { ...o, look: fieldLookFor(node.layer, chapter) });
     } else if (dlevel && LEVELS.deliberateGenerator !== 'classic') {
       // 出口制（SPEC_SLICE6 §2）：一個下一層節點一個出口，依路線圖由左到右排
       enc = generateTemplateLevel(seed, { tier, layer, ...exitsFor(run, nodeId), budgetMult: mods.force ? ROUTE_MAP.force.budgetMult : undefined, captainEnemy: mods.champion ? ROUTE_MAP.champion.enemy : undefined });
@@ -171,7 +174,8 @@ export function createBattleFromRun(run: RunState, config?: Partial<SimConfig>, 
   const enc = currentEncounter(run);
   const map = mapOf(enc);
   // 頭目戰的數值是為最後一層設計的，不再套用層數成長（大型關卡的頭目關卡也一樣）
-  const layer = enc.tier === 'boss' ? 1 : run.phase.kind === 'battle' ? run.map.nodes[run.phase.nodeId].layer + levelBonus(run.phase.mods ?? {}) : 1;
+  // 頭目的數值是為第一章最後一層設計的，不套用本章的層數成長，但後面的章節要加上全程深度
+  const layer = (enc.tier === 'boss' ? 1 : run.phase.kind === 'battle' ? run.map.nodes[run.phase.nodeId].layer + levelBonus(run.phase.mods ?? {}) : 1) + depthOffset(run);
   const spawns: UnitSpawn[] = [];
   // 出生位置依存活英雄數量排列；heroSlot 沿用隊伍欄位，數字鍵不會錯位
   const deliberate = runStyle(run) === 'deliberate' && !enc.horde;
