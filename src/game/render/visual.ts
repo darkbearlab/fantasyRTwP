@@ -62,6 +62,11 @@ export const VISUAL = {
    * 被擋住時也看得到；overlayAlpha＝那一層的透明度、overlayDepth＝深度。
    */
   teamOutline: { hero: 0x50aaff, enemy: 0xff5050, overlayAlpha: 0.7, overlayDepth: 875 },
+  /**
+   * 英雄的指令線（移動路線、攻擊、技能；Alan 2026-10-21：常駐，指令更新一段時間後變淡變細）：
+   * 下指令後 hold 秒維持原樣，接著 fade 秒內淡到 minAlpha、細到 minWidth（倍率）。用戰鬥時間算，暫停時不會變淡。
+   */
+  routeLine: { hold: 1.0, fade: 2.5, minAlpha: 0.25, minWidth: 0.5 },
   /** 戰爭迷霧：未探索／已探索但不在視野內的遮罩透明度 */
   /** 柔和迷霧（正角俯視）：每格一個像素的小貼圖放大時用平滑取樣，邊緣變成漸層；狀態改變時淡入淡出的秒數 */
   fogFadeSec: 0.25,

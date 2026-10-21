@@ -13,7 +13,7 @@ import { currentActiveSkill } from '../../sim/cycle';
 import { HEROES } from '../../sim/data/heroes';
 import { SKILLS } from '../../sim/data/skills';
 import type { Unit } from '../../sim/unit';
-import { beginSkill } from '../input/targeting';
+import { beginSkill, confirmTargeting, targetingDef, validSkillTarget } from '../input/targeting';
 import type { BattleSession } from '../session';
 import { hex } from '../render/palette';
 
@@ -190,6 +190,12 @@ export class MobileHeroBar {
       head.addEventListener('click', () => {
         const s2 = this.host.session();
         if (u.dead) return;
+        // 正在瞄準以友軍為目標的技能：點卡片＝選這名英雄當目標，不改變選取（Alan 2026-10-21）
+        const td = targetingDef(s2);
+        if (td && validSkillTarget(td.def, td.caster, u)) {
+          confirmTargeting(s2, { x: u.pos.x, y: u.pos.y }, u, performance.now());
+          return;
+        }
         const i = s2.selection.indexOf(u.id);
         if (i >= 0) s2.selection.splice(i, 1);
         else s2.selection.push(u.id);

@@ -847,7 +847,7 @@ ${node}`, { fontFamily: FONT, fontSize: '14px', color: '#ffe9a8', align: 'center
     this.drawBars();
     this.drawProjectiles();
     this.ghostG.clear();
-    if (s.paused && !w.result) this.drawGhostLines();
+    if (!w.result) this.drawGhostLines();
     this.drawTargeting();
     this.drawCoverHint();
     this.drawBoxSelect();
@@ -1268,6 +1268,13 @@ ${node}`, { fontFamily: FONT, fontSize: '14px', color: '#ffe9a8', align: 'center
   }
 
   /** 暫停時的幽靈線：每名英雄「下一步要做的事」（畫在地面上） */
+  /** 每名英雄目前指令的內容與下達時間（指令線變淡用） */
+  private routeSince = new Map<number, { key: string; t: number }>();
+
+  /**
+   * 英雄的指令線（Alan 2026-10-21：常駐）：暫停中下的（還沒送進 sim）與正在執行的指令。
+   * 指令一換就是全亮，之後依 VISUAL.routeLine 變淡變細。
+   */
   private drawGhostLines(): void {
     const w = this.session.world;
     const ghost = new Map<number, Order | null>();
@@ -1313,7 +1320,20 @@ ${node}`, { fontFamily: FONT, fontSize: '14px', color: '#ffe9a8', align: 'center
       else if (u.action?.kind === 'skill' && u.action.phase === 'windup')
         o = { type: 'skill', skillId: u.action.skillId!, targetId: u.action.targetId, point: u.action.point };
       else o = u.order;
-      if (!o) continue;
+      if (!o) {
+        this.routeSince.delete(u.id);
+        continue;
+      }
+      // 指令內容（同一個指令的終點、目標不變就算同一個；攻擊移動途中換接戰對象不算新指令）
+      const key = `${o.type}:${'point' in o && o.point ? `${o.point.x.toFixed(1)},${o.point.y.toFixed(1)}` : ''}:${'targetId' in o && o.type !== 'attackMove' ? o.targetId : ''}:${'skillId' in o ? o.skillId : ''}`;
+      const rec = this.routeSince.get(u.id);
+      if (!rec || rec.key !== key) this.routeSince.set(u.id, { key, t: w.time });
+      const R = VISUAL.routeLine;
+      const age = ghost.has(u.id) ? 0 : w.time - this.routeSince.get(u.id)!.t;
+      const k = Math.min(1, Math.max(0, (age - R.hold) / R.fade));
+      /** 透明度與線寬依指令的新舊 */
+      const fa = (a: number) => a * (1 - k) + R.minAlpha * k;
+      const fw = (wd: number) => wd * (1 - k * (1 - R.minWidth));
       const from = this.wpos(u);
       const targetPos = (id: number): Vec | null => {
         const t = w.getUnit(id);
@@ -1321,38 +1341,38 @@ ${node}`, { fontFamily: FONT, fontSize: '14px', color: '#ffe9a8', align: 'center
       };
       switch (o.type) {
         case 'move':
-          groundLine(g, from, o.point, 2, COLORS.ghostMove, 0.85);
-          groundCircle(g, o.point.x, o.point.y, 0.2, { stroke: COLORS.ghostMove, strokeAlpha: 0.85, width: 2 });
+          groundLine(g, from, o.point, fw(2), COLORS.ghostMove, fa(0.85));
+          groundCircle(g, o.point.x, o.point.y, 0.2, { stroke: COLORS.ghostMove, strokeAlpha: fa(0.85), width: fw(2) });
           break;
         case 'attack': {
           const tp = targetPos(o.targetId);
-          if (tp) groundLine(g, from, tp, 2, COLORS.ghostAttack, 0.85);
+          if (tp) groundLine(g, from, tp, fw(2), COLORS.ghostAttack, fa(0.85));
           break;
         }
         case 'follow': {
           const tp = targetPos(o.targetId);
-          if (tp) groundLine(g, from, tp, 2, COLORS.ghostFollow, 0.7);
+          if (tp) groundLine(g, from, tp, fw(2), COLORS.ghostFollow, fa(0.7));
           break;
         }
         case 'interact': {
           // 互動：移動線接到物件中心
           const d = w.interactables.get(o.objectId)?.def;
-          if (d) groundLine(g, from, { x: d.x + d.w / 2, y: d.y + d.h / 2 }, 2, COLORS.ghostMove, 0.85);
+          if (d) groundLine(g, from, { x: d.x + d.w / 2, y: d.y + d.h / 2 }, fw(2), COLORS.ghostMove, fa(0.85));
           break;
         }
         case 'attackMove':
           // 攻擊移動：紅色的移動線
-          groundLine(g, from, o.point, 2, COLORS.ghostAttack, 0.85);
-          groundCircle(g, o.point.x, o.point.y, 0.25, { stroke: COLORS.ghostAttack, strokeAlpha: 0.85, width: 2 });
+          groundLine(g, from, o.point, fw(2), COLORS.ghostAttack, fa(0.85));
+          groundCircle(g, o.point.x, o.point.y, 0.25, { stroke: COLORS.ghostAttack, strokeAlpha: fa(0.85), width: fw(2) });
           break;
         case 'skill': {
           const def = SKILLS[o.skillId];
           let tp: Vec | null = null;
           if (o.point) tp = o.point;
           else if (o.targetId !== undefined) tp = targetPos(o.targetId);
-          const style = { stroke: COLORS.ghostSkill, strokeAlpha: 0.9, width: 2.5 };
+          const style = { stroke: COLORS.ghostSkill, strokeAlpha: fa(0.9), width: fw(2.5) };
           if (tp) {
-            groundLine(g, from, tp, 2.5, COLORS.ghostSkill, 0.9);
+            groundLine(g, from, tp, fw(2.5), COLORS.ghostSkill, fa(0.9));
             groundCircle(g, tp.x, tp.y, effectRadius(def) ?? 0.3, style);
           } else groundCircle(g, from.x, from.y, effectRadius(def) ?? 0.45, style);
           break;
