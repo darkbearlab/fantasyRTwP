@@ -15,7 +15,7 @@ import type { MapNode } from './mapGen';
 import type { HeroRecord, RunState } from './runState';
 import { cloneRun, firstEmptySlot, livingHeroes } from './runState';
 import { pickN, rngFor } from './seed';
-import { grantUpgrade, maxHpOf, recruitInto, rollUpgrades } from './upgrades';
+import { generalUpgradeIds, grantUpgrade, levelUpOffer, maxHpOf, recruitInto, rollUpgrades } from './upgrades';
 import { recruitPool } from './classes';
 import { rollItemDrop, rollShopStock } from './items';
 import { ITEMS } from '../sim/data/items';
@@ -119,7 +119,7 @@ export function chooseNode(run: RunState, nodeId: number): RunState {
 /** 訓練只抽「給一名英雄」的強化 */
 function rollHeroUpgrades(r: RunState, nodeId: number): string[] {
   const rng = rngFor(r.seed, 'train', nodeId);
-  return pickN(rng, Object.keys(UPGRADES).filter((id) => UPGRADES[id].scope === 'hero'), ECONOMY.trainChoices);
+  return pickN(rng, generalUpgradeIds(r.style).filter((id) => UPGRADES[id].scope === 'hero'), ECONOMY.trainChoices);
 }
 
 /** 戰鬥結算：寫回生命、陣亡、擊殺；勝利給金幣並抽獎勵，頭目勝利結束遠征 */
@@ -132,7 +132,7 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
   // 沉穩節奏：戰後整補是牧師的被動（戰地救護），牧師要活著
   const fieldCare =
     runStyle(r) !== 'deliberate' ||
-    outcome.heroes.some((o) => !o.dead && ECONOMY.fieldCareClasses.includes(r.party[o.slot]?.classId ?? ''));
+    outcome.heroes.some((o) => !o.dead && ECONOMY.fieldCareClasses.includes(r.party[o.slot]?.baseClass ?? r.party[o.slot]?.classId ?? ''));
   for (const o of outcome.heroes) {
     const h = r.party[o.slot];
     if (!h) continue;
@@ -186,13 +186,16 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
   r.stats.goldEarned += gold;
   const deliberate = runStyle(r) === 'deliberate';
   let options: string[];
+  let optionSlots: (number | null)[] | undefined;
   let xpGained: number | undefined;
   if (deliberate) {
     // SPEC_SLICE6 §3：不再每場三選一；經驗值只來自擊殺，升級了才三選一（升幾級選幾次）
     xpGained = xpForKills(outcome.killed ?? []);
     const ups = gainXp(r, xpGained);
     if (ups > 0) r.journal.push(`隊伍升到第 ${r.level} 級！`);
-    options = (r.pendingLevelUps ?? 0) > 0 ? levelUpOptions(r) : [];
+    const offer = (r.pendingLevelUps ?? 0) > 0 ? levelUpOptions(r) : { options: [], optionSlots: [] };
+    options = offer.options;
+    optionSlots = offer.optionSlots;
   } else {
     const rng = rngFor(r.seed, 'reward', nodeId, fromEvent ? 'event' : 'node');
     options = rollUpgrades(rng, elite ? ECONOMY.eliteRewardChoices : ECONOMY.rewardChoices, elite);
@@ -216,13 +219,13 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
       r.journal.push(`撿到了「${CONSUMABLES[c].name}」。`);
     }
   }
-  r.phase = { kind: 'reward', nodeId, options, elite: elite && !deliberate, gold, item, consumable, xpGained, levelUpTo: options.length ? nextLevelUpTo(r) : undefined };
+  r.phase = { kind: 'reward', nodeId, options, elite: elite && !deliberate, gold, item, consumable, xpGained, levelUpTo: options.length ? nextLevelUpTo(r) : undefined, optionSlots };
   return r;
 }
 
-/** 升級三選一的選項（依要升到的等級決定，同一趟遠征每次一樣） */
-function levelUpOptions(r: RunState): string[] {
-  return rollUpgrades(rngFor(r.seed, 'levelup', nextLevelUpTo(r)), ECONOMY.rewardChoices);
+/** 升級三選一的選項（依要升到的等級決定，同一趟遠征每次一樣）：兩個專屬＋一個通用（SPEC_CLASSES §1） */
+function levelUpOptions(r: RunState): { options: string[]; optionSlots: (number | null)[] } {
+  return levelUpOffer(r, rngFor(r.seed, 'levelup', nextLevelUpTo(r)), ECONOMY.rewardChoices);
 }
 
 /** 戰果畫面沒有升級時：繼續回到路線圖 */
@@ -243,14 +246,18 @@ export function chooseReward(run: RunState, choice: RewardChoice): RunState {
     r.stats.goldEarned += ECONOMY.skipRewardGold;
   } else {
     if (!run.phase.options.includes(choice.upgradeId)) throw new Error('不是可選的強化');
+    // 專屬升級固定給抽到的那名英雄（同職業的兩名英雄可能抽到同一個，所以逐格比對）
+    const slots = run.phase.optionSlots;
+    const ok = run.phase.options.some((id, i) => id === choice.upgradeId && (slots?.[i] ?? null) === null) || run.phase.options.some((id, i) => id === choice.upgradeId && slots?.[i] === choice.slot);
+    if (!ok) throw new Error('專屬升級只能給抽到的英雄');
     r.journal.push(grantUpgrade(r, choice.upgradeId, choice.slot, choice.skillId));
   }
   // 升級三選一：升了好幾級就再選一次
   if (runStyle(r) === 'deliberate' && (r.pendingLevelUps ?? 0) > 0) {
     r.pendingLevelUps! -= 1;
     if (r.pendingLevelUps! > 0) {
-      const options = levelUpOptions(r);
-      r.phase = { kind: 'reward', nodeId: run.phase.nodeId, options, elite: false, gold: 0, levelUpTo: nextLevelUpTo(r) };
+      const offer = levelUpOptions(r);
+      r.phase = { kind: 'reward', nodeId: run.phase.nodeId, ...offer, elite: false, gold: 0, levelUpTo: nextLevelUpTo(r) };
       return r;
     }
   }

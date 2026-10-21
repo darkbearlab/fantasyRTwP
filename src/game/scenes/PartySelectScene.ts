@@ -1,6 +1,6 @@
-import { CLASS_ORDER } from '../../sim/data/classes';
+import { LEVELS } from '../../run/data/levels';
 import { ECONOMY } from '../../run/data/economy';
-import { rollParty } from '../../run/classes';
+import { classChoices, rollParty } from '../../run/classes';
 import { createRun } from '../../run/runState';
 import { button, el } from '../ui/dom';
 import { classCard, classChip } from '../ui/classInfo';
@@ -28,7 +28,7 @@ export class PartySelectScene extends DomScene {
     const rest = ECONOMY.partySize - need;
     box.append(el('h2', '', '組隊'), el('div', 'meta', `選 ${need} 名英雄${rest > 0 ? `，另外 ${rest} 名隨機加入` : ''}。點選順序就是隊伍順序（數字鍵 1–${ECONOMY.partySize}）。（種子 ${this.seed}）`));
     const grid = el('div', 'class-grid');
-    for (const id of CLASS_ORDER) {
+    for (const id of classChoices(LEVELS.expeditionStyle)) {
       const selected = this.picks.includes(id);
       grid.appendChild(
         classCard(id, {

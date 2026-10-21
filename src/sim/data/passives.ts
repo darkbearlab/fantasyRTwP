@@ -57,7 +57,8 @@ export interface PassiveDef {
   aura?: {
     radius: number;
     allies?: { accuracy: number; defense: number };
-    enemies?: { slow: number };
+    /** slow：移動與行動速度降低比例；vuln：受到的傷害增加比例 */
+    enemies?: { slow?: number; vuln?: number };
     /** 吸血光環：範圍內的隊友打中敵人時傷害 +damagePct、依造成的傷害吸血 lifesteal 比例；光環主人扣傷害 × ownerCost 的血（不會扣到死） */
     drain?: { damagePct: number; lifesteal: number; ownerCost: number };
   };
@@ -141,6 +142,21 @@ export const PASSIVES: Record<string, PassiveDef> = {
     // Alan 2026-10-21：聖鎚自帶打斷，擊退不變
     attack: { kind: 'smite', knockback: 0.8, heal: 4, healRadius: 6, interrupts: true },
   },
+  // ── 專屬升級給的被動（SPEC_CLASSES §3，數值佔位）──
+  tauntWide: { id: 'tauntWide', name: '挑釁', source: 'class', description: '7 m 內的敵人優先攻擊這名英雄', taunt: 7 },
+  guardAura: { id: 'guardAura', name: '鐵衛', source: 'class', description: '4 m 內的隊友防禦 +8', aura: { radius: 4, allies: { accuracy: 0, defense: 8 } } },
+  bloodthirst: { id: 'bloodthirst', name: '嗜血', source: 'class', description: '對敵人造成的傷害 12% 轉成自己的生命', lifesteal: 0.12 },
+  chillWide: { id: 'chillWide', name: '寒域', source: 'class', description: '4.5 m 內的敵人移動與行動速度 -25%', aura: { radius: 4.5, enemies: { slow: 0.25 } } },
+  chillDeep: { id: 'chillDeep', name: '刺骨', source: 'class', description: '3 m 內的敵人移動與行動速度 -40%', aura: { radius: 3, enemies: { slow: 0.4 } } },
+  frailAura: { id: 'frailAura', name: '凋零', source: 'class', description: '3 m 內的敵人受到的傷害 +10%', aura: { radius: 3, enemies: { vuln: 0.1 } } },
+  blessStrong: { id: 'blessStrong', name: '熱忱', source: 'class', description: '5 m 內的隊友命中 +15、防禦 +8', aura: { radius: 5, allies: { accuracy: 15, defense: 8 } } },
+  blessWide: { id: 'blessWide', name: '佈道', source: 'class', description: '7 m 內的隊友命中 +10、防禦 +5', aura: { radius: 7, allies: { accuracy: 10, defense: 5 } } },
+  darkPact: {
+    id: 'darkPact', name: '暗之契', source: 'class',
+    description: '4 m 內的隊友打中敵人時傷害 +5%、吸血 8%；自己扣傷害 5% 的血',
+    aura: { radius: 4, drain: { damagePct: 0.05, lifesteal: 0.08, ownerCost: 0.05 } },
+  },
+  hunger: { id: 'hunger', name: '飢渴', source: 'class', description: '對敵人造成的傷害 10% 轉成自己的生命', lifesteal: 0.1 },
   grenade: {
     id: 'grenade', name: '手榴彈', source: 'class',
     description: '拋物線普攻，命中點小範圍爆炸（不傷友軍、無視掩體）',
@@ -159,6 +175,18 @@ export const CLASS_PASSIVES: Record<string, string[]> = {
   hexer: ['hexBolt'],
   cleric: ['smite', 'blessAura', 'fieldCare'],
   alchemist: ['grenade'],
+  // ── 進階職業（SPEC_CLASSES §3）：先帶基本職業的被動，昇變被動在各階段補上 ──
+  guardian: ['cleave', 'tauntAura'],
+  gladiator: ['cleave', 'tauntAura'],
+  cutthroat: ['assassin'],
+  sniper: ['pierce', 'eagleEye'],
+  arbalest: ['pierce', 'eagleEye'],
+  elementalist: ['emberBolt', 'chillAura'],
+  deathMage: ['hexBolt', 'chillAura'],
+  battlemage: ['chillAura'],
+  paladin: ['smite', 'blessAura', 'fieldCare'],
+  zealot: ['smite', 'blessAura', 'fieldCare'],
+  heretic: ['fieldCare'],
 };
 
 /**
@@ -176,4 +204,13 @@ export const ACTIVE_SKILL_OVERRIDE: Record<string, string> = {
   mage: 'enchant',
   // Alan 2026-10-20：戰士的主動換成盾擊（打斷＋暈眩）；遊俠的瞄準射擊加上打斷、命中大幅提高
   warrior: 'shieldBash',
+  // 進階職業（SPEC_CLASSES §3）
+  guardian: 'shieldBash',
+  gladiator: 'shieldBash',
+  sniper: 'sureShot',
+  arbalest: 'sureShot',
+  elementalist: 'enchant',
+  battlemage: 'enchant',
+  paladin: 'sanctuary',
+  zealot: 'sanctuary',
 };
