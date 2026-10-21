@@ -81,7 +81,8 @@ export class MapScene extends DomScene {
     const ow = run.overworld;
     if (ow) {
       const c = ow.champion;
-      const champ = c.node === null ? `冠軍：重整中（第 ${c.respawnAt} 回合回來）` : c.hunting ? '冠軍：發現你了，正在追擊！' : '冠軍：在圖上遊蕩';
+      // 冠軍打倒後這一章不再出現（Alan 2026-10-22）
+      const champ = c.node === null ? (c.defeated ? '冠軍：已被打倒（這一章不會再出現）' : '冠軍：還沒出現') : c.hunting ? '冠軍：發現你了，正在追擊！' : '冠軍：在圖上遊蕩';
       const box = el('div', 'ow-status');
       box.append(el('div', '', `第 ${ow.turn} 回合　·　魔王主力佔領 ${ow.force.length} 個節點（每 ${ROUTE_MAP.force.spreadEvery} 回合擴散）`), el('div', c.hunting && c.node !== null ? 'ow-hunt' : '', champ));
       side.appendChild(box);
