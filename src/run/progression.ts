@@ -15,6 +15,7 @@ import type { MapNode } from './mapGen';
 import type { HeroRecord, RunState } from './runState';
 import { cloneRun, firstEmptySlot, livingHeroes } from './runState';
 import { pickN, rngFor } from './seed';
+import { enterInterlude, isFinalChapter } from './campaign';
 import { generalUpgradeIds, grantUpgrade, levelUpOffer, maxHpOf, recruitInto, rollUpgrades } from './upgrades';
 import { recruitPool } from './classes';
 import { rollItemDrop, rollShopStock } from './items';
@@ -170,8 +171,12 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
   }
   if (node.type === 'boss' && !fromEvent) {
     r.journal.push(`第 ${node.layer} 層：擊敗了頭目！`);
-    r.phase = { kind: 'ended', result: 'won' };
-    return r;
+    // 戰役（SPEC_CAMPAIGN）：不是最後一章就照常拿戰果與升級，回路線圖之前進章節過場
+    if (runStyle(r) !== 'deliberate' || isFinalChapter(r)) {
+      r.phase = { kind: 'ended', result: 'won' };
+      return r;
+    }
+    r.chapterCleared = true;
   }
   if (recovered > 0) r.journal.push(runStyle(r) === 'deliberate' ? `戰地救護：牧師為全隊回復 ${recovered} 生命。` : `戰後整補：全隊回復 ${recovered} 生命。`);
   if (run.phase.mods?.champion) {
@@ -265,7 +270,8 @@ export function chooseReward(run: RunState, choice: RewardChoice): RunState {
 }
 
 function toMap(r: RunState): RunState {
-  r.phase = { kind: 'map' };
+  if (r.chapterCleared) enterInterlude(r);
+  else r.phase = { kind: 'map' };
   return r;
 }
 

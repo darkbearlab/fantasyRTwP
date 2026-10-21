@@ -9,10 +9,10 @@ import type { MapNode, NodeType, RunMap } from './mapGen';
 import { rngFor } from './seed';
 import type { Rng } from '../sim/rng';
 
-export function generateRouteMap(seed: number): RunMap {
+export function generateRouteMap(seed: number, layers: number = ROUTE_MAP.layers): RunMap {
   const rng = rngFor(seed, 'routeMap');
   for (let attempt = 0; attempt < 200; attempt++) {
-    const map = tryGenerate(rng);
+    const map = tryGenerate(rng, layers);
     if (map && validateRouteMap(map).length === 0) return map;
   }
   throw new Error('路線圖生成失敗');
@@ -25,9 +25,11 @@ function link(a: MapNode, b: MapNode): void {
   if (!lb.includes(a.id)) lb.push(a.id);
 }
 
-function tryGenerate(rng: Rng): RunMap | null {
+function tryGenerate(rng: Rng, L: number): RunMap | null {
   const R = ROUTE_MAP;
-  const L = R.layers;
+  // 節點類型的數量依層數比例縮放（以 ROUTE_MAP.layers 為基準）
+  const k = L / R.layers;
+  const scaled = (r: [number, number]): [number, number] => [Math.max(1, Math.round(r[0] * k)), Math.max(1, Math.round(r[1] * k))];
   const nodes: MapNode[] = [];
   const layers: number[][] = [];
   for (let l = 1; l <= L; l++) {
@@ -85,9 +87,9 @@ function tryGenerate(rng: Rng): RunMap | null {
   };
   const restLayer = at(L - 1);
   restLayer[rng.int(0, restLayer.length - 1)].type = 'rest';
-  place('rest', R.extraRests, 4);
-  place('elite', R.elites, 3);
-  place('event', R.events, 2);
+  place('rest', scaled(R.extraRests), 4);
+  place('elite', scaled(R.elites), 3);
+  place('event', scaled(R.events), 2);
   place('shop', R.shops, 2);
   return { layerCount: L, layers, nodes };
 }
@@ -96,7 +98,7 @@ function tryGenerate(rng: Rng): RunMap | null {
 export function validateRouteMap(map: RunMap): string[] {
   const err: string[] = [];
   const { nodes, layers } = map;
-  if (layers.length !== ROUTE_MAP.layers) err.push('層數不符');
+  if (layers.length !== map.layerCount) err.push('層數不符');
   const last = layers[layers.length - 1];
   if (last.length !== 1 || nodes[last[0]].type !== 'boss') err.push('最後一層必須只有頭目');
   for (const n of nodes) {

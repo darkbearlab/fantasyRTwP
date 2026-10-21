@@ -2508,3 +2508,57 @@ body {
   stroke: #000;
   stroke-width: 3px;
 }
+
+/* 章節過場（SPEC_CAMPAIGN） */
+.interlude {
+  text-align: center;
+  max-width: 560px;
+}
+
+.chapter-no {
+  color: #9aa3b2;
+  letter-spacing: 3px;
+  font-size: 13px;
+}
+
+.chapter-name {
+  font-size: 34px;
+  letter-spacing: 8px;
+  margin: 6px 0 14px;
+  color: #f0e2bd;
+}
+
+.chapter-story {
+  min-height: 120px;
+  margin-bottom: 12px;
+}
+
+.story-line {
+  margin: 6px 0;
+  color: #d9dde5;
+  opacity: 0;
+  animation: story-in 0.9s ease-out forwards;
+}
+
+@keyframes story-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+.chapter-party {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 14px;
+  margin: 6px 0 12px;
+  font-size: 13px;
+}
+
+.chapter-party .cp.dead {
+  color: #8a5a5a;
+  text-decoration: line-through;
+}
+
+.interlude .btn-row {
+  justify-content: center;
+}
