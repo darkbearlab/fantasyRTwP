@@ -1,5 +1,7 @@
 import { button, el } from '../ui/dom';
-import { randomRunSeed, startNewRun, switchTo } from '../runFlow';
+import { continueRun, randomRunSeed, startNewRun, switchTo } from '../runFlow';
+import { clearSave, loadRun, saveSummary } from '../save';
+import { HEROES } from '../../sim/data/heroes';
 import { DomScene } from './DomScene';
 import { ENCOUNTERS } from '../../run/data/encounters';
 import { deliberateLevelId, levelEncounterId } from '../../run/battle';
@@ -25,10 +27,35 @@ export class TitleScene extends DomScene {
     if (q) input.value = q;
     const seedOf = () => (/^\d+$/.test(input.value.trim()) ? Number(input.value.trim()) : randomRunSeed());
     seedRow.append(input);
-    const start = button('開始遠征', 'primary big', () => startNewRun(this, seedOf()));
+    // 有存檔：「繼續遠征」排在最前面；開新遠征會蓋掉存檔，先確認
+    const summary = saveSummary();
+    const startNew = () => {
+      if (summary && !window.confirm('開始新的遠征會覆蓋目前的存檔，確定嗎？')) return;
+      clearSave();
+      startNewRun(this, seedOf());
+    };
+    const start = button('開始遠征', summary ? 'big' : 'primary big', startNew);
     input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') startNewRun(this, seedOf());
+      if (e.key === 'Enter') startNew();
     });
+    if (summary) {
+      const cont = el('div', 'continue-box');
+      const when = new Date(summary.savedAt);
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const names = summary.classes.map((c) => HEROES[c]?.name ?? c).join('、');
+      cont.append(
+        button('繼續遠征', 'primary big', () => {
+          const run = loadRun();
+          if (run) continueRun(this, run);
+        }),
+        el(
+          'div',
+          'continue-info',
+          `${summary.layer ? `第 ${summary.layer}／${summary.layers} 層` : '尚未出發'}・隊伍等級 ${summary.level}・存活 ${summary.alive} 人（${names}）・${when.getMonth() + 1}/${when.getDate()} ${pad(when.getHours())}:${pad(when.getMinutes())}`,
+        ),
+      );
+      box.append(cont);
+    }
     const quickRow = el('div', 'btn-row center');
     const sel = el('select', 'quick-select');
     const opt0 = el('option', '', '隘口之戰（切片 1）');
