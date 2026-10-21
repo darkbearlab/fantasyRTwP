@@ -90,6 +90,8 @@ export type RunPhase =
       recruited: boolean;
       recruitCandidates: string[];
       trainOptions: string[];
+      /** 沉穩節奏的訓練＝一次完整的升級三選一：和 trainOptions 對齊，專屬升級給哪一名英雄（通用是 null） */
+      trainSlots?: (number | null)[];
       resultText?: string;
     }
   /** 章節之間的過場（SPEC_CAMPAIGN）：chapter＝即將開始的章節（從 0 開始） */

@@ -110,8 +110,14 @@ export function chooseNode(run: RunState, nodeId: number): RunState {
         used: false,
         recruited: false,
         recruitCandidates: pickN(rng, recruitPool(r), ECONOMY.recruitCandidates),
-        trainOptions: rollHeroUpgrades(r, nodeId),
+        trainOptions: [],
       };
+      // Alan 2026-10-22：沉穩節奏的訓練＝一次完整的升級三選一（兩個專屬＋一個通用），但不提升隊伍等級
+      if (runStyle(r) === 'deliberate') {
+        const offer = levelUpOffer(r, rngFor(r.seed, 'train', nodeId), ECONOMY.rewardChoices);
+        r.phase.trainOptions = offer.options;
+        r.phase.trainSlots = offer.optionSlots;
+      } else r.phase.trainOptions = rollHeroUpgrades(r, nodeId);
       break;
     }
   }
@@ -318,16 +324,23 @@ export function restCamp(run: RunState): RunState {
   const p = restPhase(r);
   p.used = true;
   p.resultText = `全隊在營火旁休息，恢復了 ${Math.round(ECONOMY.campHealRatio * 100)}% 生命。`;
-  // Alan：冠軍看到營火的煙，立刻往這裡多走一格；追到了就直接開打
-  if (r.overworld) {
-    campfireSmoke(r);
-    if (caught(r)) {
-      const node = r.map.nodes[p.nodeId];
-      r.journal.push(`第 ${node.layer} 層：營火的煙引來了魔王的冠軍！`);
-      r.phase = { kind: 'battle', nodeId: p.nodeId, encounterId: deliberateLevelId('elite'), fromEvent: false, visit: r.overworld.visits[p.nodeId], mods: { champion: true } };
-    }
-  }
+  smokeDrawsChampion(r);
   return r;
+}
+
+/**
+ * Alan：在營火停留（紮營、訓練、救人）時，冠軍看到營火的煙，立刻往這裡多走一格；追到了就直接開打。
+ * 「繼續趕路」（不休息直接離開）不會引來冠軍。
+ */
+function smokeDrawsChampion(r: RunState): void {
+  if (!r.overworld || r.phase.kind !== 'rest') return;
+  const p = r.phase;
+  campfireSmoke(r);
+  if (caught(r)) {
+    const node = r.map.nodes[p.nodeId];
+    r.journal.push(`第 ${node.layer} 層：營火的煙引來了魔王的冠軍！`);
+    r.phase = { kind: 'battle', nodeId: p.nodeId, encounterId: deliberateLevelId('elite'), fromEvent: false, visit: r.overworld.visits[p.nodeId], mods: { champion: true } };
+  }
 }
 
 /** 救人：花金幣復活一名陣亡英雄，以 50% 生命回歸 */
@@ -342,20 +355,25 @@ export function restRevive(run: RunState, slot: number): RunState {
   p.used = true;
   p.resultText = `${HEROES[h.classId].name}被救了回來。`;
   r.journal.push(`復活了${HEROES[h.classId].name}。`);
+  smokeDrawsChampion(r);
   return r;
 }
 
-/** 訓練：一名英雄從 3 個強化中選 1 */
-export function restTrain(run: RunState, slot: number, upgradeId: string, skillId?: string): RunState {
+/** 訓練：從三選一中選 1（沉穩節奏＝完整的升級三選一，專屬升級固定給抽到的英雄；不提升隊伍等級） */
+export function restTrain(run: RunState, slot: number | undefined, upgradeId: string, skillId?: string): RunState {
   const p0 = restPhase(run);
   if (p0.used) throw new Error('本次休息已經做過選擇');
   if (!p0.trainOptions.includes(upgradeId)) throw new Error('不是可選的強化');
+  const slots = p0.trainSlots;
+  const ok = p0.trainOptions.some((id, i) => id === upgradeId && (slots?.[i] ?? null) === null) || p0.trainOptions.some((id, i) => id === upgradeId && slots?.[i] === slot);
+  if (!ok) throw new Error('專屬升級只能給抽到的英雄');
   const r = cloneRun(run);
   const text = grantUpgrade(r, upgradeId, slot, skillId);
   const p = restPhase(r);
   p.used = true;
   p.resultText = text;
   r.journal.push(text);
+  smokeDrawsChampion(r);
   return r;
 }
 
