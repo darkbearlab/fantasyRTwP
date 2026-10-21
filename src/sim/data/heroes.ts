@@ -90,10 +90,10 @@ function evolved(): Record<string, UnitDef> {
     { ...R, id: 'sniper', name: '狙擊手', letter: 'S', color: 0x2e8b3a, accuracy: 45, damage: [9, 15], skills: ['focus', 'aimedShot'] },
     // 連弩手：攻擊間距極短、單發較輕
     { ...R, id: 'arbalest', name: '連弩手', letter: 'A', color: 0x7cc576, damage: [5, 8], attackSpeed: 2.2 },
-    { ...M, id: 'elementalist', name: '元素法師', letter: 'E', color: 0xc062e0 },
+    { ...M, id: 'elementalist', name: '元素法師', letter: 'E', color: 0xc062e0, skills: ['elementalEnchant'] },
     { ...M, id: 'deathMage', name: '死亡法師', letter: 'D', color: 0x6b2f8a, maxHp: 65, accuracy: 32, defense: 22, damage: [5, 9], projectileKind: 'curse', skills: ['curse', 'curseBurst'] },
-    { ...M, id: 'battlemage', name: '戰法師', letter: 'B', color: 0x8e5fc0, maxHp: 110, armor: 4, defense: 32, damage: [9, 14], range: 0.3, windup: 0.5, recovery: 0.9, projectileSpeed: undefined, projectileKind: undefined, attackDamageType: undefined, personality: undefined, projectsZoc: true },
-    { ...C, id: 'paladin', name: '聖騎士', letter: 'P', color: 0xf0d060, maxHp: 115, armor: 5 },
+    { ...M, id: 'battlemage', name: '戰法師', letter: 'B', color: 0x8e5fc0, maxHp: 110, armor: 4, defense: 32, damage: [9, 14], range: 0.3, windup: 0.5, recovery: 0.9, projectileSpeed: undefined, projectileKind: undefined, attackDamageType: undefined, personality: undefined, projectsZoc: true, skills: ['selfEnchant'] },
+    { ...C, id: 'paladin', name: '聖騎士', letter: 'P', color: 0xf0d060, maxHp: 115, armor: 5, skills: ['holyGround'] },
     { ...C, id: 'zealot', name: '狂信者', letter: 'Z', color: 0xd0902a, accuracy: 30 },
     { ...C, id: 'heretic', name: '異教徒', letter: 'X', color: 0x8b1e3f, maxHp: 80, range: 8, windup: 0.6, recovery: 1.0, projectileSpeed: 18, projectileKind: 'curse', attackDamageType: 'spell', personality: 'guerrilla', projectsZoc: false, skills: ['drainLife'] },
   ];

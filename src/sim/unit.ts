@@ -1,6 +1,7 @@
 import type { Order } from './commands';
 import type { Personality, Team, UnitDef, ProjectileKind } from './data/types';
 import type { Vec } from './math';
+import type { Attribute } from './data/damageTypes';
 import type { PassiveDef, PassiveMods } from './data/passives';
 import type { ActiveCycle } from './data/cycles';
 
@@ -126,6 +127,11 @@ export class Unit {
   spentSkills: string[] = [];
   /** 暫時的傷害增益（頭目戰吼等） */
   damageBuffMult = 1;
+  /** 附魔帶的屬性（元素法師）與剩餘秒數 */
+  enchantAttrs: Attribute[] = [];
+  enchantAttrTime = 0;
+  /** 光環給的傷害加成（狂信者），和祝福同一個計時 */
+  blessDamage = 0;
   damageBuffTime = 0;
 
   path: Vec[] | null = null;
@@ -245,7 +251,7 @@ export class Unit {
 
   /** 造成傷害的總倍率 */
   get outgoingDamageMult(): number {
-    return (this.def.damageMult ?? 1) * (1 + this.mods.damagePct) * (this.damageBuffTime > 0 ? this.damageBuffMult : 1);
+    return (this.def.damageMult ?? 1) * (1 + this.mods.damagePct) * (this.damageBuffTime > 0 ? this.damageBuffMult : 1) * (this.blessTime > 0 ? 1 + this.blessDamage : 1);
   }
 
   get isMelee(): boolean {

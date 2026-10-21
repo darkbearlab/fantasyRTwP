@@ -56,6 +56,26 @@ export const SKILLS: Record<string, SkillDef> = {
     target: 'self', range: 0, windup: 0.2, recovery: 0.2, cooldown: 2, requiresLos: false,
     effect: { kind: 'focus', perSec: 0.25, maxSec: 4 },
   },
+  // ── 進階職業的主動（SPEC_CLASSES §3，數值佔位） ──
+  elementalEnchant: {
+    id: 'elementalEnchant', name: '元素附魔', description: '6 m 內的隊友（含自己）10 秒內傷害 +30%，攻擊多帶火＋寒屬性（相剋取最有利的）',
+    target: 'self', range: 0, windup: 0.6, recovery: 0.8, cooldown: 20, requiresLos: false,
+    effect: { kind: 'enchant', radius: 6, duration: 10, damagePct: 0.3, attrs: ['fire', 'cold'] },
+  },
+  selfEnchant: {
+    id: 'selfEnchant', name: '戰意附魔', description: '只附魔自己：10 秒內傷害 +60%',
+    target: 'self', range: 0, windup: 0.4, recovery: 0.6, cooldown: 16, requiresLos: false,
+    effect: { kind: 'enchant', radius: 0.5, duration: 10, damagePct: 0.6 },
+  },
+  holyGround: {
+    id: 'holyGround', name: '聖域・審判', description: '地上一圈聖光：5 秒內，範圍內的友軍受到的傷害 −30%、敵人移動變慢 40%',
+    target: 'ground', range: 6, windup: 0.6, recovery: 0.8, cooldown: 12, requiresLos: false,
+    effect: {
+      kind: 'zone', radius: 2.5,
+      lingering: { duration: 5, affects: 'ally', effects: [{ kind: 'ward', reduction: 0.3 }], style: 'holy' },
+      extra: { duration: 5, affects: 'enemy', effects: [{ kind: 'slow', moveMult: 0.6 }] },
+    },
+  },
   drainLife: {
     id: 'drainLife', name: '吸血', description: '從敵人或友軍身上吸取生命補給自己；吸友軍吸得比較多，但都不是 1:1',
     target: 'unit', range: 8, windup: 0.6, recovery: 0.8, cooldown: 10, requiresLos: true,
