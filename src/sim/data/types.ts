@@ -1,4 +1,5 @@
 import type { Vec } from '../math';
+import type { Attribute } from './damageTypes';
 
 export type Team = 'hero' | 'enemy';
 export type EnemyArchetype =
@@ -154,7 +155,8 @@ export type SkillEffect =
   | { kind: 'guard'; duration: number; chance: number }
   | { kind: 'bless'; radius: number; duration: number; accuracy: number; defense: number }
   /** 附魔（Alan：法師的主動，只加攻擊力）：範圍內隊友 duration 秒內造成傷害 ×(1＋damagePct) */
-  | { kind: 'enchant'; radius: number; duration: number; damagePct: number }
+  /** attrs：附魔期間，受到附魔的單位的攻擊多帶這些屬性（元素法師的火＋寒；相剋取最有利的） */
+  | { kind: 'enchant'; radius: number; duration: number; damagePct: number; attrs?: Attribute[] }
   /** 前方扇形範圍攻擊（以施放者為圓心、朝目標點方向） */
   | { kind: 'cone'; radius: number; angle: number; damage: [number, number]; friendlyFire: boolean }
   /** 戰吼：召喚援軍，並讓全體友軍暫時提高傷害 */
@@ -168,7 +170,8 @@ export type SkillEffect =
   | { kind: 'smoke'; duration: number }
   /** 地面區域：敵人在範圍內移動變慢（沼澤） */
   /** 在地上留下持續區域（沼澤等；通用的持續效果，src/sim/zones.ts） */
-  | { kind: 'zone'; radius: number; lingering: LingeringDef }
+  /** extra：同一個位置再放一個區域（例：聖騎士的聖域同時讓敵人變慢） */
+  | { kind: 'zone'; radius: number; lingering: LingeringDef; extra?: LingeringDef }
   /** 範圍治療（治療藥瓶） */
   | { kind: 'aoeHeal'; radius: number; amount: number; projectileSpeed?: number; projectileKind?: ProjectileKind }
   /** 衝鋒（knockback：抵達時的攻擊附帶擊退，攻城兵的撞擊） */

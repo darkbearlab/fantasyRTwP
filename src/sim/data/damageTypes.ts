@@ -59,7 +59,8 @@ export const BASIC_ATTACK: Record<string, AttackInfo> = {
   cutthroat: A('phys', 'cut'),
   sniper: A('phys', 'pierce'),
   arbalest: A('phys', 'pierce'),
-  elementalist: A('spec', 'fire', 'blunt'),
+  // 元素法師：普攻同時是火＋寒（相剋取最有利的）
+  elementalist: A('spec', 'fire', 'cold', 'blunt'),
   deathMage: A('spec', 'dark', 'cold'),
   battlemage: A('phys', 'cleave'),
   paladin: A('phys', 'blunt'),

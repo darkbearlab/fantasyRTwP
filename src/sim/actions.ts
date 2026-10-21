@@ -480,6 +480,10 @@ function applySkillEffect(world: World, u: Unit, def: SkillDef, t: Unit | undefi
         const active = a.damageBuffTime > 0;
         a.damageBuffMult = Math.max(active ? a.damageBuffMult : 1, 1 + eff.damagePct * skillPower(world, u));
         a.damageBuffTime = Math.max(active ? a.damageBuffTime : 0, eff.duration);
+        if (eff.attrs) {
+          a.enchantAttrs = [...eff.attrs];
+          a.enchantAttrTime = eff.duration;
+        }
         world.emit({ type: 'status', unitId: a.id, text: def.name });
       }
       return false;
@@ -539,6 +543,7 @@ function applySkillEffect(world: World, u: Unit, def: SkillDef, t: Unit | undefi
     case 'zone':
       if (!point) return false;
       addZone(world, u, point, eff.radius, eff.lingering, def.id);
+      if (eff.extra) addZone(world, u, point, eff.radius, eff.extra, def.id);
       world.emit({ type: 'aoe', sourceId: u.id, point: { ...point }, radius: eff.radius, skillId: def.id });
       return false;
     case 'aoeHeal':
@@ -743,8 +748,10 @@ export function basicDamageType(def: UnitDef): DamageType {
 
 /** 這一招的類別與屬性：技能看技能表，普攻（與濺射）看單位的普攻表 */
 export function attackInfo(src: Unit, skillId: string | undefined, damageType: DamageType): AttackInfo {
-  if (skillId && SKILL_ATTACK[skillId]) return SKILL_ATTACK[skillId];
-  return BASIC_ATTACK[src.def.id] ?? { cat: damageType === 'spell' ? 'spec' : 'phys', attrs: [] };
+  const info: AttackInfo = (skillId && SKILL_ATTACK[skillId]) || BASIC_ATTACK[src.def.id] || { cat: damageType === 'spell' ? 'spec' : 'phys', attrs: [] };
+  // 附魔帶的屬性（元素法師）：加進這一招的屬性，相剋取最有利的
+  if (src.enchantAttrTime > 0 && src.enchantAttrs.length) return { cat: info.cat, attrs: [...new Set([...info.attrs, ...src.enchantAttrs])] };
+  return info;
 }
 
 /**

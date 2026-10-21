@@ -56,7 +56,8 @@ export interface PassiveDef {
    */
   aura?: {
     radius: number;
-    allies?: { accuracy: number; defense: number };
+    /** damagePct：造成傷害 +%（狂信者） */
+    allies?: { accuracy: number; defense: number; damagePct?: number };
     /** slow：移動與行動速度降低比例；vuln：受到的傷害增加比例 */
     enemies?: { slow?: number; vuln?: number };
     /** 吸血光環：範圍內的隊友打中敵人時傷害 +damagePct、依造成的傷害吸血 lifesteal 比例；光環主人扣傷害 × ownerCost 的血（不會扣到死） */
@@ -172,6 +173,27 @@ export const PASSIVES: Record<string, PassiveDef> = {
     description: '打斷敵人後，下一次攻擊必定爆擊；盾擊可以存 2 次',
     critAfterInterrupt: true,
   },
+  // ── 昇變被動（SPEC_CLASSES §3：法師、牧師）──
+  deathAura: {
+    id: 'deathAura', name: '死亡氣息', source: 'class',
+    description: '3 m 內的敵人受到的傷害 +15%',
+    aura: { radius: 3, enemies: { vuln: 0.15 } },
+  },
+  sunderStrike: {
+    id: 'sunderStrike', name: '破甲', source: 'class',
+    description: '普攻打中時目標的物理與特殊護甲 −2（最多 3 層，4 秒）',
+    onHit: [{ kind: 'sunder', armor: 2, maxStacks: 3, duration: 4 }],
+  },
+  zealAura: {
+    id: 'zealAura', name: '狂信光環', source: 'class',
+    description: '5 m 內的隊友（含自己）命中 +12、防禦 +6、造成傷害 +15%',
+    aura: { radius: 5, allies: { accuracy: 12, defense: 6, damagePct: 0.15 } },
+  },
+  bloodAura: {
+    id: 'bloodAura', name: '血之光環', source: 'class',
+    description: '5 m 內的隊友打中敵人時傷害 +15%、吸血 20%；異教徒自己扣傷害 8% 的血',
+    aura: { radius: 5, drain: { damagePct: 0.15, lifesteal: 0.2, ownerCost: 0.08 } },
+  },
   grenade: {
     id: 'grenade', name: '手榴彈', source: 'class',
     description: '拋物線普攻，命中點小範圍爆炸（不傷友軍、無視掩體）',
@@ -197,11 +219,11 @@ export const CLASS_PASSIVES: Record<string, string[]> = {
   sniper: ['pierce', 'eagleEye'],
   arbalest: ['pierce', 'eagleEye'],
   elementalist: ['emberBolt', 'chillAura'],
-  deathMage: ['hexBolt', 'chillAura'],
-  battlemage: ['chillAura'],
+  deathMage: ['hexBolt', 'chillAura', 'deathAura'],
+  battlemage: ['chillAura', 'sunderStrike'],
   paladin: ['smite', 'blessAura', 'fieldCare'],
-  zealot: ['smite', 'blessAura', 'fieldCare'],
-  heretic: ['fieldCare'],
+  zealot: ['smite', 'zealAura', 'fieldCare'],
+  heretic: ['bloodAura', 'fieldCare'],
 };
 
 /**
@@ -223,8 +245,8 @@ export const ACTIVE_SKILL_OVERRIDE: Record<string, string> = {
   guardian: 'shieldBash',
   gladiator: 'shieldBash',
   arbalest: 'sureShot',
-  elementalist: 'enchant',
-  battlemage: 'enchant',
-  paladin: 'sanctuary',
+  elementalist: 'elementalEnchant',
+  battlemage: 'selfEnchant',
+  paladin: 'holyGround',
   zealot: 'sanctuary',
 };
