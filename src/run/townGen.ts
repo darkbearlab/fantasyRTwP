@@ -368,6 +368,19 @@ function tryGenerate(rng: Rng, seed: number, opts: TownOptions): TownLevel | nul
   const streetEdge = (x: number, y: number): boolean => street[idx(x, y)] === 1 && N4.some(([dx, dy]) => inside(x + dx, y + dy) && !street[idx(x + dx, y + dy)]);
 
   // ── 6. 散件 ──
+  /**
+   * 街上可以放擋路的東西嗎（Alan 2026-10-21：有條路被兩個箱子堵死）：放了之後這一格橫豎兩個方向剩下的通路都至少 2 格寬
+   * （角色直徑約 1 m，1 格的縫過不去）；不在街上的（後院）不限制。
+   */
+  const keepsPassage = (x: number, y: number): boolean => {
+    if (!street[idx(x, y)]) return true;
+    const run = (dx: number, dy: number) => {
+      let n = 1;
+      for (const sgn of [-1, 1]) for (let k = 1; inside(x + dx * k * sgn, y + dy * k * sgn) && street[idx(x + dx * k * sgn, y + dy * k * sgn)] && !blocked[idx(x + dx * k * sgn, y + dy * k * sgn)]; k++) n++;
+      return n;
+    };
+    return Math.min(run(1, 0), run(0, 1)) - 1 >= 2;
+  };
   const scatter = (kind: TownProp['kind'], count: [number, number], ok: (x: number, y: number) => boolean, blocks: boolean, variants = 0) => {
     let n = rng.int(count[0], count[1]);
     for (let t = 0; t < 300 && n > 0; t++) {
@@ -375,13 +388,14 @@ function tryGenerate(rng: Rng, seed: number, opts: TownOptions): TownLevel | nul
       const y = rng.int(2, H - 2);
       if (!openCell(x, y) || !ok(x, y) || props.some((p) => p.x === x && p.y === y)) continue;
       if (blocks && N4.some(([dx, dy]) => inside(x + dx, y + dy) && blocked[idx(x + dx, y + dy)] && !sight[idx(x + dx, y + dy)])) continue;
+      if (blocks && !keepsPassage(x, y)) continue;
       props.push({ kind, x, y, variant: variants ? rng.int(0, variants - 1) : undefined });
       if (blocks) blocked[idx(x, y)] = 1;
       n--;
     }
   };
   scatter('lamp', T.lamps, (x, y) => streetEdge(x, y) && street[idx(x, y)] === 1, true);
-  scatter('crates', T.crates, (x, y) => streetEdge(x, y) || (!street[idx(x, y)] && !plaza[idx(x, y)]), true, 2);
+  scatter('crates', T.crates, (x, y) => streetEdge(x, y) || (!street[idx(x, y)] && !plaza[idx(x, y)]), true, 1);
   scatter('rubble', T.rubble, () => true, false, 5);
   scatter('fire', T.groundFires, () => true, false);
 
@@ -443,7 +457,7 @@ function tryGenerate(rng: Rng, seed: number, opts: TownOptions): TownLevel | nul
       if (nb <= 0) break;
       const x = px + fx * 2 + qx * j;
       const y = py + fy * 2 + qy * j;
-      if (!inside(x, y) || !street[idx(x, y)] || blocked[idx(x, y)] || reserved[idx(x, y)]) continue;
+      if (!inside(x, y) || !street[idx(x, y)] || blocked[idx(x, y)] || reserved[idx(x, y)] || !keepsPassage(x, y)) continue;
       props.push({ kind: 'crates', x, y, variant: 0 });
       blocked[idx(x, y)] = 1;
       nb--;

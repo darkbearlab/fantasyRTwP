@@ -49,7 +49,8 @@ export const PIXEL_UNITS: Record<string, PixelUnitArt> = {
   berserker: hero('berserker', 'mw/sheets/AxeFighter/AxeFighter_LongHair_Blue1.png'),
   rogue: hero('rogue', 'mw/sheets/Thief/Thief_Blue1.png'),
   hexer: hero('hexer', 'mw/sheets/Wizard/Wizard_Blue2.png'),
-  cleric: hero('cleric', 'mw/sheets/Wizard/Wizard_Blue3.png'),
+  // Alan 2026-10-21：牧師改用戰士的 sprite（職業色換成黃色）
+  cleric: hero('cleric', 'mw/sheets/SwordFighter/SwordFighter_ShortHair_Blue1.png'),
   // 建議表沒有煉金術士：先用法師
   alchemist: hero('alchemist', 'mw/sheets/Wizard/Wizard_Blue1.png'),
   // ── 人類敵人（換色陣營） ──

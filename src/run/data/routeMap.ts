@@ -19,8 +19,13 @@ export const ROUTE_MAP = {
 
   /** 魔王主力（SPEC_SLICE6 §4） */
   force: {
-    /** 一開始佔領幾個節點（從頭目前一層開始） */
+    /** 一開始佔領幾個節點 */
     startNodes: 1,
+    /**
+     * 從哪裡開始（Alan 2026-10-21：主力從玩家後方往前蔓延，和頭目形成前後包夾）：
+     * rear＝第一層（玩家出發的那一層）；bossSide＝頭目前一層（舊做法）。之後每次擴散都朝玩家所在的節點。
+     */
+    startFrom: 'rear' as 'rear' | 'bossSide',
     /** 每幾回合擴散一次（一回合＝移動一個節點） */
     spreadEvery: 2,
     /** 每次擴散佔領幾個節點 */

@@ -160,3 +160,20 @@ describe('轉成戰鬥地圖（fbbLevel）', () => {
     expect(enc.mapDef.exitLock).toBe('captain');
   });
 });
+
+describe('2026-10-21 修正', () => {
+  it('城內：街上不會被箱子、路障堵死（每格站得住的街都走得到）；野外也通過同樣的導航檢查', async () => {
+    const { navOk } = await import('../src/run/fbbLevel');
+    for (const seed of [1, 3, 7, 11, 19]) {
+      expect(navOk(townEncounter(seed, { tier: 'battle', layer: 2, exits, prefabs }))).toBe(true);
+      expect(navOk(fieldEncounter(seed, { tier: 'battle', layer: 4, exits }))).toBe(true);
+    }
+  });
+  it('魔王主力從玩家後方（第一層）開始，往玩家擴散', async () => {
+    const { createRun } = await import('../src/run/runState');
+    const r = createRun(4, { style: 'deliberate' });
+    const ow = r.overworld!;
+    expect(ow.force.length).toBeGreaterThan(0);
+    for (const id of ow.force) expect(r.map.nodes[id].layer).toBe(r.map.nodes[r.map.layers[0][0]].layer);
+  });
+});

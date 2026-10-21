@@ -30,10 +30,10 @@ export function initOverworld(run: RunState): Overworld {
   const R = ROUTE_MAP;
   const rng = rngFor(run.seed, 'overworld');
   const { map } = run;
-  const preBoss = map.layers[map.layerCount - 2];
+  const startLayer = R.force.startFrom === 'rear' ? map.layers[0] : map.layers[map.layerCount - 2];
   const force: number[] = [];
-  for (let k = 0; k < R.force.startNodes && k < preBoss.length; k++) {
-    const pool = preBoss.filter((id) => !force.includes(id));
+  for (let k = 0; k < R.force.startNodes && k < startLayer.length; k++) {
+    const pool = startLayer.filter((id) => !force.includes(id));
     force.push(pool[rng.int(0, pool.length - 1)]);
   }
   const depth = Math.max(2, Math.min(map.layerCount - 1, Math.round(1 + R.champion.startDepth * (map.layerCount - 2))));

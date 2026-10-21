@@ -330,7 +330,7 @@ export class FbbMapView {
           this.put(key, p.x, p.y, this.rowDepth(p.y + 1));
         }
       } else if (p.kind === 'lamp' || p.kind === 'crates' || p.kind === 'sack') {
-        const [top, bot] = p.kind === 'lamp' ? TOWN_TILES.lamp : TOWN_TILES.crates[p.variant ?? 0];
+        const [top, bot] = p.kind === 'lamp' ? TOWN_TILES.lamp : (TOWN_TILES.crates[p.variant ?? 0] ?? TOWN_TILES.crates[0]);
         const key = this.tex(`fbb_t2_${top}_${bot}`, T, 2 * T, (ctx) => {
           this.drawCell(ctx, BT, top, 0, 0);
           this.drawCell(ctx, BT, bot, 0, T);

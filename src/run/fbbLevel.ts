@@ -100,16 +100,36 @@ const edgeOf = (e: { edge?: MapEdge }): MapEdge => e.edge ?? 'top';
  * 用戰鬥的導航格（和角色一樣的半徑）確認：出生點走得到每個出口與每名敵人。
  * 生成器的檢查是「格子相連」，但角色直徑約 1 m，1 格寬的縫走不過去，所以這裡再驗一次。
  */
-function navOk(level: GeneratedLevel): boolean {
+export function navOk(level: GeneratedLevel): boolean {
   const m = level.mapDef;
   const nav = new NavGrid(m.width, m.height, 0.5, 0.55, m.obstacles);
-  if (!m.heroSpawns.every((p) => nav.isWalkable(p))) return false;
-  const reach = floodFrom(nav, m.heroSpawns[0]);
-  const ok = (p: { x: number; y: number }) => {
+  // 貼著牆的格（離牆不到角色半徑）導航格算不可走，但單位出生時會被推到旁邊可走的地方：一律取最近的可走格
+  const cellNear = (p: { x: number; y: number }) => {
     const c = nav.cellOf(p);
-    return nav.inBounds(c.cx, c.cy) && reach[c.cy * nav.cols + c.cx] === 1;
+    if (!nav.inBounds(c.cx, c.cy)) return null;
+    return nav.isBlockedCell(c.cx, c.cy) ? nav.nearestWalkableCell(c.cx, c.cy, 2) : c;
   };
-  return m.heroSpawns.every(ok) && (m.exits ?? []).every((e) => ok({ x: e.x + e.w / 2, y: e.y + e.h / 2 })) && level.enemies.every(ok);
+  const start = cellNear(m.heroSpawns[0]);
+  if (!start) return false;
+  const reach = floodFrom(nav, nav.cellCenter(start.cx, start.cy));
+  const ok = (p: { x: number; y: number }) => {
+    const c = cellNear(p);
+    return !!c && reach[c.cy * nav.cols + c.cx] === 1;
+  };
+  if (!(m.heroSpawns.every(ok) && (m.exits ?? []).every((e) => ok({ x: e.x + e.w / 2, y: e.y + e.h / 2 })) && level.enemies.every(ok))) return false;
+  // 城內：每一格角色站得住的街都要走得到（不能有被箱子、路障堵死的死角）
+  const art = m.art as FbbArt | undefined;
+  if (art?.kind === 'fbbTown') {
+    const L = art.level;
+    for (let gy = 0; gy < L.h; gy++)
+      for (let gx = 0; gx < L.w; gx++) {
+        if (L.ground[gy][gx] !== 's') continue;
+        const w = gridToWorld(gx, gy, L.h);
+        const p = { x: w.x + 0.5, y: w.y + 0.5 };
+        if (nav.isWalkable(p) && !ok(p)) return false;
+      }
+  }
+  return true;
 }
 
 /** 生成到導航檢查通過為止（換子種子重來） */
