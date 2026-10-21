@@ -375,7 +375,7 @@ function applySkillEffect(world: World, u: Unit, def: SkillDef, t: Unit | undefi
       return false;
     case 'heal': {
       if (!t || t.dead) return false;
-      const amount = Math.min(eff.amount, t.maxHp - t.hp);
+      const amount = Math.min(Math.round(eff.amount * skillPower(world, u)), t.maxHp - t.hp);
       t.hp += amount;
       u.stats.healing += amount;
       world.emit({ type: 'heal', sourceId: u.id, targetId: t.id, amount });
@@ -404,7 +404,7 @@ function applySkillEffect(world: World, u: Unit, def: SkillDef, t: Unit | undefi
       for (const a of world.units) {
         if (a.dead || a.team !== u.team || dist(a.pos, u.pos) > eff.radius) continue;
         const active = a.damageBuffTime > 0;
-        a.damageBuffMult = Math.max(active ? a.damageBuffMult : 1, 1 + eff.damagePct);
+        a.damageBuffMult = Math.max(active ? a.damageBuffMult : 1, 1 + eff.damagePct * skillPower(world, u));
         a.damageBuffTime = Math.max(active ? a.damageBuffTime : 0, eff.duration);
         world.emit({ type: 'status', unitId: a.id, text: def.name });
       }
@@ -567,7 +567,7 @@ function healArea(world: World, src: Unit, point: { x: number; y: number }, def:
   world.emit({ type: 'aoe', sourceId: src.id, point: { ...point }, radius: eff.radius, skillId: def.id });
   for (const a of world.units) {
     if (a.dead || a.team !== src.team || dist(a.pos, point) > eff.radius + a.radius * 0.5) continue;
-    const amount = Math.min(eff.amount, a.maxHp - a.hp);
+    const amount = Math.min(Math.round(eff.amount * skillPower(world, src)), a.maxHp - a.hp);
     if (amount <= 0) continue;
     a.hp += amount;
     src.stats.healing += amount;
@@ -706,6 +706,11 @@ export function mitigate(world: World, src: Unit, target: Unit, dmg: number, ski
   return typedDamage(dmg, target, info, matchup(target, info));
 }
 
+/** 英雄技能的效果倍率（沉穩節奏 1.5；敵人與舊模式是 1） */
+export function skillPower(world: World, u: Unit): number {
+  return u.team === 'hero' ? world.config.heroSkillPowerMult : 1;
+}
+
 /** 造成傷害的總倍率：單位自身（強化、增益）× 我方傷害倍率設定 */
 export function damageMultOf(world: World, u: Unit): number {
   // 狂戰士：生命越低傷害越高
@@ -797,7 +802,8 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): Uni
   }
   // 斬殺（被動）：對低生命的目標傷害提高
   for (const ps of src.passives) if (ps.execute && target.hp / target.maxHp < ps.execute.below) comboMult *= 1 + ps.execute.pct;
-  const base = rollDamage(world.rng, p.flatDamage ?? src.def.damage, p.mult * damageMultOf(world, src) * terrainMult * comboMult);
+  const power = p.skillId && SKILLS[p.skillId] ? skillPower(world, src) : 1;
+  const base = rollDamage(world.rng, p.flatDamage ?? src.def.damage, p.mult * damageMultOf(world, src) * terrainMult * comboMult * power);
   const final = info ? typedDamage(base * (crit ? CRIT_MULT : 1), target, info, mu) : applyArmor(base * (crit ? CRIT_MULT : 1), target.armor);
   if (info && (mu.w > 0 || mu.r > 0)) world.emit({ type: 'status', unitId: target.id, text: mu.w > mu.r ? '有效！' : mu.r > mu.w ? '抵抗' : '有效・抵抗' });
   applyDamage(world, target, final, p.damageType, src, { crit, skillId: p.skillId, freeAttack: p.freeAttack });
@@ -937,7 +943,7 @@ export function explode(world: World, src: Unit, point: { x: number; y: number }
     if (dist(u.pos, point) > eff.radius + u.radius * 0.5) continue;
     const ally = u.team === src.team;
     if (ally && !eff.friendlyFire) continue;
-    const mult = (ally ? world.config.friendlyFireMultiplier : 1) * damageMultOf(world, src);
+    const mult = (ally ? world.config.friendlyFireMultiplier : 1) * damageMultOf(world, src) * skillPower(world, src);
     if (mult <= 0) continue;
     const dmg = rollDamage(world.rng, eff.damage, mult);
     applyDamage(world, u, mitigate(world, src, u, dmg, def.id, 'area'), 'area', src, { skillId: def.id });
@@ -991,7 +997,7 @@ export function resolveProjectilePayload(world: World, src: Unit, p: Projectile,
         target.hexed = false;
         world.emit({ type: 'status', unitId: target.id, text: '詛咒爆裂' });
       }
-      const dmg = rollDamage(world.rng, cursed ? eff.damage : eff.uncursedDamage, damageMultOf(world, src));
+      const dmg = rollDamage(world.rng, cursed ? eff.damage : eff.uncursedDamage, damageMultOf(world, src) * skillPower(world, src));
       applyDamage(world, target, mitigate(world, src, target, dmg, pl.skillId, 'spell'), 'spell', src, { skillId: pl.skillId });
       break;
     }

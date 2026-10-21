@@ -14,6 +14,13 @@ export const DELIBERATE_PACE = {
   cooldown: 2,
   /** 交戰距離倍率（Alan：整體交戰距離縮短）：普攻射程、技能施放距離、敵人察覺距離、攻擊移動接戰距離 */
   range: 0.6,
+  /**
+   * Alan 2026-10-21（手感：「很真實世界，但作為遊戲太泥濘」）：
+   * 一般敵人生命倍率（精英隊長、頭目不受影響）、英雄技能效果倍率（冷卻不動）、英雄普攻速度倍率。
+   */
+  enemyHpMult: 0.5,
+  heroSkillPower: 1.5,
+  heroAttackSpeed: 1.5,
 };
 
 /** 沉穩節奏的戰鬥設定（相對於 base，預設是 DEFAULT_SIM_CONFIG） */
@@ -29,5 +36,7 @@ export function deliberateConfig(base: SimConfig = DEFAULT_SIM_CONFIG): Partial<
     rangeMult: base.rangeMult * DELIBERATE_PACE.range,
     enemyAggroRange: base.enemyAggroRange * DELIBERATE_PACE.range,
     attackMoveRange: base.attackMoveRange * DELIBERATE_PACE.range,
+    basicAttackSpeedMult: base.basicAttackSpeedMult * DELIBERATE_PACE.heroAttackSpeed,
+    heroSkillPowerMult: base.heroSkillPowerMult * DELIBERATE_PACE.heroSkillPower,
   };
 }

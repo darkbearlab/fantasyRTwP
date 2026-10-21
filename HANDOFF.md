@@ -104,6 +104,10 @@
   - 標題畫面有存檔時顯示「繼續遠征」和摘要；開新遠征會先確認再覆蓋。
   - 戰鬥中的狀態不存：讀檔後從那場戰鬥開頭重來（關卡依種子重新生成）。
   - localStorage 不能用時當作沒有存檔。
+- **手感調整**（2026-10-21，Alan：「很真實世界，但作為遊戲太泥濘」；`DELIBERATE_PACE`，只用在沉穩節奏）：
+  - 一般敵人生命 ×0.5（`enemyHpMult`；精英隊長、頭目不變；在 `createBattleFromRun` 套用）。
+  - 英雄技能效果 ×1.5（`heroSkillPower` → `SimConfig.heroSkillPowerMult`）：技能傷害、範圍傷害、治療、附魔增益、技能留下的地面效果。冷卻、時間、範圍、暈眩長度不變。
+  - 英雄普攻速度 ×1.5（`heroAttackSpeed` → `basicAttackSpeedMult`）。
 - **下完指令不取消選取**：`GAME_CONFIG.deselectAfterOrder`（預設 false）。
 - **角色縮放**：`VISUAL.unitScale`（0.8，只影響畫面；`unitHeight()` 已乘上這個值），碰撞半徑與腳下圈不變。
 - **交戰距離縮短**（2026-10-20）：沉穩節奏 `SimConfig.rangeMult` ＝ 0.6（`DELIBERATE_PACE.range`），套用在 1 m 以上的普攻射程與技能施放距離（換算一律經過 `scaleRange`）；敵人察覺距離、攻擊移動接戰距離也 ×0.6。近戰、範圍半徑、視野不變；舊模式 `rangeMult` ＝ 1。

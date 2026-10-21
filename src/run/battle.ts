@@ -1,7 +1,7 @@
 /**
  * 遠征 ↔ 戰鬥的介面（SPEC_SLICE2 §10.2）：由 RunState 建立 World、把戰鬥結果寫回。
  */
-import { ENEMIES } from '../sim/data/enemies';
+import { ENEMIES, enemyRank } from '../sim/data/enemies';
 import { HORDE_CONFIG, HORDE_ENEMY_HP } from '../sim/data/horde';
 import { MAPS } from '../sim/data/maps';
 import type { Personality, UnitDef } from '../sim/data/types';
@@ -29,7 +29,7 @@ import { directionTo, neighbors } from './routeMap';
 import type { MapDef } from '../sim/data/types';
 import type { RunStyle } from './data/levels';
 import { LEVELS } from './data/levels';
-import { deliberateConfig } from '../sim/data/deliberate';
+import { DELIBERATE_PACE, deliberateConfig } from '../sim/data/deliberate';
 import { deliberateSkillsOf } from './loadout';
 import { DEFAULT_SIM_CONFIG } from '../sim/simConfig';
 import { heroDef } from './upgrades';
@@ -179,7 +179,9 @@ export function createBattleFromRun(run: RunState, config?: Partial<SimConfig>, 
   });
   // 怪群模式：地圖與遭遇的生成點合併，戰鬥模式自動設成 horde，精英與頭目生命下降
   const horde = enc.horde ? { ...enc.horde, spawners: [...(map.spawners ?? []), ...enc.horde.spawners] } : undefined;
-  const scaled = (id: string, captain?: boolean) => (horde ? hordeEnemyDef(enemyDef(id, layer, captain)) : enemyDef(id, layer, captain));
+  // 沉穩節奏（Alan 2026-10-21：太泥濘）：一般敵人生命減半，精英隊長與頭目不變
+  const lighter = (d: UnitDef): UnitDef => (deliberate && enemyRank(d) === 'normal' ? { ...d, maxHp: Math.max(1, Math.round(d.maxHp * DELIBERATE_PACE.enemyHpMult)) } : d);
+  const scaled = (id: string, captain?: boolean) => (horde ? hordeEnemyDef(enemyDef(id, layer, captain)) : lighter(enemyDef(id, layer, captain)));
   // 沉穩節奏：同小隊一起警覺；舊的手工遭遇沒有小隊，全部算同一隊（看到一名就全體進攻）
   for (const e of enc.enemies) spawns.push({ defId: e.enemy, def: scaled(e.enemy, e.captain), pos: { x: e.x, y: e.y }, squad: e.squad ?? 'main', facing: e.facing });
   // 沉穩節奏（SPEC_SLICE5）：小地圖遭遇套用變慢的設定

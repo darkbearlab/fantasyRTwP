@@ -90,14 +90,15 @@ describe('持續地面效果（通用 helper）', () => {
     addZone(w, w.getUnit(1)!, { x: 5.5, y: 6.5 }, 3, { duration: 3, affects: 'enemy', effects: [{ kind: 'damage', perSecond: 4 }, { kind: 'slow', moveMult: 0.5 }] }, 'test');
     expect(w.moveMultFor(foe)).toBeCloseTo(Math.min(0.5, w.moveMultAt(foe.pos)));
     const evs = run(w, Math.round(3.05 * 30));
-    // 回復只給友軍（每秒 5，共 3 次）；敵人不會被回復
+    // 回復只給友軍（每秒 5 × 英雄技能效果倍率，共 3 次）；敵人不會被回復
     const heals = evs.filter((e) => e.type === 'heal') as { targetId: number; amount: number }[];
-    expect(heals.filter((h) => h.targetId === ally.id).reduce((a, h) => a + h.amount, 0)).toBe(15);
+    expect(heals.filter((h) => h.targetId === ally.id).reduce((a, h) => a + h.amount, 0)).toBe(3 * Math.round(5 * w.config.heroSkillPowerMult));
     expect(heals.some((h) => h.targetId === foe.id)).toBe(false);
-    // 傷害只給敵人（每秒 4，共 3 次）
+    // 傷害只給敵人（每秒 4 × 英雄技能效果倍率，共 3 次）
+    const perTick = Math.round(4 * w.config.heroSkillPowerMult);
     const zoneHits = evs.filter((e) => e.type === 'hit' && e.skillId === 'test') as { targetId: number; damage: number }[];
     expect(zoneHits.every((h) => h.targetId === foe.id)).toBe(true);
-    expect(zoneHits.reduce((a, h) => a + h.damage, 0)).toBe(12);
-    expect(foe.hp).toBeLessThanOrEqual(foeHp - 12);
+    expect(zoneHits.reduce((a, h) => a + h.damage, 0)).toBe(3 * perTick);
+    expect(foe.hp).toBeLessThanOrEqual(foeHp - 3 * perTick);
   });
 });
