@@ -898,6 +898,16 @@ body {
   gap: 10px;
 }
 
+/* 側欄可以捲動時，裡面的區塊（隊伍、背包）不被壓扁成小捲動框（Alan 2026-10-22） */
+.map-side > * {
+  flex-shrink: 0;
+}
+/* 背包面板在側欄裡不另外捲動，跟著側欄一起捲 */
+.map-side .bag-panel {
+  max-height: none;
+  overflow: visible;
+}
+
 .map-title {
   font-size: 22px;
   font-weight: bold;
