@@ -204,7 +204,7 @@ function hordeMelee(world: World, u: Unit, t: Unit, style: BasicAttackStyle): vo
       return;
     }
     case 'smite': {
-      if (strike(world, u, t, { ...base, knockback: style.knockback })) healLowestAlly(world, u, style.heal, style.healRadius);
+      if (strike(world, u, t, { ...base, knockback: style.knockback, interrupts: style.interrupts })) healLowestAlly(world, u, style.heal, style.healRadius);
       return;
     }
     case 'reset':
