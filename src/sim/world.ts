@@ -1042,9 +1042,18 @@ export class World implements ZocContext {
       t = atPoint ? this.acquireNearPoint(u, o.point, this.config.attackMoveRange) : this.acquireTarget(u, this.attackRange(u) + this.config.attackMoveRange);
       o.targetId = t?.id;
     }
+    // 沉穩節奏的英雄（Alan 2026-10-21）：攻擊移動一接戰就不再往目標點前進——
+    // 目標被推開、跑掉或死掉時就地駐守（不會為了原本的目標點往前走而停止輸出、暴露後排）；遠程英雄也不追出射程
+    const hold = o.engaged && u.team === 'hero' && this.config.battleStyle === 'deliberate';
+    if (hold && (!t || (!u.isMelee && edgeDistance(u, t) > this.attackRange(u) + RANGE_TOLERANCE))) {
+      u.guardPoint = { x: u.pos.x, y: u.pos.y };
+      this.setOrder(u, null);
+      return;
+    }
     if (t) {
       const inRange = edgeDistance(u, t) <= this.attackRange(u) + RANGE_TOLERANCE && (u.isMelee || u.def.arcAttack || this.canSee(u, t));
       if (inRange) {
+        o.engaged = true;
         startAction(this, u, { kind: 'attack', targetId: t.id });
         return;
       }

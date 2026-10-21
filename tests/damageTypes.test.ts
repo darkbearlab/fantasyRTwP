@@ -127,3 +127,33 @@ describe('手感調整（Alan 2026-10-21：太泥濘）', () => {
     expect(w.config.basicAttackSpeedMult).toBe(DELIBERATE_PACE.heroAttackSpeed);
   });
 });
+
+describe('攻擊移動接戰後就地駐守（Alan 2026-10-21）', () => {
+  it('遠程英雄出過手後，目標被推遠也不會往原本的目標點走', () => {
+    const w = new World({
+      seed: 1,
+      map: MAP,
+      spawns: [
+        { defId: 'ranger', def: { ...HEROES.ranger, skills: [] }, pos: { x: 3, y: 6 } },
+        { defId: 'raider', def: enemyDef('raider', 1), pos: { x: 6, y: 6 }, squad: 's' },
+      ],
+      config: DELIB,
+    });
+    const [h, e] = w.units;
+    w.enqueue({ type: 'attackMove', unitIds: [h.id], point: { x: 7, y: 6 } });
+    let engaged = false;
+    for (let t = 0; t < 10 / DT && !engaged; t++) {
+      w.step();
+      engaged = h.order?.type === 'attackMove' && !!h.order.engaged;
+    }
+    expect(engaged).toBe(true);
+    // 敵人被推到很遠的地方
+    e.pos = { x: 25, y: 10 };
+    e.prevPos = { ...e.pos };
+    const x0 = h.pos.x;
+    // 手上這一箭打完（準備＋恢復）後就停在原地
+    for (let t = 0; t < 4 / DT; t++) w.step();
+    expect(h.order).toBeNull();
+    expect(h.pos.x).toBeLessThan(x0 + 0.5);
+  });
+});

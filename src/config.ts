@@ -80,6 +80,11 @@ export const GAME_CONFIG = {
   mobileControls: { align: 'left' as 'left' | 'center' | 'right', order: ['pause', 'selectAll', 'deselectAll'] as ('pause' | 'selectAll' | 'deselectAll')[] },
   /** 行動版：點地圖下完攻擊移動指令後是否自動取消選取（Alan 2026-10-20：先關掉） */
   deselectAfterOrder: false,
+  /**
+   * 行動版（沉穩節奏）的地圖操作（Alan 2026-10-21）：輕點＝純移動；在原地按住這麼多秒＝攻擊移動。
+   * 拖曳過（移動鏡頭）就不算，要另外放下手指按住才算。Alan 提議約 2 秒，先抓 1 秒，試玩後再調。
+   */
+  longPressSec: 1.0,
   /** 戰鬥鏡頭的固定縮放（Alan：遠近固定，玩家不能縮放；只留這個旋鈕） */
   battleZoom: 1,
   /** 等角投影：1 公尺見方的地面 = TILE_W × TILE_H 的菱形；高度 1 m = HEIGHT_PX_PER_M px */

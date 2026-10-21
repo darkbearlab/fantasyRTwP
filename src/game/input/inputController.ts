@@ -54,7 +54,7 @@ export class InputController {
   /** 按了攻擊移動鍵，等待點擊目標點 */
   attackMoveArmed = false;
   /** 沉穩模式（行動版操作）：按下的位置（判斷點擊或拖曳鏡頭） */
-  private tap: { x: number; y: number; sx: number; sy: number; moved: boolean; pid: number | null; cx: number; cy: number; cx0: number; cy0: number } | null = null;
+  private tap: { x: number; y: number; sx: number; sy: number; moved: boolean; pid: number | null; cx: number; cy: number; cx0: number; cy0: number; t0: number; fired: boolean } | null = null;
   /** 瀏覽器原生指標（Alan：拖曳地圖時手指滑到其他面板上也要繼續拖，直到放開）：按著的指標、最後一次按下的指標與位置 */
   private nativePointers = new Set<number>();
   private nativeDown: { id: number; x: number; y: number } | null = null;
@@ -134,7 +134,7 @@ export class InputController {
       this.attackMoveArmed = false;
       const obj = unit && !unit.dead ? undefined : this.host.objectAtScreen(sp.x, sp.y);
       if (obj) this.interact(obj);
-      else if (this.deliberate) this.tapOrder(m, unit);
+      else if (this.deliberate) this.tapOrder(m, unit, true);
       else this.rightClick(m, unit);
       return;
     }
@@ -146,7 +146,7 @@ export class InputController {
     if (this.deliberate && !this.attackMoveArmed && !s.targeting) {
       // 行動版：先記下按下的位置，放開時沒有拖曳才算點擊（拖曳＝移動鏡頭）
       const nd = this.nativeDown;
-      this.tap = { x: p.x, y: p.y, sx: sp.x, sy: sp.y, moved: false, pid: nd?.id ?? null, cx: nd?.x ?? 0, cy: nd?.y ?? 0, cx0: nd?.x ?? 0, cy0: nd?.y ?? 0 };
+      this.tap = { x: p.x, y: p.y, sx: sp.x, sy: sp.y, moved: false, pid: nd?.id ?? null, cx: nd?.x ?? 0, cy: nd?.y ?? 0, cx0: nd?.x ?? 0, cy0: nd?.y ?? 0, t0: this.now(), fired: false };
       return;
     }
     if (p.leftButtonDown()) {
@@ -283,10 +283,12 @@ export class InputController {
   }
 
   /**
-   * 行動版的點擊（SPEC_SLICE5 §4）：所有攻擊都是攻擊移動。
-   * 點英雄＝只選這名英雄（Alan 2026-10-21：先全部取消再選；多選用英雄卡）；點敵人＝攻擊移動到那個位置（不鎖定目標）；點地面＝攻擊移動。
+   * 行動版的點擊（Alan 2026-10-21）：
+   * - 點英雄＝只選這名英雄（先全部取消再選；多選用英雄卡）。
+   * - 輕點地面＝純移動（途中不理敵人，到了就地駐守）；輕點敵人＝攻擊移動到那個位置。
+   * - 在原地按住 longPressSec 秒（或滑鼠右鍵）＝攻擊移動（attack＝true）。
    */
-  private tapOrder(m: Vec, unit: Unit | undefined): void {
+  private tapOrder(m: Vec, unit: Unit | undefined, attack = false): void {
     const s = this.session;
     if (unit && !unit.dead && unit.team === 'hero') {
       s.selection = [unit.id];
@@ -296,7 +298,9 @@ export class InputController {
       s.showToast('先點英雄卡上的名字選人', this.now(), 1200);
       return;
     }
-    this.attackMove(unit && !unit.dead ? { x: unit.pos.x, y: unit.pos.y } : m);
+    const enemy = unit && !unit.dead && unit.team === 'enemy';
+    if (attack || enemy) this.attackMove(enemy ? { x: unit!.pos.x, y: unit!.pos.y } : m);
+    else s.enqueue({ type: 'move', unitIds: s.selectedUnits().map((u) => u.id), point: m });
     // 下完指令是否取消選取（GAME_CONFIG.deselectAfterOrder，目前關閉）
     if (GAME_CONFIG.deselectAfterOrder) s.selection = [];
   }
@@ -305,7 +309,8 @@ export class InputController {
   private finishTap(): void {
     const t = this.tap;
     this.tap = null;
-    if (!t || t.moved) return;
+    // 拖曳過（移動鏡頭）或已經長按出了攻擊移動：放開不再下指令
+    if (!t || t.moved || t.fired) return;
     const unit = this.host.unitAtScreen(t.sx, t.sy);
     const obj = unit && !unit.dead ? undefined : this.host.objectAtScreen(t.sx, t.sy);
     if (obj) this.interact(obj);
@@ -483,7 +488,32 @@ export class InputController {
   }
 
   /** 每幀：方向鍵、滑鼠移到邊緣捲動鏡頭 */
+  /**
+   * 長按的進度（畫面畫一個漸滿的圈）：手指一直沒動、不是按在英雄身上時才有；0～1，滿了就下攻擊移動。
+   */
+  pressProgress(): { sx: number; sy: number; k: number } | null {
+    const t = this.tap;
+    if (!t || t.moved || t.fired || !this.deliberate) return null;
+    const unit = this.host.unitAtScreen(t.sx, t.sy);
+    if (unit && !unit.dead && unit.team === 'hero') return null;
+    const held = (this.now() - t.t0) / 1000;
+    // 剛按下的一小段不畫（輕點不會閃一下）
+    if (held < 0.15) return null;
+    return { sx: t.sx, sy: t.sy, k: Math.min(1, held / GAME_CONFIG.longPressSec) };
+  }
+
+  /** 長按到時間：在按住的位置下攻擊移動（之後放開不再下指令） */
+  private checkLongPress(): void {
+    const t = this.tap;
+    const pr = this.pressProgress();
+    if (!t || !pr || pr.k < 1) return;
+    t.fired = true;
+    const unit = this.host.unitAtScreen(t.sx, t.sy);
+    this.tapOrder(screenToGround(t.sx, t.sy), unit, true);
+  }
+
   update(dtSec: number): void {
+    this.checkLongPress();
     const scene = this.host.scene;
     const cam = scene.cameras.main;
     const speed = (GAME_CONFIG.cameraScrollSpeed * dtSec) / cam.zoom;

@@ -30,6 +30,8 @@ interface MobileCard {
   cdCover: HTMLElement;
   hint: HTMLElement;
   skillId: string | undefined;
+  /** 以友軍為目標的技能瞄準中、這名英雄可以當目標時顯示的箭頭 */
+  target: HTMLElement;
 }
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls = '', text = ''): HTMLElementTagNameMap[K] {
@@ -193,7 +195,7 @@ export class MobileHeroBar {
         // 正在瞄準以友軍為目標的技能：點卡片＝選這名英雄當目標，不改變選取（Alan 2026-10-21）
         const td = targetingDef(s2);
         if (td && validSkillTarget(td.def, td.caster, u)) {
-          confirmTargeting(s2, { x: u.pos.x, y: u.pos.y }, u, performance.now());
+          confirmTargeting(s2, { x: u.pos.x, y: u.pos.y }, u, this.host.now());
           return;
         }
         const i = s2.selection.indexOf(u.id);
@@ -217,9 +219,11 @@ export class MobileHeroBar {
         if (u.dead) return;
         beginSkill(this.host.session(), u.heroSlot, activeSkillIndex(u), this.host.now());
       });
-      root.append(fill, head, skillBtn);
+      // 以友軍為目標的技能瞄準中：可以當目標的英雄卡上方出現箭頭（Alan：提示要點卡片、不是點地圖）
+      const target = el('div', 'm-target', '▼ 目標');
+      root.append(fill, head, skillBtn, target);
       this.row.appendChild(root);
-      this.cards.push({ unit: u, root, fill, hpFill, hpText, status, skillBtn, skillName, cdText, cdCover, hint, skillId });
+      this.cards.push({ unit: u, root, fill, hpFill, hpText, status, skillBtn, skillName, cdText, cdCover, hint, skillId, target });
     }
   }
 
@@ -243,9 +247,12 @@ export class MobileHeroBar {
     const label = s.paused && !s.world.result ? (s.pauseReason ? `暫停：${s.pauseReason}` : '暫停中') : '';
     if (this.pauseLabel.textContent !== label) this.pauseLabel.textContent = label;
     const sel = new Set(s.selection);
+    const td = targetingDef(s);
+    const allyAim = !!td && (td.def.target === 'ally' || td.def.target === 'allyOrSelf');
     for (const c of this.cards) {
       const u = c.unit;
       c.root.classList.toggle('selected', sel.has(u.id));
+      c.root.classList.toggle('targetable', allyAim && validSkillTarget(td!.def, td!.caster, u));
       c.root.classList.toggle('dead', u.dead);
       const frac = Math.max(0, u.hp / u.maxHp);
       c.hpFill.style.width = `${frac * 100}%`;
