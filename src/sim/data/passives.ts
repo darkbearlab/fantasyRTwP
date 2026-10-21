@@ -121,8 +121,9 @@ export const PASSIVES: Record<string, PassiveDef> = {
   },
   smite: {
     id: 'smite', name: '聖鎚', source: 'class',
-    description: '普攻擊退目標，命中時為附近生命最低的隊友回復生命',
-    attack: { kind: 'smite', knockback: 0.8, heal: 4, healRadius: 6 },
+    description: '普攻打斷並擊退目標，命中時為附近生命最低的隊友回復生命',
+    // Alan 2026-10-21：聖鎚自帶打斷，擊退不變
+    attack: { kind: 'smite', knockback: 0.8, heal: 4, healRadius: 6, interrupts: true },
   },
   grenade: {
     id: 'grenade', name: '手榴彈', source: 'class',

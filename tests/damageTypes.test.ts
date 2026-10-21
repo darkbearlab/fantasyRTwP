@@ -82,3 +82,27 @@ describe('物理／特殊與屬性相剋（SPEC_DAMAGE）', () => {
     expect(matchup(e, attackInfo(h, 'shieldBash', 'melee')).w).toBe(1);
   });
 });
+
+describe('牧師的聖鎚', () => {
+  it('命中會打斷目標的準備動作（Alan 2026-10-21）', () => {
+    let interrupted = 0;
+    for (const seed of [1, 2, 3, 4, 5, 6]) {
+      const w = new World({
+        seed,
+        map: MAP,
+        spawns: [
+          { defId: 'cleric', def: { ...HEROES.cleric, skills: [] }, pos: { x: 5, y: 6 } },
+          { defId: 'axeman', def: enemyDef('axeman', 1), pos: { x: 6.2, y: 6 }, squad: 's' },
+        ],
+        config: DELIB,
+      });
+      const [h, e] = w.units;
+      e.alerted = true;
+      for (let t = 0; t < 30 / DT; t++) {
+        if (t % 10 === 0) w.enqueue({ type: 'attack', unitIds: [h.id], targetId: e.id });
+        for (const ev of w.step()) if (ev.type === 'interrupt' && ev.targetId === e.id) interrupted++;
+      }
+    }
+    expect(interrupted).toBeGreaterThan(0);
+  });
+});

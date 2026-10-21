@@ -59,7 +59,7 @@ export type BasicAttackStyle =
   | { kind: 'cleave'; angle: number; heavyEvery: number; heavyMult: number; heavyKnockback: number; lowHpSpeed?: number }
   | { kind: 'pierce'; maxTargets: number; falloff: number; reach: number; killRefire: boolean }
   | { kind: 'blast'; radius: number; splashMult: number; push: number }
-  | { kind: 'smite'; knockback: number; heal: number; healRadius: number }
+  | { kind: 'smite'; knockback: number; heal: number; healRadius: number; interrupts?: boolean }
   | { kind: 'reset' }
   | { kind: 'hex'; duration: number; actionSlow: number; damageTakenPct: number; spreadRadius: number }
   | { kind: 'splash'; radius: number; splashMult: number };
