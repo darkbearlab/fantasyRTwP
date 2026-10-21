@@ -4,7 +4,8 @@ import { PERSONALITY_LABEL } from '../../sim/ai/idleBehavior';
 import type { Personality } from '../../sim/data/types';
 import { UPGRADES } from '../../run/data/upgrades';
 import type { RunState } from '../../run/runState';
-import { maxHpOf } from '../../run/upgrades';
+import { branchProgress, canEvolve, maxHpOf } from '../../run/upgrades';
+import { BRANCH_RULES, BRANCHES } from '../../run/data/branches';
 import { battleSkillsOf } from '../../run/loadout';
 import { hex } from '../render/palette';
 import { className } from './classInfo';
@@ -59,6 +60,19 @@ export function partyPanel(run: RunState, opts: PartyPanelOptions = {}): HTMLEle
     if (h.hp / max < 0.3) fill.classList.add('low');
     hp.append(fill, el('span', 'hptext', h.dead ? '陣亡' : `${h.hp} / ${max}`));
     info.append(name, hp);
+    // 昇變分支的進度（SPEC_CLASSES §5）；昇變後標出原本的職業
+    const base = h.baseClass;
+    if (run.style === 'deliberate') {
+      if (canEvolve(h)) {
+        const prog = branchProgress(h);
+        const line = el('div', 'party-branches');
+        for (const b of BRANCHES[h.classId]) {
+          const n = prog[b.id] ?? 0;
+          line.appendChild(el('span', `branch${n > 0 ? ' on' : ''}`, `${b.name} ${'■'.repeat(n)}${'□'.repeat(Math.max(0, BRANCH_RULES.threshold - n))}`));
+        }
+        info.appendChild(line);
+      } else if (base) info.appendChild(el('div', 'party-branches', `昇變自${HEROES[base].name}`));
+    }
     // 技能順序（戰鬥中「選人後再按數字」與 Q E R 的對應）；路線圖上可以調整
     if (opts.onSwapSkill || opts.onSwapHero) {
       const skills = el('div', 'party-skills');

@@ -147,7 +147,22 @@
     - 命中附帶破甲（被動 onHit `sunder`）。
     - 吸血：被動 `lifesteal`、光環 `aura.drain`、技能效果 `drain`（目標類型 `unit`）。
     - 集中狀態（`src/sim/focus.ts`、技能效果 `focus`）。
-    - 佔位技能 `focus`、`drainLife` 還沒有職業在用。測試在 `tests/classEngine.test.ts`。
+    - 測試在 `tests/classEngine.test.ts`。
+  - 第二～五階段（2026-10-21 完成）：
+    - **分支**：`src/run/data/branches.ts`。專屬升級在 `UPGRADES`，`branch` 欄位指回分支。
+    - **昇變**：`grantUpgrade` 選滿 3 個就昇變。
+      - `HeroRecord.classId` 換成進階職業，`baseClass` 記住原本的職業。
+      - 剛昇變的英雄放在 `RunState.evolutionShow`，畫面播完就清掉（`src/game/ui/evolutionShow.ts`）。
+    - **升級三選一**：`levelUpOffer`，兩名英雄各一個專屬＋一個通用。`reward.optionSlots` 記住專屬升級是給誰的。
+    - **通用池**：`generalUpgradeIds(style)`。同袍只在舊模式；心防、法抗只在沉穩節奏。
+    - **進階職業**：12 個，HEROES／CLASSES／CLASS_PASSIVES 等表都以職業 id 為鍵。狂戰士回收舊的變體；刺客、死亡法師複製盜賊、咒術師的資料。
+    - **開局與招募**：沉穩節奏只有四個基本職業（`STARTER_CLASSES`）。
+    - **新的通用機制**：
+      - 光環：`cover`（分擔傷害）、`enemies.vuln`（易傷）、`allies.damagePct`（加攻擊）。
+      - 被動：`critAfterInterrupt`（打斷後必定爆擊）。
+      - 附魔帶屬性：`enchant.attrs`。
+      - 區域效果：`zone.extra`（同一點再放第二個區域）。
+    - **測試**：`tests/branches.test.ts`、`tests/evolvedClasses.test.ts`。
 - **下完指令不取消選取**：`GAME_CONFIG.deselectAfterOrder`（預設 false）。
 - **角色縮放**：`VISUAL.unitScale`（0.8，只影響畫面；`unitHeight()` 已乘上這個值），碰撞半徑與腳下圈不變。
 - **交戰距離縮短**（2026-10-20）：沉穩節奏 `SimConfig.rangeMult` ＝ 0.6（`DELIBERATE_PACE.range`），套用在 1 m 以上的普攻射程與技能施放距離（換算一律經過 `scaleRange`）；敵人察覺距離、攻擊移動接戰距離也 ×0.6。近戰、範圍半徑、視野不變；舊模式 `rangeMult` ＝ 1。

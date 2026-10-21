@@ -1093,6 +1093,123 @@ body {
   margin-top: 2px;
 }
 
+/* 昇變分支進度（SPEC_CLASSES §5） */
+.party-branches {
+  font-size: 11px;
+  color: #8a93a3;
+  margin-top: 2px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+}
+
+.party-branches .branch.on {
+  color: #f5c542;
+}
+
+/* 昇變演出 */
+.evo-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 10, 14, 0.78);
+  pointer-events: auto;
+}
+
+.evo-card {
+  width: min(420px, calc(100% - 32px));
+  background: #1f1b10;
+  border: 2px solid #f5c542;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  box-shadow: 0 0 24px rgba(245, 197, 66, 0.4);
+}
+
+.evo-title {
+  font-size: 26px;
+  font-weight: bold;
+  color: #f5c542;
+  letter-spacing: 4px;
+}
+
+.evo-pics {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 12px 0 6px;
+}
+
+.evo-arrow {
+  font-size: 22px;
+  color: #f5c542;
+}
+
+.evo-portrait {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  border-radius: 10px;
+  background: #14171d;
+  overflow: hidden;
+}
+
+.evo-portrait.old {
+  opacity: 0.55;
+  filter: grayscale(0.6);
+}
+
+.evo-portrait.new {
+  animation: evo-flash 1.2s ease-out;
+}
+
+@keyframes evo-flash {
+  0% { box-shadow: 0 0 0 0 #fff; filter: brightness(4); }
+  40% { box-shadow: 0 0 30px 10px #f5c542; filter: brightness(2); }
+  100% { box-shadow: 0 0 8px 2px rgba(245, 197, 66, 0.5); filter: none; }
+}
+
+/* sheet 放大 4 倍，裁正面待機第一格 */
+.evo-sprite {
+  position: absolute;
+  inset: 0;
+  background-repeat: no-repeat;
+  background-size: 1024px 1792px;
+  background-position: -16px -650px;
+  image-rendering: pixelated;
+}
+
+.evo-letter {
+  font-size: 48px;
+  line-height: 96px;
+  font-weight: bold;
+}
+
+.evo-name {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.evo-line {
+  margin: 6px 0 10px;
+  color: #e8dcb8;
+  font-style: italic;
+}
+
+.evo-gains {
+  text-align: left;
+  font-size: 13px;
+  color: #d6dbe4;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
 /* 面板畫面（獎勵、事件、休息、結算） */
 .panel-screen {
   display: flex;
