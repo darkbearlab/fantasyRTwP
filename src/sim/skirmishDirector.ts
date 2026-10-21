@@ -47,11 +47,12 @@ export class SkirmishDirector {
     return n;
   }
 
-  /** 交戰中：有已警覺、還活著的敵人在英雄 combatRange 內（據點的敵人也算） */
+  /** 交戰中：有已警覺、還活著、我方看得到的敵人在英雄 combatRange 內（據點的敵人也算） */
   inCombat(world: World): boolean {
     const heroes = world.units.filter((u) => u.team === 'hero' && !u.dead);
     const R = this.def.combatRange;
-    return world.units.some((e) => e.team === 'enemy' && !e.dead && e.alerted && heroes.some((h) => dist(e.pos, h.pos) <= R));
+    // 看不到的不算（例如隔著房子、打不到也走不過來的敵人，不然計時會永遠停住）
+    return world.units.some((e) => e.team === 'enemy' && !e.dead && e.alerted && (!world.vision || world.vision.isVisible(e.pos)) && heroes.some((h) => dist(e.pos, h.pos) <= R));
   }
 
   update(world: World): void {

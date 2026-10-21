@@ -158,3 +158,30 @@ describe('攻擊移動接戰後就地駐守（Alan 2026-10-21）', () => {
     expect(h.pos.x).toBeLessThan(x0 + 0.5);
   });
 });
+
+describe('同隊間隔（Alan 2026-10-21：不要擠成一坨）', () => {
+  const spaced = (extra: Partial<typeof DELIB> = {}, defs: Record<string, object> = {}) => {
+    const w = new World({
+      seed: 1,
+      map: MAP,
+      spawns: [
+        { defId: 'raider', def: { ...enemyDef('raider', 1), ...defs.a }, pos: { x: 10, y: 6 } },
+        { defId: 'raider', def: { ...enemyDef('raider', 1), ...defs.b }, pos: { x: 10.85, y: 6 } },
+        { defId: 'warrior', def: { ...HEROES.warrior, skills: [] }, pos: { x: 2, y: 2 } },
+      ],
+      config: { ...DELIB, ...extra },
+    });
+    for (let t = 0; t < 3 / DT; t++) w.step();
+    const [a, b] = w.units;
+    return { a, b, gap: Math.hypot(a.pos.x - b.pos.x, a.pos.y - b.pos.y) - a.radius - b.radius };
+  };
+  it('沉穩節奏：同隊之間至少隔開約 0.5 m（只避免重疊時會貼在一起）', () => {
+    expect(spaced().gap).toBeGreaterThan(0.45);
+    expect(spaced({ unitSpacing: 0 }).gap).toBeLessThan(0.1);
+  });
+  it('單位可以要求更大的間隔；推動權重大的比較不會被推開', () => {
+    expect(spaced({}, { a: { spacing: 1.2 } }).gap).toBeGreaterThan(1.1);
+    const r = spaced({}, { a: { pushWeight: 9 } });
+    expect(Math.abs(r.a.pos.x - 10)).toBeLessThan(Math.abs(r.b.pos.x - 10.85));
+  });
+});

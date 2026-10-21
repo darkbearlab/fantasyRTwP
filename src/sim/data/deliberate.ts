@@ -23,6 +23,8 @@ export const DELIBERATE_PACE = {
   heroAttackSpeed: 1.5,
   /** 敵人普攻速度倍率（Alan 2026-10-21：對標英雄的普攻速度成長） */
   enemyAttackSpeed: 1.5,
+  /** 同隊之間的間隔（公尺；Alan 2026-10-21：先 0.5，留旋鈕） */
+  unitSpacing: 0.5,
 };
 
 /** 沉穩節奏的戰鬥設定（相對於 base，預設是 DEFAULT_SIM_CONFIG） */
@@ -41,5 +43,6 @@ export function deliberateConfig(base: SimConfig = DEFAULT_SIM_CONFIG): Partial<
     basicAttackSpeedMult: base.basicAttackSpeedMult * DELIBERATE_PACE.heroAttackSpeed,
     heroSkillPowerMult: base.heroSkillPowerMult * DELIBERATE_PACE.heroSkillPower,
     enemyAttackSpeedMult: base.enemyAttackSpeedMult * DELIBERATE_PACE.enemyAttackSpeed,
+    unitSpacing: DELIBERATE_PACE.unitSpacing,
   };
 }
