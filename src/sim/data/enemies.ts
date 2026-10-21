@@ -87,12 +87,12 @@ export const ENEMIES: Record<string, UnitDef> = {
   },
   // ── 沉穩節奏的新敵人（SPEC_SLICE5 §15.2，v0.4；外觀借用現有素材，數值佔位） ──
   // 技能的準備時間在沉穩節奏下會再 ×1.8、冷卻 ×2（DELIBERATE_PACE），資料值是換算前的
-  /** 盾兵：生命高於一半前防禦、護甲較高（盾破後恢復一般）；借蠻兵外觀 */
+  /** 盾兵：生命高於一半前物理防禦、護甲較高（盾破後恢復一般）；抗切割、穿刺，怕衝擊（data/damageTypes.ts） */
   shieldbearer: {
     id: 'shieldbearer', name: '盾兵', letter: 'D', color: 0x8a5a3a, team: 'enemy', ai: 'brute',
     maxHp: 120, armor: 4, accuracy: 25, defense: 25, damage: [6, 10],
     range: 0.3, windup: 0.7, recovery: 1.1, attackSpeed: 1, moveSpeed: 2.4, radius: 0.48,
-    projectsZoc: true, shield: { hpFrac: 0.5, defense: 30, armor: 4 },
+    projectsZoc: true, shield: { hpFrac: 0.5, defense: 20, armor: 4 },
     skills: [],
   },
   /** 衝鋒兵：預兆線後直線衝鋒，撞到的英雄受傷（v0.4：不擊倒）；借攻城兵外觀 */

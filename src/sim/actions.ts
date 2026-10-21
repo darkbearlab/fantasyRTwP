@@ -2,6 +2,8 @@
  * 動作狀態機（準備 → 生效 → 恢復）與效果結算（SPEC §5、§6、§10.2）。
  */
 import { applyArmor, CRIT_MULT, rollDamage, rollHit } from './combat';
+import { AFFINITY, BASIC_ATTACK, DAMAGE_FORMULA, SKILL_ATTACK, SPEC_DEFENSE } from './data/damageTypes';
+import type { AttackInfo, DamageCategory } from './data/damageTypes';
 import { DT, RANGE_TOLERANCE, secondsToTicks } from './constants';
 import { SKILLS } from './data/skills';
 import type { DamageType, SkillDef, UnitDef } from './data/types';
@@ -235,7 +237,7 @@ function splashAround(world: World, src: Unit, point: { x: number; y: number }, 
     if (o.dead || o.team === src.team || dist(o.pos, point) > radius + o.radius * 0.5) continue;
     if (o !== exclude) {
       const dmg = rollDamage(world.rng, src.def.damage, mult * damageMultOf(world, src));
-      applyDamage(world, o, applyArmor(dmg, o.armor), 'area', src, { skillId: 'splash' });
+      applyDamage(world, o, mitigate(world, src, o, dmg, 'splash', 'area'), 'area', src, { skillId: 'splash' });
     }
     if (push > 0 && !o.dead && o.def.tier === 'fodder') knockbackFrom(world, src, point, o, push);
   }
@@ -422,7 +424,7 @@ function applySkillEffect(world: World, u: Unit, def: SkillDef, t: Unit | undefi
         // 貼身的單位就算角度偏一點也算在內
         if (Math.abs(da) > half + Math.atan2(t.radius, Math.max(d, 0.01))) continue;
         const dmg = rollDamage(world.rng, eff.damage, damageMultOf(world, u));
-        applyDamage(world, t, applyArmor(dmg, t.armor), 'area', u, { skillId: def.id });
+        applyDamage(world, t, mitigate(world, u, t, dmg, def.id, 'area'), 'area', u, { skillId: def.id });
       }
       return false;
     }
@@ -506,7 +508,7 @@ function applySkillEffect(world: World, u: Unit, def: SkillDef, t: Unit | undefi
       for (const o of [...world.units]) {
         if (o.dead || o.team === u.team || dist(o.pos, center) > eff.radius + o.radius * 0.5) continue;
         const dmg = rollDamage(world.rng, eff.damage, damageMultOf(world, u));
-        applyDamage(world, o, applyArmor(dmg, o.armor), 'area', u, { skillId: def.id });
+        applyDamage(world, o, mitigate(world, u, o, dmg, def.id, 'area'), 'area', u, { skillId: def.id });
       }
       if (!u.dead) kill(world, u);
       return false;
@@ -623,7 +625,7 @@ export function tickDash(world: World, u: Unit): void {
       if (dist(o.pos, u.pos) > u.radius + o.radius + eff.width / 2 - 0.3) continue;
       a.hitIds!.push(o.id);
       const dmg = rollDamage(world.rng, eff.damage, damageMultOf(world, u));
-      applyDamage(world, o, applyArmor(dmg, o.armor), 'melee', u, { skillId: def.id });
+      applyDamage(world, o, mitigate(world, u, o, dmg, def.id, 'melee'), 'melee', u, { skillId: def.id });
       if (u.dead) return;
     }
     if (!moved || dist(u.pos, a.point!) < 0.05 || a.dashTime > eff.distance / eff.speed + 0.5) {
@@ -661,6 +663,47 @@ export function tickDash(world: World, u: Unit): void {
 /** 普攻的傷害類型 */
 export function basicDamageType(def: UnitDef): DamageType {
   return def.attackDamageType ?? (def.range < 1 ? 'melee' : 'projectile');
+}
+
+// ───────────── 物理／特殊與屬性相剋（SPEC_DAMAGE，只用在沉穩節奏） ─────────────
+
+/** 這一招的類別與屬性：技能看技能表，普攻（與濺射）看單位的普攻表 */
+export function attackInfo(src: Unit, skillId: string | undefined, damageType: DamageType): AttackInfo {
+  if (skillId && SKILL_ATTACK[skillId]) return SKILL_ATTACK[skillId];
+  return BASIC_ATTACK[src.def.id] ?? { cat: damageType === 'spell' ? 'spec' : 'phys', attrs: [] };
+}
+
+/** 這一招的屬性中，目標弱的（相剋）有幾個、抗的（被剋）有幾個 */
+export function matchup(target: Unit, info: AttackInfo): { w: number; r: number } {
+  const a = AFFINITY[target.def.id];
+  if (!a) return { w: 0, r: 0 };
+  return { w: info.attrs.filter((x) => a.weak?.includes(x)).length, r: info.attrs.filter((x) => a.resist?.includes(x)).length };
+}
+
+/** 目標的防禦（物理含盾與祝福；特殊用特殊防禦表，祝福也算） */
+export function defenseOf(target: Unit, cat: DamageCategory): number {
+  if (cat === 'phys') return target.defense;
+  return (SPEC_DEFENSE[target.def.id]?.defense ?? target.def.defense) + target.mods.defense + (target.blessTime > 0 ? target.blessDefense : 0);
+}
+
+/** 目標的護甲（物理含盾；特殊用特殊護甲表） */
+export function armorOf(target: Unit, cat: DamageCategory): number {
+  if (cat === 'phys') return target.armor;
+  return (SPEC_DEFENSE[target.def.id]?.armor ?? target.def.armor) + target.mods.armor;
+}
+
+/** 打進去的傷害：傷害 × weakDamage^w × K ÷（K ＋ 護甲 × resistArmor^r） */
+export function typedDamage(dmg: number, target: Unit, info: AttackInfo, m: { w: number; r: number }): number {
+  const F = DAMAGE_FORMULA;
+  const armor = Math.max(0, armorOf(target, info.cat)) * F.resistArmor ** m.r;
+  return Math.max(1, Math.round((dmg * F.weakDamage ** m.w * F.k) / (F.k + armor)));
+}
+
+/** 不做命中判定的傷害（範圍、衝撞、詛咒爆裂）的減傷：沉穩節奏用新公式，舊模式照舊扣護甲 */
+export function mitigate(world: World, src: Unit, target: Unit, dmg: number, skillId: string | undefined, damageType: DamageType): number {
+  if (world.config.battleStyle !== 'deliberate') return applyArmor(dmg, target.armor);
+  const info = attackInfo(src, skillId, damageType);
+  return typedDamage(dmg, target, info, matchup(target, info));
 }
 
 /** 造成傷害的總倍率：單位自身（強化、增益）× 我方傷害倍率設定 */
@@ -710,7 +753,11 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): Uni
     }
   }
   // 地形修正：淺水防禦下降、矮籬掩體、由低打高命中下降、高地傷害加成
-  let defense = target.defense;
+  // 沉穩節奏（SPEC_DAMAGE）：物理／特殊看不同的防禦，相剋時目標防禦下降、被剋時上升
+  const typed = world.config.battleStyle === 'deliberate';
+  const info = typed ? attackInfo(src, p.skillId, p.damageType) : null;
+  const mu = info ? matchup(target, info) : { w: 0, r: 0 };
+  let defense = info ? defenseOf(target, info.cat) * DAMAGE_FORMULA.weakDefense ** mu.w * DAMAGE_FORMULA.resistDefense ** mu.r : target.defense;
   let accuracy = src.accuracy + (p.accBonus ?? 0);
   let terrainMult = 1;
   if (!p.melee && !p.arc) {
@@ -751,7 +798,8 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): Uni
   // 斬殺（被動）：對低生命的目標傷害提高
   for (const ps of src.passives) if (ps.execute && target.hp / target.maxHp < ps.execute.below) comboMult *= 1 + ps.execute.pct;
   const base = rollDamage(world.rng, p.flatDamage ?? src.def.damage, p.mult * damageMultOf(world, src) * terrainMult * comboMult);
-  const final = applyArmor(base * (crit ? CRIT_MULT : 1), target.armor);
+  const final = info ? typedDamage(base * (crit ? CRIT_MULT : 1), target, info, mu) : applyArmor(base * (crit ? CRIT_MULT : 1), target.armor);
+  if (info && (mu.w > 0 || mu.r > 0)) world.emit({ type: 'status', unitId: target.id, text: mu.w > mu.r ? '有效！' : mu.r > mu.w ? '抵抗' : '有效・抵抗' });
   applyDamage(world, target, final, p.damageType, src, { crit, skillId: p.skillId, freeAttack: p.freeAttack });
   if (target.dead) return target;
   if (p.basic && src.passives.length > 0) passiveOnHit(world, src, target);
@@ -892,7 +940,7 @@ export function explode(world: World, src: Unit, point: { x: number; y: number }
     const mult = (ally ? world.config.friendlyFireMultiplier : 1) * damageMultOf(world, src);
     if (mult <= 0) continue;
     const dmg = rollDamage(world.rng, eff.damage, mult);
-    applyDamage(world, u, applyArmor(dmg, u.armor), 'area', src, { skillId: def.id });
+    applyDamage(world, u, mitigate(world, src, u, dmg, def.id, 'area'), 'area', src, { skillId: def.id });
     if (!u.dead && eff.interrupts) interrupt(world, src, u);
     if (!u.dead && eff.burns) {
       if (u.burnTime <= 0) u.burnTick = 1;
@@ -944,7 +992,7 @@ export function resolveProjectilePayload(world: World, src: Unit, p: Projectile,
         world.emit({ type: 'status', unitId: target.id, text: '詛咒爆裂' });
       }
       const dmg = rollDamage(world.rng, cursed ? eff.damage : eff.uncursedDamage, damageMultOf(world, src));
-      applyDamage(world, target, applyArmor(dmg, target.armor), 'spell', src, { skillId: pl.skillId });
+      applyDamage(world, target, mitigate(world, src, target, dmg, pl.skillId, 'spell'), 'spell', src, { skillId: pl.skillId });
       break;
     }
     case 'root':
