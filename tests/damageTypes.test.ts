@@ -108,7 +108,7 @@ describe('牧師的聖鎚', () => {
 });
 
 describe('手感調整（Alan 2026-10-21：太泥濘）', () => {
-  it('沉穩節奏：一般敵人生命減半、精英隊長與頭目不變；英雄技能效果 ×1.5、普攻速度 ×1.5', async () => {
+  it('沉穩節奏：一般敵人生命減半、精英隊長與頭目不變；英雄技能效果 ×1.5、敵我普攻速度 ×1.5', async () => {
     const { createRun } = await import('../src/run/runState');
     const { createBattleFromRun, deliberateLevelId } = await import('../src/run/battle');
     const { DELIBERATE_PACE } = await import('../src/sim/data/deliberate');
@@ -125,6 +125,7 @@ describe('手感調整（Alan 2026-10-21：太泥濘）', () => {
     expect(w.units.some((u) => u.def.rank === 'elite')).toBe(true);
     expect(w.config.heroSkillPowerMult).toBe(DELIBERATE_PACE.heroSkillPower);
     expect(w.config.basicAttackSpeedMult).toBe(DELIBERATE_PACE.heroAttackSpeed);
+    expect(w.config.enemyAttackSpeedMult).toBe(DELIBERATE_PACE.enemyAttackSpeed);
   });
 });
 
