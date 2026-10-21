@@ -1192,14 +1192,24 @@ ${node}`, { fontFamily: FONT, fontSize: '14px', color: '#ffe9a8', align: 'center
     const g = this.overG;
     g.clear();
     // 長按攻擊移動的進度圈（Alan 2026-10-21：輕點＝移動、按住＝攻擊移動）
+    // 圈畫在按住位置的上方（Alan：不然被手指擋住看不到）；按住的地方留一個小點，中間連一條細線
     const pr = this.input2.pressProgress();
     if (pr) {
-      const r = 26 / this.cameras.main.zoom;
-      g.lineStyle(3 / this.cameras.main.zoom, 0x000000, 0.5);
-      g.strokeCircle(pr.sx, pr.sy, r);
-      g.lineStyle(4 / this.cameras.main.zoom, COLORS.ghostAttack, 0.95);
+      const z = this.cameras.main.zoom;
+      const r = 22 / z;
+      const cx = pr.sx;
+      const cy = pr.sy - 80 / z;
+      g.fillStyle(COLORS.ghostAttack, 0.9);
+      g.fillCircle(pr.sx, pr.sy, 4 / z);
+      g.lineStyle(1.5 / z, COLORS.ghostAttack, 0.6);
+      g.lineBetween(pr.sx, pr.sy, cx, cy + r);
+      g.fillStyle(0x000000, 0.35);
+      g.fillCircle(cx, cy, r);
+      g.lineStyle(3 / z, 0x000000, 0.5);
+      g.strokeCircle(cx, cy, r);
+      g.lineStyle(4 / z, COLORS.ghostAttack, 0.95);
       g.beginPath();
-      g.arc(pr.sx, pr.sy, r, -Math.PI / 2, -Math.PI / 2 + pr.k * Math.PI * 2, false);
+      g.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + pr.k * Math.PI * 2, false);
       g.strokePath();
     }
     const iso = hasHeight();
