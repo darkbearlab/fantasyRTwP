@@ -173,8 +173,10 @@ function corridor(g: Grid, a: Cell, b: Cell, width: number, rng: Rng, c = '.', h
 function carveEdge(g: Grid, edge: FieldEdge, along: number, rng: Rng, width = 3): { x: number; y: number; w: number; h: number; inner: Cell } {
   const W = INDOOR.exitWidth;
   const a = Math.max(2, Math.min((edge === 'top' || edge === 'bottom' ? g.w : g.h) - W - 2, along - Math.floor(W / 2)));
+  // 出口區 4 × 4（Alan 2026-10-22：只有 2 格深時貼著牆和地圖邊緣，四名英雄擠不進去、離不開）
+  const D = INDOOR.exitWidth;
   const rect =
-    edge === 'top' ? { x: a, y: 0, w: W, h: 2 } : edge === 'bottom' ? { x: a, y: g.h - 2, w: W, h: 2 } : edge === 'left' ? { x: 0, y: a, w: 2, h: W } : { x: g.w - 2, y: a, w: 2, h: W };
+    edge === 'top' ? { x: a, y: 0, w: W, h: D } : edge === 'bottom' ? { x: a, y: g.h - D, w: W, h: D } : edge === 'left' ? { x: 0, y: a, w: D, h: W } : { x: g.w - D, y: a, w: D, h: W };
   g.rect(rect.x, rect.y, rect.w, rect.h, '.');
   const mid: Cell = [rect.x + Math.floor(rect.w / 2), rect.y + Math.floor(rect.h / 2)];
   // 往內找最近的地面，挖過去；優先接到周圍 3 × 3 都是地面的寬敞處（洞穴的窄縫角色走不過去）
