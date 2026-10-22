@@ -74,8 +74,12 @@ const FIRE = {
   flameSize: [24, 42] as [number, number],
   flameOffset: [-4, -29] as [number, number],
   flameFps: 7,
-  /** 夜色（蓋在地面上的黑色透明度） */
-  night: 0.55,
+  /**
+   * 火光（Alan 2026-10-22：光芒也要像素化、周圍壓暗）：一張低解析度的光照貼圖放大成一格一格。
+   * cellArt：一格光照是幾個原始像素；radiusGap：光照半徑＝英雄圍坐距離＋這麼多 px；
+   * darkness：最暗處的黑色透明度；warm：火邊暖光的最大透明度；bands：分幾階；flickerMs：多久跳一次
+   */
+  light: { cellArt: 2, radiusGap: 120, darkness: 0.9, warm: 0.5, bands: 6, flickerMs: 120 },
 };
 
 /** 一名英雄的 sprite（可能是多層） */
@@ -156,6 +160,8 @@ export class CampfireScene extends Phaser.Scene {
   /** 素材版營火的火焰（沒有素材時是 null，用程式畫） */
   private flame: Phaser.GameObjects.Image | null = null;
   private fireTop = 0;
+  /** 素材版的像素光照（暗處＋暖光兩張低解析度貼圖） */
+  private lightMap: { dark: Phaser.Textures.CanvasTexture; warm: Phaser.Textures.CanvasTexture; cell: number; gw: number; gh: number; radius: number; next: number } | null = null;
   private glowG!: Phaser.GameObjects.Graphics;
   private seated: { slot: number; classId: string; x: number; y: number; top: boolean; sprite: HeroSprite | null; ring: Phaser.GameObjects.Graphics }[] = [];
   private boxes!: { top: DialogBox; bottom: DialogBox };
@@ -177,6 +183,7 @@ export class CampfireScene extends Phaser.Scene {
     this.seated = [];
     this.sparks = [];
     this.flame = null;
+    this.lightMap = null;
     this.lineIndex = -1;
     this.finished = false;
     const W = this.scale.width;
@@ -208,7 +215,7 @@ export class CampfireScene extends Phaser.Scene {
 
     // 四名英雄圍坐的半徑（營火的大小也看它）
     const rx = Math.min(W * 0.3, fireHalf + CAMP.seatGap);
-    if (this.textures.exists(fbbKey('tileA5_outside')) && this.textures.exists(fbbKey('fires'))) this.buildPixelFire(W, areaBottom, k);
+    if (this.textures.exists(fbbKey('tileA5_outside')) && this.textures.exists(fbbKey('fires'))) this.buildPixelFire(W, areaBottom, k, rx);
     else {
       // 沒有授權素材：程式畫的地面
       const ground = this.add.graphics();
@@ -241,7 +248,8 @@ export class CampfireScene extends Phaser.Scene {
     });
     // 前後順序：下面的英雄畫在火堆前面
     for (const s of this.seated) for (const o of s.sprite?.objs ?? []) o.setDepth(s.y > c.y ? 20 : 5);
-    this.fireG.setDepth(10);
+    // 有像素光照時火焰、火星在暗處之上
+    this.fireG.setDepth(this.lightMap ? 34 : 10);
     this.glowG.setDepth(11);
 
     this.boxes = { top: this.makeBox(topBoxY), bottom: this.makeBox(bottomBoxY) };
@@ -370,7 +378,7 @@ export class CampfireScene extends Phaser.Scene {
    * 素材版營火：地面（泥土格＋木材 3 × 3）烘成一張貼圖，整數倍放大；火焰是四格動畫疊在中央格。
    * 倍率 k 是整數（一般畫面 3、窄畫面 2）。
    */
-  private buildPixelFire(W: number, bottom: number, k: number): void {
+  private buildPixelFire(W: number, bottom: number, k: number, rx: number): void {
     const T = 16;
     const { x: cx, y: cy } = this.center;
     // 中央格的左上角（畫面座標）：中央格的中心對準營火中心
@@ -404,8 +412,6 @@ export class CampfireScene extends Phaser.Scene {
       .setOrigin(0)
       .setScale(k)
       .setDepth(-10);
-    // 夜色：英雄、火焰在它上面
-    this.add.rectangle(0, 0, W, bottom, 0x000000, FIRE.night).setOrigin(0).setDepth(-5);
     // 火焰：四格動畫（裁上方 28px、最近鄰放大 1.5 倍）
     const fk = 'camp_flame';
     const [fw, fh] = FIRE.flameSize;
@@ -424,9 +430,58 @@ export class CampfireScene extends Phaser.Scene {
       .image(ox + FIRE.flameOffset[0] * k, oy + FIRE.flameOffset[1] * k, fk, 'f0')
       .setOrigin(0)
       .setScale(k)
-      .setDepth(10);
+      .setDepth(33);
     // 火光與火星的位置：火焰中間
     this.fireTop = oy + (FIRE.flameOffset[1] + fh / 2) * k;
+    // 光照貼圖：暗處（一般疊加）＋火邊暖光（加亮），蓋在地面與英雄上、火焰下
+    const L = FIRE.light;
+    const cell = L.cellArt * k;
+    const gw = Math.ceil(W / cell);
+    // 蓋滿整個畫面高度（地面貼圖會鋪到英雄面板後面）
+    const gh = Math.ceil(this.scale.height / cell);
+    const mk = (key: string) => {
+      if (this.textures.exists(key)) this.textures.remove(key);
+      const can = document.createElement('canvas');
+      can.width = gw;
+      can.height = gh;
+      return this.textures.addCanvas(key, can)!;
+    };
+    const dark = mk('camp_dark');
+    const warm = mk('camp_warm');
+    this.add.image(0, 0, 'camp_dark').setOrigin(0).setScale(cell).setDepth(30);
+    this.add.image(0, 0, 'camp_warm').setOrigin(0).setScale(cell).setDepth(31).setBlendMode(Phaser.BlendModes.ADD);
+    this.lightMap = { dark, warm, cell, gw, gh, radius: rx + L.radiusGap, next: 0 };
+    this.renderLight(1);
+  }
+
+  /** 重畫光照貼圖：離火越遠越暗，分階；s：半徑的閃爍倍率 */
+  private renderLight(s: number): void {
+    const m = this.lightMap;
+    if (!m) return;
+    const L = FIRE.light;
+    const cx = this.center.x / m.cell;
+    const cy = this.fireTop / m.cell;
+    const r = (m.radius * s) / m.cell;
+    const dctx = m.dark.getContext();
+    const wctx = m.warm.getContext();
+    const di = dctx.createImageData(m.gw, m.gh);
+    const wi = wctx.createImageData(m.gw, m.gh);
+    for (let y = 0; y < m.gh; y++)
+      for (let x = 0; x < m.gw; x++) {
+        // 橢圓：地面是斜看的，垂直方向壓扁一點
+        const d = Math.hypot(x + 0.5 - cx, (y + 0.5 - cy) * 1.25) / r;
+        const q = d >= 1 ? 0 : Math.ceil((1 - d) * L.bands) / L.bands;
+        const i = (y * m.gw + x) * 4;
+        di.data[i + 3] = Math.round(255 * L.darkness * (1 - q));
+        wi.data[i] = 255;
+        wi.data[i + 1] = 130;
+        wi.data[i + 2] = 40;
+        wi.data[i + 3] = Math.round(255 * L.warm * q * q);
+      }
+    dctx.putImageData(di, 0, 0);
+    wctx.putImageData(wi, 0, 0);
+    m.dark.refresh();
+    m.warm.refresh();
   }
 
   /** 火堆：木柴＋跳動的火焰＋光暈＋往上飄的火星（有素材時木柴、火焰是圖，這裡只畫光暈與火星） */
@@ -470,9 +525,18 @@ export class CampfireScene extends Phaser.Scene {
     const g = this.fireG;
     const gl = this.glowG;
     gl.clear();
-    const pulse = 0.85 + 0.15 * Math.sin(now / 120);
-    // 像素光暈（Alan 2026-10-22）：格子對齊、透明度分階
-    pixelGlow(gl, x, y - 18, 200 * pulse, 0xff8a2a, 0.17 * pulse, { cell: 8, bands: 5 });
+    const m = this.lightMap;
+    if (m) {
+      // 像素光照：每 flickerMs 毫秒半徑跳一下（一格一格地動）
+      if (now >= m.next) {
+        m.next = now + FIRE.light.flickerMs;
+        this.renderLight(0.95 + 0.08 * Math.abs(Math.sin(now / 170) * Math.sin(now / 53)));
+      }
+    } else {
+      const pulse = 0.85 + 0.15 * Math.sin(now / 120);
+      // 像素光暈（Alan 2026-10-22）：格子對齊、透明度分階
+      pixelGlow(gl, x, y - 18, 200 * pulse, 0xff8a2a, 0.17 * pulse, { cell: 8, bands: 5 });
+    }
     // 火星
     if (Math.random() < dt * 10) this.sparks.push({ x: x + (Math.random() - 0.5) * 30, y: y - 20, vy: 30 + Math.random() * 40, life: 1.2 });
     g.fillStyle(0xffc14a, 1);
