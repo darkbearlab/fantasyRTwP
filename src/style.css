@@ -248,7 +248,7 @@ body {
   display: block;
 }
 
-.portrait {
+.portrait:not(#stage) {
   position: relative;
 }
 
@@ -271,7 +271,8 @@ body {
   filter: grayscale(1);
 }
 
-.portrait {
+/* 英雄卡的圓形頭像（#stage 直拿時也有 portrait 這個 class，不能套到整個畫面上，不然會畫出一個大圓框） */
+.portrait:not(#stage) {
   width: 40px;
   height: 40px;
   border-radius:50%;
