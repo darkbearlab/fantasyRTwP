@@ -144,6 +144,8 @@ export class BattleScene extends Phaser.Scene {
   private exitG!: Phaser.GameObjects.Graphics;
   private exitTexts: Phaser.GameObjects.Text[] = [];
   private exitInfo: ExitInfo[] = [];
+  /** 已經標示出必須打倒的敵人（隊長、頭目）的方向（Alan 2026-10-22） */
+  private targetHint = false;
   /** 互動物件（門、拉桿）的外觀與滑鼠提示 */
   private interactView!: InteractablesView;
   private objectLabel!: Phaser.GameObjects.Text;
@@ -222,6 +224,7 @@ export class BattleScene extends Phaser.Scene {
     this.edgeG = this.add.graphics().setScrollFactor(0).setDepth(2900);
     this.exitG = this.add.graphics().setDepth(905);
     // 出口通往哪裡（Alan 2026-10-21）：字母＋方向＋節點類型，第二行是層數與危險；每個出口一個顏色
+    this.targetHint = false;
     this.exitInfo = exitInfos(this.session.world, this.session.mode === 'run' ? getRun(this) : null);
     this.exitTexts = this.exitInfo.map((info) =>
       this.add
@@ -835,7 +838,11 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
         }
         case 'exitWaiting':
           // Alan：全員到齊才能離開
-          if (ev.locked) s.showToast(w.map.exitLock === 'boss' ? tr("出口封住了：先打倒頭目") : tr("出口封住了：先打倒精英隊長"), this.time.now, 1800);
+          if (ev.locked) {
+            s.showToast(w.map.exitLock === 'boss' ? tr("出口封住了：先打倒頭目") : tr("出口封住了：先打倒精英隊長"), this.time.now, 1800);
+            // 走到非回程的出口才發現封住：標示出要打倒的敵人
+            if (!this.exitInfo.find((x) => x.id === ev.exitId)?.back) this.revealTargets();
+          }
           else s.showToast(tr("You must gather your party before venturing forth.（{0}／{1}）", { 0: ev.inside, 1: ev.total }), this.time.now, 2400);
           break;
         case 'squadSighted':
@@ -915,6 +922,8 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
     this.drawBoxSelect();
     this.drawFacingDebug();
     this.drawOffscreenEnemies();
+    if (!this.targetHint && w.map.exitLock && !w.result && w.time >= GAME_CONFIG.targetHintDelay && !w.exitsOpen()) this.revealTargets();
+    this.drawTargetHint();
     this.drawExits();
     this.debugOverlay.update(s, (id) => this.wpos(w.getUnit(id)!));
     this.dim.setVisible(s.paused && !w.result);
@@ -1619,6 +1628,67 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
       const r = 12;
       eg.fillStyle(open ? (this.exitInfo[i]?.color ?? color) : color, 0.95);
       eg.fillTriangle(ex + Math.cos(a) * r, ey + Math.sin(a) * r, ex + Math.cos(a + 2.4) * r, ey + Math.sin(a + 2.4) * r, ex + Math.cos(a - 2.4) * r, ey + Math.sin(a - 2.4) * r);
+    }
+  }
+
+  /** 出口要打倒的敵人（精英隊長或頭目），還活著的 */
+  private lockTargets(): Unit[] {
+    const w = this.session.world;
+    const rank = w.map.exitLock === 'boss' ? 'boss' : w.map.exitLock === 'captain' ? 'elite' : null;
+    if (!rank) return [];
+    return w.units.filter((u) => u.team === 'enemy' && !u.dead && enemyRank(u.def) === rank);
+  }
+
+  /** 開始標示要打倒的敵人（只做一次） */
+  private revealTargets(): void {
+    if (this.targetHint || this.lockTargets().length === 0) return;
+    this.targetHint = true;
+    const s = this.session;
+    const msg = s.world.map.exitLock === 'boss' ? tr("已標示出頭目的方向") : tr("已標示出精英隊長的方向");
+    s.addLog(msg, 'warn');
+    s.showToast(msg, this.time.now, 2200);
+  }
+
+  /**
+   * 要打倒的敵人的標示（Alan 2026-10-22）：在畫面外時，畫面邊緣出現朝它的金色箭頭；
+   * 在畫面內時，頭上有上下跳動的金色箭頭。迷霧裡也會標示（只給方向，看不到敵人本身）。
+   */
+  private drawTargetHint(): void {
+    if (!this.targetHint || this.session.world.result) return;
+    const g = this.edgeG;
+    const cam = this.cameras.main;
+    const x1 = this.scale.width;
+    const y1 = this.scale.height - this.hudBottom();
+    const cx = x1 / 2;
+    const cy = y1 / 2;
+    const bob = Math.sin(this.time.now / 180);
+    const color = 0xffd23f;
+    const tri = (x: number, y: number, a: number, r: number) => {
+      const pts = [0, 2.5, -2.5].map((d) => ({ x: x + Math.cos(a + d) * r, y: y + Math.sin(a + d) * r }));
+      g.fillStyle(color, 0.95);
+      g.fillTriangle(pts[0].x, pts[0].y, pts[1].x, pts[1].y, pts[2].x, pts[2].y);
+      g.lineStyle(2, 0x140e0a, 1);
+      g.strokeTriangle(pts[0].x, pts[0].y, pts[1].x, pts[1].y, pts[2].x, pts[2].y);
+    };
+    for (const u of this.lockTargets()) {
+      const wp = this.wpos(u);
+      const p = worldToScreen(wp.x, wp.y, this.headZ(u) + 0.6);
+      const sx = (p.x - cam.worldView.x) * cam.zoom;
+      const sy = (p.y - cam.worldView.y) * cam.zoom;
+      if (sx >= 0 && sx <= x1 && sy >= 0 && sy <= y1) {
+        // 畫面內：頭上朝下的箭頭
+        tri(sx, sy - 10 + bob * 4, Math.PI / 2, 12);
+        continue;
+      }
+      const dx = sx - cx;
+      const dy = sy - cy;
+      const t = Math.min(dx !== 0 ? (x1 / 2 - 26) / Math.abs(dx) : Infinity, dy !== 0 ? (y1 / 2 - 26) / Math.abs(dy) : Infinity);
+      const a = Math.atan2(dy, dx);
+      const ex = cx + dx * t + Math.cos(a) * bob * 3;
+      const ey = cy + dy * t + Math.sin(a) * bob * 3;
+      g.fillStyle(color, 0.25);
+      g.fillCircle(ex, ey, 20);
+      tri(ex, ey, a, 16);
     }
   }
 

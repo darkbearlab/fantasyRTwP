@@ -18,6 +18,8 @@ export interface ExitInfo {
   title: string;
   /** 第二行：層數與危險 */
   detail: string;
+  /** 回程（通往較前面的層） */
+  back: boolean;
 }
 
 /** 出口的顏色（依序給 A、B、C…） */
@@ -43,6 +45,7 @@ export function exitInfos(world: World, run: RunState | null): ExitInfo[] {
     if (node && ow?.force.includes(node.id) && node.type !== 'boss') parts.push(tr("☠ 主力佔領"));
     if (node && ow && ow.champion.node === node.id) parts.push(tr("👹 冠軍在那裡"));
     if (node && ow && (ow.visits[node.id] ?? 0) > 0) parts.push(tr("去過"));
-    return { id: e.id, nodeId, letter, color, css, title, detail: parts.join('・') };
+    const back = !!(node && cur && node.layer < cur.layer);
+    return { id: e.id, nodeId, letter, color, css, title, detail: parts.join('・'), back };
   });
 }
