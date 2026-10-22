@@ -4,6 +4,7 @@
  * - 移動（離開開始的位置超過 FOCUS.moveTolerance）或受到傷害就中斷；有技能循環時回到集中那一招。
  * - 集中中放出的下一招傷害技能，威力 ×（1 ＋ 每秒加成 × min(集中秒數, 上限)），放完集中結束。
  */
+import { tr } from '../i18n/lang';
 import { dist } from './math';
 import type { Unit } from './unit';
 import type { World } from './world';
@@ -19,7 +20,7 @@ export function startFocus(world: World, u: Unit, skillId: string, perSec: numbe
   u.focusSkill = skillId;
   u.focusPerSec = perSec;
   u.focusMaxSec = maxSec;
-  world.emit({ type: 'status', unitId: u.id, text: '集中' });
+  world.emit({ type: 'status', unitId: u.id, text: tr("集中") });
 }
 
 export function focusing(u: Unit): boolean {
@@ -40,7 +41,7 @@ export function breakFocus(world: World, u: Unit): void {
     const i = u.cycle.steps.indexOf(u.focusSkill);
     if (i >= 0) u.cycleStep = i;
   }
-  world.emit({ type: 'status', unitId: u.id, text: '集中中斷' });
+  world.emit({ type: 'status', unitId: u.id, text: tr("集中中斷") });
 }
 
 /** 放出下一招時用掉集中，回傳威力倍率 */

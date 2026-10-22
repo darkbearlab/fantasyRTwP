@@ -4,6 +4,7 @@
  * 進入區域時的波次、自動出怪的階段、出口（或頭目）。純函式、只用種子亂數，同樣的輸入一定得到同樣的關卡。
  * 生成後用尋路檢查「出生點走得到出口（門全開）」與「生成點都可走」，不通過就換子種子重試。
  */
+import { tr } from '../i18n/lang';
 import type { DirectorDef, HordeSetup, InteractableDef, MapDef, Rect, SpawnerDef, TerrainRect, WaveDef } from '../sim/data/types';
 import type { Vec } from '../sim/math';
 import { findPath } from '../sim/nav/astar';
@@ -114,9 +115,9 @@ function tryGenerate(rng: Rng, seed: number, opts: LevelOptions, withRocks: bool
   const lockedAt = LEVELS.leverTiers.includes(tier) && gaps.length > 0 ? rng.int(0, gaps.length - 1) : -1;
   gaps.forEach((g, k) => {
     if (k === lockedAt) {
-      interactables.push({ id: `gate${k}`, kind: 'door', name: '鐵柵門', x: g.x, y: g.y, w: 1, h: gap, locked: true });
+      interactables.push({ id: `gate${k}`, kind: 'door', name: tr("鐵柵門"), x: g.x, y: g.y, w: 1, h: gap, locked: true });
     } else if (rng.chance(LEVELS.doorChance)) {
-      interactables.push({ id: `gate${k}`, kind: 'door', name: '木門', x: g.x, y: g.y, w: 1, h: gap });
+      interactables.push({ id: `gate${k}`, kind: 'door', name: tr("木門"), x: g.x, y: g.y, w: 1, h: gap });
     }
   });
 
@@ -210,11 +211,11 @@ function tryGenerate(rng: Rng, seed: number, opts: LevelOptions, withRocks: bool
     const spawns: WaveDef['spawns'] = [];
     for (let i = 0; i < fodder; i++) spawns.push({ spawner: sp[i % sp.length], enemy: rng.chance(0.7) ? 'thrall' : 'skitter', count: 1 });
     for (let i = 0; i < elites; i++) spawns.push({ spawner: sp[rng.int(0, sp.length - 1)], enemy: elitePool[rng.int(0, elitePool.length - 1)], count: 1 });
-    waves.push({ id: `區域${z.index + 1}`, trigger: { type: 'area', rect: zoneRect(z) }, spawns: merge(spawns) });
+    waves.push({ id: tr("區域{0}", { 0: z.index + 1 }), trigger: { type: 'area', rect: zoneRect(z) }, spawns: merge(spawns) });
     const nest = sp.find((id) => nests.includes(id));
     if (nest) {
       const N = LEVELS.nestWave;
-      waves.push({ id: `巢穴${z.index + 1}`, trigger: { type: 'area', rect: zoneRect(z) }, repeat: { interval: N.interval, times: N.times }, spawns: [{ spawner: nest, enemy: 'thrall', count: N.count }] });
+      waves.push({ id: tr("巢穴{0}", { 0: z.index + 1 }), trigger: { type: 'area', rect: zoneRect(z) }, repeat: { interval: N.interval, times: N.times }, spawns: [{ spawner: nest, enemy: 'thrall', count: N.count }] });
     }
   }
   // 精英關卡：中間區域的隊長
@@ -222,7 +223,7 @@ function tryGenerate(rng: Rng, seed: number, opts: LevelOptions, withRocks: bool
     const z = zones[Math.floor(n / 2)];
     const sp = zoneSpawners[z.index];
     const cap = LEVELS.captainPool[rng.int(0, LEVELS.captainPool.length - 1)];
-    waves.push({ id: '隊長', trigger: { type: 'area', rect: zoneRect(z) }, spawns: [{ spawner: sp[sp.length - 1], enemy: cap, count: 1, captain: true }, { spawner: sp[sp.length - 1], enemy: elitePool[rng.int(0, elitePool.length - 1)], count: 2 }] });
+    waves.push({ id: tr("隊長"), trigger: { type: 'area', rect: zoneRect(z) }, spawns: [{ spawner: sp[sp.length - 1], enemy: cap, count: 1, captain: true }, { spawner: sp[sp.length - 1], enemy: elitePool[rng.int(0, elitePool.length - 1)], count: 2 }] });
   }
   // 絞盤：放在上鎖的門之前那一區、離缺口最遠的角落；拉下會引來一波敵人
   if (lockedAt >= 0) {
@@ -235,20 +236,20 @@ function tryGenerate(rng: Rng, seed: number, opts: LevelOptions, withRocks: bool
       if (reachable(q)) lever = q;
     }
     if (!lever) return null;
-    interactables.push({ id: 'lever', kind: 'lever', name: '絞盤', x: Math.round(lever.x * 2) / 2 - 0.4, y: Math.round(lever.y * 2) / 2 - 0.4, w: 0.8, h: 0.8, actions: [{ type: 'openDoor', door: `gate${lockedAt}` }] });
+    interactables.push({ id: 'lever', kind: 'lever', name: tr("絞盤"), x: Math.round(lever.x * 2) / 2 - 0.4, y: Math.round(lever.y * 2) / 2 - 0.4, w: 0.8, h: 0.8, actions: [{ type: 'openDoor', door: `gate${lockedAt}` }] });
     const sp = zoneSpawners[lockedAt].length ? zoneSpawners[lockedAt] : zoneSpawners[lockedAt + 1];
-    waves.push({ id: '警報', trigger: { type: 'interact', id: 'lever' }, spawns: [{ spawner: sp[0], enemy: 'thrall', count: 4 }, { spawner: sp[sp.length - 1], enemy: 'skitter', count: 3 }] });
+    waves.push({ id: tr("警報"), trigger: { type: 'interact', id: 'lever' }, spawns: [{ spawner: sp[0], enemy: 'thrall', count: 4 }, { spawner: sp[sp.length - 1], enemy: 'skitter', count: 3 }] });
   }
   if (tier === 'boss') {
     // 頭目：最後一區中央；進入最後一區時登場
     spawners.push({ id: 'bossDen', x: bossPt.x, y: bossPt.y, radius: 1.5 });
     const B = LEVELS.boss;
     waves.push({ id: 'boss', trigger: { type: 'area', rect: zoneRect(last) }, spawns: [{ spawner: 'bossDen', enemy: B.enemy, count: 1 }] });
-    waves.push({ id: '護衛', trigger: { type: 'area', rect: zoneRect(last) }, spawns: B.escorts.map((e) => ({ spawner: 'bossDen', enemy: e.enemy, count: e.count })) });
+    waves.push({ id: tr("護衛"), trigger: { type: 'area', rect: zoneRect(last) }, spawns: B.escorts.map((e) => ({ spawner: 'bossDen', enemy: e.enemy, count: e.count })) });
   } else {
     // 終段追兵：進入最後一區後持續從背後追上來
     const P = LEVELS.pursuit;
-    waves.push({ id: '追兵', trigger: { type: 'area', rect: zoneRect(last) }, repeat: { interval: P.interval, times: -1 }, spawns: [{ spawner: pursuitId, enemy: 'thrall', count: P.thrall }, { spawner: pursuitId, enemy: 'skitter', count: P.skitter }] });
+    waves.push({ id: tr("追兵"), trigger: { type: 'area', rect: zoneRect(last) }, repeat: { interval: P.interval, times: -1 }, spawns: [{ spawner: pursuitId, enemy: 'thrall', count: P.thrall }, { spawner: pursuitId, enemy: 'skitter', count: P.skitter }] });
   }
 
   // ── 自動出怪：每個區域一個階段，越深入壓力越高 ──
@@ -292,10 +293,10 @@ function tryGenerate(rng: Rng, seed: number, opts: LevelOptions, withRocks: bool
     terrain,
     interactables,
   };
-  const label = tier === 'boss' ? '最終決戰' : tier === 'elite' ? '精英' : tier === 'event' ? '突發' : '探索';
+  const label = tier === 'boss' ? tr("最終決戰") : tier === 'elite' ? tr("精英") : tier === 'event' ? tr("突發") : tr("探索");
   return {
     id,
-    name: `${place}（${label}）`,
+    name: tr("{0}（{1}）", { 0: place, 1: label }),
     map: id,
     mapDef,
     tier,

@@ -7,6 +7,7 @@
  * - 沙漏與全選鈕的位置、順序由 GAME_CONFIG.mobileControls 決定（預設：靠左，沙漏、全選）。
  * 只讀 session 的狀態；操作透過 session（enqueue、targeting、selection）。
  */
+import { tr } from '../../i18n';
 import { GAME_CONFIG } from '../../config';
 import { skillCooldownOf } from '../../sim/actions';
 import { currentActiveSkill } from '../../sim/cycle';
@@ -96,7 +97,7 @@ export function activeSkillIndex(u: Unit): number {
 function cycleHint(u: Unit): string {
   const c = u.cycle;
   if (!c) return '';
-  if (c.mode === 'charge') return u.cycleStep > 0 ? '強化！' : `⚡${u.cycleCharge}/${c.chargeMax}`;
+  if (c.mode === 'charge') return u.cycleStep > 0 ? tr("強化！") : `⚡${u.cycleCharge}/${c.chargeMax}`;
   return `→ ${SKILLS[c.steps[(u.cycleStep + 1) % c.steps.length]].name}`;
 }
 
@@ -121,7 +122,7 @@ export class MobileHeroBar {
     this.root = el('div', 'm-bar interactive');
     this.pauseBtn = el('button', 'm-pause');
     this.pauseBtn.innerHTML = HOURGLASS_SVG;
-    this.pauseBtn.title = '暫停／繼續（空白鍵）';
+    this.pauseBtn.title = tr("暫停／繼續（空白鍵）");
     this.pauseBtn.tabIndex = -1;
     this.pauseBtn.addEventListener('mousedown', (ev) => ev.preventDefault());
     this.pauseBtn.addEventListener('click', () => {
@@ -129,15 +130,15 @@ export class MobileHeroBar {
       if (!s.world.result) s.setPaused(!s.paused);
     });
     this.pauseLabel = el('div', 'm-pause-label');
-    this.selectAllBtn = el('button', 'm-selall', '全選');
+    this.selectAllBtn = el('button', 'm-selall', tr("全選"));
     this.selectAllBtn.tabIndex = -1;
     this.selectAllBtn.addEventListener('mousedown', (ev) => ev.preventDefault());
     this.selectAllBtn.addEventListener('click', () => this.selectAll());
-    this.selectAllBtn.title = '選取所有英雄';
+    this.selectAllBtn.title = tr("選取所有英雄");
     // Alan：全不選是另一顆按鈕（全選鈕一定是全選）
-    this.deselectBtn = el('button', 'm-selall m-desel', '全不選');
+    this.deselectBtn = el('button', 'm-selall m-desel', tr("全不選"));
     this.deselectBtn.tabIndex = -1;
-    this.deselectBtn.title = '取消選取所有英雄';
+    this.deselectBtn.title = tr("取消選取所有英雄");
     this.deselectBtn.addEventListener('mousedown', (ev) => ev.preventDefault());
     this.deselectBtn.addEventListener('click', () => {
       const s = this.host.session();
@@ -146,7 +147,7 @@ export class MobileHeroBar {
     // 包包（消耗品，Alan 2026-10-21）：打開清單直接用；要選目標的點英雄卡
     this.bagBtn = el('button', 'm-selall m-bagbtn', '🎒');
     this.bagBtn.tabIndex = -1;
-    this.bagBtn.title = '包包（消耗品）';
+    this.bagBtn.title = tr("包包（消耗品）");
     this.bagBtn.addEventListener('mousedown', (ev) => ev.preventDefault());
     this.bagBtn.addEventListener('click', () => {
       const s = this.host.session();
@@ -188,11 +189,11 @@ export class MobileHeroBar {
     this.bagPop.innerHTML = '';
     this.bagPop.classList.toggle('open', this.bagOpen);
     if (!this.bagOpen) return;
-    if (w.bag.length === 0) this.bagPop.appendChild(el('div', 'm-bag-empty', '包包是空的'));
+    if (w.bag.length === 0) this.bagPop.appendChild(el('div', 'm-bag-empty', tr("包包是空的")));
     for (const id of [...new Set(w.bag)]) {
       const def = CONSUMABLES[id];
       const n = w.bag.filter((x) => x === id).length;
-      const b = el('button', 'm-bag-item', `${def.name} ×${n}${cd > 0 ? `（${Math.ceil(cd)}）` : ''}`);
+      const b = el('button', 'm-bag-item', tr("{0} ×{1}{2}", { 0: def.name, 1: n, 2: cd > 0 ? tr("（{0}）", { 0: Math.ceil(cd) }) : '' }));
       b.title = def.description;
       (b as HTMLButtonElement).disabled = cd > 0 || !!w.result || !def.inBattle;
       b.addEventListener('mousedown', (ev) => ev.preventDefault());
@@ -201,7 +202,7 @@ export class MobileHeroBar {
         else {
           s.targeting = null;
           s.itemTargeting = id;
-          s.showToast(def.target === 'fallen' ? '點陣亡英雄的卡片' : '點英雄卡選目標', this.host.now(), 1400);
+          s.showToast(def.target === 'fallen' ? tr("點陣亡英雄的卡片") : tr("點英雄卡選目標"), this.host.now(), 1400);
         }
         this.bagOpen = false;
         this.renderBag();
@@ -221,7 +222,7 @@ export class MobileHeroBar {
         const card = el('div', 'm-card empty');
         card.style.order = String(slot);
         const def = info ? HEROES[info.classId] : null;
-        card.appendChild(el('div', 'm-head', def ? `${def.name}（陣亡）` : '（空欄位）'));
+        card.appendChild(el('div', 'm-head', def ? tr("{0}（陣亡）", { 0: def.name }) : tr("（空欄位）")));
         this.row.appendChild(card);
       });
     }
@@ -282,7 +283,7 @@ export class MobileHeroBar {
         beginSkill(this.host.session(), u.heroSlot, activeSkillIndex(u), this.host.now());
       });
       // 以友軍為目標的技能瞄準中：可以當目標的英雄卡上方出現箭頭（Alan：提示要點卡片、不是點地圖）
-      const target = el('div', 'm-target', '▼ 目標');
+      const target = el('div', 'm-target', tr("▼ 目標"));
       root.append(fill, head, skillBtn, target);
       this.row.appendChild(root);
       this.cards.push({ unit: u, root, fill, hpFill, hpText, status, skillBtn, skillName, cdText, cdCover, hint, skillId, target });
@@ -307,7 +308,7 @@ export class MobileHeroBar {
     this.pauseBtn.classList.toggle('paused', s.paused);
     this.selectAllBtn.classList.toggle('active', this.allSelected(s));
     this.deselectBtn.classList.toggle('dim', s.selection.length === 0);
-    const label = s.paused && !s.world.result ? (s.pauseReason ? `暫停：${s.pauseReason}` : '暫停中') : '';
+    const label = s.paused && !s.world.result ? (s.pauseReason ? tr("暫停：{0}", { 0: s.pauseReason }) : tr("暫停中")) : '';
     if (this.pauseLabel.textContent !== label) this.pauseLabel.textContent = label;
     const sel = new Set(s.selection);
     const td = targetingDef(s);
@@ -372,8 +373,8 @@ export function staticHeroBar(cards: StaticHeroCard[], slots: number, portraitUr
   const root = el('div', 'm-bar m-static');
   const pause = el('div', 'm-pause');
   pause.innerHTML = HOURGLASS_SVG;
-  const selAll = el('div', 'm-selall', '全選');
-  const desel = el('div', 'm-selall m-desel', '全不選');
+  const selAll = el('div', 'm-selall', tr("全選"));
+  const desel = el('div', 'm-selall m-desel', tr("全不選"));
   const buttons: Record<string, HTMLElement> = { pause, selectAll: selAll, deselectAll: desel };
   const mc = GAME_CONFIG.mobileControls;
   const pauseRow = el('div', 'm-pause-row');
@@ -385,7 +386,7 @@ export function staticHeroBar(cards: StaticHeroCard[], slots: number, portraitUr
     const c = cards.find((x) => x.slot === slot);
     if (!c || c.dead) {
       const card = el('div', 'm-card empty');
-      card.appendChild(el('div', 'm-head', c ? `${HEROES[c.classId].name}（陣亡）` : '（空欄位）'));
+      card.appendChild(el('div', 'm-head', c ? tr("{0}（陣亡）", { 0: HEROES[c.classId].name }) : tr("（空欄位）")));
       row.appendChild(card);
       continue;
     }

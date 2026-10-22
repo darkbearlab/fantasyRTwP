@@ -1,3 +1,4 @@
+import { tr } from '../../i18n';
 import { CHAPTERS, chapterAt } from '../../run/data/chapters';
 import { startChapter } from '../../run/campaign';
 import { HEROES } from '../../sim/data/heroes';
@@ -22,7 +23,7 @@ export class InterludeScene extends DomScene {
     const n = run.phase.chapter;
     const ch = chapterAt(n);
     const box = el('div', 'panel wide interlude');
-    box.append(el('div', 'chapter-no', `第 ${n + 1} 章／共 ${CHAPTERS.length} 章`), el('h1', 'chapter-name', ch.name));
+    box.append(el('div', 'chapter-no', tr("第 {0} 章／共 {1} 章", { 0: n + 1, 1: CHAPTERS.length })), el('h1', 'chapter-name', ch.name));
     const story = el('div', 'chapter-story');
     ch.intro.forEach((line, i) => {
       const p = el('p', 'story-line', line);
@@ -34,12 +35,12 @@ export class InterludeScene extends DomScene {
       const party = el('div', 'chapter-party');
       for (const h of run.party) {
         if (!h) continue;
-        party.appendChild(el('div', h.dead ? 'cp dead' : 'cp', h.dead ? `${HEROES[h.classId].name}：陣亡` : `${HEROES[h.classId].name}：${h.hp}／${maxHpOf(h)}`));
+        party.appendChild(el('div', h.dead ? 'cp dead' : 'cp', h.dead ? tr("{0}：陣亡", { 0: HEROES[h.classId].name }) : tr("{0}：{1}／{2}", { 0: HEROES[h.classId].name, 1: h.hp, 2: maxHpOf(h) })));
       }
-      box.append(el('div', 'meta', '全隊回復了生命（陣亡的英雄不會回來）。'), party);
+      box.append(el('div', 'meta', tr("全隊回復了生命（陣亡的英雄不會回來）。")), party);
     }
     const row = el('div', 'btn-row');
-    row.appendChild(button('出發', 'primary big', () => advance(this, startChapter(getRun(this)))));
+    row.appendChild(button(tr("出發"), 'primary big', () => advance(this, startChapter(getRun(this)))));
     box.appendChild(row);
     this.root.appendChild(box);
   }

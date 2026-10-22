@@ -2,6 +2,7 @@
  * 遠征流程（SPEC_SLICE2 §3–§5、§8、§9）：選節點、戰鬥結算、獎勵、休息、復活、招募。
  * 每個函式都回傳新的 RunState，不修改傳入的物件。
  */
+import { tr } from '../i18n/lang';
 import { CONSUMABLES } from '../sim/data/consumables';
 import { addToBag, rollConsumableDrop } from './consumables';
 import { HEROES } from '../sim/data/heroes';
@@ -64,9 +65,9 @@ export function chooseNode(run: RunState, nodeId: number): RunState {
     // Alan 2026-10-22：被冠軍追上時，照常進這個節點的地圖，冠軍以已經知道玩家位置的敵人加入
     // （戰鬥、精英節點照常有敵人；其他節點生成一張空的野外地圖，冠軍很快就到）
     const hunted = caught(r) && node.type !== 'boss';
-    if (hunted) r.journal.push(`第 ${node.layer} 層：魔王的冠軍追上來了！`);
+    if (hunted) r.journal.push(tr("第 {0} 層：魔王的冠軍追上來了！", { 0: node.layer }));
     const occupied = isOccupied(r, nodeId) && node.type !== 'boss';
-    if (occupied) r.journal.push(`第 ${node.layer} 層：這裡已經被魔王的主力佔領。`);
+    if (occupied) r.journal.push(tr("第 {0} 層：這裡已經被魔王的主力佔領。", { 0: node.layer }));
     const fights = node.type === 'battle' || node.type === 'elite';
     if (hunted && !fights) {
       r.phase = { kind: 'battle', nodeId, encounterId: deliberateLevelId('battle'), fromEvent: false, visit, mods: { champion: true, championOnly: true, force: occupied || undefined } };
@@ -82,7 +83,7 @@ export function chooseNode(run: RunState, nodeId: number): RunState {
     }
     if (node.type === 'event') {
       if (revisit && r.overworld.clearedEvents.includes(nodeId)) {
-        r.journal.push(`第 ${node.layer} 層：這裡已經沒有事了。`);
+        r.journal.push(tr("第 {0} 層：這裡已經沒有事了。", { 0: node.layer }));
         r.phase = { kind: 'map' };
         return r;
       }
@@ -182,12 +183,12 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
 
   if (!outcome.won || livingHeroes(r).length === 0) {
     r.stats.lostAtLayer = node.layer;
-    r.journal.push(`第 ${node.layer} 層：全軍覆沒。`);
+    r.journal.push(tr("第 {0} 層：全軍覆沒。", { 0: node.layer }));
     r.phase = { kind: 'ended', result: 'lost' };
     return r;
   }
   if (node.type === 'boss' && !fromEvent && !run.phase.mods?.champion) {
-    r.journal.push(`第 ${node.layer} 層：擊敗了頭目！`);
+    r.journal.push(tr("第 {0} 層：擊敗了頭目！", { 0: node.layer }));
     // 戰役（SPEC_CAMPAIGN）：不是最後一章就照常拿戰果與升級，回路線圖之前進章節過場
     if (runStyle(r) !== 'deliberate' || isFinalChapter(r)) {
       r.phase = { kind: 'ended', result: 'won' };
@@ -195,13 +196,13 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
     }
     r.chapterCleared = true;
   }
-  if (recovered > 0) r.journal.push(runStyle(r) === 'deliberate' ? `戰地救護：牧師為全隊回復 ${recovered} 生命。` : `戰後整補：全隊回復 ${recovered} 生命。`);
+  if (recovered > 0) r.journal.push(runStyle(r) === 'deliberate' ? tr("戰地救護：牧師為全隊回復 {0} 生命。", { 0: recovered }) : tr("戰後整補：全隊回復 {0} 生命。", { 0: recovered }));
   if (run.phase.mods?.champion) {
     // 打倒了：這一章不再出現；沒打倒就離開：冠軍傷勢恢復，繼續在大地圖上追
     if ((outcome.killed ?? []).some((k) => k.enemy === ROUTE_MAP.champion.enemy)) {
       championDefeated(r);
-      r.journal.push(`第 ${node.layer} 層：打倒了魔王的冠軍！這一章他不會再出現。`);
-    } else r.journal.push(`第 ${node.layer} 層：甩開了魔王的冠軍。`);
+      r.journal.push(tr("第 {0} 層：打倒了魔王的冠軍！這一章他不會再出現。", { 0: node.layer }));
+    } else r.journal.push(tr("第 {0} 層：甩開了魔王的冠軍。", { 0: node.layer }));
   }
   // 出口制：走哪個出口，下一個節點就是哪個
   r.exitTo = outcome.exitNodeId ?? null;
@@ -219,7 +220,7 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
     const battleLayer = node.layer + levelBonus(run.phase.mods ?? {}) + depthOffset(r);
     xpGained = xpForKills(outcome.killed ?? [], enemyStrength(battleLayer));
     const ups = gainXp(r, xpGained);
-    if (ups > 0) r.journal.push(`隊伍升到第 ${r.level} 級！`);
+    if (ups > 0) r.journal.push(tr("隊伍升到第 {0} 級！", { 0: r.level }));
     const offer = (r.pendingLevelUps ?? 0) > 0 ? levelUpOptions(r) : { options: [], optionSlots: [] };
     options = offer.options;
     optionSlots = offer.optionSlots;
@@ -227,14 +228,14 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
     const rng = rngFor(r.seed, 'reward', nodeId, fromEvent ? 'event' : 'node');
     options = rollUpgrades(rng, elite ? ECONOMY.eliteRewardChoices : ECONOMY.rewardChoices, elite);
   }
-  r.journal.push(`第 ${node.layer} 層：${encounterFor(run, nodeId, run.phase.encounterId).name}勝利（${outcome.time.toFixed(0)} 秒），獲得 ${gold} 金幣。`);
+  r.journal.push(tr("第 {0} 層：{1}勝利（{2} 秒），獲得 {3} 金幣。", { 0: node.layer, 1: encounterFor(run, nodeId, run.phase.encounterId).name, 2: outcome.time.toFixed(0), 3: gold }));
   // 沉穩節奏：打贏節點時機率掉落道具（精英必掉；SPEC_SLICE5 §17）
   let item: string | undefined;
   if (runStyle(r) === 'deliberate') {
     item = rollItemDrop(rngFor(r.seed, 'itemDrop', nodeId, fromEvent ? 'event' : 'node'), elite ? 'elite' : fromEvent ? 'event' : 'battle') ?? undefined;
     if (item) {
       (r.inventory ??= []).push(item);
-      r.journal.push(`撿到了「${ITEMS[item].name}」。`);
+      r.journal.push(tr("撿到了「{0}」。", { 0: ITEMS[item].name }));
     }
   }
   // 消耗品掉落（精英必掉；包包滿了就撿不了）
@@ -243,7 +244,7 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
     const c = rollConsumableDrop(rngFor(r.seed, 'consumableDrop', nodeId, fromEvent ? 'event' : 'node'), elite ? 'elite' : fromEvent ? 'event' : 'battle');
     if (c && addToBag(r, c)) {
       consumable = c;
-      r.journal.push(`撿到了「${CONSUMABLES[c].name}」。`);
+      r.journal.push(tr("撿到了「{0}」。", { 0: CONSUMABLES[c].name }));
     }
   }
   r.phase = { kind: 'reward', nodeId, options, elite: elite && !deliberate, gold, item, consumable, xpGained, levelUpTo: options.length ? nextLevelUpTo(r) : undefined, optionSlots };
@@ -346,7 +347,7 @@ export function restCamp(run: RunState): RunState {
   }
   const p = restPhase(r);
   p.used = true;
-  p.resultText = `全隊在營火旁休息，恢復了 ${Math.round(ECONOMY.campHealRatio * 100)}% 生命。`;
+  p.resultText = tr("全隊在營火旁休息，恢復了 {0}% 生命。", { 0: Math.round(ECONOMY.campHealRatio * 100) });
   smokeDrawsChampion(r);
   return r;
 }
@@ -361,7 +362,7 @@ function smokeDrawsChampion(r: RunState): void {
   campfireSmoke(r);
   if (caught(r)) {
     const node = r.map.nodes[p.nodeId];
-    r.journal.push(`第 ${node.layer} 層：營火的煙引來了魔王的冠軍！`);
+    r.journal.push(tr("第 {0} 層：營火的煙引來了魔王的冠軍！", { 0: node.layer }));
     r.phase = { kind: 'battle', nodeId: p.nodeId, encounterId: deliberateLevelId('battle'), fromEvent: false, visit: r.overworld.visits[p.nodeId], mods: { champion: true, championOnly: true, smoke: true } };
   }
 }
@@ -376,8 +377,8 @@ export function restRevive(run: RunState, slot: number): RunState {
   r.gold -= ECONOMY.reviveCost;
   const p = restPhase(r);
   p.used = true;
-  p.resultText = `${HEROES[h.classId].name}被救了回來。`;
-  r.journal.push(`復活了${HEROES[h.classId].name}。`);
+  p.resultText = tr("{0}被救了回來。", { 0: HEROES[h.classId].name });
+  r.journal.push(tr("復活了{0}。", { 0: HEROES[h.classId].name }));
   smokeDrawsChampion(r);
   return r;
 }
@@ -409,7 +410,7 @@ export function restRecruit(run: RunState, classId: string): RunState {
   const bonus = recruitInto(r, slot, classId, rngFor(r.seed, 'recruitBonus', restPhase(r).nodeId));
   r.gold -= ECONOMY.recruitCost;
   restPhase(r).recruited = true;
-  r.journal.push(`招募了${HEROES[classId].name}（欄位 ${slot + 1}）${bonus.length ? `，帶著「${bonus.join('、')}」` : ''}。`);
+  r.journal.push(tr("招募了{0}（欄位 {1}）{2}。", { 0: HEROES[classId].name, 1: slot + 1, 2: bonus.length ? tr("，帶著「{0}」", { 0: bonus.join('、') }) : '' }));
   return r;
 }
 

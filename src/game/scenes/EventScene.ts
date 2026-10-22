@@ -1,3 +1,4 @@
+import { tr } from '../../i18n';
 import { EVENTS } from '../../run/data/events';
 import { chooseEventOption, conditionText, eventOptions } from '../../run/events';
 import { leaveNode } from '../../run/progression';
@@ -23,7 +24,7 @@ export class EventScene extends DomScene {
     if (!run.phase.resolved) {
       const list = el('div', 'event-options');
       eventOptions(run).forEach(({ option, available }, i) => {
-        const label = available ? option.label : `${option.label}（${conditionText(option.condition)}）`;
+        const label = available ? option.label : tr("{0}（{1}）", { 0: option.label, 1: conditionText(option.condition) });
         list.appendChild(
           button(label, 'event-option', () => {
             const next = chooseEventOption(getRun(this), i);
@@ -38,9 +39,9 @@ export class EventScene extends DomScene {
       box.appendChild(list);
     } else {
       box.appendChild(el('div', 'event-result', run.phase.resultText ?? ''));
-      box.appendChild(button('繼續', 'primary', () => advance(this, leaveNode(getRun(this)))));
+      box.appendChild(button(tr("繼續"), 'primary', () => advance(this, leaveNode(getRun(this)))));
     }
-    box.appendChild(el('div', 'meta', `💰 ${run.gold} 金幣`));
+    box.appendChild(el('div', 'meta', tr("💰 {0} 金幣", { 0: run.gold })));
     box.appendChild(partyPanel(run));
     this.root.appendChild(box);
   }

@@ -1,6 +1,7 @@
 /**
  * 事件解析與結果套用（SPEC_SLICE2 §6）。事件內容在 data/events.ts。
  */
+import { tr } from '../i18n/lang';
 import { HEROES } from '../sim/data/heroes';
 import type { Rng } from '../sim/rng';
 import type { EventCondition, EventEffect, EventOption, HeroTarget } from './data/events';
@@ -26,10 +27,10 @@ export function conditionMet(run: RunState, c: EventCondition | undefined): bool
 export function conditionText(c: EventCondition | undefined): string {
   if (!c) return '';
   const parts: string[] = [];
-  if (c.minGold !== undefined) parts.push(`需要 ${c.minGold} 金幣`);
-  if (c.hasClass) parts.push(`隊伍中需要${HEROES[c.hasClass]?.name ?? c.hasClass}`);
-  if (c.hasEmptySlot) parts.push('需要空欄位');
-  return parts.join('、');
+  if (c.minGold !== undefined) parts.push(tr("需要 {0} 金幣", { 0: c.minGold }));
+  if (c.hasClass) parts.push(tr("隊伍中需要{0}", { 0: HEROES[c.hasClass]?.name ?? c.hasClass }));
+  if (c.hasEmptySlot) parts.push(tr("需要空欄位"));
+  return parts.join(tr("、"));
 }
 
 export function eventOptions(run: RunState): { option: EventOption; available: boolean }[] {
@@ -64,7 +65,7 @@ export function chooseEventOption(run: RunState, index: number): RunState {
     if (e.kind === 'battle') battle = e.encounter;
   }
   const text = [outcome.text, ...notes].join('\n');
-  r.journal.push(`【${ev.title}】${opt.label}：${outcome.text}`);
+  r.journal.push(tr("【{0}】{1}：{2}", { 0: ev.title, 1: opt.label, 2: outcome.text }));
   // 大型關卡的遠征：事件戰鬥也改成生成的（較小的）關卡
   if (battle) r.phase = { kind: 'battle', nodeId, encounterId: runStyle(r) === 'horde' ? levelEncounterId('event') : runStyle(r) === 'deliberate' ? deliberateLevelId('event') : battle, fromEvent: true };
   else r.phase = { kind: 'event', nodeId, eventId: ev.id, resolved: true, resultText: text };
@@ -87,7 +88,7 @@ export function applyEffect(r: RunState, e: EventEffect, rng: Rng): string {
       r.gold = Math.max(0, r.gold + e.amount);
       if (e.amount > 0) r.stats.goldEarned += e.amount;
       const d = r.gold - before;
-      return d >= 0 ? `獲得 ${d} 金幣` : `失去 ${-d} 金幣`;
+      return d >= 0 ? tr("獲得 {0} 金幣", { 0: d }) : tr("失去 {0} 金幣", { 0: -d });
     }
     case 'heal':
       return targets(r, e.target, rng)
@@ -95,17 +96,17 @@ export function applyEffect(r: RunState, e: EventEffect, rng: Rng): string {
           const max = maxHpOf(hero);
           const amt = Math.min(max - hero.hp, Math.round(max * e.pct));
           hero.hp += amt;
-          return `${HEROES[hero.classId].name}回復 ${amt} 生命`;
+          return tr("{0}回復 {1} 生命", { 0: HEROES[hero.classId].name, 1: amt });
         })
-        .join('、');
+        .join(tr("、"));
     case 'damage':
       return targets(r, e.target, rng)
         .map(({ hero }) => {
           const amt = Math.min(hero.hp - 1, Math.round(maxHpOf(hero) * e.pct));
           hero.hp -= amt;
-          return `${HEROES[hero.classId].name}失去 ${amt} 生命`;
+          return tr("{0}失去 {1} 生命", { 0: HEROES[hero.classId].name, 1: amt });
         })
-        .join('、');
+        .join(tr("、"));
     case 'upgrade': {
       const alive = livingHeroes(r);
       if (alive.length === 0) return '';
@@ -119,21 +120,21 @@ export function applyEffect(r: RunState, e: EventEffect, rng: Rng): string {
       const slot = firstEmptySlot(r);
       if (slot < 0) {
         r.gold += 20;
-        return '隊伍已滿，他留下 20 金幣離開了';
+        return tr("隊伍已滿，他留下 20 金幣離開了");
       }
       const pool = recruitPool(r);
       const classId = e.classId ?? pool[rng.int(0, pool.length - 1)];
       const bonus = recruitInto(r, slot, classId, rng);
-      return `${HEROES[classId].name}加入了隊伍（欄位 ${slot + 1}）${bonus.length ? `，帶著「${bonus.join('、')}」` : ''}`;
+      return tr("{0}加入了隊伍（欄位 {1}）{2}", { 0: HEROES[classId].name, 1: slot + 1, 2: bonus.length ? tr("，帶著「{0}」", { 0: bonus.join('、') }) : '' });
     }
     case 'nextBattleBuff': {
       const b = (r.nextBattleBuff ??= {});
       if (e.accuracy) b.accuracy = (b.accuracy ?? 0) + e.accuracy;
       if (e.defense) b.defense = (b.defense ?? 0) + e.defense;
       const parts: string[] = [];
-      if (e.accuracy) parts.push(`命中 ${e.accuracy > 0 ? '+' : ''}${e.accuracy}`);
-      if (e.defense) parts.push(`防禦 ${e.defense > 0 ? '+' : ''}${e.defense}`);
-      return `下一場戰鬥全隊${parts.join('、')}`;
+      if (e.accuracy) parts.push(tr("命中 {0}{1}", { 0: e.accuracy > 0 ? '+' : '', 1: e.accuracy }));
+      if (e.defense) parts.push(tr("防禦 {0}{1}", { 0: e.defense > 0 ? '+' : '', 1: e.defense }));
+      return tr("下一場戰鬥全隊{0}", { 0: parts.join(tr("、")) });
     }
     case 'battle':
       return '';

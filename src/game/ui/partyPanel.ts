@@ -1,3 +1,4 @@
+import { tr } from '../../i18n';
 import { HEROES } from '../../sim/data/heroes';
 import { SKILLS } from '../../sim/data/skills';
 import { PERSONALITY_LABEL } from '../../sim/ai/idleBehavior';
@@ -33,7 +34,7 @@ export function partyPanel(run: RunState, opts: PartyPanelOptions = {}): HTMLEle
     const row = el('div', 'party-row');
     if (!h) {
       row.classList.add('empty');
-      row.append(el('div', 'portrait small empty-slot', String(slot + 1)), el('div', 'party-info', '（空欄位）'));
+      row.append(el('div', 'portrait small empty-slot', String(slot + 1)), el('div', 'party-info', tr("（空欄位）")));
       box.appendChild(row);
       return;
     }
@@ -46,7 +47,7 @@ export function partyPanel(run: RunState, opts: PartyPanelOptions = {}): HTMLEle
     const tag = el('span', `personality ${h.personality}`, PERSONALITY_LABEL[h.personality]);
     if (opts.onPersonality && !h.dead) {
       noFocus(tag);
-      tag.title = '點擊切換閒置性格';
+      tag.title = tr("點擊切換閒置性格");
       tag.addEventListener('click', (ev) => {
         ev.stopPropagation();
         opts.onPersonality!(slot, PERSONALITY_CYCLE[(PERSONALITY_CYCLE.indexOf(h.personality) + 1) % PERSONALITY_CYCLE.length]);
@@ -58,7 +59,7 @@ export function partyPanel(run: RunState, opts: PartyPanelOptions = {}): HTMLEle
     const fill = el('div', 'fill');
     fill.style.width = `${h.dead ? 0 : (h.hp / max) * 100}%`;
     if (h.hp / max < 0.3) fill.classList.add('low');
-    hp.append(fill, el('span', 'hptext', h.dead ? '陣亡' : `${h.hp} / ${max}`));
+    hp.append(fill, el('span', 'hptext', h.dead ? tr("陣亡") : `${h.hp} / ${max}`));
     info.append(name, hp);
     // 昇變分支的進度（SPEC_CLASSES §5）；昇變後標出原本的職業
     const base = h.baseClass;
@@ -71,7 +72,7 @@ export function partyPanel(run: RunState, opts: PartyPanelOptions = {}): HTMLEle
           line.appendChild(el('span', `branch${n > 0 ? ' on' : ''}`, `${b.name} ${'■'.repeat(n)}${'□'.repeat(Math.max(0, BRANCH_RULES.threshold - n))}`));
         }
         info.appendChild(line);
-      } else if (base) info.appendChild(el('div', 'party-branches', `昇變自${HEROES[base].name}`));
+      } else if (base) info.appendChild(el('div', 'party-branches', tr("昇變自{0}", { 0: HEROES[base].name })));
     }
     // 技能順序（戰鬥中「選人後再按數字」與 Q E R 的對應）；路線圖上可以調整
     if (opts.onSwapSkill || opts.onSwapHero) {
@@ -81,7 +82,7 @@ export function partyPanel(run: RunState, opts: PartyPanelOptions = {}): HTMLEle
       battleSkillsOf(run, h).forEach((sk, i) => {
         if (i > 0 && opts.onSwapSkill && !deliberate) {
           const left = el('button', 'order-btn', '◀');
-          left.title = '和前一個技能交換順序';
+          left.title = tr("和前一個技能交換順序");
           noFocus(left);
           left.addEventListener('click', (ev) => {
             ev.stopPropagation();
@@ -101,8 +102,8 @@ export function partyPanel(run: RunState, opts: PartyPanelOptions = {}): HTMLEle
     if (opts.onSwapHero) {
       const box2 = el('div', 'order-col');
       for (const [label, other, tip] of [
-        ['▲', slot - 1, '往上移（數字鍵變小）'],
-        ['▼', slot + 1, '往下移（數字鍵變大）'],
+        ['▲', slot - 1, tr("往上移（數字鍵變小）")],
+        ['▼', slot + 1, tr("往下移（數字鍵變大）")],
       ] as const) {
         const b = el('button', 'order-btn', label);
         b.title = tip;

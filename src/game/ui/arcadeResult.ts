@@ -9,6 +9,7 @@
  * 6. 按「繼續」才去選升級。可以按「略過」直接跳到最後。
  * MVP 的額外獎勵先留鉤子（run/progression.ts 的 mvpReward）。
  */
+import { tr } from '../../i18n';
 import type Phaser from 'phaser';
 import type { RunState } from '../../run/runState';
 import { mvpReward } from '../../run/progression';
@@ -65,7 +66,7 @@ export function showArcadeResult(scene: Phaser.Scene, world: World, before: RunS
   const node = phase ? before.map.nodes[phase.nodeId] : null;
   const ch = (before.chapter ?? 0) + 1;
   const revisit = (phase?.visit ?? 1) > 1;
-  const title = el('div', 'arc-title', `第 ${ch} 章　${ch}-${node?.layer ?? 1}${revisit ? '　重訪' : ''}　完成`);
+  const title = el('div', 'arc-title', tr("第 {0} 章　{1}-{2}{3}　完成", { 0: ch, 1: ch, 2: node?.layer ?? 1, 3: revisit ? tr("　重訪") : '' }));
   root.appendChild(title);
 
   // ── 英雄與擊殺 ──
@@ -110,7 +111,7 @@ export function showArcadeResult(scene: Phaser.Scene, world: World, before: RunS
   const gained = Math.max(0, cumulative(after.level ?? 1, after.xp ?? 0) - cumulative(level, xp));
   const draw = () => {
     const need = xpToNext(level);
-    lvLabel.textContent = `隊伍等級 ${level}`;
+    lvLabel.textContent = tr("隊伍等級 {0}", { 0: level });
     fill.style.width = `${Math.min(100, (xp / need) * 100)}%`;
     xpText.textContent = `${Math.floor(xp)} / ${need}`;
   };
@@ -131,7 +132,7 @@ export function showArcadeResult(scene: Phaser.Scene, world: World, before: RunS
   };
 
   const btns = el('div', 'btn-row arc-buttons');
-  const next = button('繼續', 'primary big', () => {
+  const next = button(tr("繼續"), 'primary big', () => {
     cleanup();
     onDone();
   });
@@ -164,7 +165,7 @@ export function showArcadeResult(scene: Phaser.Scene, world: World, before: RunS
     next.style.visibility = 'visible';
     skip.style.visibility = 'hidden';
   };
-  const skip = button('略過', 'small', finish);
+  const skip = button(tr("略過"), 'small', finish);
   btns.append(skip, next);
   root.appendChild(btns);
 
@@ -174,7 +175,7 @@ export function showArcadeResult(scene: Phaser.Scene, world: World, before: RunS
     mvpShown = true;
     rows.get(mvp)?.classList.add('mvp');
     const reward = mvpReward(after, mvp.heroSlot);
-    mvpLine.textContent = `MVP　${mvp.def.name}${reward ? `　${reward}` : ''}`;
+    mvpLine.textContent = tr("MVP　{0}{1}", { 0: mvp.def.name, 1: reward ? tr("　{0}", { 0: reward }) : '' });
     mvpLine.classList.add('show');
   };
   // ── 時間軸 ──

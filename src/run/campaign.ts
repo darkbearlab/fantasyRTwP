@@ -3,6 +3,7 @@
  * - 打倒本章頭目（不是最後一章）：照常拿戰果與升級，回到路線圖之前先進過場（chapterCleared）。
  * - 過場：全隊回滿生命，陣亡的英雄不復活；按「出發」才產生下一章的路線圖、主力與冠軍。
  */
+import { tr } from '../i18n/lang';
 import { CHAPTERS, chapterAt, chapterDepth } from './data/chapters';
 import { initOverworld } from './overworld';
 import { generateRouteMap } from './routeMap';
@@ -31,7 +32,7 @@ export function enterInterlude(r: RunState): void {
   r.chapterCleared = undefined;
   const next = (r.chapter ?? 0) + 1;
   for (const { hero } of livingHeroes(r)) hero.hp = maxHpOf(hero);
-  r.journal.push(`第 ${next} 章「${CHAPTERS[(r.chapter ?? 0)].name}」突破！全隊回復了生命。`);
+  r.journal.push(tr("第 {0} 章「{1}」突破！全隊回復了生命。", { 0: next, 1: CHAPTERS[(r.chapter ?? 0)].name }));
   r.phase = { kind: 'interlude', chapter: next };
 }
 
@@ -48,7 +49,7 @@ export function startChapter(run: RunState): RunState {
     r.path = [];
     r.exitTo = null;
     r.overworld = initOverworld(r);
-    r.journal.push(`第 ${n + 1} 章「${ch.name}」開始。`);
+    r.journal.push(tr("第 {0} 章「{1}」開始。", { 0: n + 1, 1: ch.name }));
   }
   r.phase = { kind: 'map' };
   return r;

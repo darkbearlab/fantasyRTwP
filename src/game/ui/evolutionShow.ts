@@ -2,6 +2,7 @@
  * 昇變演出（SPEC_CLASSES §5）：剛昇變的英雄在戰果畫面或路線圖上播一小段——
  * 舊外觀閃光換成新外觀，加上職業名、一句台詞、拿到的昇變被動。看完（點「繼續」）就從遠征狀態清掉。
  */
+import { tr } from '../../i18n';
 import type Phaser from 'phaser';
 import { CLASS_PASSIVES, PASSIVES } from '../../sim/data/passives';
 import { HEROES } from '../../sim/data/heroes';
@@ -59,20 +60,20 @@ export function showEvolutions(scene: Phaser.Scene, root: HTMLElement, onDone?: 
   // 昇變後新拿到的被動與主動
   const gained = (CLASS_PASSIVES[ev.to] ?? []).filter((id) => !(CLASS_PASSIVES[ev.from] ?? []).includes(id));
   const list = el('div', 'evo-gains');
-  for (const id of gained) list.appendChild(el('div', 'evo-gain', `◆ ${PASSIVES[id].name}：${PASSIVES[id].description}`));
+  for (const id of gained) list.appendChild(el('div', 'evo-gain', tr("◆ {0}：{1}", { 0: PASSIVES[id].name, 1: PASSIVES[id].description })));
   const skills = deliberateSkillsOf(ev.to);
   if (skills.join() !== deliberateSkillsOf(ev.from).join() || activeSkillOf(ev.to) !== activeSkillOf(ev.from))
-    list.appendChild(el('div', 'evo-gain', `◆ 主動：${skills.map((s) => SKILLS[s].name).join(' → ')}`));
+    list.appendChild(el('div', 'evo-gain', tr("◆ 主動：{0}", { 0: skills.map((s) => SKILLS[s].name).join(' → ') })));
   card.append(
-    el('div', 'evo-title', '昇變！'),
+    el('div', 'evo-title', tr("昇變！")),
     pics,
     el('div', 'evo-name', `${HEROES[ev.from].name} → ${HEROES[ev.to].name}`),
-    el('div', 'evo-line', `「${ev.line}」`),
+    el('div', 'evo-line', tr("「{0}」", { 0: ev.line })),
     list,
   );
   const row = el('div', 'btn-row');
   row.appendChild(
-    button('繼續', 'primary', () => {
+    button(tr("繼續"), 'primary', () => {
       const r = cloneRun(getRun(scene));
       r.evolutionShow = (r.evolutionShow ?? []).slice(1);
       if (r.evolutionShow.length === 0) delete r.evolutionShow;

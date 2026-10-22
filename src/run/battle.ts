@@ -1,6 +1,7 @@
 /**
  * 遠征 ↔ 戰鬥的介面（SPEC_SLICE2 §10.2）：由 RunState 建立 World、把戰鬥結果寫回。
  */
+import { tr } from '../i18n/lang';
 import { dist } from '../sim/math';
 import { ENEMIES, enemyRank } from '../sim/data/enemies';
 import { HORDE_CONFIG, HORDE_ENEMY_HP } from '../sim/data/horde';
@@ -47,7 +48,7 @@ export function enemyDef(enemyId: string, layer: number, captain = false): UnitD
   const dmgMult = s * (captain ? c.damageMult : 1);
   return {
     ...base,
-    name: captain ? `隊長${base.name}` : base.name,
+    name: captain ? tr("隊長{0}", { 0: base.name }) : base.name,
     rank: captain ? 'elite' : base.rank,
     maxHp: Math.round(base.maxHp * hpMult),
     damageMult: (base.damageMult ?? 1) * dmgMult,

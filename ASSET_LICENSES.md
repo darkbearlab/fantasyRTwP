@@ -29,6 +29,17 @@
 - 試產工具（`tools/fieldPreview.ts`、`tools/townPreview.ts`）輸出的 PNG 含授權素材，只放本機（`preview/` 已列在 `.gitignore`）。
 - 署名：雖然不需要，遊戲內「製作人員」仍列出 finalbossblues。
 
+## Alagard 英文像素字體（Hewett Tsoi；**不在本 repo 內**）
+
+- 來源：dafont，標示「100% Free」，但沒有附正式條款。為了保險放在私有素材 repo 的 `fonts/alagard.ttf`，部署時才拉進 `public/assets/licensed/`。
+- 用途：英文與數字（16 的整數倍）。找不到時退回原本的字型。
+- 署名：遊戲內「製作人員」列出「Alagard font by Hewett Tsoi」。
+
+## Kendrick ML〈All Fantasy World Explosions vfx〉（**不在本 repo 內**）
+
+- 授權：可以修改；不可再散布或轉售（即使修改過）。放在私有素材 repo 的 `vfx/kml/`。
+- 署名：不需要，遊戲內「製作人員」仍列出。
+
 ## 0x72〈16x16 DungeonTileset II〉v1.7（`public/assets/0x72/`）
 
 - 來源：https://0x72.itch.io/dungeontileset-ii

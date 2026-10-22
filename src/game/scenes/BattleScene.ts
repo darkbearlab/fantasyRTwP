@@ -1,3 +1,4 @@
+import { tr } from '../../i18n';
 import Phaser from 'phaser';
 import { GAME_CONFIG } from '../../config';
 import type { Order } from '../../sim/commands';
@@ -66,16 +67,16 @@ import { createRun } from '../../run/runState';
 
 /** 互動物件的名稱（沒有名稱時依種類） */
 function objectName(o: InteractableState): string {
-  return o.def.name ?? (o.def.kind === 'door' ? '門' : '拉桿');
+  return o.def.name ?? (o.def.kind === 'door' ? tr("門") : tr("拉桿"));
 }
 
 /** 滑鼠提示的第二行 */
 function objectHint(usable: boolean, o: InteractableState): string {
   if (o.def.kind === 'door') {
-    if (o.def.locked) return o.open ? '（已打開）' : '（上鎖，要找別的機關）';
-    return o.open ? '右鍵：關門' : '右鍵：開門';
+    if (o.def.locked) return o.open ? tr("（已打開）") : tr("（上鎖，要找別的機關）");
+    return o.open ? tr("右鍵：關門") : tr("右鍵：開門");
   }
-  return usable ? '右鍵：拉動' : '（已經拉過了）';
+  return usable ? tr("右鍵：拉動") : tr("（已經拉過了）");
 }
 
 /** 持續地面區域的顏色：[填色, 邊框] */
@@ -196,7 +197,7 @@ export class BattleScene extends Phaser.Scene {
     this.overG = this.add.graphics().setDepth(1000);
     this.ghostG = this.add.graphics().setDepth(1100);
     this.coverText = this.add
-      .text(0, 0, '掩體', { fontFamily: FONT, fontSize: '12px', color: '#d9b77a', fontStyle: 'bold' })
+      .text(0, 0, tr("掩體"), { fontFamily: FONT, fontSize: '12px', color: '#d9b77a', fontStyle: 'bold' })
       .setOrigin(0.5)
       .setStroke('#000000', 3)
       .setDepth(1200)
@@ -252,11 +253,11 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
       objectAtScreen: (x, y) => this.interactView.objectAtScreen(x, y),
     });
 
-    if (this.session.autoPause.battleStart) this.session.setPaused(true, '戰鬥開始');
+    if (this.session.autoPause.battleStart) this.session.setPaused(true, tr("戰鬥開始"));
     if (this.session.mode === 'run') {
       const enc = currentEncounter(getRun(this));
-      this.session.addLog(enc.mapDef ? enc.name : `${enc.name}（${this.session.world.map.name}）`, 'sys');
-    } else this.session.addLog(`戰鬥開始（種子 ${seed}）`, 'sys');
+      this.session.addLog(enc.mapDef ? enc.name : tr("{0}（{1}）", { 0: enc.name, 1: this.session.world.map.name }), 'sys');
+    } else this.session.addLog(tr("戰鬥開始（種子 {0}）", { 0: seed }), 'sys');
 
     if (!this.scene.isActive('UI')) this.scene.launch('UI');
     this.scene.bringToTop('UI');
@@ -701,10 +702,10 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
           this.views.get(t.id)?.onHit?.(w.time, src.pos);
           this.fx.text(t.pos, ev.crit ? `${ev.damage}!` : `${ev.damage}`, ev.crit ? '#ffd23f' : '#ffffff', ev.crit ? 24 : 16, 34, 900, this.headZ(t));
           s.addLog(
-            `${L(src.id)} → ${L(t.id)}：${ev.damage}${ev.crit ? '（爆擊）' : ''}${ev.skillId ? `〔${skillName(ev.skillId)}〕` : ''}${ev.freeAttack ? '〔脫離攻擊〕' : ''}`,
+            tr("{0} → {1}：{2}{3}{4}{5}", { 0: L(src.id), 1: L(t.id), 2: ev.damage, 3: ev.crit ? tr("（爆擊）") : '', 4: ev.skillId ? tr("〔{0}〕", { 0: skillName(ev.skillId) }) : '', 5: ev.freeAttack ? tr("〔脫離攻擊〕") : '' }),
             src.team,
           );
-          if (ev.freeAttack) this.fx.text(t.pos, '脫離攻擊', '#ff9f43', 13, 50, 900, this.headZ(t));
+          if (ev.freeAttack) this.fx.text(t.pos, tr("脫離攻擊"), '#ff9f43', 13, 50, 900, this.headZ(t));
           // 異教徒吸血：目標身上紅色漩渦，一條紅線拉回施法者
           if (ev.skillId === 'drainLife') {
             this.fx.vfx(t.pos, VFX_USE.drain, 0.8);
@@ -715,18 +716,18 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
         case 'miss': {
           const t = w.getUnit(ev.targetId)!;
           if (ev.blocked && ev.point) {
-            this.fx.text(ev.point, '擋下', '#c8ccd2', 13, 34, 900, 1.2);
-            s.addLog(`${L(ev.sourceId)} → ${L(t.id)}：被障礙物擋下${ev.skillId ? `〔${skillName(ev.skillId)}〕` : ''}`, 'miss');
+            this.fx.text(ev.point, tr("擋下"), '#c8ccd2', 13, 34, 900, 1.2);
+            s.addLog(tr("{0} → {1}：被障礙物擋下{2}", { 0: L(ev.sourceId), 1: L(t.id), 2: ev.skillId ? tr("〔{0}〕", { 0: skillName(ev.skillId) }) : '' }), 'miss');
             break;
           }
           this.fx.text(t.pos, 'Miss', '#9aa0a6', 14, 34, 900, this.headZ(t));
-          s.addLog(`${L(ev.sourceId)} → ${L(t.id)}：未命中${ev.skillId ? `〔${skillName(ev.skillId)}〕` : ''}`, 'miss');
+          s.addLog(tr("{0} → {1}：未命中{2}", { 0: L(ev.sourceId), 1: L(t.id), 2: ev.skillId ? tr("〔{0}〕", { 0: skillName(ev.skillId) }) : '' }), 'miss');
           break;
         }
         case 'heal': {
           const t = w.getUnit(ev.targetId)!;
           this.fx.text(t.pos, `+${ev.amount}`, '#5dff7a', 18, 34, 900, this.headZ(t));
-          s.addLog(`${L(ev.sourceId)} 治療 ${L(t.id)} +${ev.amount}`, 'heal');
+          s.addLog(tr("{0} 治療 {1} +{2}", { 0: L(ev.sourceId), 1: L(t.id), 2: ev.amount }), 'heal');
           break;
         }
         case 'interrupt': {
@@ -734,7 +735,7 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
           this.fx.interrupt(t.pos, this.headZ(t));
           const def = ev.skillId ? SKILLS[ev.skillId] : undefined;
           if (def?.telegraph && ev.point && def.effect.kind === 'aoe') this.fx.shatter(ev.point, def.effect.radius);
-          s.addLog(`${L(ev.sourceId)} 打斷了 ${L(t.id)}${def ? `的「${def.name}」` : ''}！`, 'interrupt');
+          s.addLog(tr("{0} 打斷了 {1}{2}！", { 0: L(ev.sourceId), 1: L(t.id), 2: def ? tr("的「{0}」", { 0: def.name }) : '' }), 'interrupt');
           break;
         }
         case 'bossSighted': {
@@ -747,39 +748,39 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
           // Alan 2026-10-22：冠軍以獵人身分加入地圖，先預告從哪個方向來
           const h = w.units.find((x) => x.team === 'hero' && !x.dead);
           const side = h ? directionWord(h.pos, ev.point) : '';
-          const msg = ev.seconds <= 3 ? `⚠ 魔王的冠軍追上來了！${side}` : `⚠ 魔王的冠軍逼近中：約 ${Math.round(ev.seconds)} 秒後${side}出現`;
+          const msg = ev.seconds <= 3 ? tr("⚠ 魔王的冠軍追上來了！{0}", { 0: side }) : tr("⚠ 魔王的冠軍逼近中：約 {0} 秒後{1}出現", { 0: Math.round(ev.seconds), 1: side });
           s.showToast(msg, this.time.now, 3600);
           s.addLog(msg, 'warn');
           break;
         }
         case 'championArrived':
-          s.addLog('魔王的冠軍進入了戰場！', 'warn');
+          s.addLog(tr("魔王的冠軍進入了戰場！"), 'warn');
           break;
         case 'death': {
           const u = w.getUnit(ev.unitId)!;
           if (enemyRank(u.def) === 'boss') this.bossShow.defeat(u);
-          this.fx.text(u.pos, '陣亡', '#c0c4cc', 16, 20, 1400, this.headZ(u));
-          s.addLog(`${L(u.id)} 被 ${ev.killerId !== undefined ? L(ev.killerId) : '?'} 擊倒`, 'death');
+          this.fx.text(u.pos, tr("陣亡"), '#c0c4cc', 16, 20, 1400, this.headZ(u));
+          s.addLog(tr("{0} 被 {1} 擊倒", { 0: L(u.id), 1: ev.killerId !== undefined ? L(ev.killerId) : '?' }), 'death');
           s.selection = s.selection.filter((id) => id !== u.id);
           break;
         }
         case 'pinned': {
           const u = w.getUnit(ev.unitId)!;
-          this.fx.text(u.pos, '被牽制', '#ff9f43', 15, 34, 900, this.headZ(u));
-          s.addLog(`${L(u.id)} 被 ${ev.byId >= 0 ? L(ev.byId) : '?'} 牽制`, 'pin');
+          this.fx.text(u.pos, tr("被牽制"), '#ff9f43', 15, 34, 900, this.headZ(u));
+          s.addLog(tr("{0} 被 {1} 牽制", { 0: L(u.id), 1: ev.byId >= 0 ? L(ev.byId) : '?' }), 'pin');
           break;
         }
         case 'guardRedirect': {
           const g = w.getUnit(ev.guardId)!;
-          this.fx.text(g.pos, '守護', '#7fb8ff', 14, 34, 900, this.headZ(g));
-          s.addLog(`${L(g.id)} 替 ${L(ev.protectedId)} 擋下攻擊`, 'hero');
+          this.fx.text(g.pos, tr("守護"), '#7fb8ff', 14, 34, 900, this.headZ(g));
+          s.addLog(tr("{0} 替 {1} 擋下攻擊", { 0: L(g.id), 1: L(ev.protectedId) }), 'hero');
           break;
         }
         case 'status': {
           const u = w.getUnit(ev.unitId)!;
           this.fx.text(u.pos, ev.text, '#e0e6f0', 13, 26, 900, this.headZ(u));
           // 逐格特效：撞牆、元素附魔
-          if (ev.text === '撞牆') this.fx.vfx(u.pos, VFX_USE.impact);
+          if (ev.text === tr('撞牆')) this.fx.vfx(u.pos, VFX_USE.impact);
           else if (ev.text === SKILLS.elementalEnchant.name) this.fx.vfx(u.pos, VFX_USE.elementalEnchant, 0.8);
           break;
         }
@@ -808,7 +809,7 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
             });
           }
           const kind = ev.skillId ? SKILLS[ev.skillId]?.effect.kind : undefined;
-          if (kind === 'aoe' || kind === 'cone') s.addLog(`${L(src.id)} 的「${skillName(ev.skillId)}」爆炸`, src.team);
+          if (kind === 'aoe' || kind === 'cone') s.addLog(tr("{0} 的「{1}」爆炸", { 0: L(src.id), 1: skillName(ev.skillId) }), src.team);
           break;
         }
         case 'knockback':
@@ -819,59 +820,59 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
           const u = w.getUnit(ev.unitId)!;
           const def = SKILLS[ev.skillId];
           if (u.team === 'enemy' && def.telegraph) {
-            s.addLog(`⚠ ${L(u.id)} 開始準備「${def.name}」！`, 'warn');
+            s.addLog(tr("⚠ {0} 開始準備「{1}」！", { 0: L(u.id), 1: def.name }), 'warn');
           } else if (u.team === 'hero') {
-            s.addLog(`${L(u.id)} 施放「${def.name}」`, 'skill');
+            s.addLog(tr("{0} 施放「{1}」", { 0: L(u.id), 1: def.name }), 'skill');
           }
           break;
         }
         case 'spawn': {
           const u = w.getUnit(ev.unitId)!;
           this.views.set(u.id, this.makeView(u));
-          s.registerUnit(u, ev.waveId ? '' : '援軍');
+          s.registerUnit(u, ev.waveId ? '' : tr("援軍"));
           if (!ev.waveId) this.fx.ring(u.pos, 1.2, 0xff6b6b, 500);
           break;
         }
         case 'exitWaiting':
           // Alan：全員到齊才能離開
-          if (ev.locked) s.showToast(w.map.exitLock === 'boss' ? '出口封住了：先打倒頭目' : '出口封住了：先打倒精英隊長', this.time.now, 1800);
-          else s.showToast(`You must gather your party before venturing forth.（${ev.inside}／${ev.total}）`, this.time.now, 2400);
+          if (ev.locked) s.showToast(w.map.exitLock === 'boss' ? tr("出口封住了：先打倒頭目") : tr("出口封住了：先打倒精英隊長"), this.time.now, 1800);
+          else s.showToast(tr("You must gather your party before venturing forth.（{0}／{1}）", { 0: ev.inside, 1: ev.total }), this.time.now, 2400);
           break;
         case 'squadSighted':
-          if (w.time > 0.5) s.addLog(`發現敵人：${ev.unitIds.map((id) => L(id)).join('、')}`, 'warn');
+          if (w.time > 0.5) s.addLog(tr("發現敵人：{0}", { 0: ev.unitIds.map((id) => L(id)).join(tr("、")) }), 'warn');
           break;
         case 'waveStart':
-          s.addLog(`敵人湧上來了！（${ev.waveId}）`, 'enemy');
+          s.addLog(tr("敵人湧上來了！（{0}）", { 0: ev.waveId }), 'enemy');
           break;
         case 'interact': {
           const obj = w.interactables.get(ev.objectId);
-          if (obj?.def.kind === 'lever') s.addLog(`${L(ev.unitId)} 拉動了${objectName(obj)}`, 'sys');
+          if (obj?.def.kind === 'lever') s.addLog(tr("{0} 拉動了{1}", { 0: L(ev.unitId), 1: objectName(obj) }), 'sys');
           break;
         }
         case 'door': {
           const obj = w.interactables.get(ev.objectId);
           if (!obj) break;
           if (ev.blocked) {
-            s.showToast(`${objectName(obj)}：門口有人，關不上`, this.time.now, 1400);
+            s.showToast(tr("{0}：門口有人，關不上", { 0: objectName(obj) }), this.time.now, 1400);
             break;
           }
-          s.addLog(`${objectName(obj)}${ev.open ? '打開了' : '關上了'}`, 'sys');
+          s.addLog(tr("{0}{1}", { 0: objectName(obj), 1: ev.open ? tr("打開了") : tr("關上了") }), 'sys');
           break;
         }
         case 'warcry': {
           const u = w.getUnit(ev.unitId)!;
           this.fx.ring(u.pos, 6, 0xff2a2a, 900, 0.1, 8);
-          this.fx.text(u.pos, '戰吼！', '#ff6b6b', 26, 50, 1400, this.headZ(u));
+          this.fx.text(u.pos, tr("戰吼！"), '#ff6b6b', 26, 50, 1400, this.headZ(u));
           this.cameras.main.shake(300, 0.006);
-          s.addLog(`⚠ ${L(u.id)} 發出戰吼！援軍進場，敵人傷害提高`, 'warn');
+          s.addLog(tr("⚠ {0} 發出戰吼！援軍進場，敵人傷害提高", { 0: L(u.id) }), 'warn');
           break;
         }
         case 'aggro':
-          s.addLog('敵人開始進攻！', 'warn');
-          s.showToast('敵人開始進攻！', this.time.now, 1800);
+          s.addLog(tr("敵人開始進攻！"), 'warn');
+          s.showToast(tr("敵人開始進攻！"), this.time.now, 1800);
           break;
         case 'battleEnd':
-          s.addLog(ev.winner === 'hero' ? '勝利！' : '全軍覆沒……', 'sys');
+          s.addLog(ev.winner === 'hero' ? tr("勝利！") : tr("全軍覆沒……"), 'sys');
           s.targeting = null;
           if (!this.resultShown) {
             this.resultShown = true;
@@ -1330,7 +1331,7 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
       // 寒氣（法師的光環）：淡藍色的圈
       if (u.chillTime > 0) groundCircle(this.zoneG, foot.x, foot.y, u.radius + 0.18, { fill: 0x9fd8ff, fillAlpha: 0.15, stroke: 0x9fd8ff, strokeAlpha: 0.7, width: 1.5 });
       // 狀態文字：暈眩／定身／燃燒／詛咒
-      const label = u.state === UnitState.Stunned ? '暈眩' : u.rooted ? '定身' : u.burnTime > 0 ? '燃燒' : u.curseTime > 0 ? '詛咒' : '';
+      const label = u.state === UnitState.Stunned ? tr("暈眩") : u.rooted ? tr("定身") : u.burnTime > 0 ? tr("燃燒") : u.curseTime > 0 ? tr("詛咒") : '';
       if (label) {
         let t = st;
         if (!t) {
@@ -1573,7 +1574,7 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
       }
       const d = flareDir(f);
       const sp = worldToScreen(p.x, p.y);
-      t.setText(`dir ${d}（${DIR_NAMES[d]}）`).setPosition(sp.x, sp.y + 10).setVisible(true);
+      t.setText(tr("dir {0}（{1}）", { 0: d, 1: DIR_NAMES[d] })).setPosition(sp.x, sp.y + 10).setVisible(true);
     }
   }
 
@@ -1721,6 +1722,6 @@ function randomSeed(): number {
 function directionWord(from: { x: number; y: number }, to: { x: number; y: number }): string {
   const dx = to.x - from.x;
   const dy = to.y - from.y;
-  if (Math.abs(dx) >= Math.abs(dy)) return dx > 0 ? '從上方' : '從下方';
-  return dy > 0 ? '從右方' : '從左方';
+  if (Math.abs(dx) >= Math.abs(dy)) return dx > 0 ? tr("從上方") : tr("從下方");
+  return dy > 0 ? tr("從右方") : tr("從左方");
 }

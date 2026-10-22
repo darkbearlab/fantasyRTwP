@@ -1,3 +1,5 @@
+import { tr } from '../../i18n';
+import { languageRow } from '../ui/language';
 import Phaser from 'phaser';
 import { GAME_CONFIG } from '../../config';
 import { canAutocast } from '../../sim/ai/autocast';
@@ -30,12 +32,12 @@ import { AUTO_PAUSE_OPTIONS, LOW_HP_THRESHOLDS } from '../autoPause';
 import { portraitSheetUrl } from '../render/pixelArt';
 
 const STATE_LABEL: Record<UnitState, string> = {
-  [UnitState.Idle]: '閒置',
-  [UnitState.Moving]: '移動中',
-  [UnitState.Windup]: '準備中',
-  [UnitState.Recovery]: '恢復中',
-  [UnitState.Stunned]: '暈眩',
-  [UnitState.Dead]: '陣亡',
+  [UnitState.Idle]: tr("閒置"),
+  [UnitState.Moving]: tr("移動中"),
+  [UnitState.Windup]: tr("準備中"),
+  [UnitState.Recovery]: tr("恢復中"),
+  [UnitState.Stunned]: tr("暈眩"),
+  [UnitState.Dead]: tr("陣亡"),
 };
 
 interface CardRefs {
@@ -136,7 +138,7 @@ export class UIScene extends Phaser.Scene {
     const top = el('div', 'top-bar');
     this.timeEl = el('div', 'pill time', '00:00.0');
     this.speedEl = el('div', 'pill speed interactive', '1×');
-    this.speedEl.title = '點擊切換時間倍率';
+    this.speedEl.title = tr("點擊切換時間倍率");
     noFocus(this.speedEl);
     this.speedEl.addEventListener('click', () => {
       const s = this.cur();
@@ -145,13 +147,13 @@ export class UIScene extends Phaser.Scene {
     });
     // 設定選單（Alan：可以勾選哪些情況自動暫停）
     const gear = el('div', 'pill settings-btn interactive', '⚙');
-    gear.title = '設定';
+    gear.title = tr("設定");
     noFocus(gear);
     gear.addEventListener('click', () => this.toggleSettings());
-    const hint = el('div', 'pill hint', '空白鍵 暫停　1–4 選人→再按 1–3 放技能　Tab 切換　右鍵技能鈕 自動施放　右鍵 移動・攻擊・跟隨　F＋點擊／Ctrl＋右鍵 攻擊移動　WASD 鏡頭　G 切換性格　H 停止　` 除錯');
+    const hint = el('div', 'pill hint', tr("空白鍵 暫停　1–4 選人→再按 1–3 放技能　Tab 切換　右鍵技能鈕 自動施放　右鍵 移動・攻擊・跟隨　F＋點擊／Ctrl＋右鍵 攻擊移動　WASD 鏡頭　G 切換性格　H 停止　` 除錯"));
     // 迷你路線圖（遠征中才有）：出口通往大地圖的哪裡
     this.routeBtn = el('div', 'pill route-btn interactive', '🗺');
-    this.routeBtn.title = '路線圖（出口通往哪裡）';
+    this.routeBtn.title = tr("路線圖（出口通往哪裡）");
     noFocus(this.routeBtn);
     this.routeBtn.addEventListener('click', () => {
       const s = this.cur();
@@ -175,14 +177,17 @@ export class UIScene extends Phaser.Scene {
     const p = this.settingsEl;
     p.innerHTML = '';
     const head = el('div', 'settings-head');
-    head.appendChild(el('div', 'settings-title', '設定'));
-    const close = el('button', 'btn small', '關閉');
+    head.appendChild(el('div', 'settings-title', tr("設定")));
+    const close = el('button', 'btn small', tr("關閉"));
     noFocus(close);
     close.addEventListener('click', () => this.toggleSettings());
     head.appendChild(close);
     p.appendChild(head);
+    // 語言（Alan 2026-10-22）：切換後重新載入頁面
+    p.appendChild(el('div', 'settings-sub', 'Language／語言'));
+    p.appendChild(languageRow());
     // 操作（Alan 2026-10-22）
-    p.appendChild(el('div', 'settings-sub', '操作'));
+    p.appendChild(el('div', 'settings-sub', tr("操作")));
     {
       const row = el('div', 'settings-row');
       const lab = el('label', 'settings-check');
@@ -192,12 +197,12 @@ export class UIScene extends Phaser.Scene {
       cb.checked = s.controls.deselectOnPause;
       cb.addEventListener('change', () => s.setControls({ deselectOnPause: cb.checked }));
       const text = el('div', 'settings-text');
-      text.append(el('div', '', '暫停時取消選取所有英雄'), el('div', 'settings-hint', '暫停代表狀況發生了，英雄要重新選'));
+      text.append(el('div', '', tr("暫停時取消選取所有英雄")), el('div', 'settings-hint', tr("暫停代表狀況發生了，英雄要重新選")));
       lab.append(cb, text);
       row.appendChild(lab);
       p.appendChild(row);
     }
-    p.appendChild(el('div', 'settings-sub', '自動暫停'));
+    p.appendChild(el('div', 'settings-sub', tr("自動暫停")));
     for (const o of AUTO_PAUSE_OPTIONS) {
       // 列是 div：勾選框與文字包在 label 裡，門檻下拉選單放在 label 外面（點選單不會切換勾選）
       const row = el('div', 'settings-row');
@@ -215,7 +220,7 @@ export class UIScene extends Phaser.Scene {
       if (o.key === 'heroLowHp') {
         const sel = el('select', 'settings-select');
         for (const v of LOW_HP_THRESHOLDS) {
-          const opt = el('option', '', `低於 ${Math.round(v * 100)}%`);
+          const opt = el('option', '', tr("低於 {0}%", { 0: Math.round(v * 100) }));
           opt.value = String(v);
           opt.selected = Math.abs(v - s.autoPause.heroLowHpThreshold) < 1e-6;
           sel.appendChild(opt);
@@ -229,16 +234,16 @@ export class UIScene extends Phaser.Scene {
 
   private buildBanner(): void {
     this.banner = el('div', 'pause-banner');
-    const title = el('div', 'title', '暫停中');
+    const title = el('div', 'title', tr("暫停中"));
     this.bannerReason = el('div', 'reason');
-    const sub = el('div', 'sub', '可以下指令——按空白鍵繼續');
+    const sub = el('div', 'sub', tr("可以下指令——按空白鍵繼續"));
     this.banner.append(title, this.bannerReason, sub);
     this.root.appendChild(this.banner);
   }
 
   private buildLog(): void {
     this.logBox = el('div', 'log interactive');
-    const head = el('div', 'log-head', '戰鬥紀錄');
+    const head = el('div', 'log-head', tr("戰鬥紀錄"));
     noFocus(head);
     head.addEventListener('click', () => {
       const s = this.cur();
@@ -251,26 +256,26 @@ export class UIScene extends Phaser.Scene {
 
   private buildDebug(): void {
     const p = el('div', 'debug-panel interactive');
-    p.appendChild(el('div', 'debug-title', '除錯面板（` 開關）'));
+    p.appendChild(el('div', 'debug-title', tr("除錯面板（` 開關）")));
     const flags: [keyof DebugFlags, string][] = [
-      ['navGrid', '導航格子'],
-      ['paths', '單位路徑'],
-      ['allZoc', '所有控制區'],
-      ['los', '視線檢查線'],
-      ['slots', '攻擊站位'],
-      ['facing', '方向對照（面向箭頭＋Flare 方向）'],
+      ['navGrid', tr("導航格子")],
+      ['paths', tr("單位路徑")],
+      ['allZoc', tr("所有控制區")],
+      ['los', tr("視線檢查線")],
+      ['slots', tr("攻擊站位")],
+      ['facing', tr("方向對照（面向箭頭＋Flare 方向）")],
     ];
     for (const [k, label] of flags) {
       p.appendChild(this.checkbox(label, () => this.cur().debug[k], (v) => (this.cur().debug[k] = v)));
     }
 
     const projRow = el('div', 'row');
-    projRow.appendChild(el('span', 'lbl', '投影'));
+    projRow.appendChild(el('span', 'lbl', tr("投影")));
     const proj = el('select');
     for (const [v, t] of [
-      ['ortho', '正角俯視'],
-      ['iso', '等角（45 度）'],
-      ['topdown', '純平面'],
+      ['ortho', tr("正角俯視")],
+      ['iso', tr("等角（45 度）")],
+      ['topdown', tr("純平面")],
     ]) {
       const o = el('option', '', t);
       o.value = v;
@@ -285,13 +290,13 @@ export class UIScene extends Phaser.Scene {
     p.appendChild(projRow);
 
     const artRow = el('div', 'row');
-    artRow.appendChild(el('span', 'lbl', '美術'));
+    artRow.appendChild(el('span', 'lbl', tr("美術")));
     const artSel = el('select');
     for (const [v, t] of [
-      ['pixel', '2D 像素'],
-      ['heroes3d', '3D 英雄＋Flare（等角）'],
-      ['flare', 'Flare 素材（等角）'],
-      ['blocks', '色塊'],
+      ['pixel', tr("2D 像素")],
+      ['heroes3d', tr("3D 英雄＋Flare（等角）")],
+      ['flare', tr("Flare 素材（等角）")],
+      ['blocks', tr("色塊")],
     ]) {
       const o = el('option', '', t);
       o.value = v;
@@ -307,10 +312,10 @@ export class UIScene extends Phaser.Scene {
 
     // heroes3d：法師外觀（mage／sorceress）
     const lookRow = el('div', 'row');
-    lookRow.appendChild(el('span', 'lbl', '法師外觀'));
+    lookRow.appendChild(el('span', 'lbl', tr("法師外觀")));
     const lookSel = el('select');
     for (const v of H3D.mageLooks) {
-      const o = el('option', '', v === 'mage' ? '灰袍法師（mage）' : v === 'sorceress' ? '咒術師（sorceress）' : v);
+      const o = el('option', '', v === 'mage' ? tr("灰袍法師（mage）") : v === 'sorceress' ? tr("咒術師（sorceress）") : v);
       o.value = v;
       lookSel.appendChild(o);
     }
@@ -324,11 +329,11 @@ export class UIScene extends Phaser.Scene {
 
     // 方向對照：換算方式與整體偏移，可以邊看邊調
     const dirRow = el('div', 'row');
-    dirRow.appendChild(el('span', 'lbl', '方向換算'));
+    dirRow.appendChild(el('span', 'lbl', tr("方向換算")));
     const dirSel = el('select');
     for (const [v, t] of [
-      ['screen', '螢幕方向'],
-      ['map', '地圖方向（轉 45°）'],
+      ['screen', tr("螢幕方向")],
+      ['map', tr("地圖方向（轉 45°）")],
     ]) {
       const o = el('option', '', t);
       o.value = v;
@@ -340,7 +345,7 @@ export class UIScene extends Phaser.Scene {
     });
     const offSel = el('select');
     for (let i = 0; i < 8; i++) {
-      const o = el('option', '', `偏移 ${i}`);
+      const o = el('option', '', tr("偏移 {0}", { 0: i }));
       o.value = String(i);
       offSel.appendChild(o);
     }
@@ -356,10 +361,10 @@ export class UIScene extends Phaser.Scene {
     });
     dirRow.append(dirSel, offSel);
     p.appendChild(dirRow);
-    p.appendChild(this.checkbox('轉向測試（每秒轉一個方向）', () => DIR_SETTINGS.spin, (v) => (DIR_SETTINGS.spin = v)));
+    p.appendChild(this.checkbox(tr("轉向測試（每秒轉一個方向）"), () => DIR_SETTINGS.spin, (v) => (DIR_SETTINGS.spin = v)));
 
     const speedRow = el('div', 'row');
-    speedRow.appendChild(el('span', 'lbl', '時間倍率'));
+    speedRow.appendChild(el('span', 'lbl', tr("時間倍率")));
     for (const ts of GAME_CONFIG.timeScales) {
       const b = el('button', 'btn small', `${ts}×`);
       noFocus(b);
@@ -370,12 +375,12 @@ export class UIScene extends Phaser.Scene {
     p.appendChild(speedRow);
 
     const zocRow = el('div', 'row');
-    zocRow.appendChild(el('span', 'lbl', 'ZOC 模式'));
+    zocRow.appendChild(el('span', 'lbl', tr("ZOC 模式")));
     const sel = el('select');
     for (const [v, t] of [
-      ['pin', 'pin（牽制）'],
-      ['disengage', 'disengage（脫離攻擊）'],
-      ['off', 'off（關閉）'],
+      ['pin', tr("pin（牽制）")],
+      ['disengage', tr("disengage（脫離攻擊）")],
+      ['off', tr("off（關閉）")],
     ]) {
       const o = el('option', '', t);
       o.value = v;
@@ -389,17 +394,17 @@ export class UIScene extends Phaser.Scene {
     zocRow.appendChild(sel);
     p.appendChild(zocRow);
     p.appendChild(
-      this.checkbox('近戰進行中時控制區失效', () => this.cur().simConfig.zocEngagedException, (v) => this.cur().setSimConfig({ zocEngagedException: v })),
+      this.checkbox(tr("近戰進行中時控制區失效"), () => this.cur().simConfig.zocEngagedException, (v) => this.cur().setSimConfig({ zocEngagedException: v })),
     );
-    p.appendChild(this.checkbox('戰爭迷霧（怪群地圖）', () => this.cur().simConfig.fogOfWar, (v) => this.cur().setSimConfig({ fogOfWar: v })));
+    p.appendChild(this.checkbox(tr("戰爭迷霧（怪群地圖）"), () => this.cur().simConfig.fogOfWar, (v) => this.cur().setSimConfig({ fogOfWar: v })));
 
     const ffRow = el('div', 'row');
-    ffRow.appendChild(el('span', 'lbl', '火球友軍傷害'));
+    ffRow.appendChild(el('span', 'lbl', tr("火球友軍傷害")));
     const ff = el('select');
     for (const [v, t] of [
-      ['1', '全額'],
-      ['0.5', '減半'],
-      ['0', '無'],
+      ['1', tr("全額")],
+      ['0.5', tr("減半")],
+      ['0', tr("無")],
     ]) {
       const o = el('option', '', t);
       o.value = v;
@@ -414,7 +419,7 @@ export class UIScene extends Phaser.Scene {
     p.appendChild(ffRow);
 
     const leashRow = el('div', 'row');
-    leashRow.appendChild(el('span', 'lbl', '駐守範圍'));
+    leashRow.appendChild(el('span', 'lbl', tr("駐守範圍")));
     const leash = el('select');
     for (const v of [0.5, 1, 1.5, 2, 3, 6]) {
       const o = el('option', '', `${v} m`);
@@ -429,7 +434,7 @@ export class UIScene extends Phaser.Scene {
     leashRow.appendChild(leash);
     p.appendChild(leashRow);
 
-    p.appendChild(el('div', 'debug-sub', '節奏（即時生效）'));
+    p.appendChild(el('div', 'debug-sub', tr("節奏（即時生效）")));
     const numSelect = (label: string, key: 'actionSpeedMult' | 'heroDamageMult', values: number[]) => {
       const row = el('div', 'row');
       row.appendChild(el('span', 'lbl', label));
@@ -447,16 +452,16 @@ export class UIScene extends Phaser.Scene {
       row.appendChild(sel);
       p.appendChild(row);
     };
-    numSelect('行動條速度', 'actionSpeedMult', [0.7, 0.75, 0.8, 0.85, 0.9, 1]);
-    numSelect('我方傷害', 'heroDamageMult', [1, 1.1, 1.2, 1.3, 1.5]);
+    numSelect(tr("行動條速度"), 'actionSpeedMult', [0.7, 0.75, 0.8, 0.85, 0.9, 1]);
+    numSelect(tr("我方傷害"), 'heroDamageMult', [1, 1.1, 1.2, 1.3, 1.5]);
 
-    p.appendChild(el('div', 'debug-sub', '自動暫停（也可以從 ⚙ 設定選單改）'));
+    p.appendChild(el('div', 'debug-sub', tr("自動暫停（也可以從 ⚙ 設定選單改）")));
     for (const o of AUTO_PAUSE_OPTIONS) p.appendChild(this.checkbox(o.label, () => this.cur().autoPause[o.key], (v) => this.cur().setAutoPause({ [o.key]: v })));
 
     const seedRow = el('div', 'row');
     this.seedEl = el('span', 'seed');
-    const same = el('button', 'btn small', '重來（同種子）');
-    const fresh = el('button', 'btn small', '新種子');
+    const same = el('button', 'btn small', tr("重來（同種子）"));
+    const fresh = el('button', 'btn small', tr("新種子"));
     noFocus(same);
     noFocus(fresh);
     same.addEventListener('click', () => this.battle.restartBattle(this.cur().seed));
@@ -496,7 +501,7 @@ export class UIScene extends Phaser.Scene {
         const def = info ? HEROES[info.classId] : null;
         const portrait = el('div', 'portrait', def ? def.letter : '');
         portrait.appendChild(el('span', 'slot-key', String(slot + 1)));
-        card.append(portrait, el('div', 'info', def ? `${def.name}　陣亡` : '（空欄位）'));
+        card.append(portrait, el('div', 'info', def ? tr("{0}　陣亡", { 0: def.name }) : tr("（空欄位）")));
         this.heroBar.appendChild(card);
       });
     }
@@ -513,10 +518,10 @@ export class UIScene extends Phaser.Scene {
       const nameRow = el('div', 'name-row');
       const nameEl = el('span', 'name', u.def.name);
       const cls = CLASSES[u.def.id];
-      if (cls?.variant) nameEl.title = `${u.def.name}（${LINES[cls.line].name}）`;
+      if (cls?.variant) nameEl.title = tr("{0}（{1}）", { 0: u.def.name, 1: LINES[cls.line].name });
       nameRow.append(nameEl);
       const personality = el('span', 'personality');
-      personality.title = '閒置性格（點擊或按 G 切換）\n堅守：附近有敵人就自動普攻，不離開駐守點\n好戰：看到敵人就衝出去打，一路追擊\n游擊：敵人靠近就逃跑，要下指令才會接戰';
+      personality.title = tr("閒置性格（點擊或按 G 切換）\n堅守：附近有敵人就自動普攻，不離開駐守點\n好戰：看到敵人就衝出去打，一路追擊\n游擊：敵人靠近就逃跑，要下指令才會接戰");
       noFocus(personality);
       personality.addEventListener('click', (ev) => {
         ev.stopPropagation();
@@ -539,7 +544,7 @@ export class UIScene extends Phaser.Scene {
         const btn = el('button', 'skill');
         btn.tabIndex = -1;
         noFocus(btn);
-        btn.title = `${def.name}（${GAME_CONFIG.skillKeyLabels[idx] ? `選取後按 ${GAME_CONFIG.skillKeyLabels[idx]}` : `按 ${u.heroSlot + 1} 再按 ${idx + 1}`}）\n準備 ${def.windup} 秒／恢復 ${def.recovery} 秒／冷卻 ${def.cooldown} 秒\n${def.description}${canAutocast(skillId) ? '\n右鍵：切換自動施放' : ''}`;
+        btn.title = tr("{0}（{1}）\n準備 {2} 秒／恢復 {3} 秒／冷卻 {4} 秒\n{5}{6}", { 0: def.name, 1: GAME_CONFIG.skillKeyLabels[idx] ? tr("選取後按 {0}", { 0: GAME_CONFIG.skillKeyLabels[idx] }) : tr("按 {0} 再按 {1}", { 0: u.heroSlot + 1, 1: idx + 1 }), 2: def.windup, 3: def.recovery, 4: def.cooldown, 5: def.description, 6: canAutocast(skillId) ? tr("\n右鍵：切換自動施放") : '' });
         const key = el('span', 'key', GAME_CONFIG.skillKeyLabels[idx] ?? String(idx + 1));
         const nm = el('span', 'sname', def.name);
         const cd = el('div', 'cd');
@@ -600,7 +605,7 @@ export class UIScene extends Phaser.Scene {
     this.timeEl.textContent = `${String(mm).padStart(2, '0')}:${(t - mm * 60).toFixed(1).padStart(4, '0')}`;
     this.speedEl.textContent = `${s.timeScale}×`;
     this.banner.classList.toggle('show', s.paused && !w.result);
-    this.bannerReason.textContent = s.pauseReason ? `自動暫停：${s.pauseReason}` : '';
+    this.bannerReason.textContent = s.pauseReason ? tr("自動暫停：{0}", { 0: s.pauseReason }) : '';
 
     const now = this.time.now;
     if (s.toast && s.toast.until > now) {
@@ -622,9 +627,9 @@ export class UIScene extends Phaser.Scene {
       c.hpFill.classList.toggle('low', frac < 0.3);
       c.hpText.textContent = `${Math.max(0, u.hp)} / ${u.maxHp}`;
       let label = STATE_LABEL[u.state];
-      if (u.action?.skillId && u.state === UnitState.Windup) label = `準備：${SKILLS[u.action.skillId].name}`;
-      if (u.rooted && !u.dead) label += '・定身';
-      if (u.guardPoint && !u.dead && u.state === UnitState.Idle) label = '駐守中';
+      if (u.action?.skillId && u.state === UnitState.Windup) label = tr("準備：{0}", { 0: SKILLS[u.action.skillId].name });
+      if (u.rooted && !u.dead) label += tr("・定身");
+      if (u.guardPoint && !u.dead && u.state === UnitState.Idle) label = tr("駐守中");
       c.state.textContent = label;
       const pTxt = PERSONALITY_LABEL[u.personality];
       if (c.personality.textContent !== pTxt) {
@@ -675,7 +680,7 @@ export class UIScene extends Phaser.Scene {
     this.debugPanel.classList.toggle('show', s.debug.panel);
     if (s.debug.panel) {
       for (const d of this.debugInputs) d.sync();
-      this.seedEl.textContent = `種子 ${s.seed}`;
+      this.seedEl.textContent = tr("種子 {0}", { 0: s.seed });
       for (const b of this.quickOnly) b.style.display = s.mode === 'run' ? 'none' : '';
     }
   }

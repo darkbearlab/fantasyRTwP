@@ -1,3 +1,4 @@
+import { tr } from '../../i18n';
 import { HEROES } from '../../sim/data/heroes';
 import { SKILLS } from '../../sim/data/skills';
 import { UPGRADES } from '../../run/data/upgrades';
@@ -41,8 +42,8 @@ export function upgradePicker(run: RunState, options: string[], onDone: (c: Upgr
           el('div', 'up-hero', `${own + 1}. ${HEROES[h.classId].name}`),
           el('div', 'up-name', u.name),
           el('div', 'up-desc', u.description),
-          el('div', 'up-branch', `${b.name} ${bar}（${n}／${BRANCH_RULES.threshold}）`),
-          el('div', 'up-scope', evolves ? `昇變！→ ${HEROES[b.evolvesTo].name}` : '專屬升級'),
+          el('div', 'up-branch', tr("{0} {1}（{2}／{3}）", { 0: b.name, 1: bar, 2: n, 3: BRANCH_RULES.threshold })),
+          el('div', 'up-scope', evolves ? tr("昇變！→ {0}", { 0: HEROES[b.evolvesTo].name }) : tr("專屬升級")),
         );
         noFocus(c);
         c.addEventListener('click', () => onDone({ upgradeId: id, slot: own }));
@@ -50,7 +51,7 @@ export function upgradePicker(run: RunState, options: string[], onDone: (c: Upgr
         return;
       }
       const c = el('div', `upgrade-card${u.rare ? ' rare' : ''}${picked === id ? ' picked' : ''}`);
-      c.append(el('div', 'up-name', `${u.rare ? '★ ' : ''}${u.name}`), el('div', 'up-desc', u.description), el('div', 'up-scope', u.scope === 'party' ? '全隊' : u.needsSkill ? '一名英雄・一個技能' : '一名英雄'));
+      c.append(el('div', 'up-name', `${u.rare ? '★ ' : ''}${u.name}`), el('div', 'up-desc', u.description), el('div', 'up-scope', u.scope === 'party' ? tr("全隊") : u.needsSkill ? tr("一名英雄・一個技能") : tr("一名英雄")));
       noFocus(c);
       c.addEventListener('click', () => {
         picked = id;
@@ -66,7 +67,7 @@ export function upgradePicker(run: RunState, options: string[], onDone: (c: Upgr
     if (!picked) return;
     const u = UPGRADES[picked];
     if (slot === undefined) {
-      box.appendChild(el('div', 'step-title', `「${u.name}」要給誰？`));
+      box.appendChild(el('div', 'step-title', tr("「{0}」要給誰？", { 0: u.name })));
       box.appendChild(
         partyPanel(run, {
           pickable: (s) => !!run.party[s] && !run.party[s]!.dead,
@@ -83,13 +84,13 @@ export function upgradePicker(run: RunState, options: string[], onDone: (c: Upgr
     }
     if (u.needsSkill) {
       const h = run.party[slot]!;
-      box.appendChild(el('div', 'step-title', `${HEROES[h.classId].name}的哪個技能？`));
+      box.appendChild(el('div', 'step-title', tr("{0}的哪個技能？", { 0: HEROES[h.classId].name })));
       const row = el('div', 'btn-row');
       for (const sk of battleSkillsOf(run, h)) row.appendChild(button(SKILLS[sk].name, '', () => onDone({ upgradeId: picked!, slot, skillId: sk })));
       box.appendChild(row);
       if (fixedSlot === undefined)
         row.appendChild(
-          button('換人', 'small', () => {
+          button(tr("換人"), 'small', () => {
             slot = undefined;
             render();
           }),

@@ -3,6 +3,7 @@
  * 點一下推進，說完（或按略過）才回到休息選單。
  * 英雄用戰鬥中的 sprite（heroes3d 預渲染或 Flare 分層），頭像也直接用 sprite（面向鏡頭、只露上半身）。
  */
+import { tr } from '../../i18n';
 import Phaser from 'phaser';
 import type { CampfireLine } from '../../run/campfire';
 import { HEROES } from '../../sim/data/heroes';
@@ -198,9 +199,9 @@ export class CampfireScene extends Phaser.Scene {
 
     this.boxes = { top: this.makeBox(topBoxY), bottom: this.makeBox(bottomBoxY) };
     const by = bottomBoxY - 8;
-    this.add.text(14, by, '點一下繼續', { fontFamily: FONT, fontSize: '13px', color: '#8f8470' }).setOrigin(0, 1).setDepth(40);
+    this.add.text(14, by, tr("點一下繼續"), { fontFamily: FONT, fontSize: '13px', color: '#8f8470' }).setOrigin(0, 1).setDepth(40);
     this.skipBtn = this.add
-      .text(W - 14, by, '略過 ▶▶', { fontFamily: FONT, fontSize: '15px', color: '#e0c48a', backgroundColor: '#1a1d25', padding: { x: 10, y: 5 } })
+      .text(W - 14, by, tr("略過 ▶▶"), { fontFamily: FONT, fontSize: '15px', color: '#e0c48a', backgroundColor: '#1a1d25', padding: { x: 10, y: 5 } })
       .setOrigin(1, 1)
       .setDepth(40)
       .setInteractive({ useHandCursor: true });

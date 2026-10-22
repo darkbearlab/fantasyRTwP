@@ -1,3 +1,4 @@
+import { tr } from '../../i18n';
 import { HEROES } from '../../sim/data/heroes';
 import { CLASSES } from '../../sim/data/classes';
 import { SKILLS } from '../../sim/data/skills';
@@ -69,7 +70,7 @@ export class RestScene extends DomScene {
     }
     if (this.campfireOpen) return;
     const box = el('div', 'panel wide');
-    box.append(el('h2', '', '🔥 營火'), el('div', 'meta', `💰 ${run.gold} 金幣`));
+    box.append(el('h2', '', tr("🔥 營火")), el('div', 'meta', tr("💰 {0} 金幣", { 0: run.gold })));
     const set = (r: typeof run) => this.afterTrain(r);
     const tabs = el('div', 'tabs');
     const tabBtn = (t: Tab, label: string) => {
@@ -79,57 +80,57 @@ export class RestScene extends DomScene {
       });
       tabs.appendChild(b);
     };
-    tabBtn('rest', '休息');
+    tabBtn('rest', tr("休息"));
     // 沉穩節奏每名英雄只有一招主動，沒有舊的技能欄可以換
     const deliberate = run.style === 'deliberate';
-    if (!deliberate) tabBtn('skills', '技能（不佔三選一）');
+    if (!deliberate) tabBtn('skills', tr("技能（不佔三選一）"));
     box.appendChild(tabs);
     if (this.tab === 'skills' && !deliberate) {
       box.appendChild(this.skillsTab(run, (r) => {
         setRun(this, r);
         this.rebuild();
       }));
-      box.appendChild(button(p.used ? '繼續上路' : '不休息，繼續上路', p.used ? 'primary' : '', () => advance(this, leaveNode(getRun(this)))));
+      box.appendChild(button(p.used ? tr("繼續上路") : tr("不休息，繼續上路"), p.used ? 'primary' : '', () => advance(this, leaveNode(getRun(this)))));
       this.root.appendChild(box);
       return;
     }
 
     if (!p.used) {
       if (this.mode === 'menu') {
-        box.appendChild(el('div', 'step-title', '選擇一項：'));
+        box.appendChild(el('div', 'step-title', tr("選擇一項：")));
         const row = el('div', 'rest-options');
         // Alan 2026-10-22：在營火停留（紮營、訓練、救人）會引來冠軍；繼續趕路不會
-        const smoke = run.overworld ? '（營火的煙會引來冠軍）' : '';
-        row.appendChild(button(`紮營：全隊恢復 ${ECONOMY.campHealRatio * 100}% 生命${smoke}`, 'rest-option', () => set(restCamp(getRun(this)))));
-        row.appendChild(button(deliberate ? `訓練：一次升級三選一（不提升隊伍等級）${smoke}` : '訓練：一名英雄從 3 個強化中選 1', 'rest-option', () => {
+        const smoke = run.overworld ? tr("（營火的煙會引來冠軍）") : '';
+        row.appendChild(button(tr("紮營：全隊恢復 {0}% 生命{1}", { 0: ECONOMY.campHealRatio * 100, 1: smoke }), 'rest-option', () => set(restCamp(getRun(this)))));
+        row.appendChild(button(deliberate ? tr("訓練：一次升級三選一（不提升隊伍等級）{0}", { 0: smoke }) : tr("訓練：一名英雄從 3 個強化中選 1"), 'rest-option', () => {
           this.mode = 'train';
           this.rebuild();
         }));
-        row.appendChild(button(`救人：花 ${ECONOMY.reviveCost} 金幣復活一名陣亡者（${ECONOMY.reviveHpRatio * 100}% 生命）${smoke}`, 'rest-option', () => {
+        row.appendChild(button(tr("救人：花 {0} 金幣復活一名陣亡者（{1}% 生命）{2}", { 0: ECONOMY.reviveCost, 1: ECONOMY.reviveHpRatio * 100, 2: smoke }), 'rest-option', () => {
           this.mode = 'revive';
           this.rebuild();
         }, !canRevive(run)));
-        row.appendChild(button('繼續趕路：跳過這裡（不會引來冠軍）', 'rest-option', () => advance(this, leaveNode(getRun(this)))));
+        row.appendChild(button(tr("繼續趕路：跳過這裡（不會引來冠軍）"), 'rest-option', () => advance(this, leaveNode(getRun(this)))));
         box.appendChild(row);
       } else if (this.mode === 'revive') {
-        box.appendChild(el('div', 'step-title', '要救誰？'));
+        box.appendChild(el('div', 'step-title', tr("要救誰？")));
         box.appendChild(partyPanel(run, { pickable: (s) => canRevive(run, s), onPick: (s) => set(restRevive(getRun(this), s)) }));
-        box.appendChild(button('返回', 'small', () => ((this.mode = 'menu'), this.rebuild())));
+        box.appendChild(button(tr("返回"), 'small', () => ((this.mode = 'menu'), this.rebuild())));
       } else {
-        box.appendChild(el('div', 'step-title', '訓練：選擇強化'));
+        box.appendChild(el('div', 'step-title', tr("訓練：選擇強化")));
         box.appendChild(upgradePicker(run, p.trainOptions, (c) => this.afterTrain(restTrain(getRun(this), c.slot, c.upgradeId, c.skillId)), undefined, p.trainSlots));
-        box.appendChild(button('返回', 'small', () => ((this.mode = 'menu'), this.rebuild())));
+        box.appendChild(button(tr("返回"), 'small', () => ((this.mode = 'menu'), this.rebuild())));
       }
     } else box.appendChild(el('div', 'event-result', p.resultText ?? ''));
 
     // 招募（不佔三選一）
     const rec = el('div', 'recruit');
-    rec.appendChild(el('div', 'step-title', `招募（${ECONOMY.recruitCost} 金幣，填入第一個空欄位）：`));
+    rec.appendChild(el('div', 'step-title', tr("招募（{0} 金幣，填入第一個空欄位）：", { 0: ECONOMY.recruitCost })));
     const slot = firstEmptySlot(run);
     const replaced = slot >= 0 ? run.party[slot] : null;
-    if (replaced?.dead) rec.appendChild(el('div', 'meta warn-text', `新英雄會取代欄位 ${slot + 1} 陣亡的${HEROES[replaced.classId].name}（之後就不能再救他）。`));
+    if (replaced?.dead) rec.appendChild(el('div', 'meta warn-text', tr("新英雄會取代欄位 {0} 陣亡的{1}（之後就不能再救他）。", { 0: slot + 1, 1: HEROES[replaced.classId].name })));
     const recRow = el('div', 'btn-row');
-    if (p.recruited) recRow.appendChild(el('span', 'meta', '本次已招募。'));
+    if (p.recruited) recRow.appendChild(el('span', 'meta', tr("本次已招募。")));
     else
       for (const cls of p.recruitCandidates) {
         const d = HEROES[cls];
@@ -141,7 +142,7 @@ export class RestScene extends DomScene {
     box.appendChild(rec);
 
     box.appendChild(partyPanel(run));
-    if (p.used) box.appendChild(button('繼續上路', 'primary', () => advance(this, leaveNode(getRun(this)))));
+    if (p.used) box.appendChild(button(tr("繼續上路"), 'primary', () => advance(this, leaveNode(getRun(this)))));
     this.root.appendChild(box);
     // 訓練完剛好昇變：在這裡演出（SPEC_CLASSES §5）
     showEvolutions(this, this.root, () => this.rebuild());
@@ -161,7 +162,7 @@ export class RestScene extends DomScene {
   /** 技能分頁（SPEC_SLICE3 §1.1）：第 1 欄專用技能固定，第 2、3 欄從同系共用池替換 */
   private skillsTab(run: ReturnType<typeof getRun>, set: (r: ReturnType<typeof getRun>) => void): HTMLElement {
     const box = el('div', 'skill-tab');
-    box.appendChild(el('div', 'meta', '🔒 專用技能不能替換；其他兩欄可以換成同系的共用技能，免費、不限次數。技能順序在路線圖上調整。'));
+    box.appendChild(el('div', 'meta', tr("🔒 專用技能不能替換；其他兩欄可以換成同系的共用技能，免費、不限次數。技能順序在路線圖上調整。")));
     run.party.forEach((h, slot) => {
       if (!h || h.dead) return;
       const row = el('div', 'skill-row');
@@ -171,7 +172,7 @@ export class RestScene extends DomScene {
       row.appendChild(name);
       h.skills.forEach((sk, idx) => {
         const cell = el('div', 'skill-slot');
-        cell.appendChild(el('div', 'skill-key', `${idx + 1}／${['Q', 'E', 'R'][idx]}`));
+        cell.appendChild(el('div', 'skill-key', tr("{0}／{1}", { 0: idx + 1, 1: ['Q', 'E', 'R'][idx] })));
         if (sk === CLASSES[h.classId].signature) {
           cell.appendChild(el('div', 'skill-fixed', `🔒 ${SKILLS[sk].name}`));
         } else {

@@ -8,6 +8,7 @@
  * 擋路：牆、石柱、房子（擋視線）；樹幹、石頭、倒木、營火、木箱、路燈、水井（只擋路）；密林依 FIELD.forest.blocksSight。
  * 生成結果原封不動放在 mapDef.art，畫面層照它拼圖塊。
  */
+import { tr } from '../i18n/lang';
 import type { MapDef, Rect } from '../sim/data/types';
 import type { Vec } from '../sim/math';
 import type { DeliberateTier } from './data/deliberateLevels';
@@ -83,10 +84,10 @@ function enemiesFrom(list: { enemy: string; x: number; y: number; squad: string;
 function wrap(seed: number, kind: 'field' | 'town', opts: FbbLevelOptions, W: number, H: number, mapDef: Omit<MapDef, 'id' | 'name' | 'width' | 'height' | 'enemySpawns'>, enemies: EncounterEnemy[], place: string): GeneratedLevel {
   const id = `${kind}_${seed >>> 0}`;
   const tier = opts.tier;
-  const label = tier === 'boss' ? '最終決戰' : tier === 'elite' ? '精英' : tier === 'event' ? '突發' : '遭遇';
+  const label = tier === 'boss' ? tr("最終決戰") : tier === 'elite' ? tr("精英") : tier === 'event' ? tr("突發") : tr("遭遇");
   return {
     id,
-    name: `${place}（${label}）`,
+    name: tr("{0}（{1}）", { 0: place, 1: label }),
     map: id,
     mapDef: { id, name: place, width: H, height: W, enemySpawns: [], exitLock: tier === 'elite' || opts.captainEnemy ? 'captain' : undefined, ...mapDef },
     tier,
@@ -162,7 +163,7 @@ function fieldOnce(seed: number, opts: FbbLevelOptions): GeneratedLevel {
     captainPool: opts.faction?.captainPool ?? DELIBERATE_LEVELS.captainPool,
     faction: opts.faction,
   });
-  return fieldLevelToEncounter(seed, opts, lv, '荒野');
+  return fieldLevelToEncounter(seed, opts, lv, tr("荒野"));
 }
 
 /**
@@ -244,6 +245,6 @@ function townOnce(seed: number, opts: FbbLevelOptions & { prefabs?: TilePrefab[]
     H,
     { obstacles: obstaclesFrom(cells, W, H), heroSpawns, exits: lv.exits.length ? exitDefs(lv.exits, H) : undefined, landmarks: { cameraStart: heroSpawns[0] }, art },
     enemiesFrom(lv.enemies, H),
-    '燃燒的王都',
+    tr("燃燒的王都"),
   );
 }

@@ -1,6 +1,7 @@
 /**
  * 路線圖生成（SPEC_SLICE2 §2）：純函式、以種子決定論生成，附規則驗證器。
  */
+import { tr } from '../i18n/lang';
 import { ECONOMY } from './data/economy';
 import { rngFor } from './seed';
 import type { Rng } from '../sim/rng';
@@ -29,18 +30,18 @@ export interface RunMap {
 }
 
 export const NODE_LABEL: Record<NodeType, string> = {
-  battle: '戰鬥',
-  elite: '精英',
-  event: '事件',
-  rest: '休息',
-  boss: '頭目',
-  shop: '商人',
+  battle: tr("戰鬥"),
+  elite: tr("精英"),
+  event: tr("事件"),
+  rest: tr("休息"),
+  boss: tr("頭目"),
+  shop: tr("商人"),
 };
 
 export const NODE_ICON: Record<NodeType, string> = {
   battle: '⚔',
   elite: '☠',
-  event: '？',
+  event: tr("？"),
   rest: '🔥',
   boss: '👑',
   shop: '💰',
@@ -138,41 +139,41 @@ function tryGenerate(rng: Rng, layerCount: number, opts: MapOptions): RunMap | n
 export function validateMap(map: RunMap): string[] {
   const err: string[] = [];
   const { nodes, layers, layerCount } = map;
-  if (layers.length !== layerCount) err.push('層數不符');
+  if (layers.length !== layerCount) err.push(tr("層數不符"));
   const count = (t: NodeType) => nodes.filter((n) => n.type === t).length;
   layers.forEach((ids, li) => {
     const l = li + 1;
     if (l === layerCount) {
-      if (ids.length !== 1 || nodes[ids[0]].type !== 'boss') err.push('最後一層必須只有頭目');
-    } else if (ids.length < 2 || ids.length > 3) err.push(`第 ${l} 層節點數 ${ids.length}`);
+      if (ids.length !== 1 || nodes[ids[0]].type !== 'boss') err.push(tr("最後一層必須只有頭目"));
+    } else if (ids.length < 2 || ids.length > 3) err.push(tr("第 {0} 層節點數 {1}", { 0: l, 1: ids.length }));
     for (const id of ids) {
       const n = nodes[id];
-      if (n.layer !== l) err.push(`節點 ${id} 層數錯誤`);
-      if (l === 1 && n.type !== 'battle') err.push('第 1 層必須全部是戰鬥');
-      if (n.type === 'boss' && l !== layerCount) err.push('頭目只能在最後一層');
-      if (n.type === 'elite' && l <= 2) err.push('精英不能在第 1–2 層');
-      if (n.type === 'rest' && l <= 3) err.push('休息不能在第 1–3 層');
-      if (n.type === 'shop' && l <= 1) err.push('商人不能在第 1 層');
+      if (n.layer !== l) err.push(tr("節點 {0} 層數錯誤", { 0: id }));
+      if (l === 1 && n.type !== 'battle') err.push(tr("第 1 層必須全部是戰鬥"));
+      if (n.type === 'boss' && l !== layerCount) err.push(tr("頭目只能在最後一層"));
+      if (n.type === 'elite' && l <= 2) err.push(tr("精英不能在第 1–2 層"));
+      if (n.type === 'rest' && l <= 3) err.push(tr("休息不能在第 1–3 層"));
+      if (n.type === 'shop' && l <= 1) err.push(tr("商人不能在第 1 層"));
       if (l < layerCount) {
-        if (n.next.length < 1 || n.next.length > 2) err.push(`節點 ${id} 出線數 ${n.next.length}`);
+        if (n.next.length < 1 || n.next.length > 2) err.push(tr("節點 {0} 出線數 {1}", { 0: id, 1: n.next.length }));
         for (const t of n.next) {
-          if (nodes[t].layer !== l + 1) err.push(`節點 ${id} 連到非下一層`);
-          if (n.type === 'rest' && nodes[t].type === 'rest') err.push('同一路線連續兩個休息');
+          if (nodes[t].layer !== l + 1) err.push(tr("節點 {0} 連到非下一層", { 0: id }));
+          if (n.type === 'rest' && nodes[t].type === 'rest') err.push(tr("同一路線連續兩個休息"));
         }
-      } else if (n.next.length !== 0) err.push('頭目不應有出線');
-      if (l > 1 && !nodes.some((p) => p.next.includes(id))) err.push(`節點 ${id} 沒有入線`);
+      } else if (n.next.length !== 0) err.push(tr("頭目不應有出線"));
+      if (l > 1 && !nodes.some((p) => p.next.includes(id))) err.push(tr("節點 {0} 沒有入線", { 0: id }));
     }
     // 連線不交叉：上方節點的連線不能低於下方節點的連線
     if (l < layerCount) {
       const edges: [number, number][] = [];
       for (const id of ids) for (const t of nodes[id].next) edges.push([nodes[id].index, nodes[t].index]);
-      for (const [a1, b1] of edges) for (const [a2, b2] of edges) if (a1 < a2 && b1 > b2) err.push(`第 ${l} 層連線交叉`);
+      for (const [a1, b1] of edges) for (const [a2, b2] of edges) if (a1 < a2 && b1 > b2) err.push(tr("第 {0} 層連線交叉", { 0: l }));
     }
   });
   const elites = count('elite');
-  if (elites < 1 || elites > 2) err.push(`精英數 ${elites}`);
+  if (elites < 1 || elites > 2) err.push(tr("精英數 {0}", { 0: elites }));
   const events = count('event');
-  if (events < 2 || events > 4) err.push(`事件數 ${events}`);
-  if (layerCount >= 2 && !layers[layerCount - 2].some((id) => nodes[id].type === 'rest')) err.push('倒數第二層沒有休息');
+  if (events < 2 || events > 4) err.push(tr("事件數 {0}", { 0: events }));
+  if (layerCount >= 2 && !layers[layerCount - 2].some((id) => nodes[id].type === 'rest')) err.push(tr("倒數第二層沒有休息"));
   return err;
 }

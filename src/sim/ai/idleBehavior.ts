@@ -1,3 +1,4 @@
+import { tr } from '../../i18n/lang';
 import type { Order } from '../commands';
 import type { Personality } from '../data/types';
 import { lineWalkable } from '../nav/smooth';
@@ -161,7 +162,7 @@ export const IDLE_BEHAVIORS: Record<Personality, IdleBehavior> = {
 
 /** 顯示名稱 */
 export const PERSONALITY_LABEL: Record<Personality, string> = {
-  steadfast: '堅守',
-  aggressive: '好戰',
-  guerrilla: '游擊',
+  steadfast: tr("堅守"),
+  aggressive: tr("好戰"),
+  guerrilla: tr("游擊"),
 };

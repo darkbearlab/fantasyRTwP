@@ -4,6 +4,7 @@
  * 標出目前所在的節點、魔王主力、冠軍，以及每個出口通往的節點（和地上的出口方塊同一個字母與顏色）。
  * 點地上的出口方塊時，對應的節點會閃一下（session.exitPing）。
  */
+import { tr } from '../../i18n';
 import { NODE_ICON } from '../../run/mapGen';
 import type { RunState } from '../../run/runState';
 import type { ExitInfo } from '../exitInfo';
@@ -97,7 +98,7 @@ export class RouteMini {
       svg.appendChild(g);
       this.nodes.set(n.id, c);
     }
-    this.root.appendChild(el('div', 'rm-legend', '字母＝出口通往的節點・☠ 紅色＝主力佔領'));
+    this.root.appendChild(el('div', 'rm-legend', tr("字母＝出口通往的節點・☠ 紅色＝主力佔領")));
     this.root.appendChild(svg);
   }
 

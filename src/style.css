@@ -2629,7 +2629,7 @@ body {
   background-position: -24px -495px;
 }
 #stage.desktop .m-name {
-  font-size: 14px;
+  font-size: 16px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2642,8 +2642,13 @@ body {
   line-height: 13px;
 }
 #stage.desktop .m-skill .sname {
-  font-size: 14px;
+  font-size: 16px;
+  line-height: 16px;
   white-space: nowrap;
+}
+/* 技能名改成 16px 的 Alagard 後放不下：沒有提示時不佔高度 */
+#stage.desktop .m-skill .m-hint:empty {
+  display: none;
 }
 #stage.desktop .m-skill .cd {
   font-size: 12px;
@@ -2874,3 +2879,48 @@ body {
   margin-top: 14px;
   justify-content: center;
 }
+
+:root {
+  --pixel-font: 'Alagard', 'Noto Sans TC', 'Microsoft JhengHei', 'PingFang TC', 'Heiti TC', sans-serif;
+}
+
+/* 英文像素字體 Alagard（16 的整數倍才用；中文逐字退回原本的字型） */
+.title-box h1,
+.arc-title,
+.arc-mvp-line,
+.arc-up,
+.chapter-name,
+.evo-title {
+  font-family: var(--pixel-font);
+  font-size: 32px;
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+}
+.title-box h1 {
+  font-size: 48px;
+  color: #ecc460;
+  text-shadow: 2px 2px 0 #140e0a;
+}
+.arc-lv,
+.xp-head,
+.m-name,
+.m-skill .sname,
+.btn.primary,
+.btn.big {
+  font-family: var(--pixel-font);
+  font-size: 16px;
+}
+
+/* 英文時字距收回來（原本的大字距是給中文標題的；Alagard 本身就夠寬） */
+html[lang='en'] .arc-title,
+html[lang='en'] .arc-mvp-line,
+html[lang='en'] .arc-up,
+html[lang='en'] .chapter-name,
+html[lang='en'] .evo-title,
+html[lang='en'] .title-box h1 {
+  letter-spacing: 1px;
+}
+
+/* 語言切換（Alan 2026-10-22） */
+.lang-row { display: inline-flex; gap: 6px; margin-left: 8px; }
+.settings-panel .lang-row { margin: 4px 0 8px; }

@@ -1,3 +1,4 @@
+import { tr } from '../../i18n';
 import { SKILLS } from '../../sim/data/skills';
 import type { SkillDef } from '../../sim/data/types';
 import type { Vec } from '../../sim/math';
@@ -12,12 +13,12 @@ export function beginSkill(session: BattleSession, slot: number, index: number, 
   const def = skillId ? SKILLS[skillId] : undefined;
   if (!def) return;
   if (hero.dead) {
-    session.showToast(`${hero.def.name}已陣亡`, now);
+    session.showToast(tr("{0}已陣亡", { 0: hero.def.name }), now);
     return;
   }
   const cd = hero.cooldowns[def.id] ?? 0;
   if (!hero.skillReady(def.id)) {
-    session.showToast(`${hero.def.name}「${def.name}」冷卻中（${cd.toFixed(1)} 秒）`, now);
+    session.showToast(tr("{0}「{1}」冷卻中（{2} 秒）", { 0: hero.def.name, 1: def.name, 2: cd.toFixed(1) }), now);
     return;
   }
   if (def.target === 'self') {
@@ -62,10 +63,10 @@ export function validSkillTarget(def: SkillDef, caster: Unit, unit: Unit | undef
 }
 
 const TARGET_HINT: Record<string, string> = {
-  enemy: '請點選敵人',
-  ally: '請點選其他友軍',
-  allyOrSelf: '請點選友軍',
-  unit: '請點選敵人或友軍',
+  enemy: tr("請點選敵人"),
+  ally: tr("請點選其他友軍"),
+  allyOrSelf: tr("請點選友軍"),
+  unit: tr("請點選敵人或友軍"),
 };
 
 /** 離點擊位置最近、可以當作目標的單位（敵人要看得到） */
@@ -98,7 +99,7 @@ export function confirmTargeting(session: BattleSession, point: Vec, unit: Unit 
   // 沉穩節奏（Alan）：點地圖就打點擊位置最靠近的目標（看得到的敵人／友軍），不必精準點到單位
   if (!validSkillTarget(def, caster, unit) && session.world.config.battleStyle === 'deliberate') unit = nearestTargetTo(session, def, caster, point);
   if (!validSkillTarget(def, caster, unit)) {
-    session.showToast(TARGET_HINT[def.target] ?? '無效目標', now, 1000);
+    session.showToast(TARGET_HINT[def.target] ?? tr("無效目標"), now, 1000);
     return false;
   }
   session.enqueue({ type: 'skill', unitId: caster.id, skillId: def.id, targetId: unit!.id });
