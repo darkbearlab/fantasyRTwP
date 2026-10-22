@@ -8,10 +8,15 @@ import { EN_TEXT } from './enText';
 export type Lang = 'en' | 'zh';
 const KEY = 'fantasyRTwP.lang';
 
+/** sim／run 的型別檢查沒有 DOM：瀏覽器的儲存空間用 globalThis 取（沒有就是 undefined） */
+type KeyValueStore = { getItem(k: string): string | null; setItem(k: string, v: string): void };
+const storage = (): KeyValueStore | undefined => (globalThis as { localStorage?: KeyValueStore }).localStorage;
+
 function load(): Lang {
   try {
-    if (typeof localStorage === 'undefined') return 'zh';
-    const v = localStorage.getItem(KEY);
+    const s = storage();
+    if (!s) return 'zh';
+    const v = s.getItem(KEY);
     return v === 'zh' ? 'zh' : 'en';
   } catch {
     return 'en';
@@ -28,7 +33,7 @@ export function getLang(): Lang {
 export function setLang(l: Lang): void {
   lang = l;
   try {
-    if (typeof localStorage !== 'undefined') localStorage.setItem(KEY, l);
+    storage()?.setItem(KEY, l);
   } catch {
     // 存不了就只在這次有效
   }
