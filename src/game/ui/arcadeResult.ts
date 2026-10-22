@@ -1,9 +1,12 @@
 /**
  * 戰鬥結算（Alan 2026-10-22：做成獨立畫面、有點像大型電玩）：
+ * 節奏（Alan 2026-10-22 第二版）：
  * 1. 標題「第 N 章　N-L 完成」（重訪的節點寫「重訪」）。
- * 2. 每名英雄一行：左邊英雄 sprite，右邊是他打倒的敵人 sprite，由左到右一個一個演出被擊敗的動畫；接著標出 MVP。
- * 3. 隊伍等級的經驗值條：先顯示原本的經驗值，剛才打倒的敵人變成光點飛到條的末端，條往右長，看最後升幾級。
- * 4. 按「繼續」才去選升級。可以按「略過」直接跳到最後。
+ * 2. 列出四名英雄的行；陣亡的英雄在這裡倒下，那一行變灰。
+ * 3. 一名一名英雄依序列出他打倒的敵人。
+ * 4. 一名一名英雄依序讓那些敵人倒下。接著標出 MVP。
+ * 5. 一名一名英雄依序讓倒下的敵人變成光點，飛進隊伍等級的經驗值條，條往右長，看最後升幾級。
+ * 6. 按「繼續」才去選升級。可以按「略過」直接跳到最後。
  * MVP 的額外獎勵先留鉤子（run/progression.ts 的 mvpReward）。
  */
 import type Phaser from 'phaser';
@@ -18,8 +21,9 @@ import { portraitSheetUrl } from '../render/pixelArt';
 import { getArt } from '../render/art';
 import { button, el } from './dom';
 
-const KILL_STEP = 0.16;
 const ICON = 48;
+/** 節奏（秒）：每一行出現、每個擊殺出現、每個擊殺倒下、每個光點；名與名之間多停一下 */
+const PACE = { row: 0.3, dead: 0.5, pop: 0.07, down: 0.09, dot: 0.06, hero: 0.25, stage: 0.4 };
 
 /** 單位的小圖（Matt Walkden：正面待機第一格；0x72：第一格；沒有素材時用字母圓點） */
 function unitIcon(scene: Phaser.Scene, defId: string, cls: string): HTMLElement {
@@ -69,19 +73,16 @@ export function showArcadeResult(scene: Phaser.Scene, world: World, before: RunS
   const board = el('div', 'arc-board');
   const killIcons: HTMLElement[] = [];
   const rows = new Map<Unit, HTMLElement>();
-  let longest = 0;
   for (const u of heroes) {
-    const row = el('div', `arc-row${u.dead ? ' dead' : ''}`);
+    const row = el('div', 'arc-row');
     const who = el('div', 'arc-who');
     who.append(unitIcon(scene, u.def.id, 'hero'), el('div', 'arc-name', u.def.name));
     const kills = el('div', 'arc-kills');
-    u.killList.forEach((id, i) => {
+    for (const id of u.killList) {
       const k = unitIcon(scene, id, 'kill');
-      k.style.animationDelay = `${0.6 + i * KILL_STEP}s, ${0.6 + i * KILL_STEP + 0.22}s`;
       kills.appendChild(k);
       killIcons.push(k);
-    });
-    longest = Math.max(longest, u.killList.length);
+    }
     const count = el('div', 'arc-count', `× ${u.killList.length}`);
     row.append(who, kills, count);
     board.appendChild(row);
@@ -91,7 +92,6 @@ export function showArcadeResult(scene: Phaser.Scene, world: World, before: RunS
 
   // MVP：打倒最多的（同數比造成傷害）
   const mvp = [...heroes].sort((a, b) => b.killList.length - a.killList.length || b.stats.damageDealt - a.stats.damageDealt)[0];
-  const mvpAt = 0.6 + longest * KILL_STEP + 0.6;
   const mvpLine = el('div', 'arc-mvp-line');
   root.appendChild(mvpLine);
 
@@ -149,6 +149,11 @@ export function showArcadeResult(scene: Phaser.Scene, world: World, before: RunS
     finished = true;
     for (const t of timers) window.clearTimeout(t);
     root.classList.add('skip');
+    for (const [u, row] of rows) {
+      row.classList.add('in');
+      if (u.dead) row.classList.add('fallen');
+    }
+    for (const k of killIcons) k.classList.add('pop', 'down', 'spent');
     showMvp();
     level = after.level ?? 1;
     xp = after.xp ?? 0;
@@ -172,15 +177,57 @@ export function showArcadeResult(scene: Phaser.Scene, world: World, before: RunS
     mvpLine.textContent = `MVP　${mvp.def.name}${reward ? `　${reward}` : ''}`;
     mvpLine.classList.add('show');
   };
-  later(mvpAt, showMvp);
+  // ── 時間軸 ──
+  let t = 0.6;
+  // 2. 每一行出現；陣亡的英雄倒下、整行變灰
+  for (const [u, row] of rows) {
+    later(t, () => row.classList.add('in'));
+    t += PACE.row;
+    if (u.dead) {
+      later(t, () => row.classList.add('fallen'));
+      t += PACE.dead;
+    }
+  }
+  t += PACE.stage;
+  // 3. 一名一名列出打倒的敵人
+  const byHero = heroes.map((u) => [...rows.get(u)!.querySelectorAll<HTMLElement>('.arc-icon.kill')]);
+  for (const ks of byHero) {
+    if (!ks.length) continue;
+    for (const k of ks) {
+      later(t, () => k.classList.add('pop'));
+      t += PACE.pop;
+    }
+    t += PACE.hero;
+  }
+  t += PACE.stage;
+  // 4. 一名一名讓敵人倒下
+  for (const ks of byHero) {
+    if (!ks.length) continue;
+    for (const k of ks) {
+      later(t, () => k.classList.add('down'));
+      t += PACE.down;
+    }
+    t += PACE.hero;
+  }
+  t += PACE.stage;
+  later(t, showMvp);
+  t += 1.0;
 
-  // 光點：每個擊殺圖示飛到經驗值條的末端，一個一個加經驗值
-  const flyAt = mvpAt + 1.0;
-  later(flyAt - 0.3, () => xpBox.classList.add('show'));
+  // 5. 一名一名讓倒下的敵人變成光點飛進經驗值條，一個一個加經驗值
+  later(t - 0.4, () => xpBox.classList.add('show'));
   const per = killIcons.length ? gained / killIcons.length : 0;
-  if (killIcons.length === 0 && gained > 0) later(flyAt, () => addXp(gained));
-  killIcons.forEach((k, i) => {
-    later(flyAt + i * 0.07, () => {
+  if (killIcons.length === 0 && gained > 0) later(t, () => addXp(gained));
+  const flights: { k: HTMLElement; at: number }[] = [];
+  for (const ks of byHero) {
+    if (!ks.length) continue;
+    for (const k of ks) {
+      flights.push({ k, at: t });
+      t += PACE.dot;
+    }
+    t += PACE.hero;
+  }
+  flights.forEach(({ k, at }) => {
+    later(at, () => {
       const scale = root.getBoundingClientRect().width / root.offsetWidth || 1;
       const r0 = root.getBoundingClientRect();
       const a = k.getBoundingClientRect();
@@ -204,6 +251,6 @@ export function showArcadeResult(scene: Phaser.Scene, world: World, before: RunS
       });
     });
   });
-  later(flyAt + killIcons.length * 0.07 + 0.9, finish);
+  later(t + 0.9, finish);
   return root;
 }
