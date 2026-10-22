@@ -3,6 +3,7 @@
  * 少數敵人分成小隊，配置在正面、側翼、草叢埋伏、門後與後方；同小隊一起警覺（src/sim/world.ts）。
  * 純函式、只用種子亂數；生成後用洪水填充檢查「出生點走得到每一名敵人（門全開）」，不通過就換子種子重試。
  */
+import { tr } from '../i18n/lang';
 import type { InteractableDef, MapDef, Rect, TerrainRect } from '../sim/data/types';
 import type { Vec } from '../sim/math';
 import { NavGrid } from '../sim/nav/grid';
@@ -96,8 +97,8 @@ function tryGenerate(rng: Rng, seed: number, opts: DeliberateLevelOptions): Gene
   }
   if (y0 < H) obstacles.push({ x: wallX, y: y0, w: 1, h: H - y0 });
   gapYs.forEach((gy, k) => {
-    if (locked && k === 0) interactables.push({ id: `gate${k}`, kind: 'door', name: '鐵柵門', x: wallX, y: gy, w: 1, h: gap, locked: true });
-    else if (rng.chance(L.doorChance)) interactables.push({ id: `gate${k}`, kind: 'door', name: '木門', x: wallX, y: gy, w: 1, h: gap });
+    if (locked && k === 0) interactables.push({ id: `gate${k}`, kind: 'door', name: tr("鐵柵門"), x: wallX, y: gy, w: 1, h: gap, locked: true });
+    else if (rng.chance(L.doorChance)) interactables.push({ id: `gate${k}`, kind: 'door', name: tr("木門"), x: wallX, y: gy, w: 1, h: gap });
   });
 
   // ── 掩體短牆、石頭 ──
@@ -279,7 +280,7 @@ function tryGenerate(rng: Rng, seed: number, opts: DeliberateLevelOptions): Gene
       if (free(q, 2)) lever = q;
     }
     if (!lever) return null;
-    interactables.push({ id: 'lever', kind: 'lever', name: '絞盤', x: round(lever.x) - 0.4, y: round(lever.y) - 0.4, w: 0.8, h: 0.8, actions: [{ type: 'openDoor', door: 'gate0' }] });
+    interactables.push({ id: 'lever', kind: 'lever', name: tr("絞盤"), x: round(lever.x) - 0.4, y: round(lever.y) - 0.4, w: 0.8, h: 0.8, actions: [{ type: 'openDoor', door: 'gate0' }] });
   }
 
   const heroSpawns = [
@@ -304,10 +305,10 @@ function tryGenerate(rng: Rng, seed: number, opts: DeliberateLevelOptions): Gene
     interactables,
     summonPoints,
   };
-  const label = tier === 'boss' ? '最終決戰' : tier === 'elite' ? '精英' : tier === 'event' ? '突發' : '遭遇';
+  const label = tier === 'boss' ? tr("最終決戰") : tier === 'elite' ? tr("精英") : tier === 'event' ? tr("突發") : tr("遭遇");
   return {
     id,
-    name: `${place}（${label}）`,
+    name: tr("{0}（{1}）", { 0: place, 1: label }),
     map: id,
     mapDef,
     tier,

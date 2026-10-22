@@ -1,3 +1,4 @@
+import { tr } from '../../i18n';
 import Phaser from 'phaser';
 import { getArt, queueFlare } from '../render/art';
 import { queuePixel } from '../render/pixelArt';
@@ -5,6 +6,7 @@ import { queueFbb, registerBundledPrefabs } from '../render/fbbArt';
 import { queueHeroes3d } from '../render/heroes3d';
 import { queueProps3d } from '../render/props3d';
 import { isIso } from '../render/projection';
+import { loadPixelFont } from '../fonts';
 
 /** 開機：美術為 Flare／heroes3d 時先載入素材（約 9 MB＋7 MB），再進標題 */
 export class BootScene extends Phaser.Scene {
@@ -19,16 +21,16 @@ export class BootScene extends Phaser.Scene {
     const { width, height } = this.scale;
     if (getArt() === 'pixel') {
       // 2D 像素：授權素材（licensed/）可能不存在（PR 的 CI、fork、沒拉素材的本機）——載入失敗的圖改用色塊，不顯示錯誤
-      const label = this.add.text(width / 2, height / 2, '載入美術素材… 0%', { fontSize: '18px', color: '#c8d0dc' }).setOrigin(0.5);
-      this.load.on('progress', (v: number) => label.setText(`載入美術素材… ${Math.round(v * 100)}%`));
+      const label = this.add.text(width / 2, height / 2, tr("載入美術素材… 0%"), { fontSize: '18px', color: '#c8d0dc' }).setOrigin(0.5);
+      this.load.on('progress', (v: number) => label.setText(tr("載入美術素材… {0}%", { 0: Math.round(v * 100) })));
       queuePixel(this.load, this);
       queueFbb(this.load, this);
       return;
     }
-    const label = this.add.text(width / 2, height / 2, '載入美術素材… 0%', { fontSize: '18px', color: '#c8d0dc' }).setOrigin(0.5);
-    this.load.on('progress', (v: number) => label.setText(`載入美術素材… ${Math.round(v * 100)}%`));
+    const label = this.add.text(width / 2, height / 2, tr("載入美術素材… 0%"), { fontSize: '18px', color: '#c8d0dc' }).setOrigin(0.5);
+    this.load.on('progress', (v: number) => label.setText(tr("載入美術素材… {0}%", { 0: Math.round(v * 100) })));
     // 素材載入失敗時退回色塊版，不影響遊戲
-    this.load.on('loaderror', () => label.setText('美術素材載入失敗，改用色塊'));
+    this.load.on('loaderror', () => label.setText(tr("美術素材載入失敗，改用色塊")));
     queueFlare(this.load, this);
     if (getArt() === 'heroes3d') {
       queueHeroes3d(this.load, this);
@@ -38,6 +40,7 @@ export class BootScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.scene.start('Title');
+    // 英文像素字體 Alagard 載入完（或失敗）才進標題：文字物件第一次畫出來就是對的字型
+    void loadPixelFont().then(() => this.scene.start('Title'));
   }
 }

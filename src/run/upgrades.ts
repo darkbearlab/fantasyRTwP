@@ -2,6 +2,7 @@
  * 強化修飾器（SPEC_SLICE2 §9）：把英雄擁有的強化套在基礎數值上，產生戰鬥用的 UnitDef。
  * 不修改 HEROES 資料表。
  */
+import { tr } from '../i18n/lang';
 import { HEROES } from '../sim/data/heroes';
 import { CLASSES } from '../sim/data/classes';
 import type { UnitDef } from '../sim/data/types';
@@ -127,7 +128,7 @@ export function grantUpgrade(run: RunState, upgradeId: string, slot?: number, sk
       if (def.partyMods) hero.upgrades.push({ id: def.id });
       if (def.healPct) hero.hp = Math.min(maxHpOf(hero), hero.hp + Math.round(maxHpOf(hero) * def.healPct));
     }
-    return `全隊獲得「${def.name}」`;
+    return tr("全隊獲得「{0}」", { 0: def.name });
   }
   const h = slot !== undefined ? run.party[slot] : null;
   if (!h || h.dead) throw new Error('強化需要指定一名存活英雄');
@@ -137,7 +138,7 @@ export function grantUpgrade(run: RunState, upgradeId: string, slot?: number, sk
   const name = HEROES[h.classId].name;
   h.upgrades.push(def.needsSkill ? { id: def.id, skillId } : { id: def.id });
   if (def.healPct) h.hp = Math.min(maxHpOf(h), h.hp + Math.round(maxHpOf(h) - before));
-  let text = `${name}獲得「${def.name}」`;
+  let text = tr("{0}獲得「{1}」", { 0: name, 1: def.name });
   // 同一個分支選滿就昇變（SPEC_CLASSES §1）
   if (def.branch && branchProgress(h)[def.branch.id] >= BRANCH_RULES.threshold) {
     const b = branchDef(def.branch.classId, def.branch.id)!;
@@ -146,7 +147,7 @@ export function grantUpgrade(run: RunState, upgradeId: string, slot?: number, sk
     h.classId = b.evolvesTo;
     h.hp = Math.max(1, Math.round(maxHpOf(h) * ratio));
     (run.evolutionShow ??= []).push({ slot: slot!, from: h.baseClass, to: h.classId, line: b.line });
-    text += `，昇變成${HEROES[h.classId].name}！`;
+    text += tr("，昇變成{0}！", { 0: HEROES[h.classId].name });
   }
   return text;
 }

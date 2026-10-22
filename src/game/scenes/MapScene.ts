@@ -1,3 +1,4 @@
+import { tr } from '../../i18n';
 import { ENCOUNTERS } from '../../run/data/encounters';
 import { isGeneratedEncounter } from '../../run/battle';
 import type { LevelTier } from '../../run/levelGen';
@@ -17,12 +18,12 @@ import { showEvolutions } from '../ui/evolutionShow';
 import { currentChapter } from '../../run/campaign';
 
 const NODE_DESC: Record<string, string> = {
-  battle: '一般戰鬥。勝利後獲得金幣與強化。',
-  elite: '精英戰：敵人帶著隊長。獎勵四選一，保證一個稀有強化。',
-  event: '未知的遭遇。',
-  rest: '休息：紮營回血、救回陣亡者或訓練；也可以招募。',
-  boss: '戰爭領主。擊敗他就結束這趟遠征。',
-  shop: '商人：用金幣買道具（每件道具提供一個被動）。',
+  battle: tr("一般戰鬥。勝利後獲得金幣與強化。"),
+  elite: tr("精英戰：敵人帶著隊長。獎勵四選一，保證一個稀有強化。"),
+  event: tr("未知的遭遇。"),
+  rest: tr("休息：紮營回血、救回陣亡者或訓練；也可以招募。"),
+  boss: tr("戰爭領主。擊敗他就結束這趟遠征。"),
+  shop: tr("商人：用金幣買道具（每件道具提供一個被動）。"),
 };
 
 /** 路線圖（SPEC_SLICE2 §2.3）：左側隊伍面板、右側分層節點 */
@@ -38,7 +39,7 @@ export class MapScene extends DomScene {
   protected build(): void {
     const run = getRun(this);
     const side = el('div', 'map-side');
-    side.append(el('div', 'map-title', '遠征'), el('div', 'gold', `💰 ${run.gold} 金幣`));
+    side.append(el('div', 'map-title', tr("遠征")), el('div', 'gold', tr("💰 {0} 金幣", { 0: run.gold })));
     // 隊伍等級與經驗值（SPEC_SLICE6 §3，沉穩節奏）
     if (run.style === 'deliberate') side.appendChild(xpBar(run));
     side.appendChild(
@@ -61,7 +62,7 @@ export class MapScene extends DomScene {
     if (run.style === 'deliberate') {
       const n = (run.inventory?.length ?? 0) + (run.bag?.length ?? 0);
       side.appendChild(
-        button(this.bagOpen ? '收起背包' : `🎒 背包與裝備${n ? `（${n}）` : ''}`, 'small bag-toggle', () => {
+        button(this.bagOpen ? tr("收起背包") : tr("🎒 背包與裝備{0}", { 0: n ? tr("（{0}）", { 0: n }) : '' }), 'small bag-toggle', () => {
           this.bagOpen = !this.bagOpen;
           this.rebuild();
         }),
@@ -75,19 +76,19 @@ export class MapScene extends DomScene {
         );
     }
     const layer = run.currentNodeId === null ? 0 : run.map.nodes[run.currentNodeId].layer;
-    const chapter = run.style === 'deliberate' ? `第 ${(run.chapter ?? 0) + 1} 章「${currentChapter(run).name}」　·　` : '';
-    side.appendChild(el('div', 'map-progress', `${chapter}第 ${layer} / ${run.map.layerCount} 層　·　種子 ${run.seed}`));
+    const chapter = run.style === 'deliberate' ? tr("第 {0} 章「{1}」　·　", { 0: (run.chapter ?? 0) + 1, 1: currentChapter(run).name }) : '';
+    side.appendChild(el('div', 'map-progress', tr("{0}第 {1} / {2} 層　·　種子 {3}", { 0: chapter, 1: layer, 2: run.map.layerCount, 3: run.seed })));
     // FTL 式路線圖（SPEC_SLICE6 §4）：回合、主力、冠軍
     const ow = run.overworld;
     if (ow) {
       const c = ow.champion;
       // 冠軍打倒後這一章不再出現（Alan 2026-10-22）
-      const champ = c.node === null ? (c.defeated ? '冠軍：已被打倒（這一章不會再出現）' : '冠軍：還沒出現') : c.hunting ? '冠軍：發現你了，正在追擊！' : '冠軍：在圖上遊蕩';
+      const champ = c.node === null ? (c.defeated ? tr("冠軍：已被打倒（這一章不會再出現）") : tr("冠軍：還沒出現")) : c.hunting ? tr("冠軍：發現你了，正在追擊！") : tr("冠軍：在圖上遊蕩");
       const box = el('div', 'ow-status');
-      box.append(el('div', '', `第 ${ow.turn} 回合　·　魔王主力佔領 ${ow.force.length} 個節點（每 ${ROUTE_MAP.force.spreadEvery} 回合擴散）`), el('div', c.hunting && c.node !== null ? 'ow-hunt' : '', champ));
+      box.append(el('div', '', tr("第 {0} 回合　·　魔王主力佔領 {1} 個節點（每 {2} 回合擴散）", { 0: ow.turn, 1: ow.force.length, 2: ROUTE_MAP.force.spreadEvery })), el('div', c.hunting && c.node !== null ? 'ow-hunt' : '', champ));
       side.appendChild(box);
     }
-    if (run.nextBattleBuff) side.appendChild(el('div', 'buff-note', '下一場戰鬥有事件加成'));
+    if (run.nextBattleBuff) side.appendChild(el('div', 'buff-note', tr("下一場戰鬥有事件加成")));
     const journal = el('div', 'journal');
     for (const j of run.journal.slice(-6)) journal.appendChild(el('div', '', j));
     side.appendChild(journal);
@@ -151,15 +152,15 @@ export class MapScene extends DomScene {
       }
       noFocus(b);
       const showTip = () => {
-        let text = `<b>${NODE_LABEL[n.type]}</b>（第 ${n.layer} 層）<br>${NODE_DESC[n.type]}`;
-        if (ow?.force.includes(n.id) && n.type !== 'boss') text += '<br><span class="ow-hunt">被魔王的主力佔領：進去會遇到更強的敵人</span>';
-        if (ow && ow.champion.node === n.id) text += '<br><span class="ow-hunt">魔王的冠軍在這裡</span>';
-        if (ow && (ow.visits[n.id] ?? 0) > 0) text += `<br>已經來過 ${ow.visits[n.id]} 次（重新來會遇到新的敵人，主力也會往這裡蔓延）`;
+        let text = tr("<b>{0}</b>（第 {1} 層）<br>{2}", { 0: NODE_LABEL[n.type], 1: n.layer, 2: NODE_DESC[n.type] });
+        if (ow?.force.includes(n.id) && n.type !== 'boss') text += tr("<br><span class=\"ow-hunt\">被魔王的主力佔領：進去會遇到更強的敵人</span>");
+        if (ow && ow.champion.node === n.id) text += tr("<br><span class=\"ow-hunt\">魔王的冠軍在這裡</span>");
+        if (ow && (ow.visits[n.id] ?? 0) > 0) text += tr("<br>已經來過 {0} 次（重新來會遇到新的敵人，主力也會往這裡蔓延）", { 0: ow.visits[n.id] });
         if (n.type === 'battle' || n.type === 'elite' || n.type === 'boss') {
           const id = pickEncounter(run, n);
           // 大型關卡進場時才生成；預覽只算難度
           const difficulty = isGeneratedEncounter(id) ? levelDifficulty(n.type as LevelTier, n.layer) : ENCOUNTERS[id].difficulty;
-          text += `<br>難度 ${'★'.repeat(difficulty)}${'☆'.repeat(Math.max(0, 5 - difficulty))}`;
+          text += tr("<br>難度 {0}{1}", { 0: '★'.repeat(difficulty), 1: '☆'.repeat(Math.max(0, 5 - difficulty)) });
         }
         tip.innerHTML = text;
         tip.style.left = `${p.x + 36}px`;

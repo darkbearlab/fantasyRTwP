@@ -1,3 +1,4 @@
+import { tr } from '../../i18n';
 import Phaser from 'phaser';
 import { GAME_CONFIG } from '../../config';
 import type { Vec } from '../../sim/math';
@@ -14,9 +15,9 @@ import { activeSkillIndex } from '../ui/mobileBar';
 
 /** 切換性格時的一句話說明 */
 const PERSONALITY_HINT: Record<Personality, string> = {
-  steadfast: '附近有敵人就自動普攻，不離開駐守點',
-  aggressive: '看到敵人就衝出去打，一路追擊',
-  guerrilla: '敵人靠近就逃跑，要下指令才接戰',
+  steadfast: tr("附近有敵人就自動普攻，不離開駐守點"),
+  aggressive: tr("看到敵人就衝出去打，一路追擊"),
+  guerrilla: tr("敵人靠近就逃跑，要下指令才接戰"),
 };
 
 export interface InputHost {
@@ -249,7 +250,7 @@ export class InputController {
     const s = this.session;
     const p = s.primary();
     if (!p) {
-      s.showToast('請先選取英雄（1–4）', this.now(), 1000);
+      s.showToast(tr("請先選取英雄（1–4）"), this.now(), 1000);
       return;
     }
     s.enqueue({ type: 'interact', unitId: p.id, objectId: obj.def.id });
@@ -262,18 +263,18 @@ export class InputController {
   private cyclePersonality(): void {
     const s = this.session;
     if (this.deliberate) {
-      s.showToast('沉穩模式下性格固定為堅守', this.now(), 1200);
+      s.showToast(tr("沉穩模式下性格固定為堅守"), this.now(), 1200);
       return;
     }
     const sel = s.selectedUnits();
     const p = s.primary();
     if (!p || sel.length === 0) {
-      s.showToast('請先選取英雄（1–4）', this.now(), 1000);
+      s.showToast(tr("請先選取英雄（1–4）"), this.now(), 1000);
       return;
     }
     const next = PERSONALITY_CYCLE[(PERSONALITY_CYCLE.indexOf(p.personality) + 1) % PERSONALITY_CYCLE.length];
     for (const u of sel) s.enqueue({ type: 'setPersonality', unitId: u.id, personality: next });
-    s.showToast(`${sel.map((u) => u.def.name).join('、')}：${PERSONALITY_LABEL[next]}（${PERSONALITY_HINT[next]}）`, this.now(), 1600);
+    s.showToast(tr("{0}：{1}（{2}）", { 0: sel.map((u) => u.def.name).join(tr("、")), 1: PERSONALITY_LABEL[next], 2: PERSONALITY_HINT[next] }), this.now(), 1600);
   }
 
   /** 攻擊移動（SPEC_SLICE4 §3.1b） */
@@ -295,7 +296,7 @@ export class InputController {
       return;
     }
     if (s.selectedUnits().length === 0) {
-      s.showToast('先點英雄卡上的名字選人', this.now(), 1200);
+      s.showToast(tr("先點英雄卡上的名字選人"), this.now(), 1200);
       return;
     }
     // 點到出口方塊：迷你路線圖上對應的節點閃一下（Alan 2026-10-21：出口通往哪裡）
@@ -406,11 +407,11 @@ export class InputController {
     } else if (K.cyclePersonality.includes(code)) {
       this.cyclePersonality();
     } else if (K.attackMove.includes(code)) {
-      if (s.selectedUnits().length === 0) s.showToast('請先選取英雄（1–4）', this.now(), 1000);
+      if (s.selectedUnits().length === 0) s.showToast(tr("請先選取英雄（1–4）"), this.now(), 1000);
       else {
         s.targeting = null;
         this.attackMoveArmed = true;
-        s.showToast('攻擊移動：點擊目標地點', this.now(), 1200);
+        s.showToast(tr("攻擊移動：點擊目標地點"), this.now(), 1200);
       }
     } else if (K.stop.includes(code)) {
       const ids = s.selectedUnits().map((u) => u.id);
@@ -425,7 +426,7 @@ export class InputController {
     } else if (K.skills.includes(code)) {
       e.preventDefault();
       const p = s.primary();
-      if (!p) s.showToast('請先選取英雄（1–4）', this.now(), 1000);
+      if (!p) s.showToast(tr("請先選取英雄（1–4）"), this.now(), 1000);
       else beginSkill(s, p.heroSlot, K.skills.indexOf(code), this.now());
     }
   }
@@ -449,7 +450,7 @@ export class InputController {
       }
       case 'noSkill': {
         const hero = s.heroBySlot(a.slot);
-        if (hero) s.showToast(`${hero.def.name}沒有第 ${a.index + 1} 個技能`, now, 1000);
+        if (hero) s.showToast(tr("{0}沒有第 {1} 個技能", { 0: hero.def.name, 1: a.index + 1 }), now, 1000);
         break;
       }
       case 'select': {
@@ -468,7 +469,7 @@ export class InputController {
     const s = this.session;
     const u = s.heroBySlot(slot);
     if (!u || u.dead) {
-      s.showToast(u ? `${u.def.name}已陣亡` : '這個欄位沒有英雄', this.now(), 1000);
+      s.showToast(u ? tr("{0}已陣亡", { 0: u.def.name }) : tr("這個欄位沒有英雄"), this.now(), 1000);
       return;
     }
     s.targeting = null;

@@ -104,7 +104,7 @@ export const VISUAL = {
 
 /** 角色在畫面上的身高（公尺，已乘 VISUAL.unitScale）：決定 sprite 大小、頭頂生命條與飄字的位置 */
 export function unitHeight(def: UnitDef): number {
-  const h = def.team === 'enemy' && def.name.startsWith('隊長') ? VISUAL.captainHeight : UNIT_HEIGHT[def.id] ?? VISUAL.defaultUnitHeight;
+  const h = def.team === 'enemy' && def.rank === 'elite' ? VISUAL.captainHeight : UNIT_HEIGHT[def.id] ?? VISUAL.defaultUnitHeight;
   return h * VISUAL.unitScale;
 }
 

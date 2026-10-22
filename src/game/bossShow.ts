@@ -7,6 +7,7 @@
  *   → 約 3 秒左右抖動、往下沉、逐漸變透明直到消失，演完才跳勝利畫面。
  * 時間與台詞都在 BOSS_SHOW、BOSS_LINES。
  */
+import { tr } from '../i18n';
 import Phaser from 'phaser';
 import type { Unit } from '../sim/unit';
 import { worldToScreen } from './render/projection';
@@ -40,6 +41,7 @@ export const BOSS_SHOW = {
 
 /** 頭目的台詞（依 def.id） */
 export const BOSS_LINES: Record<string, { intro: string }> = {
+  // 頭目台詞是故事文字，維持中文（Alan 2026-10-22）
   warlord: { intro: '王都已經是一片灰燼了。你們四個，就跟它一起埋在這裡吧！' },
 };
 
@@ -73,7 +75,7 @@ export class BossShow {
     const { scene } = this.host;
     const s = this.host.session();
     this.bossId = boss.id;
-    s.setPaused(true, '頭目登場');
+    s.setPaused(true, tr("頭目登場"));
     this.buildBar(boss);
     const cam = scene.cameras.main;
     const back = { x: cam.midPoint.x, y: cam.midPoint.y };
@@ -144,7 +146,7 @@ export class BossShow {
     const total = B.defeatPanMs + B.freezeMs + B.joltMs + B.joltHoldMs + B.toneHoldMs + B.sinkMs + 200;
     this.doneAt = scene.time.now + total;
     this.bar?.classList.add('defeated');
-    this.host.session().setPaused(true, '頭目擊敗');
+    this.host.session().setPaused(true, tr("頭目擊敗"));
     // 鏡頭帶到頭目身上（倒下的地方可能在畫面外）
     const p = worldToScreen(boss.pos.x, boss.pos.y);
     scene.cameras.main.pan(p.x, p.y, B.defeatPanMs, 'Sine.easeOut');

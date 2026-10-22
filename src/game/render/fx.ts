@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { Vec } from '../../sim/math';
 import { FONT } from './palette';
+import { PIXEL_FONT, pixelSize } from '../fonts';
 import { groundArc, groundCircle, worldToScreen } from './projection';
 import type { VfxUse } from './vfxData';
 import { VFX_SHEETS, vfxKey } from './vfxData';
@@ -15,10 +16,12 @@ export class Fx {
   /** p：世界座標；z：高度（公尺，預設在頭頂附近） */
   text(p: Vec, text: string, color: string, size = 16, rise = 34, dur = 900, z = TEXT_Z): void {
     const sp = worldToScreen(p.x, p.y, z);
+    // 沒有中文的字（數字、英文）一律用 Alagard：16 的整數倍、至少 16，座標取整數；有中文的照舊
+    const px = /[一-鿿]/.test(text) ? null : pixelSize(Math.max(16, size));
     const t = this.scene.add
-      .text(sp.x + Phaser.Math.Between(-6, 6), sp.y - 18, text, {
-        fontFamily: FONT,
-        fontSize: `${size}px`,
+      .text(Math.round(sp.x + Phaser.Math.Between(-6, 6)), Math.round(sp.y - 18), text, {
+        fontFamily: px ? PIXEL_FONT : FONT,
+        fontSize: `${px ?? size}px`,
         color,
         fontStyle: 'bold',
       })

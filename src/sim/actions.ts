@@ -1,6 +1,7 @@
 /**
  * 動作狀態機（準備 → 生效 → 恢復）與效果結算（SPEC §5、§6、§10.2）。
  */
+import { tr } from '../i18n/lang';
 import { applyArmor, CRIT_MULT, rollDamage, rollHit } from './combat';
 import { AFFINITY, BACKSTAB_ACCURACY, BASIC_ATTACK, critTierOf, DAMAGE_FORMULA, SKILL_ATTACK, SPEC_DEFENSE } from './data/damageTypes';
 import type { AttackInfo, CritTier, DamageCategory } from './data/damageTypes';
@@ -67,17 +68,17 @@ function passiveOnHit(world: World, src: Unit, t: Unit): void {
       else if (e.kind === 'root') {
         t.rootTime = Math.max(t.rootTime, e.duration ?? 1);
         t.path = null;
-        world.emit({ type: 'status', unitId: t.id, text: '定身' });
+        world.emit({ type: 'status', unitId: t.id, text: tr("定身") });
       } else if (e.kind === 'burn') {
         if (t.burnTime <= 0) t.burnTick = 1;
         t.burnTime = Math.max(t.burnTime, e.duration ?? TERRAIN.burnDuration);
         t.burnSourceId = src.id;
-        world.emit({ type: 'status', unitId: t.id, text: '燃燒' });
+        world.emit({ type: 'status', unitId: t.id, text: tr("燃燒") });
       } else if (e.kind === 'sunder') {
         t.sunderStacks = Math.min(e.maxStacks ?? 1, (t.sunderTime > 0 ? t.sunderStacks : 0) + 1);
         t.sunderArmor = Math.max(t.sunderTime > 0 ? t.sunderArmor : 0, e.armor ?? 1);
         t.sunderTime = e.duration ?? 4;
-        world.emit({ type: 'status', unitId: t.id, text: `破甲 ${t.sunderStacks}` });
+        world.emit({ type: 'status', unitId: t.id, text: tr("破甲 {0}", { 0: t.sunderStacks }) });
       } else if (e.lingering) {
         addZone(world, src, t.pos, e.radius ?? 1.5, e.lingering, p.id);
       }
@@ -362,7 +363,7 @@ function deathChain(world: World, u: Unit): void {
     }
     if (best) {
       applyHex(best, Math.max(u.curseTime, 1), u.curseSlow, u.curseVuln, u.hexSpread);
-      world.emit({ type: 'status', unitId: best.id, text: '詛咒擴散' });
+      world.emit({ type: 'status', unitId: best.id, text: tr("詛咒擴散") });
     }
   }
   if (world.config.battleStyle === 'horde' && u.def.tier === 'fodder' && u.burnTime > 0) {
@@ -436,7 +437,7 @@ function applySkillEffect(world: World, u: Unit, def: SkillDef, t: Unit | undefi
       // 擲人：抓住身邊的英雄（準備期間跑遠了就抓空），丟向準備開始時決定的落點
       if (!t || t.dead || !point || t.thrown) return false;
       if (edgeDistance(u, t) > world.skillRange(u, def) + 0.8) {
-        world.emit({ type: 'notice', unitId: u.id, text: '抓空' });
+        world.emit({ type: 'notice', unitId: u.id, text: tr("抓空") });
         return false;
       }
       interrupt(world, u, t);
@@ -452,7 +453,7 @@ function applySkillEffect(world: World, u: Unit, def: SkillDef, t: Unit | undefi
       t.thrown = { from: { ...t.pos }, to, t: 0, dur: eff.flight, srcId: u.id, skillId: def.id };
       // 飛行中與落地後都不能行動
       t.stunTime = Math.max(t.stunTime, eff.flight + eff.stun);
-      world.emit({ type: 'status', unitId: t.id, text: '被抓起來！' });
+      world.emit({ type: 'status', unitId: t.id, text: tr("被抓起來！") });
       return false;
     }
     case 'guard':
@@ -460,7 +461,7 @@ function applySkillEffect(world: World, u: Unit, def: SkillDef, t: Unit | undefi
       t.guardedBy = u.id;
       t.guardTime = eff.duration;
       t.guardChance = eff.chance;
-      world.emit({ type: 'status', unitId: t.id, text: '守護' });
+      world.emit({ type: 'status', unitId: t.id, text: tr("守護") });
       return false;
     case 'bless':
       for (const a of world.units) {
@@ -550,7 +551,7 @@ function applySkillEffect(world: World, u: Unit, def: SkillDef, t: Unit | undefi
       u.stealthTime = eff.duration;
       u.revealTime = 0;
       world.emit({ type: 'aoe', sourceId: u.id, point: { ...u.pos }, radius: 1.2, skillId: def.id });
-      world.emit({ type: 'status', unitId: u.id, text: '煙霧' });
+      world.emit({ type: 'status', unitId: u.id, text: tr("煙霧") });
       return false;
     case 'zone':
       if (!point) return false;
@@ -630,7 +631,7 @@ function stepStraight(world: World, u: Unit, to: { x: number; y: number }, speed
 /** 鉤鎖：沒有視線就落空；否則把目標往自己身前拉（途中撞到障礙物就停），打斷準備並造成傷害 */
 function pullTo(world: World, src: Unit, t: Unit, mult: number): void {
   if (!world.canSee(src, t)) {
-    world.emit({ type: 'notice', unitId: src.id, text: '落空' });
+    world.emit({ type: 'notice', unitId: src.id, text: tr("落空") });
     return;
   }
   const dir = norm(sub(src.pos, t.pos));
@@ -646,7 +647,7 @@ function pullTo(world: World, src: Unit, t: Unit, mult: number): void {
   t.pos = cur;
   t.path = null;
   world.emit({ type: 'knockback', unitId: t.id, from, to: { ...cur } });
-  world.emit({ type: 'status', unitId: t.id, text: '被鉤住' });
+  world.emit({ type: 'status', unitId: t.id, text: tr("被鉤住") });
   interrupt(world, src, t);
   strike(world, src, t, { melee: false, arc: true, mult, damageType: 'melee', skillId: 'hook' });
 }
@@ -737,7 +738,7 @@ export function tickDash(world: World, u: Unit): void {
     if (!moved || arrived || a.dashTime > eff.distance / eff.speed + 0.5) {
       // 撞牆：還沒衝到底就被擋住
       if (!moved && !arrived && eff.wallStun) {
-        world.emit({ type: 'status', unitId: u.id, text: '撞牆' });
+        world.emit({ type: 'status', unitId: u.id, text: tr("撞牆") });
         applyStun(world, u, eff.wallStun, true);
         return;
       }
@@ -927,19 +928,19 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): Uni
   if (p.melee && p.shatters && target.rootTime > 0) {
     comboMult *= COMBOS.shatterMult;
     target.rootTime = 0;
-    world.emit({ type: 'status', unitId: target.id, text: '碎冰' });
+    world.emit({ type: 'status', unitId: target.id, text: tr("碎冰") });
   }
   // 斬殺（被動）：對低生命的目標傷害提高
   for (const ps of src.passives) if (ps.execute && target.hp / target.maxHp < ps.execute.below) comboMult *= 1 + ps.execute.pct;
   const power = p.skillId && SKILLS[p.skillId] ? skillPower(world, src) : 1;
   const base = rollDamage(world.rng, p.flatDamage ?? src.def.damage, p.mult * damageMultOf(world, src) * terrainMult * comboMult * power);
   const final = info ? typedDamage(base * critMult, target, info, mu) : applyArmor(base * critMult, target.armor);
-  if (info && (mu.w > 0 || mu.r > 0)) world.emit({ type: 'status', unitId: target.id, text: mu.w > 0 ? '有效！' : '抵抗' });
+  if (info && (mu.w > 0 || mu.r > 0)) world.emit({ type: 'status', unitId: target.id, text: mu.w > 0 ? tr("有效！") : tr("抵抗") });
   applyDamage(world, target, final, p.damageType, src, { crit, skillId: p.skillId, freeAttack: p.freeAttack });
   if (target.dead) return target;
   if (p.basic && src.passives.length > 0) passiveOnHit(world, src, target);
   // 蓄力循環（法師）：普攻命中累積充能
-  if (p.basic && src.cycle && chargeCycleOnHit(src)) world.emit({ type: 'notice', unitId: src.id, text: `${SKILLS[src.cycle.steps[1]].name}準備好了` });
+  if (p.basic && src.cycle && chargeCycleOnHit(src)) world.emit({ type: 'notice', unitId: src.id, text: tr("{0}準備好了", { 0: SKILLS[src.cycle.steps[1]].name }) });
   if (target.dead) return target;
   if (tier && tier !== critTierOf(100)) world.emit({ type: 'status', unitId: target.id, text: tier.name });
   if (p.interrupts || tier?.interrupts) interrupt(world, src, target, p.interrupts ? p.skillId : undefined);
@@ -947,7 +948,7 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): Uni
   if (p.knockback) {
     const hitWall = knockback(world, src, target, p.knockback);
     if (hitWall && p.wallStun && !target.dead) {
-      world.emit({ type: 'status', unitId: target.id, text: '撞牆' });
+      world.emit({ type: 'status', unitId: target.id, text: tr("撞牆") });
       applyStun(world, target, COMBOS.wallStunSeconds);
     }
   }
@@ -1015,7 +1016,7 @@ export function applyDamage(
   // 盾兵：生命跌破門檻就盾破
   if (target.shieldUp && target.hp > 0 && target.hp <= target.maxHp * target.def.shield!.hpFrac) {
     target.shieldBroken = true;
-    world.emit({ type: 'status', unitId: target.id, text: '破盾' });
+    world.emit({ type: 'status', unitId: target.id, text: tr("破盾") });
   }
   if (target.hp <= 0) kill(world, target, src);
 }
@@ -1053,7 +1054,7 @@ export function interrupt(world: World, src: Unit, t: Unit, bySkill?: string): b
   world.emit({ type: 'interrupt', sourceId: src.id, targetId: t.id, skillId, point });
   if (src.team !== t.team && src.passives.some((p) => p.critAfterInterrupt)) {
     src.critPending = true;
-    world.emit({ type: 'notice', unitId: src.id, text: '下一擊必定爆擊' });
+    world.emit({ type: 'notice', unitId: src.id, text: tr("下一擊必定爆擊") });
   }
   return true;
 }
@@ -1069,7 +1070,7 @@ export function applyStun(world: World, t: Unit, seconds: number, force = false)
       t.nextOrder = undefined;
     }
   }
-  world.emit({ type: 'status', unitId: t.id, text: '暈眩' });
+  world.emit({ type: 'status', unitId: t.id, text: tr("暈眩") });
 }
 
 /** 擊退；回傳 true 表示途中撞到障礙物 */
@@ -1131,7 +1132,7 @@ export function explode(world: World, src: Unit, point: { x: number; y: number }
       if (u.burnTime <= 0) u.burnTick = 1;
       u.burnTime = Math.max(u.burnTime, TERRAIN.burnDuration);
       u.burnSourceId = src.id;
-      world.emit({ type: 'status', unitId: u.id, text: '燃燒' });
+      world.emit({ type: 'status', unitId: u.id, text: tr("燃燒") });
     }
   }
 }
@@ -1159,7 +1160,7 @@ export function resolveProjectilePayload(world: World, src: Unit, p: Projectile,
         target.curseTime = pl.duration;
         target.curseSlow = pl.actionSlow;
         target.curseVuln = pl.damageTakenPct;
-        world.emit({ type: 'status', unitId: target.id, text: '詛咒' });
+        world.emit({ type: 'status', unitId: target.id, text: tr("詛咒") });
         if (target.team === 'enemy') world.triggerAggro(target);
       }
       break;
@@ -1174,7 +1175,7 @@ export function resolveProjectilePayload(world: World, src: Unit, p: Projectile,
       if (cursed) {
         target.curseTime = 0;
         target.hexed = false;
-        world.emit({ type: 'status', unitId: target.id, text: '詛咒爆裂' });
+        world.emit({ type: 'status', unitId: target.id, text: tr("詛咒爆裂") });
       }
       const dmg = rollDamage(world.rng, cursed ? eff.damage : eff.uncursedDamage, damageMultOf(world, src) * skillPower(world, src));
       applyDamage(world, target, mitigate(world, src, target, dmg, pl.skillId, 'spell'), 'spell', src, { skillId: pl.skillId });
@@ -1184,7 +1185,7 @@ export function resolveProjectilePayload(world: World, src: Unit, p: Projectile,
       if (target && !target.dead) {
         target.rootTime = Math.max(target.rootTime, pl.duration);
         target.path = null;
-        world.emit({ type: 'status', unitId: target.id, text: '定身' });
+        world.emit({ type: 'status', unitId: target.id, text: tr("定身") });
         if (target.team === 'enemy') world.triggerAggro(target);
       }
       break;

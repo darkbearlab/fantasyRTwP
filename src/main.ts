@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import './style.css';
+import { applyDataLanguage, getLang } from './i18n';
 import { BattleScene } from './game/scenes/BattleScene';
 import { BootScene } from './game/scenes/BootScene';
 import { ResultScene } from './game/scenes/ResultScene';
@@ -14,6 +15,10 @@ import { InterludeScene } from './game/scenes/InterludeScene';
 import { ShopScene } from './game/scenes/ShopScene';
 import { RunEndScene } from './game/scenes/RunEndScene';
 import { CampfireScene } from './game/scenes/CampfireScene';
+
+// 資料表的名稱、說明換成目前語言：要在任何場景建立之前（Alan 2026-10-22）
+applyDataLanguage();
+document.documentElement.lang = getLang() === 'zh' ? 'zh-Hant' : 'en';
 
 const WIDTH = 1280;
 const HEIGHT = 720;

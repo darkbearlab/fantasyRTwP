@@ -8,6 +8,7 @@
  * 3. 生怪磚（數字）依池子與權重抽敵人，整關有點數預算上限；精英房的小隊有隊長，頭目房放頭目與護衛。
  * 4. 轉成 MapDef（牆合併成長方形、地形、門），檢查出生點走得到每一名敵人；不通過就換子種子重試。
  */
+import { tr } from '../i18n/lang';
 import type { ExitDef, InteractableDef, MapDef, Rect, TerrainRect } from '../sim/data/types';
 import type { Vec } from '../sim/math';
 import { NavGrid } from '../sim/nav/grid';
@@ -468,7 +469,7 @@ function tryGenerate(rng: Rng, seed: number, opts: TemplateLevelOptions): { leve
     const ys = comp.map((p) => p.y);
     const x = Math.min(...xs);
     const y = Math.min(...ys);
-    return { id: `door${i}`, kind: 'door', name: '木門', x, y, w: Math.max(...xs) + 1 - x, h: Math.max(...ys) + 1 - y };
+    return { id: `door${i}`, kind: 'door', name: tr("木門"), x, y, w: Math.max(...xs) + 1 - x, h: Math.max(...ys) + 1 - y };
   });
 
   // ── 出生點 ──
@@ -578,10 +579,10 @@ function tryGenerate(rng: Rng, seed: number, opts: TemplateLevelOptions): { leve
     exits: exits.length ? exits : undefined,
     exitLock: tier === 'elite' ? 'captain' : tier === 'boss' ? 'boss' : undefined,
   };
-  const label = tier === 'boss' ? '最終決戰' : tier === 'elite' ? '精英' : tier === 'event' ? '突發' : '遭遇';
+  const label = tier === 'boss' ? tr("最終決戰") : tier === 'elite' ? tr("精英") : tier === 'event' ? tr("突發") : tr("遭遇");
   const level: GeneratedLevel = {
     id,
-    name: `${place}（${label}）`,
+    name: tr("{0}（{1}）", { 0: place, 1: label }),
     map: id,
     mapDef,
     tier,

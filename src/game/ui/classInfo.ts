@@ -1,3 +1,4 @@
+import { tr } from '../../i18n';
 import { CLASSES, LINES } from '../../sim/data/classes';
 import { HEROES } from '../../sim/data/heroes';
 import { SKILLS } from '../../sim/data/skills';
@@ -8,7 +9,7 @@ import { el, noFocus } from './dom';
 export function className(classId: string): string {
   const c = CLASSES[classId];
   const name = HEROES[classId].name;
-  return c?.variant ? `${name}（${LINES[c.line].name}）` : name;
+  return c?.variant ? tr("{0}（{1}）", { 0: name, 1: LINES[c.line].name }) : name;
 }
 
 /** 職業卡：名稱、系、定位、專用技能 */
@@ -23,11 +24,11 @@ export function classCard(classId: string, opts: { selected?: boolean; dim?: boo
   const portrait = el('div', 'portrait small', d.letter);
   portrait.style.background = hex(d.color);
   const title = el('div', 'class-title');
-  title.append(el('div', 'class-name', d.name), el('div', 'class-line', `${LINES[c.line].name}${c.variant ? '・變體' : ''}`));
+  title.append(el('div', 'class-name', d.name), el('div', 'class-line', tr("{0}{1}", { 0: LINES[c.line].name, 1: c.variant ? tr("・變體") : '' })));
   head.append(portrait, title);
   if (opts.tag) head.appendChild(el('span', 'class-tag', opts.tag));
   const sig = SKILLS[c.signature];
-  card.append(head, el('div', 'class-role', c.role), el('div', 'class-sig', `專用：${sig.name}`), el('div', 'class-desc', sig.description));
+  card.append(head, el('div', 'class-role', c.role), el('div', 'class-sig', tr("專用：{0}", { 0: sig.name })), el('div', 'class-desc', sig.description));
   if (opts.onClick) {
     noFocus(card);
     card.classList.add('clickable');

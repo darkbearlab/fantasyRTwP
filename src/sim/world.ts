@@ -1,3 +1,4 @@
+import { tr } from '../i18n/lang';
 import type { Command, Order } from './commands';
 import { sameOrder } from './commands';
 import { DT, NAV_CELL, RANGE_TOLERANCE } from './constants';
@@ -693,7 +694,7 @@ export class World implements ZocContext {
         const s = this.interactables.get(cmd.objectId);
         if (!u || u.dead || u.team !== 'hero' || !s) break;
         if (!this.interactables.usable(s)) {
-          this.emit({ type: 'notice', unitId: u.id, text: s.def.locked ? '上鎖了' : '已經用過了' });
+          this.emit({ type: 'notice', unitId: u.id, text: s.def.locked ? tr("上鎖了") : tr("已經用過了") });
           break;
         }
         u.guardPoint = null;
@@ -840,7 +841,7 @@ export class World implements ZocContext {
       const spotted = heroes.some((h) => dist(h.pos, e.pos) <= this.config.enemyAggroRange && this.canTarget(e, h) && this.canSee(e, h));
       if (spotted) {
         this.alertUnit(e);
-        this.emit({ type: 'notice', unitId: e.id, text: '！' });
+        this.emit({ type: 'notice', unitId: e.id, text: tr("！") });
       }
     }
   }
@@ -1084,7 +1085,7 @@ export class World implements ZocContext {
       // 沉穩節奏（Alan）：性格一律是堅守
       const personality = this.config.battleStyle === 'deliberate' ? 'steadfast' : u.personality;
       const o = (this.idleBehavior ?? IDLE_BEHAVIORS[personality]).decide(this, u);
-      if (o?.type === 'move' && !this.idleBehavior && personality === 'guerrilla') this.emit({ type: 'notice', unitId: u.id, text: '逃跑！' });
+      if (o?.type === 'move' && !this.idleBehavior && personality === 'guerrilla') this.emit({ type: 'notice', unitId: u.id, text: tr("逃跑！") });
       if (o) this.setOrder(u, o);
     }
     if (u.order) this.executeOrder(u);
@@ -1254,18 +1255,18 @@ export class World implements ZocContext {
       return;
     }
     if (offCycle(u, def.id)) {
-      this.emit({ type: 'notice', unitId: u.id, text: '還沒輪到這一招' });
+      this.emit({ type: 'notice', unitId: u.id, text: tr("還沒輪到這一招") });
       this.setOrder(u, u.resumeOrder ?? null);
       return;
     }
     if (!u.skillReady(def.id)) {
-      this.emit({ type: 'notice', unitId: u.id, text: '冷卻中' });
+      this.emit({ type: 'notice', unitId: u.id, text: tr("冷卻中") });
       this.setOrder(u, u.resumeOrder ?? null);
       return;
     }
     const dashSkill = def.effect.kind === 'charge' || def.effect.kind === 'tumble' || def.effect.kind === 'rush' || def.effect.kind === 'leap';
     if (dashSkill && u.rooted) {
-      this.emit({ type: 'notice', unitId: u.id, text: '被定身' });
+      this.emit({ type: 'notice', unitId: u.id, text: tr("被定身") });
       this.setOrder(u, u.resumeOrder ?? null);
       return;
     }

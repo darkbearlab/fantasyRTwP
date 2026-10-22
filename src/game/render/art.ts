@@ -2,6 +2,7 @@
  * 美術模式（色塊／Flare 試裝）與 Flare 素材載入。
  * Flare 素材由 tools/importFlare.py 產生在 public/assets/flare/（CC-BY-SA 3.0，見 ASSET_LICENSES.md）。
  */
+import { tr } from '../../i18n';
 import type Phaser from 'phaser';
 import { GAME_CONFIG } from '../../config';
 import flareArt from './flareArt.json';
@@ -106,7 +107,7 @@ export type DirMode = 'screen' | 'map';
 export const DIR_SETTINGS = { mode: 'screen' as DirMode, offset: 0, spin: false };
 
 /** Flare 的 8 方向（Alan 對照素材確認）：0=西、1=西北、2=北、3=東北、4=東、5=東南、6=南（面向鏡頭）、7=西南 */
-export const DIR_NAMES = ['西', '西北', '北', '東北', '東', '東南', '南', '西南'];
+export const DIR_NAMES = [tr("西"), tr("西北"), tr("北"), tr("東北"), tr("東"), tr("東南"), tr("南"), tr("西南")];
 
 /** 角色面向（世界角度）→ Flare 的 8 方向 */
 export function flareDir(facing: number): number {

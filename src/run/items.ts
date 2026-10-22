@@ -2,6 +2,7 @@
  * 裝備道具的遠征規則（SPEC_SLICE5 §17）：背包、裝備／卸下、商人、戰鬥掉落。純函式（舊狀態 → 新狀態）。
  * 道具的效果是被動（src/sim/data/items.ts），只在沉穩節奏的戰鬥生效。
  */
+import { tr } from '../i18n/lang';
 import { HEROES } from '../sim/data/heroes';
 import type { ItemRarity } from '../sim/data/items';
 import { ITEMS } from '../sim/data/items';
@@ -54,7 +55,7 @@ export function buyItem(run: RunState, itemId: string): RunState {
   p.sold.push(itemId);
   r.gold -= ITEMS[itemId].price;
   (r.inventory ??= []).push(itemId);
-  r.journal.push(`向商人買了「${ITEMS[itemId].name}」。`);
+  r.journal.push(tr("向商人買了「{0}」。", { 0: ITEMS[itemId].name }));
   return r;
 }
 
@@ -87,7 +88,7 @@ export function unequipItem(run: RunState, slot: number, itemId: string): RunSta
 /** 道具的一行說明 */
 export function itemLabel(itemId: string): string {
   const d = ITEMS[itemId];
-  return `${d.rarity === 'rare' ? '★' : ''}${d.name}：${d.passive.description}`;
+  return tr("{0}{1}：{2}", { 0: d.rarity === 'rare' ? '★' : '', 1: d.name, 2: d.passive.description });
 }
 
 /** 陣亡英雄的道具不會消失：留在身上，復活後照樣生效（給畫面顯示用） */

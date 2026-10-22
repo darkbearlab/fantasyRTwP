@@ -2,6 +2,7 @@
  * 消耗品的遠征規則（Alan 2026-10-21）：包包、商人、掉落、在路線圖上使用。純函式（舊狀態 → 新狀態）。
  * 戰鬥中的使用在 sim（World.useConsumable），戰後剩下的寫回 RunState.bag。
  */
+import { tr } from '../i18n/lang';
 import { BAG, CONSUMABLES } from '../sim/data/consumables';
 import type { Rng } from '../sim/rng';
 import { maxHpOf } from './upgrades';
@@ -30,7 +31,7 @@ export function buyConsumable(run: RunState, id: string): RunState {
   const r = cloneRun(run);
   r.gold -= CONSUMABLES[id].price;
   addToBag(r, id);
-  r.journal.push(`向商人買了「${CONSUMABLES[id].name}」。`);
+  r.journal.push(tr("向商人買了「{0}」。", { 0: CONSUMABLES[id].name }));
   return r;
 }
 
@@ -71,6 +72,6 @@ export function useOnMap(run: RunState, id: string, slot?: number): RunState {
       h.hp = Math.max(1, Math.round(maxHpOf(h) * (def.revive ?? 0.3)));
     } else if (def.heal) heal(h, def.heal);
   }
-  r.journal.push(`用了「${def.name}」。`);
+  r.journal.push(tr("用了「{0}」。", { 0: def.name }));
   return r;
 }

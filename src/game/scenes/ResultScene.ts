@@ -1,3 +1,4 @@
+import { tr } from '../../i18n';
 import Phaser from 'phaser';
 import { applyBattleResult } from '../../run/progression';
 import { battleOutcomeFromWorld } from '../../run/battle';
@@ -41,24 +42,14 @@ export class ResultScene extends Phaser.Scene {
       .map(
         (u) =>
           `<tr class="${u.dead ? 'dead' : ''}"><td><span class="dot" style="background:#${u.def.color.toString(16).padStart(6, '0')}">${u.def.letter}</span>${u.def.name}</td>` +
-          `<td>${u.stats.damageDealt}</td><td>${u.stats.damageTaken}</td><td>${u.stats.healing}</td><td>${u.stats.kills}</td><td>${u.dead ? '陣亡' : `${u.hp}/${u.maxHp}`}</td></tr>`,
+          tr("<td>{0}</td><td>{1}</td><td>{2}</td><td>{3}</td><td>{4}</td></tr>", { 0: u.stats.damageDealt, 1: u.stats.damageTaken, 2: u.stats.healing, 3: u.stats.kills, 4: u.dead ? tr('陣亡') : `${u.hp}/${u.maxHp}` }),
       )
       .join('');
     const buttons =
       s.mode === 'run'
-        ? `<button class="btn primary" data-act="continue">繼續</button>`
-        : `<button class="btn" data-act="same">重來（同種子）</button><button class="btn primary" data-act="new">重來（新種子）</button><button class="btn" data-act="title">回標題</button>`;
-    box.innerHTML = `
-      <div class="panel">
-        <h1 class="${win ? 'win' : 'lose'}">${win ? '勝利！' : '失敗'}</h1>
-        <div class="meta">戰鬥時間 ${Math.floor(t / 60)} 分 ${(t % 60).toFixed(1)} 秒　·　種子 ${s.seed}</div>
-        <table>
-          <thead><tr><th>英雄</th><th>造成傷害</th><th>承受傷害</th><th>治療</th><th>擊倒</th><th>狀態</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-        ${s.mode === 'run' && !win ? '<div class="meta">隊伍全滅，遠征結束。</div>' : ''}
-        <div class="buttons">${buttons}</div>
-      </div>`;
+        ? tr("<button class=\"btn primary\" data-act=\"continue\">繼續</button>")
+        : tr("<button class=\"btn\" data-act=\"same\">重來（同種子）</button><button class=\"btn primary\" data-act=\"new\">重來（新種子）</button><button class=\"btn\" data-act=\"title\">回標題</button>");
+    box.innerHTML = tr("\n      <div class=\"panel\">\n        <h1 class=\"{0}\">{1}</h1>\n        <div class=\"meta\">戰鬥時間 {2} 分 {3} 秒　·　種子 {4}</div>\n        <table>\n          <thead><tr><th>英雄</th><th>造成傷害</th><th>承受傷害</th><th>治療</th><th>擊倒</th><th>狀態</th></tr></thead>\n          <tbody>{5}</tbody>\n        </table>\n        {6}\n        <div class=\"buttons\">{7}</div>\n      </div>", { 0: win ? 'win' : 'lose', 1: win ? tr("勝利！") : tr("失敗"), 2: Math.floor(t / 60), 3: (t % 60).toFixed(1), 4: s.seed, 5: rows, 6: s.mode === 'run' && !win ? tr("<div class=\"meta\">隊伍全滅，遠征結束。</div>") : '', 7: buttons });
     box.querySelectorAll('button').forEach((b) => {
       b.addEventListener('mousedown', (e) => e.preventDefault());
       b.addEventListener('click', () => {
