@@ -18,6 +18,7 @@ import { staticHeroBar } from '../ui/mobileBar';
 import type { StaticHeroCard } from '../ui/mobileBar';
 import { el, uiRoot } from '../ui/dom';
 import { GAME_CONFIG } from '../../config';
+import { fbbKey } from '../render/fbbArt';
 
 export interface CampfireData {
   /** 圍在火堆旁的英雄（欄位與職業） */
@@ -45,6 +46,29 @@ const CAMP = {
   /** 打字速度（字／秒） */
   typeSpeed: 40,
   idleFps: 8,
+};
+
+/**
+ * 營火（Alan 2026-10-22 定案；交接文件 D:/_遊戲素材/像素素材/交接_休息點營火給開發session.md）：
+ * 木材是 tileA5_outside 的 3 × 3 地面格（泥土版），火焰是 Hometown !fires 第 0 號物件，裁上方 28px、最近鄰放大 1.5 倍（24 × 42），
+ * 左上角＝中央格左上角 (−4, −29)px，四格循環。地面鋪同一張表的泥土格，再蓋夜色。
+ */
+const FIRE = {
+  /** 泥土版木材的格號（一列一列） */
+  wood: [
+    [69, 70, 71],
+    [77, 78, 79],
+    [85, 86, 87],
+  ],
+  /** 鋪地面的泥土格 */
+  dirt: [24, 25, 26, 27],
+  /** 火焰：來源格（16 × 28）、放大後的大小、相對中央格的位置（原始像素） */
+  flameSrc: { x: 16, h: 28, frameH: 32 },
+  flameSize: [24, 42] as [number, number],
+  flameOffset: [-4, -29] as [number, number],
+  flameFps: 7,
+  /** 夜色（蓋在地面上的黑色透明度） */
+  night: 0.55,
 };
 
 /** 一名英雄的 sprite（可能是多層） */
@@ -122,6 +146,9 @@ interface DialogBox {
 export class CampfireScene extends Phaser.Scene {
   private data0!: CampfireData;
   private fireG!: Phaser.GameObjects.Graphics;
+  /** 素材版營火的火焰（沒有素材時是 null，用程式畫） */
+  private flame: Phaser.GameObjects.Image | null = null;
+  private fireTop = 0;
   private glowG!: Phaser.GameObjects.Graphics;
   private seated: { slot: number; classId: string; x: number; y: number; top: boolean; sprite: HeroSprite | null; ring: Phaser.GameObjects.Graphics }[] = [];
   private boxes!: { top: DialogBox; bottom: DialogBox };
@@ -142,6 +169,7 @@ export class CampfireScene extends Phaser.Scene {
     this.data0 = data;
     this.seated = [];
     this.sparks = [];
+    this.flame = null;
     this.lineIndex = -1;
     this.finished = false;
     const W = this.scale.width;
@@ -164,17 +192,21 @@ export class CampfireScene extends Phaser.Scene {
     this.center = { x: W / 2, y: m0 + CAMP.heroHeightPx + ry };
     const c = this.center;
 
-    // 火光照亮的地面
-    const ground = this.add.graphics();
-    for (let i = 6; i >= 1; i--) {
-      ground.fillStyle(0x3a2412, 0.12 + (6 - i) * 0.05);
-      ground.fillEllipse(c.x, c.y + 20, (Math.min(W, 520) * 0.95 * i) / 6, (Math.min(W, 520) * 0.5 * i) / 6);
+    // 四名英雄圍坐的半徑（營火的大小也看它）
+    const rx = Math.min(W * 0.3, 180);
+    if (this.textures.exists(fbbKey('tileA5_outside')) && this.textures.exists(fbbKey('fires'))) this.buildPixelFire(W, areaBottom, rx);
+    else {
+      // 沒有授權素材：程式畫的地面
+      const ground = this.add.graphics();
+      for (let i = 6; i >= 1; i--) {
+        ground.fillStyle(0x3a2412, 0.12 + (6 - i) * 0.05);
+        ground.fillEllipse(c.x, c.y + 20, (Math.min(W, 520) * 0.95 * i) / 6, (Math.min(W, 520) * 0.5 * i) / 6);
+      }
     }
     this.glowG = this.add.graphics().setBlendMode(Phaser.BlendModes.ADD);
     this.fireG = this.add.graphics();
 
     // 四名英雄：左上、右上、左下、右下，面向火堆
-    const rx = Math.min(W * 0.3, 180);
     const seats = [
       { x: c.x - rx, y: c.y - ry, top: true },
       { x: c.x + rx, y: c.y - ry, top: true },
@@ -320,12 +352,82 @@ export class CampfireScene extends Phaser.Scene {
     this.drawFire(dtMs / 1000);
   }
 
-  /** 火堆：木柴＋跳動的火焰＋光暈＋往上飄的火星 */
+  /**
+   * 素材版營火：地面（泥土格＋木材 3 × 3）烘成一張貼圖，整數倍放大；火焰是四格動畫疊在中央格。
+   * 倍率看英雄圍坐的距離（2～4 倍），太大會蓋到英雄。
+   */
+  private buildPixelFire(W: number, bottom: number, rx: number): void {
+    const k = Math.max(2, Math.min(4, Math.round(rx / 60)));
+    const T = 16;
+    const { x: cx, y: cy } = this.center;
+    // 中央格的左上角（畫面座標）：中央格的中心對準營火中心
+    const ox = cx - (T * k) / 2;
+    const oy = cy - (T * k) / 2;
+    // 地面貼圖涵蓋整個場景區域，格子對齊中央格
+    const c0 = Math.floor(-ox / (T * k)) - 1;
+    const r0 = Math.floor(-oy / (T * k)) - 1;
+    const cols = Math.ceil(W / (T * k)) + 3;
+    const rows = Math.ceil(bottom / (T * k)) + 3;
+    const sheet = this.textures.get(fbbKey('tileA5_outside')).getSourceImage() as HTMLImageElement;
+    const key = `camp_ground_${cols}x${rows}`;
+    if (!this.textures.exists(key)) {
+      const can = document.createElement('canvas');
+      can.width = cols * T;
+      can.height = rows * T;
+      const ctx = can.getContext('2d')!;
+      ctx.imageSmoothingEnabled = false;
+      const cell = (i: number, dx: number, dy: number) => ctx.drawImage(sheet, (i % 8) * T, Math.floor(i / 8) * T, T, T, dx, dy, T, T);
+      for (let r = 0; r < rows; r++)
+        for (let q = 0; q < cols; q++) {
+          const gx = q + c0;
+          const gy = r + r0;
+          const wood = gx >= -1 && gx <= 1 && gy >= -1 && gy <= 1 ? FIRE.wood[gy + 1][gx + 1] : null;
+          cell(wood ?? FIRE.dirt[(((gx * 73856093) ^ (gy * 19349663)) >>> 0) % FIRE.dirt.length], q * T, r * T);
+        }
+      this.textures.addCanvas(key, can);
+    }
+    this.add
+      .image(ox + c0 * T * k, oy + r0 * T * k, key)
+      .setOrigin(0)
+      .setScale(k)
+      .setDepth(-10);
+    // 夜色：英雄、火焰在它上面
+    this.add.rectangle(0, 0, W, bottom, 0x000000, FIRE.night).setOrigin(0).setDepth(-5);
+    // 火焰：四格動畫（裁上方 28px、最近鄰放大 1.5 倍）
+    const fk = 'camp_flame';
+    const [fw, fh] = FIRE.flameSize;
+    if (!this.textures.exists(fk)) {
+      const src = this.textures.get(fbbKey('fires')).getSourceImage() as HTMLImageElement;
+      const can = document.createElement('canvas');
+      can.width = fw * 4;
+      can.height = fh;
+      const ctx = can.getContext('2d')!;
+      ctx.imageSmoothingEnabled = false;
+      for (let f = 0; f < 4; f++) ctx.drawImage(src, FIRE.flameSrc.x, f * FIRE.flameSrc.frameH, T, FIRE.flameSrc.h, f * fw, 0, fw, fh);
+      const tex = this.textures.addCanvas(fk, can)!;
+      for (let f = 0; f < 4; f++) tex.add(`f${f}`, 0, f * fw, 0, fw, fh);
+    }
+    this.flame = this.add
+      .image(ox + FIRE.flameOffset[0] * k, oy + FIRE.flameOffset[1] * k, fk, 'f0')
+      .setOrigin(0)
+      .setScale(k)
+      .setDepth(10);
+    // 火光與火星的位置：火焰中間
+    this.fireTop = oy + (FIRE.flameOffset[1] + fh / 2) * k;
+  }
+
+  /** 火堆：木柴＋跳動的火焰＋光暈＋往上飄的火星（有素材時木柴、火焰是圖，這裡只畫光暈與火星） */
   private drawFire(dt: number): void {
     const now = this.time.now;
-    const { x, y } = this.center;
+    const { x } = this.center;
+    const y = this.flame ? this.fireTop + 18 : this.center.y;
     const g = this.fireG;
     g.clear();
+    if (this.flame) {
+      this.flame.setFrame(`f${Math.floor((now / 1000) * FIRE.flameFps) % 4}`);
+      this.drawGlowAndSparks(dt, x, y);
+      return;
+    }
     // 木柴
     g.fillStyle(0x4a2c17, 1);
     g.fillRoundedRect(x - 34, y - 4, 68, 12, 5);
@@ -346,7 +448,13 @@ export class CampfireScene extends Phaser.Scene {
         g.fillTriangle(x + ox - w * 0.5, y, x + ox + w * 0.5, y, x + ox + Math.sin(now / 160 + i) * 4, y - h * f * (i === 0 ? 1 : 0.7));
       }
     }
-    // 光暈
+    this.drawGlowAndSparks(dt, x, y);
+  }
+
+  /** 光暈（像素感）＋往上飄的火星 */
+  private drawGlowAndSparks(dt: number, x: number, y: number): void {
+    const now = this.time.now;
+    const g = this.fireG;
     const gl = this.glowG;
     gl.clear();
     const pulse = 0.85 + 0.15 * Math.sin(now / 120);
