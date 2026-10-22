@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import './style.css';
 import { applyDataLanguage, getLang } from './i18n';
+import { COLUMN, getLayoutPref, loadSidePattern } from './game/layout';
 import { BattleScene } from './game/scenes/BattleScene';
 import { BootScene } from './game/scenes/BootScene';
 import { ResultScene } from './game/scenes/ResultScene';
@@ -52,12 +53,33 @@ function fitStage(): void {
   let s = Math.min(vw / WIDTH, vh / HEIGHT);
   const touch = window.matchMedia('(pointer: coarse)').matches;
   if (touch) s = Math.max(s, MIN_TOUCH_SCALE);
-  const w = Math.round(vw / s);
-  const h = Math.round(vh / s);
+  let w = Math.round(vw / s);
+  let h = Math.round(vh / s);
+  let left = 0;
+  // 電腦版的直式中欄（Alan 2026-10-23）：和手機一樣的視野放在中間，兩側放路線圖、戰鬥紀錄與底圖
+  const column = !touch && vw / vh >= COLUMN.minAspect && getLayoutPref() === 'column';
+  document.body.classList.toggle('column', column);
+  if (column) {
+    s = vh / COLUMN.height;
+    w = COLUMN.width;
+    h = COLUMN.height;
+    left = Math.round((vw - w * s) / 2);
+    const side = (id: string, x: number, width: number) => {
+      const el = document.getElementById(id)!;
+      el.style.left = `${x}px`;
+      el.style.width = `${width}px`;
+      const inner = el.firstElementChild as HTMLElement;
+      inner.style.transform = `scale(${s})`;
+      inner.style.width = `${width / s}px`;
+      inner.style.height = `${vh / s}px`;
+    };
+    side('side-left', 0, left);
+    side('side-right', left + Math.round(w * s), vw - left - Math.round(w * s));
+  }
   stage.style.width = `${w}px`;
   stage.style.height = `${h}px`;
   stage.style.transform = `scale(${s})`;
-  stage.style.left = '0px';
+  stage.style.left = `${left}px`;
   stage.style.top = '0px';
   stage.classList.toggle('compact', h < COMPACT_HEIGHT);
   stage.classList.toggle('portrait', w < h);
@@ -69,5 +91,6 @@ function fitStage(): void {
 // 除錯用：在主控台可以用 __game 檢查狀態
 (window as unknown as { __game: Phaser.Game }).__game = game;
 window.addEventListener('resize', fitStage);
+loadSidePattern();
 game.events.once('ready', fitStage);
 fitStage();
