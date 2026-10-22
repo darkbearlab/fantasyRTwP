@@ -51,4 +51,32 @@ describe('室內地圖：全隊走得進每個房間', () => {
         expect(heroes.filter((h) => inRoom(h.pos)).length, `${room.role} (${room.x},${room.y})`).toBe(heroes.length);
       }
     }, 60000);
+
+  // Alan 2026-10-22 回報：地洞的出口全隊擠過去了還是離不開（出口區只有 2 格深，四個人塞不進去）
+  for (const [chapter, seed] of [
+    [2, 1],
+    [3, 4],
+    [4, 5],
+  ] as const)
+    it(`第 ${chapter + 1} 章 種子 ${seed}：全隊走得出每個出口`, () => {
+      const r = createRun(seed, { style: 'deliberate' });
+      r.chapter = chapter;
+      const node = r.map.nodes.find((n) => n.layer === 2)!;
+      r.phase = { kind: 'battle', nodeId: node.id, encounterId: deliberateLevelId('battle'), fromEvent: false };
+      const exits = createBattleFromRun(r).map.exits ?? [];
+      expect(exits.length).toBeGreaterThan(0);
+      for (const e of exits) {
+        const w = createBattleFromRun(r);
+        for (const u of w.units) if (u.team === 'enemy') {
+          u.hp = 0;
+          u.dead = true;
+        }
+        (w as unknown as { skirmish: unknown }).skirmish = null;
+        const heroes = w.units.filter((u) => u.team === 'hero');
+        w.enqueue({ type: 'move', unitIds: heroes.map((h) => h.id), point: { x: e.x + e.w / 2, y: e.y + e.h / 2 } });
+        for (let i = 0; i < 120 / DT && !w.result; i++) w.step();
+        expect(w.result, e.id).toBe('hero');
+        expect(w.exitId).toBe(e.id);
+      }
+    }, 60000);
 });

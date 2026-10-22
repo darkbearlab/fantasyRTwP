@@ -1722,7 +1722,11 @@ export class World implements ZocContext {
   /** 出口制：存活英雄全部在同一個出口裡就離開；有人在出口但沒到齊時提示 */
   private checkExits(heroes: Unit[]): void {
     const exits = this.map.exits!;
-    const inside = (u: Unit, e: { x: number; y: number; w: number; h: number }) => u.pos.x >= e.x && u.pos.x <= e.x + e.w && u.pos.y >= e.y && u.pos.y <= e.y + e.h;
+    // 身體碰到出口區就算在裡面（貼牆、貼地圖邊緣的出口，角色中心進不到最邊邊）
+    const inside = (u: Unit, e: { x: number; y: number; w: number; h: number }) => {
+      const m = u.radius + 0.1;
+      return u.pos.x >= e.x - m && u.pos.x <= e.x + e.w + m && u.pos.y >= e.y - m && u.pos.y <= e.y + e.h + m;
+    };
     const open = this.exitsOpen();
     for (const e of exits) {
       const n = heroes.filter((u) => inside(u, e)).length;
