@@ -29,10 +29,18 @@ import { FACTIONS } from './data/factions';
 import type { TilePrefab } from './tilePrefab';
 import type { TownLevel } from './townGen';
 import { generateTown } from './townGen';
+import type { IndoorLevel, IndoorTheme } from './indoorGen';
+import { generateIndoor } from './indoorGen';
+import { placeTreasure } from './treasure';
+import type { InteractableDef, TerrainRect } from '../sim/data/types';
 
 export type FbbLook = 'summer' | 'fallDusk' | 'winterOvercast' | 'townNight';
 
-export type FbbArt = { kind: 'fbbField'; look: FbbLook; level: FieldLevel } | { kind: 'fbbTown'; look: FbbLook; level: TownLevel };
+export type FbbArt =
+  | { kind: 'fbbField'; look: FbbLook; level: FieldLevel }
+  | { kind: 'fbbTown'; look: FbbLook; level: TownLevel }
+  /** 室內（第 3～5 章）：look 只是型別一致用，調色依 level.theme */
+  | { kind: 'fbbIndoor'; look: FbbLook; level: IndoorLevel };
 
 export interface FbbLevelOptions {
   tier: DeliberateTier;
@@ -81,7 +89,7 @@ function enemiesFrom(list: { enemy: string; x: number; y: number; squad: string;
   });
 }
 
-function wrap(seed: number, kind: 'field' | 'town', opts: FbbLevelOptions, W: number, H: number, mapDef: Omit<MapDef, 'id' | 'name' | 'width' | 'height' | 'enemySpawns'>, enemies: EncounterEnemy[], place: string): GeneratedLevel {
+function wrap(seed: number, kind: 'field' | 'town' | 'indoor', opts: FbbLevelOptions, W: number, H: number, mapDef: Omit<MapDef, 'id' | 'name' | 'width' | 'height' | 'enemySpawns'>, enemies: EncounterEnemy[], place: string): GeneratedLevel {
   const id = `${kind}_${seed >>> 0}`;
   const tier = opts.tier;
   const label = tier === 'boss' ? tr("最終決戰") : tier === 'elite' ? tr("精英") : tier === 'event' ? tr("突發") : tr("遭遇");
@@ -246,5 +254,114 @@ function townOnce(seed: number, opts: FbbLevelOptions & { prefabs?: TilePrefab[]
     { obstacles: obstaclesFrom(cells, W, H), heroSpawns, exits: lv.exits.length ? exitDefs(lv.exits, H) : undefined, landmarks: { cameraStart: heroSpawns[0] }, art },
     enemiesFrom(lv.enemies, H),
     tr("燃燒的王都"),
+  );
+}
+
+// ───────────── 室內（第 3～5 章：試煉地城、密道、魔王城） ─────────────
+
+/** 擋路的室內物件：會擋視線的、只擋路的（其他像燭台、瓦礫、光柱只是裝飾） */
+const INDOOR_BLOCK: Record<string, '#' | 'o'> = { statue: '#', bookshelf: '#', throne: 'o', armorStand: 'o', brazier: 'o', golemSeal: 'o' };
+
+const EDGE_FACING: Record<MapEdge, Facing> = { top: 'up', bottom: 'down', left: 'left', right: 'right' };
+
+/** 格子的長方形 → 世界的長方形 */
+function rectToWorld(r: { x: number; y: number; w: number; h: number }, H: number): Rect {
+  return { x: H - (r.y + r.h), y: r.x, w: r.h, h: r.w };
+}
+
+/** 室內戰鬥地圖；treasure：放寶箱、道具、祭壇（第一次造訪才有，不能重複刷） */
+export function indoorEncounter(seed: number, opts: FbbLevelOptions & { theme: IndoorTheme; treasure?: boolean }): GeneratedLevel {
+  return withNavCheck(seed, (s) => indoorOnce(s, opts));
+}
+
+function indoorOnce(seed: number, opts: FbbLevelOptions & { theme: IndoorTheme; treasure?: boolean }): GeneratedLevel {
+  const lv = generateIndoor(opts.theme, seed, { layer: opts.layer, exits: opts.exits.map((e) => ({ ...e, edge: edgeOf(e) })), entry: opts.entry });
+  const { w: W, h: H } = lv;
+  const cells = new Map<string, '#' | 'o'>();
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (lv.grid[y][x] === '#') cells.set(`${x},${y}`, '#');
+  for (const p of lv.props) {
+    const b = INDOOR_BLOCK[p.kind];
+    if (!b) continue;
+    for (let dy = 0; dy < (p.h ?? 1); dy++) for (let dx = 0; dx < (p.w ?? 1); dx++) if (cells.get(`${p.x + dx},${p.y + dy}`) !== '#') cells.set(`${p.x + dx},${p.y + dy}`, b);
+  }
+  // 精英關卡：離出生點最遠的敵人當隊長（巢穴、小蟲不行）
+  const enemies = lv.enemies.map((e) => ({ ...e }));
+  const spawn = lv.heroSpawns[0];
+  if (opts.tier === 'elite' || opts.captainEnemy) {
+    const pool = enemies.filter((e) => e.enemy !== 'bugNest' && e.enemy !== 'swarmling');
+    const far = [...pool].sort((a, b) => Math.abs(b.x - spawn.x) + Math.abs(b.y - spawn.y) - (Math.abs(a.x - spawn.x) + Math.abs(a.y - spawn.y)))[0];
+    if (far) {
+      far.captain = true;
+      if (opts.captainEnemy) far.enemy = opts.captainEnemy;
+    }
+  }
+  // 門：相連的 'D' 格一組一道門（開著，可以關）
+  const interactables: InteractableDef[] = [];
+  const seen = new Set<string>();
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      if (lv.grid[y][x] !== 'D' || seen.has(`${x},${y}`)) continue;
+      const comp: [number, number][] = [];
+      const st: [number, number][] = [[x, y]];
+      seen.add(`${x},${y}`);
+      while (st.length) {
+        const [cx, cy] = st.pop()!;
+        comp.push([cx, cy]);
+        for (const [dx, dy] of [
+          [1, 0],
+          [-1, 0],
+          [0, 1],
+          [0, -1],
+        ]) {
+          const k = `${cx + dx},${cy + dy}`;
+          if (lv.grid[cy + dy]?.[cx + dx] === 'D' && !seen.has(k)) {
+            seen.add(k);
+            st.push([cx + dx, cy + dy]);
+          }
+        }
+      }
+      const xs = comp.map((c) => c[0]);
+      const ys = comp.map((c) => c[1]);
+      const r = { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs) + 1, h: Math.max(...ys) - Math.min(...ys) + 1 };
+      interactables.push({ id: `door${interactables.length}`, kind: 'door', open: true, ...rectToWorld(r, H) });
+    }
+  // 探索獎勵：寶箱、地上的道具、祭壇（Alan 2026-10-22）
+  if (opts.treasure) {
+    const taken = new Set<string>([...cells.keys(), ...enemies.map((e) => `${e.x},${e.y}`)]);
+    const spots = placeTreasure(deriveSeed(seed, 'treasure'), { grid: lv.grid, spawn, exits: lv.exits, taken, layer: opts.layer });
+    spots.forEach((s, i) => {
+      const c = gridToWorld(s.x, s.y, H);
+      const size = s.kind === 'pickup' ? 0.5 : s.kind === 'chest' ? 0.8 : 0.9;
+      const off = (1 - size) / 2;
+      interactables.push({ id: `${s.kind}${i}`, kind: s.kind, x: c.x + off, y: c.y + off, w: size, h: size, loot: s.loot, shrine: s.shrine });
+    });
+  }
+  // 高台
+  const hgrid: string[][] = Array.from({ length: W }, () => new Array<string>(H).fill('.'));
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++)
+      if (lv.grid[y][x] === '^') {
+        const c = gridToWorld(x, y, H);
+        hgrid[c.y][c.x] = '^';
+      }
+  const terrain: TerrainRect[] = mergeCells(hgrid, (c) => c === '^').map((r) => ({ kind: 'high', ...r }));
+  const heroSpawns = lv.heroSpawns.map((p) => {
+    const c = gridToWorld(p.x, p.y, H);
+    return { x: c.x + 0.5, y: c.y + 0.5 };
+  });
+  const art: FbbArt = { kind: 'fbbIndoor', look: 'winterOvercast', level: lv };
+  const place = opts.theme === 'temple' ? tr("試煉地城") : opts.theme === 'cave' ? tr("密道") : tr("魔王城");
+  return wrap(
+    seed,
+    'indoor',
+    opts,
+    W,
+    H,
+    { obstacles: obstaclesFrom(cells, W, H), heroSpawns, exits: lv.exits.length ? exitDefs(lv.exits, H) : undefined, landmarks: { cameraStart: heroSpawns[0] }, interactables, terrain, art },
+    enemiesFrom(
+      enemies.map((e) => ({ ...e, facing: e.facing ? EDGE_FACING[e.facing] : 'down' })),
+      H,
+    ),
+    place,
   );
 }

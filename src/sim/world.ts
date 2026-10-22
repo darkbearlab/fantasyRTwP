@@ -4,12 +4,13 @@ import { sameOrder } from './commands';
 import { DT, NAV_CELL, RANGE_TOLERANCE } from './constants';
 import { BOSS_INTRO, ENEMIES, enemyRank } from './data/enemies';
 import { BAG, CONSUMABLES } from './data/consumables';
+import { SHRINE_RULES, SHRINES } from './data/shrines';
 import { ACTIVE_CYCLES } from './data/cycles';
 import { ITEMS } from './data/items';
 import { offCycle } from './cycle';
 import { HEROES } from './data/heroes';
 import { SKILLS } from './data/skills';
-import type { DamageType, HordeSetup, InteractAction, MapDef, Personality, ProjectileKind, Rect, SkillDef, SpawnerDef, Team, UnitDef, WaveDef, WaveTrigger } from './data/types';
+import type { DamageType, HordeSetup, InteractAction, LootDef, MapDef, ShrineKind, Personality, ProjectileKind, Rect, SkillDef, SpawnerDef, Team, UnitDef, WaveDef, WaveTrigger } from './data/types';
 import { INTERACT } from './data/interact';
 import { CLASS_PASSIVES, PASSIVES } from './data/passives';
 import type { GroundZone } from './zones';
@@ -273,6 +274,8 @@ export class World implements ZocContext {
 
   /** 包包（消耗品）：剩下的；戰鬥中用掉就拿掉 */
   bag: string[] = [];
+  /** 戰鬥中從寶箱、地上撿到、要在戰後結算的東西（裝備、經驗值、金幣；Alan 2026-10-22） */
+  loot: LootDef[] = [];
   /** 消耗品的共用冷卻：到這個時間才能再用 */
   consumableReadyAt = 0;
 
@@ -392,12 +395,46 @@ export class World implements ZocContext {
   interact(u: Unit, s: InteractableState): void {
     if (!this.interactables.usable(s)) return;
     s.uses++;
-    if (s.def.kind === 'lever') {
+    if (s.def.kind !== 'door') {
+      // 拉桿拉下、寶箱打開、道具撿走、祭壇用過
       s.open = true;
       this.interactables.version++;
     }
     this.emit({ type: 'interact', unitId: u.id, objectId: s.def.id });
+    if (s.def.loot) this.takeLoot(u, s.def.id, s.def.loot);
+    if (s.def.shrine) this.useShrine(u, s.def.id, s.def.shrine);
     for (const a of this.interactables.actionsOf(s)) this.runInteractAction(a);
+  }
+
+  /** 寶箱、地上的道具：回血立刻生效，消耗品放進包包（滿了換金幣），其他戰後結算 */
+  private takeLoot(u: Unit, objectId: string, loot: LootDef): void {
+    let toGold = false;
+    if (loot.kind === 'heal') {
+      for (const h of this.units) {
+        if (h.team !== 'hero' || h.dead) continue;
+        const amount = Math.min(Math.round(h.maxHp * loot.pct), h.maxHp - h.hp);
+        if (amount <= 0) continue;
+        h.hp += amount;
+        this.emit({ type: 'heal', sourceId: u.id, targetId: h.id, amount });
+      }
+    } else if (loot.kind === 'consumable') {
+      if (this.bag.length < BAG.capacity) this.bag.push(loot.id);
+      else {
+        toGold = true;
+        this.loot.push({ kind: 'gold', amount: loot.gold });
+      }
+    } else this.loot.push(loot);
+    this.emit({ type: 'loot', unitId: u.id, objectId, loot, toGold });
+  }
+
+  /** 祭壇：活著的英雄全部得到增益（新的蓋掉舊的） */
+  private useShrine(u: Unit, objectId: string, shrine: ShrineKind): void {
+    for (const h of this.units) {
+      if (h.team !== 'hero' || h.dead) continue;
+      h.shrine = shrine;
+      h.shrineTime = SHRINE_RULES.duration;
+    }
+    this.emit({ type: 'shrine', unitId: u.id, objectId, shrine });
   }
 
   private runInteractAction(a: InteractAction): void {
@@ -449,7 +486,7 @@ export class World implements ZocContext {
   /** 移動倍率：地形 × 敵方區域效果（沼澤） */
   moveMultFor(u: Unit): number {
     // 減速取最慢（地形、地面區域），再乘上被動的移動速度加成
-    return Math.min(this.moveMultAt(u.pos), zoneMoveMult(this, u)) * (1 + u.mods.moveSpeedPct) * (u.chillTime > 0 ? 1 - u.chillSlow : 1);
+    return Math.min(this.moveMultAt(u.pos), zoneMoveMult(this, u)) * (1 + u.mods.moveSpeedPct + (u.shrineDef?.moveSpeedPct ?? 0)) * (u.chillTime > 0 ? 1 - u.chillSlow : 1);
   }
 
   private updateZones(): void {
@@ -1018,6 +1055,19 @@ export class World implements ZocContext {
     }
     if (u.rootTime > 0) u.rootTime = Math.max(0, u.rootTime - DT);
     if (u.blessTime > 0) u.blessTime = Math.max(0, u.blessTime - DT);
+    if (u.shrineTime > 0) {
+      u.shrineTime = Math.max(0, u.shrineTime - DT);
+      // 復甦祭壇：每秒回復（累積到整數才加，不跳字）
+      const regen = u.shrine ? SHRINES[u.shrine].regenPct : undefined;
+      if (regen && !u.dead) {
+        u.shrineRegen += u.maxHp * regen * DT;
+        const whole = Math.floor(u.shrineRegen);
+        if (whole > 0) {
+          u.shrineRegen -= whole;
+          u.hp = Math.min(u.maxHp, u.hp + whole);
+        }
+      }
+    }
     if (u.guardTime > 0) {
       u.guardTime = Math.max(0, u.guardTime - DT);
       if (u.guardTime === 0) u.guardedBy = -1;

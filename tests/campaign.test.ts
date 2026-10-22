@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { createBattleFromRun, deliberateLevelId } from '../src/run/battle';
+import { createBattleFromRun, deliberateLevelId, enemyDef } from '../src/run/battle';
+import { DELIBERATE_PACE } from '../src/sim/data/deliberate';
 import type { BattleOutcome } from '../src/run/battle';
 import { depthOffset, startChapter } from '../src/run/campaign';
 import { CHAPTER_RULES, CHAPTERS } from '../src/run/data/chapters';
@@ -92,11 +93,13 @@ describe('戰役：五章（SPEC_CAMPAIGN）', () => {
     const r2 = createRun(9, { style: 'deliberate' });
     r2.chapter = 2;
     expect(depthOffset(r2)).toBe(Math.round((CHAPTERS[0].layers + CHAPTERS[1].layers) * CHAPTER_RULES.depthCarry));
+    // 第 3 章是室內地圖、敵人組成不同：每種敵人和它在第 1 章同一層（沒有全程深度）的生命比
+    const base = (id: string) => Math.round(enemyDef(id, 2).maxHp * DELIBERATE_PACE.enemyHpMult);
     const a = hp(r0);
     const b = hp(r2);
-    const common = [...a.keys()].filter((id) => b.has(id));
-    expect(common.length).toBeGreaterThan(0);
-    for (const id of common) expect(b.get(id)!, id).toBeGreaterThan(a.get(id)!);
+    expect(b.size).toBeGreaterThan(0);
+    for (const [id, v] of a) expect(v, id).toBe(base(id));
+    for (const [id, v] of b) expect(v, id).toBeGreaterThan(base(id));
   });
 });
 

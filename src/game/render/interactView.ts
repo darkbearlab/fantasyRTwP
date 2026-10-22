@@ -9,6 +9,7 @@ import type { World } from '../../sim/world';
 import { darken, lighten } from './palette';
 import { depthOf, groundRect, hasHeight, worldToScreen } from './projection';
 import { OBJECT_DEPTH_BASE } from './unitView';
+import { SHRINES } from '../../sim/data/shrines';
 
 /** 外觀設定（畫面用，不放進 sim 資料） */
 export const INTERACT_VISUAL = {
@@ -20,6 +21,12 @@ export const INTERACT_VISUAL = {
   leverColor: 0x8d7a5a,
   leverUsedColor: 0x4f8f5a,
   hoverColor: 0xffe066,
+  chestColor: 0x8a5a2b,
+  chestBand: 0xd9b24a,
+  /** 地上的道具（依內容的顏色） */
+  pickupColors: { heal: 0x5dbb63, consumable: 0xd04a4a, item: 0x4a8ad0, xp: 0xb388ff, gold: 0xe8c45a } as Record<string, number>,
+  shrineBase: 0x6a6460,
+  shrineUsed: 0x4a4a4e,
 };
 
 /** 畫一個立體方塊（側面依投影旋轉決定看得到哪幾面，最後畫頂面）；回傳畫面上的外框 */
@@ -140,6 +147,22 @@ export class InteractablesView {
           boxes.push({ x: d.x, y: d.y, w: pw, d: d.h, h: V.doorHeight, color }, { x: d.x + d.w - pw, y: d.y, w: pw, d: d.h, h: V.doorHeight, color });
         }
       }
+    } else if (d.kind === 'chest') {
+      // 寶箱：箱身＋金色箍；打開後蓋子掀到後面
+      const open = p.state.open;
+      boxes.push({ x: d.x, y: d.y, w: d.w, d: d.h, h: 0.45, color: V.chestColor });
+      if (!open) boxes.push({ x: d.x + d.w * 0.4, y: d.y - 0.02, w: d.w * 0.2, d: d.h + 0.04, h: 0.55, color: V.chestBand });
+      else boxes.push({ x: d.x - 0.12, y: d.y, w: 0.12, d: d.h, h: 0.75, color: darken(V.chestColor, 0.8) });
+    } else if (d.kind === 'pickup') {
+      // 地上的道具：撿走就不見
+      if (!p.state.open) boxes.push({ x: d.x, y: d.y, w: d.w, d: d.h, h: 0.3, color: V.pickupColors[d.loot?.kind ?? 'gold'] ?? V.pickupColors.gold });
+    } else if (d.kind === 'shrine') {
+      // 祭壇：底座＋發光的柱子（用過就變暗）
+      const used = p.state.open;
+      const glow = d.shrine ? SHRINES[d.shrine].color : V.chestBand;
+      boxes.push({ x: d.x, y: d.y, w: d.w, d: d.h, h: 0.3, color: used ? V.shrineUsed : V.shrineBase });
+      const s = Math.min(d.w, d.h) * 0.45;
+      boxes.push({ x: d.x + d.w / 2 - s / 2, y: d.y + d.h / 2 - s / 2, w: s, d: s, h: 1.5, color: used ? V.shrineUsed : glow });
     } else {
       boxes.push({ x: d.x, y: d.y, w: d.w, d: d.h, h: 0.25, color: darken(V.leverColor, 0.8) });
       // 把手：拉下前直立，拉下後變綠、變矮

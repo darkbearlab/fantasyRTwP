@@ -1,5 +1,5 @@
 import type { Vec } from './math';
-import type { DamageType, Team } from './data/types';
+import type { DamageType, LootDef, ShrineKind, Team } from './data/types';
 
 /** sim → 畫面層：每個節拍產生的事件 */
 export type SimEvent =
@@ -34,6 +34,10 @@ export type SimEvent =
   | { type: 'warcry'; unitId: number }
   /** 英雄和地圖物件互動（SPEC_SLICE4 §15.1） */
   | { type: 'interact'; unitId: number; objectId: string }
+  /** 打開寶箱、撿起地上的道具（Alan 2026-10-22）；consumable 在包包滿時換成 gold */
+  | { type: 'loot'; unitId: number; objectId: string; loot: LootDef; toGold?: boolean }
+  /** 祭壇：全隊得到增益 */
+  | { type: 'shrine'; unitId: number; objectId: string; shrine: ShrineKind }
   /** 門打開或關上；blocked：想關門但門口有人 */
   | { type: 'door'; objectId: string; open: boolean; blocked?: boolean }
   /** exitId：從哪個出口離開（出口制，SPEC_SLICE6 §2） */

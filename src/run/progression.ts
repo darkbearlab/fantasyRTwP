@@ -22,6 +22,7 @@ import { generalUpgradeIds, grantUpgrade, levelUpOffer, maxHpOf, recruitInto, ro
 import { recruitPool } from './classes';
 import { rollItemDrop, rollShopStock } from './items';
 import { ITEMS } from '../sim/data/items';
+import type { LootDef } from '../sim/data/types';
 import { enemyStrength, gainXp, nextLevelUpTo, xpForKills } from './xp';
 import { neighbors } from './routeMap';
 import { advanceTurn, campfireSmoke, caught, championDefeated, isOccupied } from './overworld';
@@ -204,6 +205,16 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
       r.journal.push(tr("第 {0} 層：打倒了魔王的冠軍！這一章他不會再出現。", { 0: node.layer }));
     } else r.journal.push(tr("第 {0} 層：甩開了魔王的冠軍。", { 0: node.layer }));
   }
+  // 寶箱、地上撿到的（Alan 2026-10-22）：裝備放進背包、金幣入帳；經驗值併進下面的經驗值
+  for (const l of outcome.loot ?? []) {
+    if (l.kind === 'item' && ITEMS[l.id]) {
+      (r.inventory ??= []).push(l.id);
+      r.journal.push(tr("從寶箱拿到「{0}」。", { 0: ITEMS[l.id].name }));
+    } else if (l.kind === 'gold') {
+      r.gold += l.amount;
+      r.stats.goldEarned += l.amount;
+    }
+  }
   // 出口制：走哪個出口，下一個節點就是哪個
   r.exitTo = outcome.exitNodeId ?? null;
   const elite = node.type === 'elite' && !fromEvent;
@@ -218,7 +229,7 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
     // SPEC_SLICE6 §3：不再每場三選一；經驗值只來自擊殺，升級了才三選一（升幾級選幾次）
     // 經驗值跟著這場敵人的強度（和 encounterFor 的層數相同）
     const battleLayer = node.layer + levelBonus(run.phase.mods ?? {}) + depthOffset(r);
-    xpGained = xpForKills(outcome.killed ?? [], enemyStrength(battleLayer));
+    xpGained = xpForKills(outcome.killed ?? [], enemyStrength(battleLayer)) + lootXp(outcome.loot);
     const ups = gainXp(r, xpGained);
     if (ups > 0) r.journal.push(tr("隊伍升到第 {0} 級！", { 0: r.level }));
     const offer = (r.pendingLevelUps ?? 0) > 0 ? levelUpOptions(r) : { options: [], optionSlots: [] };
@@ -249,6 +260,11 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
   }
   r.phase = { kind: 'reward', nodeId, options, elite: elite && !deliberate, gold, item, consumable, xpGained, levelUpTo: options.length ? nextLevelUpTo(r) : undefined, optionSlots };
   return r;
+}
+
+/** 寶箱給的經驗值 */
+function lootXp(loot: LootDef[] | undefined): number {
+  return (loot ?? []).reduce((a, l) => a + (l.kind === 'xp' ? l.amount : 0), 0);
 }
 
 /** 升級三選一的選項（依要升到的等級決定，同一趟遠征每次一樣）：兩個專屬＋一個通用（SPEC_CLASSES §1） */

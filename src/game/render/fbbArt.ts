@@ -22,6 +22,13 @@ const FILES: [string, string][] = [
   [fbbKey('master'), 'fbb/hometown/master_everything.png'],
   [fbbKey('fires'), 'fbb/hometown/characters/fires.png'],
   [fbbKey('smoke'), 'fbb/hometown/characters/smoke.png'],
+  // 室內（第 3～5 章）
+  [fbbKey('tileA2_cc'), 'fbb/castle/tilesets/tileA2_cc.png'],
+  [fbbKey('tileA5_castle_int'), 'fbb/castle/tilesets/tileA5_castle_int.png'],
+  [fbbKey('tileB_cc1'), 'fbb/castle/tilesets/tileB_cc1.png'],
+  [fbbKey('tileA2_caves'), 'fbb/caves/tilesets/tileA2_caves.png'],
+  [fbbKey('tileA5_cave1'), 'fbb/caves/tilesets/tileA5_cave1.png'],
+  [fbbKey('tileB_cave1'), 'fbb/caves/tilesets/tileB_cave1.png'],
 ];
 
 /** 加入載入佇列（BootScene，和 Matt Walkden 素材一起） */

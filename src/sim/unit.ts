@@ -1,5 +1,7 @@
 import type { Order } from './commands';
-import type { Personality, Team, UnitDef, ProjectileKind } from './data/types';
+import type { Personality, ShrineKind, Team, UnitDef, ProjectileKind } from './data/types';
+import type { ShrineDef } from './data/shrines';
+import { SHRINES } from './data/shrines';
 import type { Vec } from './math';
 import type { Attribute } from './data/damageTypes';
 import type { PassiveDef, PassiveMods } from './data/passives';
@@ -135,6 +137,11 @@ export class Unit {
   /** 疊加型光環給的傷害加成（戰鬥圖騰；每個節拍重算） */
   stackDamage = 0;
   damageBuffTime = 0;
+  /** 祭壇增益（Alan 2026-10-22）：種類與剩餘秒數 */
+  shrine: ShrineKind | null = null;
+  shrineTime = 0;
+  /** 復甦祭壇累積的小數回復 */
+  shrineRegen = 0;
 
   path: Vec[] | null = null;
   /** 移動卡住判定：目前最接近目標的距離、沒有進展的秒數 */
@@ -228,18 +235,22 @@ export class Unit {
   get shieldUp(): boolean {
     return !!this.def.shield && !this.shieldBroken;
   }
+  /** 目前生效的祭壇增益 */
+  get shrineDef(): ShrineDef | null {
+    return this.shrine && this.shrineTime > 0 ? SHRINES[this.shrine] : null;
+  }
   get armor(): number {
-    return this.def.armor + this.mods.armor + (this.shieldUp ? this.def.shield!.armor : 0) - this.sunderAmount;
+    return this.def.armor + this.mods.armor + (this.shieldUp ? this.def.shield!.armor : 0) - this.sunderAmount + (this.shrineDef?.armor ?? 0);
   }
   /** 破甲降低的護甲（物理與特殊都扣） */
   get sunderAmount(): number {
     return this.sunderTime > 0 ? this.sunderStacks * this.sunderArmor : 0;
   }
   get accuracy(): number {
-    return this.def.accuracy + this.mods.accuracy + (this.blessTime > 0 ? this.blessAccuracy : 0);
+    return this.def.accuracy + this.mods.accuracy + (this.blessTime > 0 ? this.blessAccuracy : 0) + (this.shrineDef?.accuracy ?? 0);
   }
   get defense(): number {
-    return this.def.defense + this.mods.defense + (this.blessTime > 0 ? this.blessDefense : 0) + (this.shieldUp ? this.def.shield!.defense : 0);
+    return this.def.defense + this.mods.defense + (this.blessTime > 0 ? this.blessDefense : 0) + (this.shieldUp ? this.def.shield!.defense : 0) + (this.shrineDef?.defense ?? 0);
   }
   maxCharges(skillId: string): number {
     return Math.max(1, this.def.skillMods?.[skillId]?.charges ?? 1);
@@ -255,7 +266,7 @@ export class Unit {
 
   /** 造成傷害的總倍率 */
   get outgoingDamageMult(): number {
-    return (this.def.damageMult ?? 1) * (1 + this.mods.damagePct) * (this.damageBuffTime > 0 ? this.damageBuffMult : 1) * (this.blessTime > 0 ? 1 + this.blessDamage : 1) * (1 + this.stackDamage);
+    return (this.def.damageMult ?? 1) * (1 + this.mods.damagePct) * (this.damageBuffTime > 0 ? this.damageBuffMult : 1) * (this.blessTime > 0 ? 1 + this.blessDamage : 1) * (1 + this.stackDamage) * (1 + (this.shrineDef?.damagePct ?? 0));
   }
 
   get isMelee(): boolean {
