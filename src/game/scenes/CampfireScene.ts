@@ -3,6 +3,7 @@
  * 點一下推進，說完（或按略過）才回到休息選單。
  * 英雄用戰鬥中的 sprite（heroes3d 預渲染或 Flare 分層），頭像也直接用 sprite（面向鏡頭、只露上半身）。
  */
+import { pixelGlow } from '../render/pixelGlow';
 import { tr } from '../../i18n';
 import Phaser from 'phaser';
 import type { CampfireLine } from '../../run/campfire';
@@ -199,9 +200,9 @@ export class CampfireScene extends Phaser.Scene {
 
     this.boxes = { top: this.makeBox(topBoxY), bottom: this.makeBox(bottomBoxY) };
     const by = bottomBoxY - 8;
-    this.add.text(14, by, tr("點一下繼續"), { fontFamily: FONT, fontSize: '13px', color: '#8f8470' }).setOrigin(0, 1).setDepth(40);
+    this.add.text(14, by, tr("點一下繼續"), { fontFamily: FONT, fontSize: '13px', color: '#b8b8b8' }).setOrigin(0, 1).setDepth(40);
     this.skipBtn = this.add
-      .text(W - 14, by, tr("略過 ▶▶"), { fontFamily: FONT, fontSize: '15px', color: '#e0c48a', backgroundColor: '#1a1d25', padding: { x: 10, y: 5 } })
+      .text(W - 14, by, tr("略過 ▶▶"), { fontFamily: FONT, fontSize: '15px', color: '#ffffff', backgroundColor: '#000000', padding: { x: 10, y: 5 } })
       .setOrigin(1, 1)
       .setDepth(40)
       .setInteractive({ useHandCursor: true });
@@ -221,16 +222,19 @@ export class CampfireScene extends Phaser.Scene {
     const x = (W - w) / 2;
     const root = this.add.container(x, y).setDepth(50);
     const bg = this.add.graphics();
-    bg.fillStyle(0x0f1117, 0.92);
-    bg.fillRoundedRect(0, 0, w, CAMP.boxHeight, 12);
-    bg.lineStyle(2, 0x6b5536, 0.9);
-    bg.strokeRoundedRect(0, 0, w, CAMP.boxHeight, 12);
+    // 勇者鬥惡龍風格的對話框（Alan 2026-10-22）：黑底、白框、白字
+    bg.fillStyle(0x000000, 1);
+    bg.fillRoundedRect(0, 0, w, CAMP.boxHeight, 4);
+    bg.lineStyle(3, 0xffffff, 1);
+    bg.strokeRoundedRect(0, 0, w, CAMP.boxHeight, 4);
     const P = CAMP.portrait;
     const py = (CAMP.boxHeight - P) / 2;
-    bg.fillStyle(0x1d2029, 1);
-    bg.fillRoundedRect(py, py, P, P, 8);
-    const name = this.add.text(py * 2 + P, 12, '', { fontFamily: FONT, fontSize: '16px', fontStyle: 'bold', color: '#ffd76a' });
-    const body = this.add.text(py * 2 + P, 38, '', { fontFamily: FONT, fontSize: '16px', color: '#e8e2d4', wordWrap: { width: w - P - py * 3 - 4, useAdvancedWrap: true }, lineSpacing: 4 });
+    bg.fillStyle(0x000000, 1);
+    bg.fillRoundedRect(py, py, P, P, 4);
+    bg.lineStyle(2, 0xffffff, 1);
+    bg.strokeRoundedRect(py, py, P, P, 4);
+    const name = this.add.text(py * 2 + P, 12, '', { fontFamily: FONT, fontSize: '16px', fontStyle: 'bold', color: '#ffffff' });
+    const body = this.add.text(py * 2 + P, 38, '', { fontFamily: FONT, fontSize: '16px', color: '#ffffff', wordWrap: { width: w - P - py * 3 - 4, useAdvancedWrap: true }, lineSpacing: 4 });
     root.add([bg, name, body]);
     root.setAlpha(0);
     const maskShape = this.make.graphics({}, false);
@@ -346,10 +350,8 @@ export class CampfireScene extends Phaser.Scene {
     const gl = this.glowG;
     gl.clear();
     const pulse = 0.85 + 0.15 * Math.sin(now / 120);
-    for (let i = 5; i >= 1; i--) {
-      gl.fillStyle(0xff8a2a, 0.035 * pulse);
-      gl.fillCircle(x, y - 18, 40 * i * pulse);
-    }
+    // 像素光暈（Alan 2026-10-22）：格子對齊、透明度分階
+    pixelGlow(gl, x, y - 18, 200 * pulse, 0xff8a2a, 0.17 * pulse, { cell: 8, bands: 5 });
     // 火星
     if (Math.random() < dt * 10) this.sparks.push({ x: x + (Math.random() - 0.5) * 30, y: y - 20, vy: 30 + Math.random() * 40, life: 1.2 });
     g.fillStyle(0xffc14a, 1);
@@ -358,7 +360,7 @@ export class CampfireScene extends Phaser.Scene {
       s.y -= s.vy * dt;
       s.x += Math.sin(now / 200 + s.vy) * 0.4;
       g.fillStyle(0xffc14a, Math.min(1, s.life));
-      g.fillCircle(s.x, s.y, 1.6);
+      g.fillRect(Math.round(s.x) - 1, Math.round(s.y) - 1, 3, 3);
     }
   }
 }

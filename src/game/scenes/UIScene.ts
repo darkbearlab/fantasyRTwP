@@ -202,6 +202,19 @@ export class UIScene extends Phaser.Scene {
       row.appendChild(lab);
       p.appendChild(row);
     }
+    {
+      // 戰鬥紀錄（Alan 2026-10-22）：可以整個關掉
+      const row = el('div', 'settings-row');
+      const lab = el('label', 'settings-check');
+      const cb = el('input');
+      cb.type = 'checkbox';
+      cb.tabIndex = -1;
+      cb.checked = s.controls.showLog;
+      cb.addEventListener('change', () => s.setControls({ showLog: cb.checked }));
+      lab.append(cb, el('div', 'settings-text', tr("顯示戰鬥紀錄")));
+      row.appendChild(lab);
+      p.appendChild(row);
+    }
     p.appendChild(el('div', 'settings-sub', tr("自動暫停")));
     for (const o of AUTO_PAUSE_OPTIONS) {
       // 列是 div：勾選框與文字包在 label 裡，門檻下拉選單放在 label 外面（點選單不會切換勾選）
@@ -663,6 +676,7 @@ export class UIScene extends Phaser.Scene {
     }
 
     this.logBox.classList.toggle('collapsed', !s.logOpen);
+    this.logBox.classList.toggle('off', !s.controls.showLog);
     const last = s.log[s.log.length - 1];
     if (s.log.length !== this.logCount || last !== this.logLast) {
       this.logCount = s.log.length;

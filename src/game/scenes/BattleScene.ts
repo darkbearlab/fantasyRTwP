@@ -57,6 +57,7 @@ import {
   worldToScreen,
 } from '../render/projection';
 import { FbbMapView, isFbbMap } from '../render/fbbMapView';
+import { pixelGlow } from '../render/pixelGlow';
 import type { ProjectionMode } from '../render/projection';
 import { VISUAL, obstacleHeight, obstacleKind } from '../render/visual';
 import { InputController } from '../input/inputController';
@@ -1753,8 +1754,7 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
       const a = Math.atan2(dy, dx);
       const ex = cx + dx * t + Math.cos(a) * bob * 3;
       const ey = cy + dy * t + Math.sin(a) * bob * 3;
-      g.fillStyle(color, 0.25);
-      g.fillCircle(ex, ey, 20);
+      pixelGlow(g, ex, ey, 24, color, 0.35, { cell: 4, bands: 3 });
       tri(ex, ey, a, 16);
     }
   }
@@ -1792,12 +1792,8 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
       const ex = cx + dx * t;
       const ey = cy + dy * t;
       const r = Phaser.Math.Clamp(V.base + V.perSqrtHp * Math.sqrt(u.maxHp), V.min, V.max) * pulse;
-      // 同心圓疊出柔和的光暈：外圈淡、內圈濃
-      for (let i = 0; i < V.layers; i++) {
-        const k = 1 - i / V.layers;
-        g.fillStyle(V.color, (V.alpha / V.layers) * (0.6 + i * 0.25));
-        g.fillCircle(ex, ey, r * k);
-      }
+      // 像素光暈：外圈淡、內圈濃（Alan 2026-10-22：要有像素感）
+      pixelGlow(g, ex, ey, r, V.color, V.alpha, { cell: 6, bands: V.layers });
     }
   }
 

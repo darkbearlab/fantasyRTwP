@@ -57,10 +57,12 @@ const CONTROL_KEY = 'fantasyRTwP.controls';
 /** 操作偏好（存在瀏覽器）：deselectOnPause＝暫停時取消選取所有英雄（Alan 2026-10-22：暫停＝狀況發生，英雄要重新選） */
 export interface ControlPrefs {
   deselectOnPause: boolean;
+  /** 顯示戰鬥紀錄（Alan 2026-10-22：畫面夠直覺後就不太看了，可以關掉） */
+  showLog: boolean;
 }
 
 function loadControls(): ControlPrefs {
-  const base: ControlPrefs = { deselectOnPause: false };
+  const base: ControlPrefs = { deselectOnPause: false, showLog: true };
   try {
     const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(CONTROL_KEY) : null;
     if (raw) Object.assign(base, JSON.parse(raw));
