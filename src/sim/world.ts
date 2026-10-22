@@ -819,16 +819,32 @@ export class World implements ZocContext {
     u.stallTime = 0;
   }
 
-  /** 移動卡住（被敵人堵在牆角等）：離目標的距離連續 MOVE_STALL_TIME 秒沒有縮短 */
+  /**
+   * 移動卡住（被敵人堵在牆角等）：剩下的路程連續 MOVE_STALL_TIME 秒沒有縮短。
+   * 有路徑時量「沿著路徑還要走多遠」：要繞路時直線距離會先變長（Alan 2026-10-22：室內地圖繞過牆時英雄半路放棄）
+   */
   private moveStalled(u: Unit, goal: Vec): boolean {
-    const d = dist(u.pos, goal);
+    // 這一拍路徑被清掉（下一拍會重新尋路）：直線距離比路程短很多，拿來比會誤判成卡住，這一拍不算
+    if (!u.path || u.pathIndex >= u.path.length) return false;
+    const d = this.remainingPath(u, goal);
     if (d < u.stallBest - 0.05) {
       u.stallBest = d;
       u.stallTime = 0;
       return false;
     }
+    // 被隊友擋住（一起走進窄門時常見）不算卡住：等隊友讓開就能繼續走
+    if (this.units.some((o) => o !== u && !o.dead && o.team === u.team && dist(o.pos, u.pos) < o.radius + u.radius + 0.25)) return false;
     u.stallTime += DT;
     return u.stallTime >= MOVE_STALL_TIME;
+  }
+
+  /** 沿著目前的路徑走到終點還有多遠；沒有路徑時是直線距離 */
+  private remainingPath(u: Unit, goal: Vec): number {
+    const p = u.path;
+    if (!p || u.pathIndex >= p.length) return dist(u.pos, goal);
+    let d = dist(u.pos, p[u.pathIndex]);
+    for (let i = u.pathIndex + 1; i < p.length; i++) d += dist(p[i - 1], p[i]);
+    return d + dist(p[p.length - 1], goal);
   }
 
   // ───────────── 每節拍更新 ─────────────

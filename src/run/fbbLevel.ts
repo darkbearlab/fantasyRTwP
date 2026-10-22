@@ -131,7 +131,18 @@ export function navOk(level: GeneratedLevel): boolean {
   };
   if (!(m.heroSpawns.every(ok) && (m.exits ?? []).every((e) => ok({ x: e.x + e.w / 2, y: e.y + e.h / 2 })) && level.enemies.every(ok))) return false;
   // 城內：每一格角色站得住的街都要走得到（不能有被箱子、路障堵死的死角）
+  // 室內：每一格角色站得住的地面都要走得到（Alan 2026-10-22：房間不能被擺設堵死）
   const art = m.art as FbbArt | undefined;
+  if (art?.kind === 'fbbIndoor') {
+    const L = art.level;
+    for (let gy = 0; gy < L.h; gy++)
+      for (let gx = 0; gx < L.w; gx++) {
+        if (L.grid[gy][gx] === '#') continue;
+        const w = gridToWorld(gx, gy, L.h);
+        const p = { x: w.x + 0.5, y: w.y + 0.5 };
+        if (nav.isWalkable(p) && !ok(p)) return false;
+      }
+  }
   if (art?.kind === 'fbbTown') {
     const L = art.level;
     for (let gy = 0; gy < L.h; gy++)
@@ -260,7 +271,7 @@ function townOnce(seed: number, opts: FbbLevelOptions & { prefabs?: TilePrefab[]
 // ───────────── 室內（第 3～5 章：試煉地城、密道、魔王城） ─────────────
 
 /** 擋路的室內物件：會擋視線的、只擋路的（其他像燭台、瓦礫、光柱只是裝飾） */
-const INDOOR_BLOCK: Record<string, '#' | 'o'> = { statue: '#', bookshelf: '#', throne: 'o', armorStand: 'o', brazier: 'o', golemSeal: 'o' };
+const INDOOR_BLOCK: Record<string, '#' | 'o'> = { statue: '#', bookshelf: '#', throne: 'o', armorStand: 'o', brazier: 'o' };
 
 const EDGE_FACING: Record<MapEdge, Facing> = { top: 'up', bottom: 'down', left: 'left', right: 'right' };
 

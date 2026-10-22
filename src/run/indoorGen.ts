@@ -55,6 +55,8 @@ export interface IndoorOptions {
 export const INDOOR = {
   size: 48,
   exitWidth: 4,
+  /** 出口的走廊先垂直往內挖幾格才轉彎 */
+  exitDepth: 4,
   temple: {
     /** BSP 葉子最大尺寸、房間最小尺寸（內部，格） */
     leafMax: 15,
@@ -65,6 +67,9 @@ export const INDOOR = {
     loopChance: 0.25,
     /** 門最寬幾格（更長的開口是走廊貼著房間，不放門） */
     doorMax: 3,
+    /** 書庫的書架：每段幾格長、之間留幾格（角色約 1 m 寬，至少 2 格才走得過） */
+    shelfLen: 3,
+    shelfGap: 2,
     /** 試煉的種類與權重（入口房另外指定） */
     roles: { strength: 3, wits: 2, courage: 2, heart: 2, library: 2 } as Record<string, number>,
   },
@@ -165,28 +170,37 @@ function corridor(g: Grid, a: Cell, b: Cell, width: number, rng: Rng, c = '.', h
 }
 
 /** 出口：沿著那一邊開一個 exitWidth 格寬的口，並往內挖到最近的地面 */
-function carveEdge(g: Grid, edge: FieldEdge, along: number, rng: Rng, width = 2): { x: number; y: number; w: number; h: number; inner: Cell } {
+function carveEdge(g: Grid, edge: FieldEdge, along: number, rng: Rng, width = 3): { x: number; y: number; w: number; h: number; inner: Cell } {
   const W = INDOOR.exitWidth;
   const a = Math.max(2, Math.min((edge === 'top' || edge === 'bottom' ? g.w : g.h) - W - 2, along - Math.floor(W / 2)));
   const rect =
     edge === 'top' ? { x: a, y: 0, w: W, h: 2 } : edge === 'bottom' ? { x: a, y: g.h - 2, w: W, h: 2 } : edge === 'left' ? { x: 0, y: a, w: 2, h: W } : { x: g.w - 2, y: a, w: 2, h: W };
   g.rect(rect.x, rect.y, rect.w, rect.h, '.');
   const mid: Cell = [rect.x + Math.floor(rect.w / 2), rect.y + Math.floor(rect.h / 2)];
-  // 往內找最近的地面，挖過去
+  // 往內找最近的地面，挖過去；優先接到周圍 3 × 3 都是地面的寬敞處（洞穴的窄縫角色走不過去）
   let best: Cell | null = null;
   let bd = Infinity;
-  for (let y = 0; y < g.h; y++)
-    for (let x = 0; x < g.w; x++) {
-      if (!g.open(x, y)) continue;
-      const inRect = x >= rect.x && x < rect.x + rect.w && y >= rect.y && y < rect.y + rect.h;
-      if (inRect) continue;
-      const d = Math.abs(x - mid[0]) + Math.abs(y - mid[1]);
-      if (d < bd) {
-        bd = d;
-        best = [x, y];
+  const roomy = (x: number, y: number) => [-1, 0, 1].every((dy) => [-1, 0, 1].every((dx) => g.open(x + dx, y + dy)));
+  for (const needRoom of [true, false]) {
+    for (let y = 0; y < g.h; y++)
+      for (let x = 0; x < g.w; x++) {
+        if (!g.open(x, y) || (needRoom && !roomy(x, y))) continue;
+        const inRect = x >= rect.x && x < rect.x + rect.w && y >= rect.y && y < rect.y + rect.h;
+        if (inRect) continue;
+        const d = Math.abs(x - mid[0]) + Math.abs(y - mid[1]);
+        if (d < bd) {
+          bd = d;
+          best = [x, y];
+        }
       }
-    }
-  if (best) corridor(g, mid, best, width, rng);
+    if (best) break;
+  }
+  // 先垂直於邊直直往內挖幾格，再轉向最近的地面（Alan 2026-10-22：不然走廊會貼著地圖邊緣，角色走不過去）
+  const vertical = edge === 'top' || edge === 'bottom';
+  const inward = INDOOR.exitDepth;
+  const inPt: Cell = edge === 'top' ? [mid[0], inward] : edge === 'bottom' ? [mid[0], g.h - 1 - inward] : edge === 'left' ? [inward, mid[1]] : [g.w - 1 - inward, mid[1]];
+  corridor(g, mid, inPt, width, rng, '.', !vertical);
+  if (best) corridor(g, inPt, best, width, rng, '.', !vertical);
   return { ...rect, inner: best ?? mid };
 }
 
@@ -215,8 +229,13 @@ function exitAlongs(opts: IndoorOptions, size: number, entry: FieldEdge): { e: I
 /** 出生點：入口那一側的地圖邊緣，4 名英雄 */
 function spawnAt(g: Grid, edge: FieldEdge, rng: Rng): { cells: { x: number; y: number }[]; rect: ReturnType<typeof carveEdge> } {
   const rect = carveEdge(g, edge, Math.floor((edge === 'top' || edge === 'bottom' ? g.w : g.h) / 2), rng, 3);
+  // 入口挖一塊 4 × 4 的空地，英雄站在中間的 2 × 2（離牆、離地圖邊緣都有一格；Alan 2026-10-22：站在牆邊的英雄動不了）
+  const v = edge === 'top' || edge === 'bottom';
+  const px = v ? rect.x : edge === 'left' ? 0 : g.w - 4;
+  const py = v ? (edge === 'top' ? 0 : g.h - 4) : rect.y;
+  g.rect(px, py, 4, 4, '.');
   const cells: { x: number; y: number }[] = [];
-  for (let y = rect.y; y < rect.y + rect.h; y++) for (let x = rect.x; x < rect.x + rect.w; x++) if (cells.length < 4) cells.push({ x, y });
+  for (let dy = 1; dy <= 2; dy++) for (let dx = 1; dx <= 2; dx++) cells.push({ x: px + dx, y: py + dy });
   return { cells, rect };
 }
 
@@ -338,9 +357,13 @@ function templeContents(lv: IndoorLevel, g: Grid, rng: Rng): void {
     const sq = `room${k}`;
     const cx = r.x + Math.floor(r.w / 2);
     const cy = r.y + Math.floor(r.h / 2);
+    // 擋路物件佔的格子：敵人不放在上面
+    const solid = new Set<string>();
     const at = (x: number, y: number, enemy: string, extra: Partial<IndoorLevel['enemies'][number]> = {}) => {
-      if (g.get(x, y) === '.') lv.enemies.push({ enemy, x, y, squad: sq, ...extra });
+      if (g.get(x, y) === '.' && !solid.has(`${x},${y}`)) lv.enemies.push({ enemy, x, y, squad: sq, ...extra });
     };
+    // 通道（Alan 2026-10-22）：每道門正對的那幾行／列一路穿過房間，不放擋路的東西
+    const lanes = roomLanes(g, r);
     // 每個房間四角的燭台
     for (const [x, y] of [
       [r.x, r.y],
@@ -366,7 +389,7 @@ function templeContents(lv: IndoorLevel, g: Grid, rng: Rng): void {
         at(cx, r.y + 1, 'templeKnight');
         break;
       case 'courage':
-        // 勇之試煉：四角的魔像生成點（進房間才出現）
+        // 勇之試煉：四角的魔像封印（地上的圖案，走得過去；魔像從這裡出現）
         for (const [x, y] of [
           [r.x + 1, r.y + 1],
           [r.x + r.w - 2, r.y + 1],
@@ -377,24 +400,92 @@ function templeContents(lv: IndoorLevel, g: Grid, rng: Rng): void {
           at(x, y, 'golem', { hidden: true });
         }
         break;
-      case 'heart':
-        // 心之試煉：保護中間的石像
-        lv.props.push({ kind: 'statue', x: cx - 1, y: cy - 1, w: 2, h: 2 });
+      case 'heart': {
+        // 心之試煉：保護石像（放在離中間最近、不擋通道的地方；放不下就不放）
+        const spot = statueSpot(r, lanes);
+        if (spot) {
+          lv.props.push({ kind: 'statue', x: spot[0], y: spot[1], w: 2, h: 2 });
+          for (const [dx, dy] of [
+            [0, 0],
+            [1, 0],
+            [0, 1],
+            [1, 1],
+          ])
+            solid.add(`${spot[0] + dx},${spot[1] + dy}`);
+        }
         at(r.x + 1, cy, 'templeKnight');
         at(r.x + r.w - 2, cy, 'templeKnight');
         at(cx, r.y + 1, 'golem');
         break;
-      case 'library':
-        // 書庫：書架當掩體（佔位矩形），騎士躲在後面
-        for (let x = r.x + 1; x + 3 <= r.x + r.w - 1; x += 4) lv.props.push({ kind: 'bookshelf', x, y: cy - 1, w: 3, h: 1 });
-        for (let x = r.x + 1; x + 3 <= r.x + r.w - 1; x += 4) for (let dx = 0; dx < 3; dx++) g.set(x + dx, cy - 1, '#');
+      }
+      case 'library': {
+        // 書庫：一排書架當掩體，騎士躲在後面。書架放在沒有通道經過的那一列，
+        // 書架之間至少留 T.shelfGap 格（角色走得過），通道經過的格子不放
+        const row = shelfRow(r, lanes);
+        if (row !== null) {
+          for (let x = r.x + 1; x < r.x + r.w - 1; x += T.shelfLen + T.shelfGap) {
+            let run: number[] = [];
+            const flush = () => {
+              if (run.length) lv.props.push({ kind: 'bookshelf', x: run[0], y: row, w: run.length, h: 1 });
+              for (const sx of run) g.set(sx, row, '#');
+              run = [];
+            };
+            for (let dx = 0; dx < T.shelfLen && x + dx < r.x + r.w - 1; dx++) {
+              if (lanes.has(`${x + dx},${row}`)) flush();
+              else run.push(x + dx);
+            }
+            flush();
+          }
+        }
         at(cx, r.y + 1, 'templeKnight');
         at(cx + 2, r.y + 1, 'templeKnight');
         break;
+      }
       default:
         break;
     }
   });
+}
+
+/**
+ * 房間裡的通道：房間外圈每個開口（門、走廊、出口挖進來的走廊）正對的行／列，往兩旁各多留 1 格，一路穿過整個房間。
+ * 擋路的物件不能放在通道上，所以從任何一個入口都能直直走進房間、走到對面（Alan 2026-10-22：通道要和走廊同一行列）。
+ */
+function roomLanes(g: Grid, r: IndoorRoom): Set<string> {
+  const lanes = new Set<string>();
+  const sides: Record<'v' | 'h', number[]> = { v: [], h: [] };
+  for (let x = r.x; x < r.x + r.w; x++) for (const y of [r.y - 1, r.y + r.h]) if (g.open(x, y)) sides.v.push(x);
+  for (let y = r.y; y < r.y + r.h; y++) for (const x of [r.x - 1, r.x + r.w]) if (g.open(x, y)) sides.h.push(y);
+  for (const x0 of sides.v) for (let x = x0 - 1; x <= x0 + 1; x++) for (let y = r.y; y < r.y + r.h; y++) lanes.add(`${x},${y}`);
+  for (const y0 of sides.h) for (let y = y0 - 1; y <= y0 + 1; y++) for (let x = r.x; x < r.x + r.w; x++) lanes.add(`${x},${y}`);
+  return lanes;
+}
+
+/** 2 × 2 石像的位置：不碰通道、不貼牆，離房間中間最近 */
+function statueSpot(r: IndoorRoom, lanes: Set<string>): Cell | null {
+  const cx = r.x + r.w / 2 - 1;
+  const cy = r.y + r.h / 2 - 1;
+  let best: Cell | null = null;
+  let bd = Infinity;
+  for (let y = r.y + 1; y + 2 <= r.y + r.h - 1; y++)
+    for (let x = r.x + 1; x + 2 <= r.x + r.w - 1; x++) {
+      if ([0, 1].some((dy) => [0, 1].some((dx) => lanes.has(`${x + dx},${y + dy}`)))) continue;
+      const d = Math.abs(x - cx) + Math.abs(y - cy);
+      if (d < bd) {
+        bd = d;
+        best = [x, y];
+      }
+    }
+  return best;
+}
+
+/** 書架那一列：沒有橫向通道經過、不貼牆，離中間最近 */
+function shelfRow(r: IndoorRoom, lanes: Set<string>): number | null {
+  const mid = r.y + Math.floor(r.h / 2) - 1;
+  const rows: number[] = [];
+  for (let y = r.y + 1; y < r.y + r.h - 1; y++) if (!lanes.has(`${r.x},${y}`) && !lanes.has(`${r.x + r.w - 1},${y}`)) rows.push(y);
+  rows.sort((a, b) => Math.abs(a - mid) - Math.abs(b - mid));
+  return rows[0] ?? null;
 }
 
 /** 房間外框上的門 */
@@ -585,14 +676,18 @@ function generateCastle(seed: number, opts: IndoorOptions, rng: Rng): IndoorLeve
 
 function castleContents(lv: IndoorLevel, g: Grid, rng: Rng): void {
   const cx = Math.floor(g.w / 2);
-  // 火盆：大廳兩側、王座廳
-  for (const r of lv.rooms.filter((r) => r.role === 'hall' || r.role === 'throne'))
-    for (let y = r.y + 2; y < r.y + r.h - 1; y += 5) {
-      lv.props.push({ kind: 'brazier', x: r.x + 2, y });
-      lv.props.push({ kind: 'brazier', x: r.x + r.w - 3, y });
-    }
+  // 火盆：大廳兩側、王座廳（火盆佔上下兩格；通道上不放）
+  for (const r of lv.rooms.filter((r) => r.role === 'hall' || r.role === 'throne')) {
+    const lanes = roomLanes(g, r);
+    for (let y = r.y + 2; y < r.y + r.h - 1; y += 5)
+      for (const x of [r.x + 2, r.x + r.w - 3]) if (!lanes.has(`${x},${y}`) && !lanes.has(`${x},${y - 1}`)) lv.props.push({ kind: 'brazier', x, y });
+  }
   const throne = lv.rooms.find((r) => r.role === 'throne')!;
-  lv.props.push({ kind: 'throne', x: cx - 1, y: throne.y + 1, w: 2, h: 2 });
+  // 王座：正中間；上緣的出口正對王座時移到旁邊，不擋住出口的走廊（Alan 2026-10-22）
+  const topExits = lv.exits.filter((e) => e.edge === 'top');
+  const clear = (x: number) => topExits.every((e) => x + 2 + 1 <= e.x || x - 1 >= e.x + e.w);
+  const tx = [cx - 1, cx + 3, cx - 5].find(clear) ?? cx - 1;
+  lv.props.push({ kind: 'throne', x: tx, y: throne.y + 1, w: 2, h: 2 });
   // 城門：守門盾兵＋長槍（佔位：帝國盾兵）＋後面的魔王親衛
   lv.rooms.filter((r) => r.role === 'gate').map((r) => r.y).forEach((gy, k) => {
     const sq = `gate${k}`;
@@ -618,7 +713,17 @@ function castleContents(lv: IndoorLevel, g: Grid, rng: Rng): void {
     .filter((r) => r.role === 'barracks')
     .forEach((r, k) => {
       if (rng.chance(0.5)) lv.enemies.push({ enemy: 'demonElite', x: r.x + 3, y: r.y + 3, squad: `barracks${k}` });
-      lv.props.push({ kind: 'armorStand', x: r.x + 1, y: r.y + 1 });
+      // 盔甲架：四個角落裡第一個不在通道上的（佔上下兩格）
+      const lanes = roomLanes(g, r);
+      const corner = (
+        [
+          [r.x + 1, r.y + 1],
+          [r.x + r.w - 2, r.y + 1],
+          [r.x + 1, r.y + r.h - 2],
+          [r.x + r.w - 2, r.y + r.h - 2],
+        ] as Cell[]
+      ).find(([x, y]) => !lanes.has(`${x},${y}`) && !lanes.has(`${x},${y - 1}`));
+      if (corner) lv.props.push({ kind: 'armorStand', x: corner[0], y: corner[1] });
     });
 }
 
@@ -641,6 +746,8 @@ function finishLevel(
     const r = carveEdge(g, e.edge, along, rng);
     exits.push({ id: e.id, edge: e.edge, label: e.label, x: r.x, y: r.y, w: r.w, h: r.h });
   }
+  // 洞穴：角色（約 1 m 寬）走不進去的死角填成岩壁（只靠斜縫、窄縫連著的小洞室；Alan 2026-10-22）
+  if (theme === 'cave') fillUnreachable(g, sp.cells[0]);
   const lv: IndoorLevel = { seed, theme, w: g.w, h: g.h, grid: [], rooms, props: [], enemies: [], heroSpawns: sp.cells, exits };
   contents(lv);
   // 出口的樓梯（佔位）
@@ -652,6 +759,45 @@ function finishLevel(
   lv.enemies = lv.enemies.filter((e) => ok(e.x, e.y));
   lv.grid = g.rows();
   return lv;
+}
+
+/**
+ * 用 2 × 2 的方塊（角色站得下的大小）從出生點往外走；沒有任何走得到的方塊蓋到的地面格，填成牆。
+ * 這樣窄縫後面的小洞室不會變成走不到的死角。
+ */
+function fillUnreachable(g: Grid, start: { x: number; y: number }): void {
+  const sq = (x: number, y: number) => g.open(x, y) && g.open(x + 1, y) && g.open(x, y + 1) && g.open(x + 1, y + 1);
+  // 起點：出生點附近第一個站得下的方塊
+  let s: Cell | null = null;
+  for (let r = 0; r <= 3 && !s; r++) for (let dy = -r; dy <= r && !s; dy++) for (let dx = -r; dx <= r && !s; dx++) if (sq(start.x + dx, start.y + dy)) s = [start.x + dx, start.y + dy];
+  if (!s) return;
+  const seen = new Set<number>([s[1] * g.w + s[0]]);
+  const st: Cell[] = [s];
+  const covered = new Set<number>();
+  while (st.length) {
+    const [x, y] = st.pop()!;
+    for (const [dx, dy] of [
+      [0, 0],
+      [1, 0],
+      [0, 1],
+      [1, 1],
+    ])
+      covered.add((y + dy) * g.w + x + dx);
+    for (const [dx, dy] of [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+    ]) {
+      const nx = x + dx;
+      const ny = y + dy;
+      const k = ny * g.w + nx;
+      if (seen.has(k) || !sq(nx, ny)) continue;
+      seen.add(k);
+      st.push([nx, ny]);
+    }
+  }
+  for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) if (g.open(x, y) && !covered.has(y * g.w + x)) g.set(x, y, '#');
 }
 
 function shuffle<T>(rng: Rng, a: T[]): T[] {
