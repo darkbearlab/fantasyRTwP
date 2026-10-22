@@ -190,12 +190,25 @@ function carveEdge(g: Grid, edge: FieldEdge, along: number, rng: Rng, width = 2)
   return { ...rect, inner: best ?? mid };
 }
 
-/** 各邊上的出口沿線位置：同一邊有好幾個時平均分配 */
-function exitAlongs(opts: IndoorOptions, size: number): { e: IndoorOptions['exits'][number]; along: number }[] {
+/**
+ * 各邊上的出口沿線位置：同一邊有好幾個時平均分配。
+ * 入口那一邊的中間是出生點（spawnAt）：出口要讓開，不然英雄一出生就站在出口裡、馬上離開（Alan 2026-10-22 回報）
+ */
+function exitAlongs(opts: IndoorOptions, size: number, entry: FieldEdge): { e: IndoorOptions['exits'][number]; along: number }[] {
   const byEdge = new Map<FieldEdge, IndoorOptions['exits']>();
   for (const e of opts.exits) byEdge.set(e.edge, [...(byEdge.get(e.edge) ?? []), e]);
   const out: { e: IndoorOptions['exits'][number]; along: number }[] = [];
-  for (const [, list] of byEdge) list.forEach((e, i) => out.push({ e, along: Math.round(((i + 1) / (list.length + 1)) * size) }));
+  for (const [edge, list] of byEdge) {
+    if (edge !== entry) {
+      list.forEach((e, i) => out.push({ e, along: Math.round(((i + 1) / (list.length + 1)) * size) }));
+      continue;
+    }
+    // 多切一格，跳過最靠近中間的那一格
+    const slots = Array.from({ length: list.length + 1 }, (_, i) => (i + 1) / (list.length + 2));
+    const mid = slots.reduce((best, s, i) => (Math.abs(s - 0.5) < Math.abs(slots[best] - 0.5) ? i : best), 0);
+    slots.splice(mid, 1);
+    list.forEach((e, i) => out.push({ e, along: Math.round(slots[i] * size) }));
+  }
   return out;
 }
 
@@ -624,7 +637,7 @@ function finishLevel(
   const entry = forceEntry ?? opts.entry ?? 'bottom';
   const sp = spawnAt(g, entry, rng);
   const exits: IndoorLevel['exits'] = [];
-  for (const { e, along } of exitAlongs(opts, g.w)) {
+  for (const { e, along } of exitAlongs(opts, g.w, entry)) {
     const r = carveEdge(g, e.edge, along, rng);
     exits.push({ id: e.id, edge: e.edge, label: e.label, x: r.x, y: r.y, w: r.w, h: r.h });
   }
