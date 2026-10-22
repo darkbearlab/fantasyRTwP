@@ -2,6 +2,8 @@ import Phaser from 'phaser';
 import type { Vec } from '../../sim/math';
 import { FONT } from './palette';
 import { groundArc, groundCircle, worldToScreen } from './projection';
+import type { VfxUse } from './vfxData';
+import { VFX_SHEETS, vfxKey } from './vfxData';
 
 /** 飄字的預設高度（公尺）：大約在頭頂 */
 const TEXT_Z = 2.0;
@@ -60,6 +62,52 @@ export class Fx {
       onUpdate: () => {
         g.clear();
         groundCircle(g, p.x, p.y, radiusM * (0.6 + 0.4 * state.t), { fill: color, fillAlpha: 0.55 * (1 - state.t) });
+      },
+      onComplete: () => g.destroy(),
+    });
+  }
+
+  /**
+   * 逐格特效（vfxData.ts）：在世界座標 p 播一次就消失。沒有載入素材時略過。
+   * z：高度（公尺）；delay：每一個之間錯開的毫秒。
+   */
+  vfx(p: Vec, uses: VfxUse[], z = 0.4, delay = 60): void {
+    const sp = worldToScreen(p.x, p.y, z);
+    const o = worldToScreen(0, 0);
+    const e = worldToScreen(1, 0);
+    const pxPerM = Math.hypot(e.x - o.x, e.y - o.y) || 32;
+    uses.forEach((u, k) => {
+      const sheet = VFX_SHEETS[u.id];
+      if (!sheet || !this.scene.textures.exists(vfxKey(u.id, 0))) return;
+      const anim = `vfx_${u.id}`;
+      if (!this.scene.anims.exists(anim))
+        this.scene.anims.create({ key: anim, frames: Array.from({ length: sheet.frames }, (_, i) => ({ key: vfxKey(u.id, i) })), frameRate: u.fps ?? 14 });
+      const play = () => {
+        const s = this.scene.add.sprite(sp.x, sp.y, vfxKey(u.id, 0)).setDepth(2040);
+        s.setScale((u.sizeM * pxPerM) / sheet.w);
+        if (u.tint !== undefined) s.setTint(u.tint);
+        s.play(anim);
+        s.once('animationcomplete', () => s.destroy());
+      };
+      if (k === 0 || delay <= 0) play();
+      else this.scene.time.delayedCall(k * delay, play);
+    });
+  }
+
+  /** 兩點之間的一條線，漸漸淡掉（吸血的紅線） */
+  line(a: Vec, b: Vec, color: number, dur = 500): void {
+    const g = this.scene.add.graphics().setDepth(2035);
+    const pa = worldToScreen(a.x, a.y, 0.9);
+    const pb = worldToScreen(b.x, b.y, 0.9);
+    const state = { t: 0 };
+    this.scene.tweens.add({
+      targets: state,
+      t: 1,
+      duration: dur,
+      onUpdate: () => {
+        g.clear();
+        g.lineStyle(4, color, 1 - state.t);
+        g.lineBetween(pa.x, pa.y, pb.x, pb.y);
       },
       onComplete: () => g.destroy(),
     });

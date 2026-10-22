@@ -14,11 +14,11 @@ import { HEROES } from '../../sim/data/heroes';
 
 export type PixelUnitArt =
   /** recolor：把藍隊的兩個隊伍色換成這兩個顏色（英雄用職業色，見 heroTeamColors） */
-  | { kind: 'mw'; path: string; recolor?: { dark: number; light: number } }
-  /** scale：整數的放大倍率（省略用 PIXEL.unitScale；例：獸人酋長用獸人戰士放大） */
+  /** scale：在 PIXEL.unitScale 之外再放大的倍率（大型單位；素材 session 的佔位對照表 2026-10-22） */
+  | { kind: 'mw'; path: string; recolor?: { dark: number; light: number }; scale?: number }
   | { kind: 'm72'; idle: string; run: string; frames: number; scale?: number };
 
-const mw = (path: string): PixelUnitArt => ({ kind: 'mw', path });
+const mw = (path: string, scale?: number): PixelUnitArt => (scale ? { kind: 'mw', path, scale } : { kind: 'mw', path });
 
 /** mw 藍隊的兩個隊伍色（原包固定值；recolor.py 也用這兩個） */
 export const MW_TEAM_DARK = 0x0000c0;
@@ -76,8 +76,8 @@ export const PIXEL_UNITS: Record<string, PixelUnitArt> = {
   priest: mw('mw/recolor/Cult/Wizard/Wizard_Cult3.png'),
   shieldbearer: mw('mw/recolor/Imperial/LanceKnight/LanceKnight_Imperial.png'),
   charger: mw('mw/recolor/Imperial/LanceCavalier/LanceCavalier_ShortHair_Imperial1.png'),
-  // 魔王的冠軍：黑色系的騎兵（之後魔王第一階段的受肉也用這個樣子）
-  champion: mw('mw/recolor/Undead/LanceCavalier/LanceCavalier_ShortHair_Undead1.png'),
+  // 魔王的冠軍（素材 session 2026-10-22 佔位定案：Champion 陣營＝黑甲＋暗紅；魔王第一階段的受肉也用這個樣子）
+  champion: mw('mw/recolor/Champion/LanceCavalier/LanceCavalier_ShortHair_Champion1.png', 1.5),
   hooker: mw('mw/recolor/Bandit/SpearFighter/SpearFighter_ShortHair_Bandit1.png'),
   // 小波次的雜魚（Alan：用劍兵、斧兵的 sprite）：帝國軍
   raider: mw('mw/recolor/Imperial/SwordFighter/SwordFighter_ShortHair_Imperial1.png'),
@@ -94,14 +94,14 @@ export const PIXEL_UNITS: Record<string, PixelUnitArt> = {
   bomber: m72('goblin'),
   exploder: m72('muddy', true),
   nest: m72('swampy', true),
-  // 第 2 章：獸人部落（酋長用獸人戰士放大）
-  goblin: m72('goblin'),
-  goblinSlinger: m72('goblin'),
-  orcWarrior: m72('orc_warrior'),
-  orcShaman: m72('orc_shaman'),
-  ogre: m72('ogre'),
+  // 第 2 章：獸人部落（素材 session 2026-10-22 的佔位對照：Matt Walkden 換色；圖騰仍用 0x72 的石柱）
+  goblin: mw('mw/recolor/Goblin/Thief/Thief_Goblin1.png'),
+  goblinSlinger: mw('mw/recolor/Goblin/Archer/Archer_Goblin1.png'),
+  orcWarrior: mw('mw/recolor/Orc/AxeFighter/AxeFighter_ShortHair_Orc1.png'),
+  orcShaman: mw('mw/recolor/OrcShaman/Wizard/Wizard_OrcShaman1.png'),
+  ogre: mw('mw/recolor/Orc/AxeFighter/AxeFighter_LongHair_Orc2.png', 1.75),
   warTotem: m72('totem', true),
-  orcChief: { kind: 'm72', idle: 'orc_warrior_idle_anim', run: 'orc_warrior_run_anim', frames: 4, scale: 5 },
+  orcChief: mw('mw/recolor/Orc/AxeKnight/AxeKnight_Orc.png', 1.5),
 };
 
 /** 像素畫面的設定（只影響畫面） */

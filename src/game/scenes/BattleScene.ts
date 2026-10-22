@@ -12,6 +12,7 @@ import { bakeGraphics } from '../render/bake';
 import { DebugOverlay } from '../render/debugOverlay';
 import { Fx } from '../render/fx';
 import { BossShow } from '../bossShow';
+import { VFX_USE } from '../render/vfxData';
 import { ROUTE_MAP } from '../../run/data/routeMap';
 import { exitInfos } from '../exitInfo';
 import type { ExitInfo } from '../exitInfo';
@@ -704,6 +705,11 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
             src.team,
           );
           if (ev.freeAttack) this.fx.text(t.pos, '脫離攻擊', '#ff9f43', 13, 50, 900, this.headZ(t));
+          // 異教徒吸血：目標身上紅色漩渦，一條紅線拉回施法者
+          if (ev.skillId === 'drainLife') {
+            this.fx.vfx(t.pos, VFX_USE.drain, 0.8);
+            this.fx.line(t.pos, src.pos, 0xd0203a, 500);
+          }
           break;
         }
         case 'miss': {
@@ -772,6 +778,9 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
         case 'status': {
           const u = w.getUnit(ev.unitId)!;
           this.fx.text(u.pos, ev.text, '#e0e6f0', 13, 26, 900, this.headZ(u));
+          // 逐格特效：撞牆、元素附魔
+          if (ev.text === '撞牆') this.fx.vfx(u.pos, VFX_USE.impact);
+          else if (ev.text === SKILLS.elementalEnchant.name) this.fx.vfx(u.pos, VFX_USE.elementalEnchant, 0.8);
           break;
         }
         case 'notice': {
@@ -786,6 +795,18 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
           this.fx.burst(ev.point, ev.radius, color, 550);
           this.fx.ring(ev.point, ev.radius, st?.ring ?? 0xffd27a, 500, 0.4, 5);
           if (st?.shake ?? true) this.cameras.main.shake(120, 0.004);
+          // 逐格特效（素材 session 建議的編號）
+          if (ev.skillId === 'sentinelStomp') this.fx.vfx(ev.point, VFX_USE.stomp, 0.2);
+          else if (ev.skillId === 'boulder') this.fx.vfx(ev.point, VFX_USE.impact, 0.2);
+          else if (ev.skillId === 'holyGround') this.fx.vfx(ev.point, VFX_USE.holyGround, 0.3, 120);
+          else if (ev.skillId === 'sentinelBreath') {
+            // 吐息：沿冠軍面向的扇形排三團
+            const [a, b, c] = VFX_USE.breath;
+            [a, b, c].forEach((use, i) => {
+              const d = 2 + i * 2;
+              this.time.delayedCall(i * 90, () => this.fx.vfx({ x: src.pos.x + Math.cos(src.facing) * d, y: src.pos.y + Math.sin(src.facing) * d }, [use], 0.6));
+            });
+          }
           const kind = ev.skillId ? SKILLS[ev.skillId]?.effect.kind : undefined;
           if (kind === 'aoe' || kind === 'cone') s.addLog(`${L(src.id)} 的「${skillName(ev.skillId)}」爆炸`, src.team);
           break;

@@ -1199,6 +1199,17 @@ body {
   image-rendering: pixelated;
 }
 
+/* 昇變閃光的逐格特效（金色） */
+.evo-vfx {
+  position: absolute;
+  inset: -8px;
+  width: calc(100% + 16px);
+  height: calc(100% + 16px);
+  image-rendering: pixelated;
+  pointer-events: none;
+  filter: sepia(1) saturate(4) hue-rotate(-10deg) brightness(1.2);
+}
+
 .evo-letter {
   font-size: 48px;
   line-height: 96px;
