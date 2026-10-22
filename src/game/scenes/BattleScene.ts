@@ -1644,7 +1644,7 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
     if (this.targetHint || this.lockTargets().length === 0) return;
     this.targetHint = true;
     const s = this.session;
-    const msg = s.world.map.exitLock === 'boss' ? tr("已標示出頭目的方向") : tr("已標示出精英隊長的方向");
+    const msg = s.world.map.exitLock === 'boss' ? tr("頭目正等待你的挑戰") : tr("精英隊長正等待你的挑戰");
     s.addLog(msg, 'warn');
     s.showToast(msg, this.time.now, 2200);
   }
