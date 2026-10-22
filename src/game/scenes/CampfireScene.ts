@@ -160,6 +160,7 @@ export class CampfireScene extends Phaser.Scene {
   /** 素材版營火的火焰（沒有素材時是 null，用程式畫） */
   private flame: Phaser.GameObjects.Image | null = null;
   private fireTop = 0;
+  private fireRoot = 0;
   /** 素材版的像素光照（暗處＋暖光兩張低解析度貼圖） */
   private lightMap: { dark: Phaser.Textures.CanvasTexture; warm: Phaser.Textures.CanvasTexture; cell: number; gw: number; gh: number; radius: number; next: number } | null = null;
   private glowG!: Phaser.GameObjects.Graphics;
@@ -433,6 +434,8 @@ export class CampfireScene extends Phaser.Scene {
       .setDepth(33);
     // 火光與火星的位置：火焰中間
     this.fireTop = oy + (FIRE.flameOffset[1] + fh / 2) * k;
+    // 光照的中心：火焰的根部（Alan 2026-10-22：火光對齊火焰根部，也就是中央格 y = 13 的木柴交叉處）
+    this.fireRoot = oy + (FIRE.flameOffset[1] + fh) * k;
     // 光照貼圖：暗處（一般疊加）＋火邊暖光（加亮），蓋在地面與英雄上、火焰下
     const L = FIRE.light;
     const cell = L.cellArt * k;
@@ -460,7 +463,7 @@ export class CampfireScene extends Phaser.Scene {
     if (!m) return;
     const L = FIRE.light;
     const cx = this.center.x / m.cell;
-    const cy = this.fireTop / m.cell;
+    const cy = this.fireRoot / m.cell;
     const r = (m.radius * s) / m.cell;
     const dctx = m.dark.getContext();
     const wctx = m.warm.getContext();
