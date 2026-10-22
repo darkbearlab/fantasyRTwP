@@ -12,6 +12,7 @@ import { portraitSheetUrl } from '../render/pixelArt';
 import { getArt } from '../render/art';
 import { getRun, setRun } from '../runFlow';
 import { button, el } from './dom';
+import { VFX_SHEETS, VFX_USE, vfxFrame } from '../render/vfxData';
 
 function sprite(scene: Phaser.Scene, classId: string, cls: string): HTMLElement {
   const box = el('div', `evo-portrait ${cls}`);
@@ -32,7 +33,29 @@ export function showEvolutions(scene: Phaser.Scene, root: HTMLElement, onDone?: 
   const overlay = el('div', 'evo-overlay');
   const card = el('div', 'evo-card');
   const pics = el('div', 'evo-pics');
-  pics.append(sprite(scene, ev.from, 'old'), el('div', 'evo-arrow', '➜'), sprite(scene, ev.to, 'new'));
+  const after = sprite(scene, ev.to, 'new');
+  pics.append(sprite(scene, ev.from, 'old'), el('div', 'evo-arrow', '➜'), after);
+  // 昇變閃光：逐格特效疊在新外觀上（素材 session 建議 33、38，染成金色；沒有素材時只剩 CSS 的閃光）
+  VFX_USE.evolve.forEach((u, k) => {
+    const n = VFX_SHEETS[u.id]?.frames ?? 0;
+    if (!n) return;
+    const img = document.createElement('img');
+    img.className = 'evo-vfx';
+    img.style.animationDelay = `${k * 0.12}s`;
+    let i = 0;
+    img.src = `assets/licensed/${vfxFrame(u.id, 0)}`;
+    img.onerror = () => img.remove();
+    const tick = window.setInterval(() => {
+      i++;
+      if (i >= n) {
+        window.clearInterval(tick);
+        img.remove();
+        return;
+      }
+      img.src = `assets/licensed/${vfxFrame(u.id, i)}`;
+    }, 1000 / 12 + k * 20);
+    after.appendChild(img);
+  });
   // 昇變後新拿到的被動與主動
   const gained = (CLASS_PASSIVES[ev.to] ?? []).filter((id) => !(CLASS_PASSIVES[ev.from] ?? []).includes(id));
   const list = el('div', 'evo-gains');

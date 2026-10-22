@@ -6,6 +6,7 @@
  */
 import type Phaser from 'phaser';
 import type { PixelUnitArt } from './pixelArtData';
+import { VFX_SHEETS, VFX_USE, vfxFrame, vfxKey } from './vfxData';
 import { FLOOR_TILES, MW_TEAM_DARK, MW_TEAM_LIGHT, PIXEL, PIXEL_UNITS, m72Frames, mwPaths } from './pixelArtData';
 
 export const mwKey = (path: string): string => `px_mw_${path}`;
@@ -21,6 +22,13 @@ export function queuePixel(load: Phaser.Loader.LoaderPlugin, scene: Phaser.Scene
     const key = m72Key(f);
     if (!scene.textures.exists(key)) load.image(key, `assets/0x72/frames/${f}.png`);
   }
+  // 逐格特效（授權素材；沒有時載入失敗也不影響遊戲，播放時會略過）
+  const ids = new Set(Object.values(VFX_USE).flatMap((us) => us.map((u) => u.id)));
+  for (const id of ids)
+    for (let i = 0; i < (VFX_SHEETS[id]?.frames ?? 0); i++) {
+      const key = vfxKey(id, i);
+      if (!scene.textures.exists(key)) load.image(key, `assets/licensed/${vfxFrame(id, i)}`);
+    }
 }
 
 /** mw 單位實際使用的 texture（有換色時是換色後的版本） */
