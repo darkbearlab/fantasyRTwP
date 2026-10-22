@@ -401,13 +401,18 @@ function deliberateThink(world: World, u: Unit): void {
         return;
       }
       break;
-    case 'summoner':
-      if (ready('summonThralls')) {
-        world.issueOrder(u, { type: 'skill', skillId: 'summonThralls' });
+    case 'summoner': {
+      // 召喚技能（召喚師的屍僕、蟲巢的孵化…）
+      const call = u.def.skills.find((sk) => SKILLS[sk]?.effect.kind === 'summon');
+      if (call && u.skillReady(call)) {
+        world.issueOrder(u, { type: 'skill', skillId: call });
         return;
       }
+      // 不會動的（蟲巢）就只是待著
+      if (u.def.moveSpeed <= 0) return;
       if (keepDistance(world, u, heroes)) return;
       break;
+    }
     case 'archer':
     case 'bomber':
       if (keepDistance(world, u, heroes)) return;

@@ -101,6 +101,16 @@ export const PIXEL_UNITS: Record<string, PixelUnitArt> = {
   orcShaman: mw('mw/recolor/OrcShaman/Wizard/Wizard_OrcShaman1.png'),
   ogre: mw('mw/recolor/Orc/AxeFighter/AxeFighter_LongHair_Orc2.png', 1.75),
   warTotem: m72('totem', true),
+  // 第 3～5 章（素材 session 2026-10-22 的佔位對照）
+  templeKnight: mw('mw/recolor/Temple/SwordFighter/SwordFighter_ShortHair_Temple1.png'),
+  hollowArmor: mw('mw/recolor/Hollow/LanceKnight/LanceKnight_Hollow.png'),
+  golem: mw('mw/recolor/Stone/AxeKnight/AxeKnight_Stone.png', 1.25),
+  crystalGuardian: mw('mw/recolor/Holy/LanceKnight/LanceKnight_Holy.png', 1.75),
+  swarmling: m72('tiny_slug', true),
+  bugNest: m72('swampy', true),
+  caveBeast: { kind: 'm72', idle: 'ogre_idle_anim', run: 'ogre_run_anim', frames: 4, scale: 2 },
+  demonElite: mw('mw/recolor/Demon/AxeFighter/AxeFighter_ShortHair_Demon1.png'),
+  demonGuard: mw('mw/recolor/Demon/LanceKnight/LanceKnight_Demon.png'),
   orcChief: mw('mw/recolor/Orc/AxeKnight/AxeKnight_Orc.png', 1.5),
 };
 
