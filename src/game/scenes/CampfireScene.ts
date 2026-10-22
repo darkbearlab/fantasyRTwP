@@ -77,9 +77,10 @@ const FIRE = {
   /**
    * 火光（Alan 2026-10-22：光芒也要像素化、周圍壓暗）：一張低解析度的光照貼圖放大成一格一格。
    * cellArt：一格光照是幾個原始像素；radiusGap：光照半徑＝英雄圍坐距離＋這麼多 px；
-   * darkness：最暗處的黑色透明度；warm：火邊暖光的最大透明度；bands：分幾階；flickerMs：多久跳一次
+   * darkness：最暗處的黑色透明度；warm：火邊暖光的最大透明度；bands：分幾階；flickerMs：多久跳一次；
+   * rootLift：光圈中心在火焰根部往上幾個原始像素
    */
-  light: { cellArt: 2, radiusGap: 120, darkness: 0.9, warm: 0.5, bands: 6, flickerMs: 120 },
+  light: { cellArt: 2, radiusGap: 120, darkness: 0.9, warm: 0.5, bands: 6, flickerMs: 120, rootLift: 4 },
 };
 
 /** 一名英雄的 sprite（可能是多層） */
@@ -435,7 +436,7 @@ export class CampfireScene extends Phaser.Scene {
     // 火光與火星的位置：火焰中間
     this.fireTop = oy + (FIRE.flameOffset[1] + fh / 2) * k;
     // 光照的中心：火焰的根部（Alan 2026-10-22：火光對齊火焰根部，也就是中央格 y = 13 的木柴交叉處）
-    this.fireRoot = oy + (FIRE.flameOffset[1] + fh) * k;
+    this.fireRoot = oy + (FIRE.flameOffset[1] + fh - FIRE.light.rootLift) * k;
     // 光照貼圖：暗處（一般疊加）＋火邊暖光（加亮），蓋在地面與英雄上、火焰下
     const L = FIRE.light;
     const cell = L.cellArt * k;
