@@ -23,8 +23,11 @@ export interface ChapterDef {
 }
 
 export const CHAPTER_RULES = {
-  /** 前面各章的層數有多少比例算進敵人強度（1＝完全累加） */
-  depthCarry: 1,
+  /**
+   * 前面各章的層數有多少比例算進敵人強度（1＝完全累加）。
+   * Alan 2026-10-22：試算發現全部累加時第 4、5 章敵人強度通膨、玩家跟不上 → 減半；各章的難度主要靠新陣營本身
+   */
+  depthCarry: 0.45,
 };
 
 export const CHAPTERS: ChapterDef[] = [

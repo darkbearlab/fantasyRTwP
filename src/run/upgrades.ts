@@ -15,6 +15,7 @@ import { BRANCH_RULES, BRANCHES, branchDef } from './data/branches';
 import { currentLayer, livingHeroes, newHero } from './runState';
 import { pickN } from './seed';
 import { battleSkillsOf } from './loadout';
+import { levelGrowth } from './xp';
 
 function modsOf(o: OwnedUpgrade): UpgradeMods | undefined {
   const def = UPGRADES[o.id];
@@ -63,16 +64,18 @@ export function heroDef(h: HeroRecord, buff?: BattleBuff | null): UnitDef {
     accuracy += buff.accuracy ?? 0;
     defense += buff.defense ?? 0;
   }
+  // 隊伍等級的基本成長（Alan 2026-10-22）
+  const growth = levelGrowth(h.level);
   return {
     ...base,
     damage: [...base.damage] as [number, number],
     skills: [...(h.skills ?? base.skills)],
-    maxHp: Math.round(base.maxHp * (1 + maxHpPct)),
+    maxHp: Math.round(base.maxHp * (1 + maxHpPct) * growth),
     accuracy: base.accuracy + accuracy,
     defense: base.defense + defense,
     armor: base.armor + armor,
     attackSpeed: base.attackSpeed * (1 + atkPct),
-    damageMult: (base.damageMult ?? 1) * (1 + dmgPct),
+    damageMult: (base.damageMult ?? 1) * (1 + dmgPct) * growth,
     moveSpeed: base.moveSpeed * (1 + movePct),
     // 射程：遠程最短 1.5 m（刺客分支一路縮短，昇變後才變成近戰）
     range: range && base.range >= 1 ? Math.max(1.5, base.range + range) : base.range,
@@ -231,6 +234,9 @@ export function lateJoinUpgradeCount(layer: number): number {
 export function recruitInto(run: RunState, slot: number, classId: string, rng: Rng): string[] {
   if (!CLASSES[classId]) throw new Error(`未知的職業：${classId}`);
   const h = newHero(classId);
+  // 新加入的英雄也有隊伍等級的基本成長
+  h.level = run.level;
+  h.hp = maxHpOf(h);
   run.party[slot] = h;
   const pool = generalUpgradeIds(run.style).map((id) => UPGRADES[id]).filter((u) => u.scope === 'hero');
   const names: string[] = [];

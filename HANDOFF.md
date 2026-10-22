@@ -180,6 +180,17 @@
   - **免疫**：不吃擊退和一般暈眩，只有盾擊、瞄準射擊打得斷（`interruptibleBy`）。
   - **台詞**：第 3 章起才有（`lines`）。
   - **還沒做**：優先攻擊水晶持有者（等水晶做了再接）。
+- **強度曲線**（Alan 2026-10-22：試算發現後期強度通膨）：
+  - 深度加成減半（`CHAPTER_RULES.depthCarry` 0.45）。
+  - 經驗值乘上敵人強度倍率（`ECONOMY.xp.scaleWithEnemy`）。
+  - 隊伍每升一級，全隊最大生命與傷害 +3%（`ECONOMY.xp.perLevelGrowth`，記在 `HeroRecord.level`）。
+  - 「每張地圖的升級點數上限」等自動玩家修好、實測後再看。
+- **設定**：暫停時取消選取所有英雄（`session.controls.deselectOnPause`，存在瀏覽器）。
+- **戰鬥結算**（`src/game/ui/arcadeResult.ts`，Alan 2026-10-22）：遠征中打贏時的獨立畫面，大型電玩風格。
+  - 標題「第 N 章　N-L 完成／重訪」。
+  - 每名英雄一行，打倒的敵人（`Unit.killList`）由左到右演出被擊敗，然後標出 MVP。
+  - 經驗值條：光點飛進條裡、升級閃光，按繼續才選升級。
+  - MVP 獎勵是鉤子（`progression.mvpReward`，目前沒有獎勵）。
 - **休息節點**（Alan 2026-10-22）：
   - 訓練＝一次升級三選一，不提升隊伍等級。
   - 紮營、訓練、救人都會引來冠軍；繼續趕路不會。

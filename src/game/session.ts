@@ -52,8 +52,27 @@ function loadAutoPause(): AutoPauseConfig {
   return base;
 }
 
+const CONTROL_KEY = 'fantasyRTwP.controls';
+
+/** 操作偏好（存在瀏覽器）：deselectOnPause＝暫停時取消選取所有英雄（Alan 2026-10-22：暫停＝狀況發生，英雄要重新選） */
+export interface ControlPrefs {
+  deselectOnPause: boolean;
+}
+
+function loadControls(): ControlPrefs {
+  const base: ControlPrefs = { deselectOnPause: false };
+  try {
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(CONTROL_KEY) : null;
+    if (raw) Object.assign(base, JSON.parse(raw));
+  } catch {
+    // 讀不到就用預設值
+  }
+  return base;
+}
+
 /** 偏好設定跨重來保留 */
 const persisted = {
+  controls: loadControls(),
   timeScale: GAME_CONFIG.defaultTimeScale,
   debug: { panel: false, navGrid: false, paths: false, allZoc: false, los: false, slots: false, facing: false } as DebugFlags,
   autoPause: loadAutoPause(),
@@ -128,6 +147,17 @@ export class BattleSession {
     return persisted.autoPause;
   }
   /** 修改自動暫停設定並存到瀏覽器 */
+  get controls(): ControlPrefs {
+    return persisted.controls;
+  }
+  setControls(patch: Partial<ControlPrefs>): void {
+    Object.assign(persisted.controls, patch);
+    try {
+      if (typeof localStorage !== 'undefined') localStorage.setItem(CONTROL_KEY, JSON.stringify(persisted.controls));
+    } catch {
+      // 存不了就只在這次遊戲中有效
+    }
+  }
   setAutoPause(patch: Partial<AutoPauseConfig>): void {
     Object.assign(persisted.autoPause, patch);
     try {
@@ -188,6 +218,8 @@ export class BattleSession {
   setPaused(p: boolean, reason = ''): void {
     const changed = this.paused !== p;
     this.paused = p;
+    // 設定：暫停時取消選取所有英雄
+    if (changed && p && persisted.controls.deselectOnPause) this.selection = [];
     this.pauseReason = p ? reason : '';
     if (changed) this.hooks.emit('pauseChanged', { paused: p, reason: this.pauseReason });
   }

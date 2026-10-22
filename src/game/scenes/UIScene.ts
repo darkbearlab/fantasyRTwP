@@ -181,6 +181,22 @@ export class UIScene extends Phaser.Scene {
     close.addEventListener('click', () => this.toggleSettings());
     head.appendChild(close);
     p.appendChild(head);
+    // 操作（Alan 2026-10-22）
+    p.appendChild(el('div', 'settings-sub', '操作'));
+    {
+      const row = el('div', 'settings-row');
+      const lab = el('label', 'settings-check');
+      const cb = el('input');
+      cb.type = 'checkbox';
+      cb.tabIndex = -1;
+      cb.checked = s.controls.deselectOnPause;
+      cb.addEventListener('change', () => s.setControls({ deselectOnPause: cb.checked }));
+      const text = el('div', 'settings-text');
+      text.append(el('div', '', '暫停時取消選取所有英雄'), el('div', 'settings-hint', '暫停代表狀況發生了，英雄要重新選'));
+      lab.append(cb, text);
+      row.appendChild(lab);
+      p.appendChild(row);
+    }
     p.appendChild(el('div', 'settings-sub', '自動暫停'));
     for (const o of AUTO_PAUSE_OPTIONS) {
       // 列是 div：勾選框與文字包在 label 裡，門檻下拉選單放在 label 外面（點選單不會切換勾選）

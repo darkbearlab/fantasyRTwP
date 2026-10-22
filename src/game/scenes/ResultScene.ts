@@ -4,6 +4,7 @@ import { battleOutcomeFromWorld } from '../../run/battle';
 import { advance, getRun, switchTo } from '../runFlow';
 import type { BattleSession } from '../session';
 import type { BattleScene } from './BattleScene';
+import { showArcadeResult } from '../ui/arcadeResult';
 
 /** 單場戰鬥結算（SPEC §12）：戰鬥時間、各英雄造成與承受的傷害；遠征模式按「繼續」回到流程 */
 export class ResultScene extends Phaser.Scene {
@@ -18,6 +19,19 @@ export class ResultScene extends Phaser.Scene {
     const battle = this.scene.get('Battle') as BattleScene;
     const w = s.world;
     const win = w.result === 'hero';
+    // 遠征中打贏：大型電玩風格的結算畫面（Alan 2026-10-22），演完再去選升級
+    if (s.mode === 'run' && win) {
+      const before = getRun(this);
+      const after = applyBattleResult(before, battleOutcomeFromWorld(w));
+      const root = showArcadeResult(this, w, before, after, () => advance(this, after));
+      document.getElementById('ui')!.appendChild(root);
+      this.box = root;
+      this.events.once('shutdown', () => {
+        this.box?.remove();
+        this.box = null;
+      });
+      return;
+    }
     const box = document.createElement('div');
     box.className = 'result interactive';
     const t = w.time;
