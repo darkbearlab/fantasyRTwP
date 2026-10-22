@@ -1,3 +1,4 @@
+import { tr } from '../../i18n';
 import Phaser from 'phaser';
 import type { Vec } from '../../sim/math';
 import { FONT } from './palette';
@@ -120,7 +121,7 @@ export class Fx {
   interrupt(p: Vec, z = TEXT_Z): void {
     this.ring(p, 1.6, 0xfff27a, 500, 0.2, 6);
     this.ring(p, 1.0, 0xffffff, 350, 0.1, 3);
-    this.text(p, '打斷！', '#fff27a', 24, 44, 1200, z);
+    this.text(p, tr("打斷！"), '#fff27a', 24, 44, 1200, z);
   }
 
   /** 範圍法術被打斷：預警圈碎裂 */

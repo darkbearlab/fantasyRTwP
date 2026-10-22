@@ -2,7 +2,7 @@
  * 遠征流程（SPEC_SLICE2 §3–§5、§8、§9）：選節點、戰鬥結算、獎勵、休息、復活、招募。
  * 每個函式都回傳新的 RunState，不修改傳入的物件。
  */
-import { tr } from '../i18n/lang';
+import { listSep, tr } from '../i18n/lang';
 import { CONSUMABLES } from '../sim/data/consumables';
 import { addToBag, rollConsumableDrop } from './consumables';
 import { HEROES } from '../sim/data/heroes';
@@ -410,7 +410,7 @@ export function restRecruit(run: RunState, classId: string): RunState {
   const bonus = recruitInto(r, slot, classId, rngFor(r.seed, 'recruitBonus', restPhase(r).nodeId));
   r.gold -= ECONOMY.recruitCost;
   restPhase(r).recruited = true;
-  r.journal.push(tr("招募了{0}（欄位 {1}）{2}。", { 0: HEROES[classId].name, 1: slot + 1, 2: bonus.length ? tr("，帶著「{0}」", { 0: bonus.join('、') }) : '' }));
+  r.journal.push(tr("招募了{0}（欄位 {1}）{2}。", { 0: HEROES[classId].name, 1: slot + 1, 2: bonus.length ? tr("，帶著「{0}」", { 0: bonus.join(listSep()) }) : '' }));
   return r;
 }
 
