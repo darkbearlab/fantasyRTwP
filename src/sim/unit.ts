@@ -169,6 +169,8 @@ export class Unit {
   autocastTimer = 0;
 
   stats: UnitStats = { damageDealt: 0, damageTaken: 0, healing: 0, kills: 0 };
+  /** 打倒的敵人（def.id，依順序；戰鬥結算演出用） */
+  killList: string[] = [];
 
   /** 被動（SPEC_SLICE5 §14）：職業、裝備道具、技能效果 */
   passives: PassiveDef[] = [];

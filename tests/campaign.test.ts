@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createBattleFromRun, deliberateLevelId } from '../src/run/battle';
 import type { BattleOutcome } from '../src/run/battle';
 import { depthOffset, startChapter } from '../src/run/campaign';
-import { CHAPTERS } from '../src/run/data/chapters';
+import { CHAPTER_RULES, CHAPTERS } from '../src/run/data/chapters';
 import { applyBattleResult, chooseReward, continueFromReward } from '../src/run/progression';
 import { createRun } from '../src/run/runState';
 import type { RunState } from '../src/run/runState';
@@ -91,7 +91,7 @@ describe('戰役：五章（SPEC_CAMPAIGN）', () => {
     const r0 = createRun(9, { style: 'deliberate' });
     const r2 = createRun(9, { style: 'deliberate' });
     r2.chapter = 2;
-    expect(depthOffset(r2)).toBe(CHAPTERS[0].layers + CHAPTERS[1].layers);
+    expect(depthOffset(r2)).toBe(Math.round((CHAPTERS[0].layers + CHAPTERS[1].layers) * CHAPTER_RULES.depthCarry));
     const a = hp(r0);
     const b = hp(r2);
     const common = [...a.keys()].filter((id) => b.has(id));
@@ -174,5 +174,29 @@ describe('休息節點：訓練＝升級三選一、繼續趕路（Alan 2026-10-
     const left = leaveNode(r);
     expect(left.phase.kind).toBe('map');
     expect(left.overworld!.champion.node).toBe(start);
+  });
+});
+
+describe('強度曲線（Alan 2026-10-22：深度減半、經驗值跟著敵人、每級基本成長）', () => {
+  it('經驗值乘上敵人強度倍率', async () => {
+    const { xpForKills, enemyStrength } = await import('../src/run/xp');
+    const k = [{ enemy: 'raider', captain: false }];
+    expect(xpForKills(k, enemyStrength(1))).toBe(xpForKills(k));
+    expect(xpForKills(k, enemyStrength(21))).toBe(Math.round(xpForKills(k) * 2));
+  });
+
+  it('升級時全隊最大生命、造成傷害一起成長，現有生命跟著加', async () => {
+    const { gainXp, xpToNext } = await import('../src/run/xp');
+    const { heroDef } = await import('../src/run/upgrades');
+    const r = createRun(30, { style: 'deliberate' });
+    const h = r.party[0]!;
+    const hp0 = maxHpOf(h);
+    const dmg0 = heroDef(h).damageMult ?? 1;
+    h.hp = hp0 - 10;
+    gainXp(r, xpToNext(1));
+    expect(r.level).toBe(2);
+    expect(maxHpOf(h)).toBe(Math.round(hp0 * 1.03));
+    expect(h.hp).toBe(Math.round(((hp0 - 10) * 1.03)));
+    expect(heroDef(h).damageMult).toBeCloseTo(dmg0 * 1.03, 5);
   });
 });

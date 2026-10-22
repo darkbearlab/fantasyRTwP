@@ -57,6 +57,10 @@ export const ECONOMY = {
     /** 精英隊長的倍率 */
     captainMult: 3,
     toNext: { base: 50, perLevel: 25 },
+    /** Alan 2026-10-22：經驗值乘上這場敵人的強度倍率（1 ＋ layerScaling ×（層數 − 1）），讓升級節奏跟得上 */
+    scaleWithEnemy: true,
+    /** Alan 2026-10-22：隊伍每升一級，全隊最大生命與造成傷害各 +這個比例（三選一之外的基本成長） */
+    perLevelGrowth: 0.03,
   },
   trainChoices: 3,
   /** 敵人數值隨層數成長：1 + layerScaling × (layer − 1) */

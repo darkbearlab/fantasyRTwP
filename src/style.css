@@ -2649,3 +2649,207 @@ body {
   font-size: 12px;
   min-height: 14px;
 }
+
+/* 戰鬥結算（Alan 2026-10-22：大型電玩風格的獨立畫面） */
+.arcade {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  background: radial-gradient(ellipse at 50% 20%, #1c2030 0%, #07080c 80%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 16px 20px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  color: #e8ecf4;
+}
+.arc-title {
+  font-size: 30px;
+  font-weight: bold;
+  letter-spacing: 6px;
+  color: #ffd75e;
+  text-shadow: 0 0 12px rgba(255, 200, 60, 0.6), 0 3px 0 #6b4a00;
+  animation: arc-title-in 0.6s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+@keyframes arc-title-in {
+  from { transform: scale(2.2); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+.arc-board {
+  margin-top: 18px;
+  width: min(820px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.arc-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 2px solid transparent;
+  transition: border-color 0.3s, background 0.3s;
+}
+.arc-row.dead .arc-who {
+  filter: grayscale(1) brightness(0.6);
+}
+.arc-row.mvp {
+  border-color: #ffd75e;
+  background: rgba(255, 215, 94, 0.12);
+  box-shadow: 0 0 16px rgba(255, 215, 94, 0.35);
+}
+.arc-who {
+  width: 92px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.arc-name {
+  font-size: 12px;
+  color: #c8cfdc;
+}
+.arc-kills {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  min-height: 48px;
+  align-items: center;
+}
+.arc-count {
+  width: 48px;
+  text-align: right;
+  font-weight: bold;
+  color: #ffd75e;
+}
+.arc-icon {
+  width: 48px;
+  height: 48px;
+  flex: none;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.arc-icon img {
+  width: 32px;
+  image-rendering: pixelated;
+}
+.arc-icon.letter {
+  align-items: center;
+  font-weight: bold;
+  font-size: 20px;
+  border-radius: 50%;
+  background: #333a48;
+}
+/* 敵人：先跳出來，再被打倒（閃白、抖、倒下變灰） */
+.arc-icon.kill {
+  width: 36px;
+  height: 36px;
+  background-size: 288px 504px !important;
+  background-position: 0 -180px !important;
+  opacity: 0;
+  animation: arc-kill-in 0.22s ease-out forwards, arc-kill-down 0.5s ease-in forwards;
+}
+.arc-icon.kill img {
+  width: 24px;
+}
+@keyframes arc-kill-in {
+  from { opacity: 0; transform: translateY(-10px) scale(1.4); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes arc-kill-down {
+  0% { opacity: 1; filter: brightness(3); transform: none; }
+  25% { transform: translateX(-3px); }
+  50% { transform: translateX(3px); filter: brightness(1.5); }
+  100% { opacity: 0.8; filter: grayscale(0.7) brightness(0.8); transform: rotate(-80deg) translate(-4px, 6px); }
+}
+.arcade.skip .arc-icon.kill {
+  animation: none;
+  opacity: 0.8;
+  filter: grayscale(0.7) brightness(0.8);
+  transform: rotate(-80deg) translate(-4px, 6px);
+}
+.arc-icon.kill.spent {
+  opacity: 0.4 !important;
+}
+.arc-mvp-line {
+  margin-top: 12px;
+  min-height: 34px;
+  font-size: 24px;
+  font-weight: bold;
+  letter-spacing: 4px;
+  color: #ffd75e;
+  opacity: 0;
+  text-shadow: 0 0 10px rgba(255, 200, 60, 0.7);
+}
+.arc-mvp-line.show {
+  animation: arc-title-in 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+.arc-xp {
+  margin-top: 10px;
+  width: min(560px, 100%);
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+.arc-xp.show,
+.arcade.skip .arc-xp {
+  opacity: 1;
+}
+.arc-lv {
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+.arc-bar {
+  position: relative;
+  height: 18px;
+  border-radius: 9px;
+  background: #222838;
+  overflow: hidden;
+  border: 1px solid #3b4458;
+}
+.arc-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4fb0ff, #9fe3ff);
+  box-shadow: 0 0 10px rgba(120, 200, 255, 0.7);
+  transition: width 0.18s;
+}
+.arc-xp-text {
+  position: absolute;
+  inset: 0;
+  text-align: center;
+  font-size: 12px;
+  line-height: 18px;
+}
+.arc-up {
+  min-height: 30px;
+  margin-top: 6px;
+  text-align: center;
+  font-size: 22px;
+  font-weight: bold;
+  color: #9fe3ff;
+  text-shadow: 0 0 12px rgba(120, 200, 255, 0.9);
+}
+.arc-up.pop {
+  animation: arc-title-in 0.4s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+.arc-dot {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, #9fe3ff 45%, rgba(80, 170, 255, 0) 70%);
+  box-shadow: 0 0 12px #9fe3ff;
+  transition: transform 0.5s cubic-bezier(0.5, 0, 0.8, 0.6), opacity 0.5s;
+  pointer-events: none;
+}
+.arc-buttons {
+  margin-top: 14px;
+  justify-content: center;
+}

@@ -104,7 +104,15 @@ export function portraitSheetUrl(scene: Phaser.Scene, defId: string): string | u
     urlCache.set(key, url);
     return url;
   }
-  return (scene.textures.get(mwKey(a.path)).getSourceImage() as HTMLImageElement).src;
+  // 沒換色的 sheet：Phaser 載入用的 blob 網址載完就失效，畫到 canvas 轉成 data URL 再給 DOM 用
+  const img = scene.textures.get(mwKey(a.path)).getSourceImage() as HTMLImageElement;
+  const cv = document.createElement('canvas');
+  cv.width = img.width;
+  cv.height = img.height;
+  cv.getContext('2d')!.drawImage(img, 0, 0);
+  const url = cv.toDataURL();
+  urlCache.set(key, url);
+  return url;
 }
 
 /** 地城地板拼塊是否都載入了 */

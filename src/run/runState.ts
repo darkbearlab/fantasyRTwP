@@ -27,6 +27,8 @@ export interface HeroRecord {
   classId: string;
   /** 昇變前的基本職業（SPEC_CLASSES；還沒昇變時沒有） */
   baseClass?: string;
+  /** 隊伍等級（每級的基本成長用；舊存檔沒有＝1） */
+  level?: number;
   /** 目前裝備的 3 個技能：[專用, 共用, 共用]（SPEC_SLICE3 §1.1） */
   skills: string[];
   hp: number;

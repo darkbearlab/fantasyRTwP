@@ -10,18 +10,18 @@ import { ENCOUNTERS } from './data/encounters';
 import { EVENTS } from './data/events';
 import { UPGRADES } from './data/upgrades';
 import type { BattleOutcome } from './battle';
-import { deliberateLevelId, encounterFor, levelEncounterId, runStyle } from './battle';
+import { deliberateLevelId, encounterFor, levelBonus, levelEncounterId, runStyle } from './battle';
 import type { MapNode } from './mapGen';
 import type { HeroRecord, RunState } from './runState';
 import { cloneRun, firstEmptySlot, livingHeroes } from './runState';
 import { pickN, rngFor } from './seed';
-import { enterInterlude, isFinalChapter } from './campaign';
+import { depthOffset, enterInterlude, isFinalChapter } from './campaign';
 import { ROUTE_MAP } from './data/routeMap';
 import { generalUpgradeIds, grantUpgrade, levelUpOffer, maxHpOf, recruitInto, rollUpgrades } from './upgrades';
 import { recruitPool } from './classes';
 import { rollItemDrop, rollShopStock } from './items';
 import { ITEMS } from '../sim/data/items';
-import { gainXp, nextLevelUpTo, xpForKills } from './xp';
+import { enemyStrength, gainXp, nextLevelUpTo, xpForKills } from './xp';
 import { neighbors } from './routeMap';
 import { advanceTurn, campfireSmoke, caught, championDefeated, isOccupied } from './overworld';
 
@@ -215,7 +215,9 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
   let xpGained: number | undefined;
   if (deliberate) {
     // SPEC_SLICE6 §3：不再每場三選一；經驗值只來自擊殺，升級了才三選一（升幾級選幾次）
-    xpGained = xpForKills(outcome.killed ?? []);
+    // 經驗值跟著這場敵人的強度（和 encounterFor 的層數相同）
+    const battleLayer = node.layer + levelBonus(run.phase.mods ?? {}) + depthOffset(r);
+    xpGained = xpForKills(outcome.killed ?? [], enemyStrength(battleLayer));
     const ups = gainXp(r, xpGained);
     if (ups > 0) r.journal.push(`隊伍升到第 ${r.level} 級！`);
     const offer = (r.pendingLevelUps ?? 0) > 0 ? levelUpOptions(r) : { options: [], optionSlots: [] };
@@ -251,6 +253,14 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
 /** 升級三選一的選項（依要升到的等級決定，同一趟遠征每次一樣）：兩個專屬＋一個通用（SPEC_CLASSES §1） */
 function levelUpOptions(r: RunState): { options: string[]; optionSlots: (number | null)[] } {
   return levelUpOffer(r, rngFor(r.seed, 'levelup', nextLevelUpTo(r)), ECONOMY.rewardChoices);
+}
+
+/**
+ * MVP 的額外獎勵（Alan 2026-10-22：先留鉤子，還沒決定要不要給）。
+ * slot：MVP 的隊伍欄位；回傳要顯示的文字（undefined＝沒有獎勵）。原地修改 run。
+ */
+export function mvpReward(_run: RunState, _slot: number): string | undefined {
+  return undefined;
 }
 
 /** 戰果畫面沒有升級時：繼續回到路線圖 */

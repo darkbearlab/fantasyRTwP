@@ -1032,7 +1032,11 @@ export function kill(world: World, u: Unit, killer?: Unit): void {
   u.rootTime = 0;
   world.slots.release(u.id);
   world.slots.releaseTarget(u.id);
-  if (killer && killer !== u) killer.stats.kills++;
+  if (killer && killer !== u) {
+    killer.stats.kills++;
+    // 戰鬥結算的演出用：記下英雄打倒了哪些敵人（Alan 2026-10-22）
+    if (killer.team !== u.team) killer.killList.push(u.def.id);
+  }
   world.emit({ type: 'death', unitId: u.id, killerId: killer?.id });
   deathChain(world, u);
 }
