@@ -428,8 +428,8 @@ export const EN_TEXT: Record<string, string> = {
   "，另外 {0} 名隨機加入": ", plus {0} random",
   "，帶著「{0}」": ", carrying \"{0}\"",
   "，昇變成{0}！": ", evolved into {0}!",
-  "已標示出頭目的方向": "The boss's direction is now marked",
-  "已標示出精英隊長的方向": "The elite captain's direction is now marked",
+  "頭目正等待你的挑戰": "The boss awaits your challenge",
+  "精英隊長正等待你的挑戰": "The elite captain awaits your challenge",
   // 標點、排版用的鍵
   "MVP　{0}{1}": "MVP  {0}{1}",
   "You must gather your party before venturing forth.（{0}／{1}）": "You must gather your party before venturing forth. ({0}/{1})",
