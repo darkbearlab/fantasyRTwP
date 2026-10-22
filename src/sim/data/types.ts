@@ -331,8 +331,25 @@ export interface ExitDef {
 
 // ───────────── 互動物件（SPEC_SLICE4 §15.1：通用的「互動 → 觸發動作」） ─────────────
 
-/** door：關著時擋路、擋視線與投射物；lever：拉下後觸發動作（之後的寶箱、道具沿用同一套） */
-export type InteractableKind = 'door' | 'lever';
+/**
+ * door：關著時擋路、擋視線與投射物；lever：拉下後觸發動作。
+ * chest：寶箱、pickup：地上的道具（打開／撿起拿到 loot）；shrine：祭壇（全隊暫時增益；Alan 2026-10-22）
+ */
+export type InteractableKind = 'door' | 'lever' | 'chest' | 'pickup' | 'shrine';
+
+/**
+ * 寶箱與地上道具的內容（生成地圖時決定）：
+ * heal＝立刻為全隊回復最大生命的比例；consumable＝放進包包（滿了換成金幣）；item＝裝備（戰後放進背包）；xp、gold＝戰後結算
+ */
+export type LootDef =
+  | { kind: 'heal'; pct: number }
+  | { kind: 'consumable'; id: string; gold: number }
+  | { kind: 'item'; id: string }
+  | { kind: 'xp'; amount: number }
+  | { kind: 'gold'; amount: number };
+
+/** 祭壇的種類（暗黑破壞神式：全隊暫時增益，數值在 sim/data/shrines.ts） */
+export type ShrineKind = 'might' | 'stone' | 'eagle' | 'swift' | 'renewal';
 
 /** 互動後執行的動作；波次可以用觸發條件 { type: 'interact' } 接在互動後面 */
 export type InteractAction = { type: 'openDoor' | 'closeDoor' | 'toggleDoor'; door: string };
@@ -355,6 +372,10 @@ export interface InteractableDef {
   locked?: boolean;
   /** 互動後的動作；門省略時是切換自己 */
   actions?: InteractAction[];
+  /** 寶箱、地上道具的內容 */
+  loot?: LootDef;
+  /** 祭壇的種類 */
+  shrine?: ShrineKind;
 }
 
 // ───────────── 怪群模式：生成點、波次、目標（SPEC_SLICE4 §2） ─────────────

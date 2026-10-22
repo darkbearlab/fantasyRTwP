@@ -32,6 +32,10 @@ import { InteractablesView, drawBox } from '../render/interactView';
 import { p3dKey, props3dLoaded } from '../render/props3d';
 import { PROP_META, PROPS3D, obstacleUsesProp, planProps } from '../render/props3dPlan';
 import type { InteractableState } from '../../sim/interact';
+import type { LootDef } from '../../sim/data/types';
+import { SHRINE_RULES, SHRINES } from '../../sim/data/shrines';
+import { CONSUMABLES } from '../../sim/data/consumables';
+import { ITEMS } from '../../sim/data/items';
 import { FOG_VISIBLE } from '../../sim/vision';
 import { ensureHeroes3dLoaded, h3dCharFor, heroes3dLoaded } from '../render/heroes3d';
 import type { ArtMode } from '../render/art';
@@ -67,16 +71,55 @@ import { createRun } from '../../run/runState';
 
 /** 互動物件的名稱（沒有名稱時依種類） */
 function objectName(o: InteractableState): string {
-  return o.def.name ?? (o.def.kind === 'door' ? tr("門") : tr("拉桿"));
+  if (o.def.name) return o.def.name;
+  switch (o.def.kind) {
+    case 'door':
+      return tr("門");
+    case 'chest':
+      return tr("寶箱");
+    case 'shrine':
+      return o.def.shrine ? SHRINES[o.def.shrine].name : tr("祭壇");
+    case 'pickup':
+      return o.def.loot ? lootName(o.def.loot) : tr("道具");
+    default:
+      return tr("拉桿");
+  }
+}
+
+/** 寶箱、地上道具的內容（給人看的名稱） */
+function lootName(l: LootDef): string {
+  switch (l.kind) {
+    case 'heal':
+      return tr("回復藥草");
+    case 'consumable':
+      return CONSUMABLES[l.id]?.name ?? l.id;
+    case 'item':
+      return ITEMS[l.id]?.name ?? l.id;
+    case 'xp':
+      return tr("經驗值 +{0}", { 0: l.amount });
+    case 'gold':
+      return tr("{0} 金幣", { 0: l.amount });
+  }
 }
 
 /** 滑鼠提示的第二行 */
 function objectHint(usable: boolean, o: InteractableState): string {
-  if (o.def.kind === 'door') {
-    if (o.def.locked) return o.open ? tr("（已打開）") : tr("（上鎖，要找別的機關）");
-    return o.open ? tr("右鍵：關門") : tr("右鍵：開門");
+  switch (o.def.kind) {
+    case 'door':
+      if (o.def.locked) return o.open ? tr("（已打開）") : tr("（上鎖，要找別的機關）");
+      return o.open ? tr("右鍵：關門") : tr("右鍵：開門");
+    case 'chest':
+      return usable ? tr("右鍵：打開") : tr("（已經打開了）");
+    case 'pickup':
+      return tr("右鍵：撿起");
+    case 'shrine': {
+      const d = o.def.shrine ? SHRINES[o.def.shrine] : null;
+      if (!usable) return tr("（已經用過了）");
+      return d ? tr("{0}（{1} 秒）\n右鍵：祈禱", { 0: d.description, 1: SHRINE_RULES.duration }) : tr("右鍵：祈禱");
+    }
+    default:
+      return usable ? tr("右鍵：拉動") : tr("（已經拉過了）");
   }
-  return usable ? tr("右鍵：拉動") : tr("（已經拉過了）");
 }
 
 /** 持續地面區域的顏色：[填色, 邊框] */
@@ -854,6 +897,30 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
         case 'interact': {
           const obj = w.interactables.get(ev.objectId);
           if (obj?.def.kind === 'lever') s.addLog(tr("{0} 拉動了{1}", { 0: L(ev.unitId), 1: objectName(obj) }), 'sys');
+          break;
+        }
+        case 'loot': {
+          // 寶箱、地上的道具（Alan 2026-10-22）
+          const obj = w.interactables.get(ev.objectId);
+          if (!obj) break;
+          const d = obj.def;
+          const at = { x: d.x + d.w / 2, y: d.y + d.h / 2 };
+          const what = ev.toGold && ev.loot.kind === 'consumable' ? tr("{0}（包包滿了，換成 {1} 金幣）", { 0: lootName(ev.loot), 1: ev.loot.gold }) : lootName(ev.loot);
+          const icon = ev.loot.kind === 'item' ? '🎁 ' : ev.loot.kind === 'consumable' ? '🧪 ' : ev.loot.kind === 'gold' ? '💰 ' : '';
+          if (ev.loot.kind !== 'heal') this.fx.text(at, icon + lootName(ev.loot), ev.loot.kind === 'item' ? '#7fd0ff' : '#ffe27a', 16, 50, 1800, 1.2);
+          s.addLog(d.kind === 'chest' ? tr("{0} 打開寶箱：{1}", { 0: L(ev.unitId), 1: what }) : tr("{0} 撿起了{1}", { 0: L(ev.unitId), 1: what }), 'sys');
+          if (d.kind === 'chest') this.fx.ring(at, 1.2, 0xffd23f, 600, 0.1, 3);
+          break;
+        }
+        case 'shrine': {
+          const obj = w.interactables.get(ev.objectId);
+          const sd = SHRINES[ev.shrine];
+          const at = obj ? { x: obj.def.x + obj.def.w / 2, y: obj.def.y + obj.def.h / 2 } : w.getUnit(ev.unitId)!.pos;
+          this.fx.ring(at, 3, sd.color, 900, 0.1, 6);
+          this.fx.text(at, sd.name, `#${sd.color.toString(16).padStart(6, '0')}`, 16, 50, 1800, 1.6);
+          const msg = tr("{0}：{1}（{2} 秒）", { 0: sd.name, 1: sd.description, 2: SHRINE_RULES.duration });
+          s.addLog(msg, 'sys');
+          s.showToast(msg, this.time.now, 2200);
           break;
         }
         case 'door': {

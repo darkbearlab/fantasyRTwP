@@ -14,6 +14,7 @@ import { HEROES } from '../sim/data/heroes';
 import { ITEMS } from '../sim/data/items';
 import { PASSIVES } from '../sim/data/passives';
 import { SKILLS } from '../sim/data/skills';
+import { SHRINES } from '../sim/data/shrines';
 import { BRANCHES } from '../run/data/branches';
 import { CHAPTERS } from '../run/data/chapters';
 import { ENCOUNTERS } from '../run/data/encounters';
@@ -23,7 +24,7 @@ import { NODE_LABEL } from '../run/mapGen';
 import { getLang } from './lang';
 export { getLang, listSep, setLang, tr, useLang } from './lang';
 export type { Lang } from './lang';
-import { EN_ATTRIBUTES, EN_BRANCHES, EN_CHAPTERS, EN_CLASS_ROLES, EN_CONSUMABLES, EN_ENCOUNTERS, EN_ENEMIES, EN_FACTIONS, EN_HEROES, EN_ITEMS, EN_LINES, EN_MAPS, EN_NODES, EN_PASSIVES, EN_SKILLS, EN_UPGRADES } from './enData';
+import { EN_ATTRIBUTES, EN_BRANCHES, EN_CHAPTERS, EN_CLASS_ROLES, EN_CONSUMABLES, EN_ENCOUNTERS, EN_ENEMIES, EN_FACTIONS, EN_HEROES, EN_ITEMS, EN_LINES, EN_MAPS, EN_NODES, EN_PASSIVES, EN_SHRINES, EN_SKILLS, EN_UPGRADES } from './enData';
 
 let applied = false;
 
@@ -59,6 +60,12 @@ export function applyDataLanguage(): void {
   for (const list of Object.values(BRANCHES)) for (const b of list) if (EN_BRANCHES[b.id]) b.name = EN_BRANCHES[b.id];
   for (const c of CHAPTERS) if (EN_CHAPTERS[c.id]) c.name = EN_CHAPTERS[c.id];
   for (const [id, f] of Object.entries(FACTIONS)) if (EN_FACTIONS[id]) f.name = EN_FACTIONS[id];
+  for (const [id, [name, desc]] of Object.entries(EN_SHRINES)) {
+    const s = SHRINES[id as keyof typeof SHRINES];
+    if (!s) continue;
+    s.name = name;
+    s.description = desc;
+  }
   for (const [k, v] of Object.entries(EN_NODES)) (NODE_LABEL as Record<string, string>)[k] = v;
   for (const [k, v] of Object.entries(EN_ATTRIBUTES)) (ATTRIBUTES as Record<string, string>)[k] = v;
 }

@@ -6,7 +6,7 @@ import { dist } from '../sim/math';
 import { ENEMIES, enemyRank } from '../sim/data/enemies';
 import { HORDE_CONFIG, HORDE_ENEMY_HP } from '../sim/data/horde';
 import { MAPS } from '../sim/data/maps';
-import type { Personality, UnitDef } from '../sim/data/types';
+import type { LootDef, Personality, UnitDef } from '../sim/data/types';
 import type { SimConfig } from '../sim/simConfig';
 import type { UnitSpawn } from '../sim/world';
 import { World } from '../sim/world';
@@ -22,7 +22,7 @@ import { generateLevel } from './levelGen';
 import { generateDeliberateLevel } from './deliberateLevelGen';
 import { generateTemplateLevel } from './templateLevelGen';
 import { FBB_LEVELS, fieldLookFor } from './data/fbbLevels';
-import { bossEncounter, fieldEncounter, townEncounter } from './fbbLevel';
+import { bossEncounter, fieldEncounter, indoorEncounter, townEncounter } from './fbbLevel';
 import { tilePrefabs } from './tilePrefabRegistry';
 import { SKIRMISH } from '../sim/data/skirmish';
 import type { Edge, ExitRequest } from './templateLevelGen';
@@ -130,9 +130,11 @@ export function encounterFor(run: RunState, nodeId: number, encounterId: string)
       enc =
         tier === 'boss'
           ? bossEncounter(seed, { ...o, look: fieldLookFor(node.layer, chapter) })
-          : node.layer <= chapter.townUntilLayer
-            ? townEncounter(seed, { ...o, prefabs: tilePrefabs() })
-            : fieldEncounter(seed, { ...o, look: fieldLookFor(node.layer, chapter) });
+          : chapter.indoor
+            ? indoorEncounter(seed, { ...o, theme: chapter.indoor, treasure: visit === 1 })
+            : node.layer <= chapter.townUntilLayer
+              ? townEncounter(seed, { ...o, prefabs: tilePrefabs() })
+              : fieldEncounter(seed, { ...o, look: fieldLookFor(node.layer, chapter) });
     } else if (dlevel && LEVELS.deliberateGenerator !== 'classic') {
       // 出口制（SPEC_SLICE6 §2）：一個下一層節點一個出口，依路線圖由左到右排
       enc = generateTemplateLevel(seed, { tier, layer, ...exitsFor(run, nodeId), budgetMult: mods.force ? ROUTE_MAP.force.budgetMult : undefined });
@@ -240,6 +242,8 @@ export interface BattleOutcome {
   exitNodeId?: number;
   /** 被打倒的敵人（經驗值用） */
   killed?: { enemy: string; captain: boolean }[];
+  /** 寶箱、地上撿到、要在戰後結算的東西（裝備、經驗值、金幣） */
+  loot?: LootDef[];
   time: number;
   heroes: { slot: number; hp: number; dead: boolean; kills: number; damageDealt: number; damageTaken: number; personality?: Personality }[];
 }
@@ -252,6 +256,7 @@ export function battleOutcomeFromWorld(world: World): BattleOutcome {
     killed: world.units.filter((u) => u.team === 'enemy' && u.dead).map((u) => ({ enemy: u.def.id, captain: u.def.rank === 'elite' })),
     time: world.time,
     bag: [...world.bag],
+    loot: [...world.loot],
     heroes: world.units
       .filter((u) => u.team === 'hero')
       .map((u) => ({ slot: u.heroSlot, hp: u.hp, dead: u.dead, kills: u.stats.kills, damageDealt: u.stats.damageDealt, damageTaken: u.stats.damageTaken, personality: u.personality })),

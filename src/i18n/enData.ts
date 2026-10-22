@@ -279,3 +279,12 @@ export const EN_MAPS: Record<string, string> = {
 
 /** 職業系名稱 */
 export const EN_LINES: Record<string, string> = { warrior: 'Warrior line', ranger: 'Ranger line', mage: 'Mage line', cleric: 'Cleric line' };
+
+/** 祭壇（Alan 2026-10-22） */
+export const EN_SHRINES: Record<string, [string, string]> = {
+  might: ['Shrine of Might', 'Party deals +25% damage'],
+  stone: ['Shrine of Stone', 'Party gains +15 defense and +3 armor'],
+  eagle: ['Shrine of the Eagle', 'Party gains +20 accuracy'],
+  swift: ['Shrine of Swiftness', 'Party moves 30% faster'],
+  renewal: ['Shrine of Renewal', 'Party regenerates 2% max HP per second'],
+};

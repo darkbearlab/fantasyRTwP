@@ -17,10 +17,11 @@ import type { FieldLevel } from '../../run/fieldGen';
 import { tilePrefabs } from '../../run/tilePrefabRegistry';
 import type { TilePrefab } from '../../run/tilePrefab';
 import type { TownLevel } from '../../run/townGen';
+import type { IndoorLevel } from '../../run/indoorGen';
 import type { MapDef } from '../../sim/data/types';
 import type { FbbSeason } from './fbbArt';
 import { fbbKey, fbbReady } from './fbbArt';
-import { ANIM_OBJECTS, GRADES, PREFAB_TILES, ROCK_SINGLES, TOWN_TILES, WALL_TILES, wallKey } from './fbbTiles';
+import { ANIM_OBJECTS, GRADES, INDOOR_TILES, PREFAB_TILES, ROCK_SINGLES, TOWN_TILES, WALL_TILES, wallKey } from './fbbTiles';
 import { depthOf, mapScreenBounds, worldToScreen } from './projection';
 import { OBJECT_DEPTH_BASE } from './unitView';
 
@@ -39,7 +40,7 @@ type Ctx = CanvasRenderingContext2D;
 export const FBB_VIEW = { tallWalls: true, decorChance: 0.15, burntMul: [0.35, 0.3, 0.3] as [number, number, number] };
 
 export function isFbbMap(map: MapDef): boolean {
-  return map.art?.kind === 'fbbField' || map.art?.kind === 'fbbTown';
+  return map.art?.kind === 'fbbField' || map.art?.kind === 'fbbTown' || map.art?.kind === 'fbbIndoor';
 }
 
 export class FbbMapView {
@@ -65,7 +66,8 @@ export class FbbMapView {
     this.season = SEASON[this.art.look];
     for (const sheet of ['fires', 'smoke']) this.ensureFrames(sheet);
     if (this.art.kind === 'fbbField') this.buildField(this.art.level);
-    else this.buildTown(this.art.level);
+    else if (this.art.kind === 'fbbTown') this.buildTown(this.art.level);
+    else this.buildIndoor(this.art.level);
     this.buildGrade();
   }
 
@@ -90,8 +92,8 @@ export class FbbMapView {
   }
 
   /** A2 地面 autotile（32 × 48 區塊）：n(dx, dy)＝鄰格是否同種 */
-  private floorAuto(ctx: Ctx, idx: number, n: (dx: number, dy: number) => boolean, dx0: number, dy0: number): void {
-    const src = this.img(fbbKey('tileA2', this.season));
+  private floorAuto(ctx: Ctx, idx: number, n: (dx: number, dy: number) => boolean, dx0: number, dy0: number, sheet = fbbKey('tileA2', this.season)): void {
+    const src = this.img(sheet);
     const bx = (idx % 8) * 32;
     const by = Math.floor(idx / 8) * 48;
     for (const [sx, sy] of [
@@ -191,7 +193,7 @@ export class FbbMapView {
   }
 
   private buildGrade(): void {
-    const g = GRADES[GRADE_OF[this.art.look]];
+    const g = GRADES[this.art.kind === 'fbbIndoor' ? this.art.level.theme : GRADE_OF[this.art.look]];
     const b = mapScreenBounds(this.map.width, this.map.height);
     const c = Phaser.Display.Color.GetColor(Math.round(g.mul[0] * 255), Math.round(g.mul[1] * 255), Math.round(g.mul[2] * 255));
     const r = this.scene.add.rectangle(b.x, b.y, b.w, b.h, c).setOrigin(0).setBlendMode(Phaser.BlendModes.MULTIPLY).setDepth(GRADE_DEPTH);
@@ -343,6 +345,98 @@ export class FbbMapView {
         this.light(p.x, p.y, 2.8, 0.6, phase);
       }
     }
+  }
+
+  // ───────────── 室內（第 3～5 章；拼法移植自 tools/indoor_render.py） ─────────────
+
+  private buildIndoor(L: IndoorLevel): void {
+    const S = INDOOR_TILES[L.theme];
+    const A2 = fbbKey(S.a2);
+    const A5 = fbbKey(S.a5);
+    const BCC = fbbKey('tileB_cc1');
+    const BCV = fbbKey('tileB_cave1');
+    const at = (x: number, y: number) => (x >= 0 && y >= 0 && x < L.w && y < L.h ? L.grid[y][x] : '#');
+    const fires: [number, number, number][] = [];
+    this.ground((ctx) => {
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, L.w * T, L.h * T);
+      for (let y = 0; y < L.h; y++)
+        for (let x = 0; x < L.w; x++) {
+          const c = L.grid[y][x];
+          if (c !== '#') {
+            this.floorAuto(ctx, S.floor, (dx, dy) => at(x + dx, y + dy) !== '#', x * T, y * T, A2);
+            if (c === '^') this.floorAuto(ctx, S.high, (dx, dy) => at(x + dx, y + dy) === '^', x * T, y * T, A2);
+            continue;
+          }
+          // 牆頂純黑；緊鄰地面的那一格畫牆面（洞穴畫兩格高的洞壁）
+          const below = at(x, y + 1) !== '#';
+          const below2 = at(x, y + 2) !== '#';
+          if (S.cave) {
+            if (below) this.drawCell(ctx, A5, 88 + (x % 8), x * T, y * T);
+            else if (below2) this.drawCell(ctx, A5, 80 + (x % 8), x * T, y * T);
+          } else if (below) this.drawCell(ctx, A5, S.face[Math.floor(this.hash(x, y) * S.face.length)], x * T, y * T);
+        }
+      // 高台邊緣的亮線
+      ctx.fillStyle = 'rgb(230,220,160)';
+      for (let y = 0; y < L.h; y++)
+        for (let x = 0; x < L.w; x++) {
+          if (L.grid[y][x] !== '^') continue;
+          if (at(x + 1, y) !== '^') ctx.fillRect(x * T + 15, y * T, 1, T);
+          if (at(x - 1, y) !== '^') ctx.fillRect(x * T, y * T, 1, T);
+          if (at(x, y + 1) !== '^') ctx.fillRect(x * T, y * T + 15, T, 1);
+          if (at(x, y - 1) !== '^') ctx.fillRect(x * T, y * T, T, 1);
+        }
+      // 物件：單格的用圖塊，多格的先用佔位矩形
+      const PLACE: Record<string, [string, string]> = {
+        bookshelf: ['rgba(110,70,40,0.9)', 'B'],
+        statue: ['rgba(200,200,210,0.9)', 'S'],
+        throne: ['rgba(170,30,40,0.9)', 'T'],
+        lightBeam: ['rgba(255,240,150,0.35)', ''],
+        golemSeal: ['rgba(150,140,120,0.9)', 'G'],
+      };
+      for (const p of L.props) {
+        const { x, y } = p;
+        const w = p.w ?? 1;
+        const h = p.h ?? 1;
+        if (p.kind === 'candle') {
+          this.drawCell(ctx, BCC, INDOOR_TILES.candle, x * T, y * T);
+          fires.push([x, y, 2.5]);
+        } else if (p.kind === 'brazier') {
+          this.drawCell(ctx, BCC, INDOOR_TILES.brazier[0], x * T, (y - 1) * T);
+          this.drawCell(ctx, BCC, INDOOR_TILES.brazier[1], x * T, y * T);
+          fires.push([x, y - 0.5, 4]);
+        } else if (p.kind === 'armorStand') {
+          this.drawCell(ctx, BCC, INDOOR_TILES.armorStand[0], x * T, (y - 1) * T);
+          this.drawCell(ctx, BCC, INDOOR_TILES.armorStand[1], x * T, y * T);
+        } else if (p.kind === 'mushroom') {
+          this.drawCell(ctx, BCV, INDOOR_TILES.mushroom[Math.floor(this.hash(x, y) * 4)], x * T, y * T);
+        } else if (p.kind === 'rubble') {
+          this.drawCell(ctx, BCV, INDOOR_TILES.rubble[Math.floor(this.hash(x, y) * 4)], x * T, y * T);
+        } else if (p.kind === 'torch') {
+          ctx.fillStyle = 'rgb(90,60,30)';
+          ctx.fillRect(x * T + 6, y * T + 4, 4, 11);
+          ctx.fillStyle = 'rgb(255,170,50)';
+          ctx.beginPath();
+          ctx.ellipse(x * T + 8, y * T + 4, 4, 3, 0, 0, Math.PI * 2);
+          ctx.fill();
+          fires.push([x, y + 0.5, 4.5]);
+        } else if (PLACE[p.kind]) {
+          const [col, ch] = PLACE[p.kind];
+          ctx.fillStyle = col;
+          ctx.fillRect(x * T, y * T, w * T, h * T);
+          ctx.strokeStyle = 'rgb(20,20,20)';
+          ctx.strokeRect(x * T + 0.5, y * T + 0.5, w * T - 1, h * T - 1);
+          if (ch) {
+            ctx.fillStyle = '#000';
+            ctx.font = '8px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(ch, (x + w / 2) * T, (y + h / 2) * T);
+          }
+        }
+      }
+    });
+    fires.forEach(([x, y, r], i) => this.light(x, y, r, 0.55, i));
   }
 
   /** 佔位房子（交接文件 §10 (a)）：深色矩形加輪廓，寫「房屋」，下緣中間是門 */

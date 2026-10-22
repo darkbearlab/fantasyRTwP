@@ -78,6 +78,26 @@ export const GRADES: Record<string, { mul: [number, number, number]; sat: number
   fallDusk: { mul: [0.78, 0.62, 0.62], sat: 0.7, fireLight: true },
   winterOvercast: { mul: [0.72, 0.75, 0.85], sat: 0.55, fireLight: false },
   townNight: { mul: [0.55, 0.5, 0.68], sat: 0.75, fireLight: true },
+  // 室內（第 3～5 章；試產 tools/indoor_render.py 的調色）
+  temple: { mul: [0.92, 0.94, 1.0], sat: 0.85, fireLight: true },
+  castle: { mul: [0.62, 0.58, 0.72], sat: 0.6, fireLight: true },
+  cave: { mul: [0.55, 0.5, 0.55], sat: 0.75, fireLight: true },
+};
+
+/**
+ * 室內圖塊（試產 tools/indoor_render.py 的格號；Alan 看過試產圖後再定案）。
+ * a2：地面 autotile 表、floor／high：地面與高台的 autotile 編號；a5：牆面表、face：牆面格號（洞穴用兩格高的洞壁）。
+ */
+export const INDOOR_TILES = {
+  temple: { a2: 'tileA2_cc', floor: 1, high: 4, a5: 'tileA5_castle_int', face: [57, 58, 59], cave: false },
+  castle: { a2: 'tileA2_cc', floor: 0, high: 4, a5: 'tileA5_castle_int', face: [57, 58, 59], cave: false },
+  cave: { a2: 'tileA2_caves', floor: 0, high: 2, a5: 'tileA5_cave1', face: [] as number[], cave: true },
+  /** tileB_cc1：燭台、火盆（上、下）、盔甲架（上、下）；tileB_cave1：蘑菇、瓦礫 */
+  candle: 112,
+  brazier: [133, 149],
+  armorStand: [166, 182],
+  mushroom: [116, 117, 118, 119],
+  rubble: [120, 121, 124, 125],
 };
 
 /**
