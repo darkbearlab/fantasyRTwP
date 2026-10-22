@@ -452,6 +452,7 @@ export const EN_TEXT: Record<string, string> = {
   "{0} 打開寶箱：{1}": "{0} opened a chest: {1}",
   "{0} 撿起了{1}": "{0} picked up {1}",
   "{0}：{1}（{2} 秒）": "{0}: {1} ({2} s)",
+  "顯示戰鬥紀錄": "Show battle log",
   // 標點、排版用的鍵
   "MVP　{0}{1}": "MVP  {0}{1}",
   "You must gather your party before venturing forth.（{0}／{1}）": "You must gather your party before venturing forth. ({0}/{1})",

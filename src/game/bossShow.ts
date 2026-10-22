@@ -86,7 +86,7 @@ export class BossShow {
     if (line) {
       const hp = worldToScreen(boss.pos.x, boss.pos.y, 2.6);
       bubble = scene.add
-        .text(hp.x, hp.y, line, { fontSize: '15px', color: '#fff1dc', backgroundColor: 'rgba(40,6,8,0.88)', padding: { x: 10, y: 6 }, wordWrap: { width: 300 }, align: 'center' })
+        .text(hp.x, hp.y, line, { fontSize: '15px', color: '#ffffff', backgroundColor: '#000000', padding: { x: 10, y: 6 }, wordWrap: { width: 300 }, align: 'center' })
         .setOrigin(0.5, 1)
         .setDepth(2950);
     }

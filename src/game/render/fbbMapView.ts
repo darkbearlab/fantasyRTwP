@@ -24,12 +24,15 @@ import { fbbKey, fbbReady } from './fbbArt';
 import { ANIM_OBJECTS, GRADES, INDOOR_TILES, PREFAB_TILES, ROCK_SINGLES, TOWN_TILES, WALL_TILES, wallKey } from './fbbTiles';
 import { depthOf, mapScreenBounds, worldToScreen } from './projection';
 import { OBJECT_DEPTH_BASE } from './unitView';
+import { pixelGlowCanvas } from './pixelGlow';
 
 const T = 16;
 /** 調色層、火光、煙的深度（迷霧 900 之下；角色外框在 875） */
 const GRADE_DEPTH = 860;
 const LIGHT_DEPTH = 870;
 const SMOKE_DEPTH = 880;
+/** 火光貼圖的邊長（越小格子越大） */
+const LIGHT_PX = 24;
 
 const SEASON: Record<FbbLook, FbbSeason> = { summer: 'summer', fallDusk: 'fall', winterOvercast: 'winter', townNight: 'summer' };
 const GRADE_OF: Record<FbbLook, string> = { summer: 'summerDay', fallDusk: 'fallDusk', winterOvercast: 'winterOvercast', townNight: 'townNight' };
@@ -168,18 +171,12 @@ export class FbbMapView {
 
   /** 火光（加亮混合的暖色光暈）；中心在格子 (gx, gy) 的中心，半徑 r 格 */
   private light(gx: number, gy: number, r: number, strength: number, phase: number): void {
-    const key = this.tex('fbb_light', 128, 128, (ctx) => {
-      const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
-      g.addColorStop(0, 'rgba(255,150,60,1)');
-      g.addColorStop(0.45, 'rgba(240,110,30,0.45)');
-      g.addColorStop(1, 'rgba(200,80,20,0)');
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, 128, 128);
-    });
+    // 像素光暈（Alan 2026-10-22）：小貼圖、透明度分階，放大時最近鄰取樣，一格一格的
+    const key = this.tex('fbb_light_px', LIGHT_PX, LIGHT_PX, (ctx) => pixelGlowCanvas(ctx, LIGHT_PX, (lv) => `rgba(255,${Math.round(90 + 60 * lv)},${Math.round(20 + 40 * lv)},${(lv * lv).toFixed(3)})`, 5));
     const p = this.topLeft(gx, gy);
     const img = this.scene.add
       .image(p.x + (T / 2) * this.k, p.y + (T / 2) * this.k, key)
-      .setScale((r * T * this.k * 2) / 128)
+      .setScale((r * T * this.k * 2) / LIGHT_PX)
       .setBlendMode(Phaser.BlendModes.ADD)
       .setDepth(LIGHT_DEPTH)
       .setAlpha(strength);
