@@ -39,8 +39,15 @@ const CAMP = {
   /** 2D 像素 sprite：上面兩個倍率 × 這個值（取整數） */
   pixelPerScale: 2.9,
   /** 頭像框大小（px） */
-  portrait: 92,
-  boxHeight: 128,
+  portrait: 112,
+  boxHeight: 148,
+  /** 對話框最寬多少（px；Alan 2026-10-22：英雄靠近營火後，對話框可以用更多空間） */
+  boxMaxWidth: 960,
+  /** 對話的字級（px） */
+  nameSize: 19,
+  bodySize: 19,
+  /** 英雄離營火邊緣多遠（px，水平；垂直取 0.6 倍） */
+  seatGap: 62,
   /** 圍坐英雄在畫面上大約多高（px，排版用） */
   heroHeightPx: 105,
   /** 打字速度（字／秒） */
@@ -182,19 +189,26 @@ export class CampfireScene extends Phaser.Scene {
     this.events.once('shutdown', () => hud.remove());
     // 版面（Alan）：畫面下方是英雄面板的位置（戰鬥中四張卡片那一塊），對話框與場景只用它以上的區域
     const reserve = W < H ? GAME_CONFIG.hudBottomHeightPortrait : GAME_CONFIG.hudBottomHeight;
-    const areaBottom = H - reserve;
+    // 實際量英雄面板（含上面那排暫停、全選按鈕）的上緣；量不到才用預設的保留高度
+    const canvas = this.game.canvas.getBoundingClientRect();
+    const barTop = hud.querySelector('.m-bar')?.getBoundingClientRect().top;
+    const measured = barTop !== undefined && canvas.height > 0 ? ((barTop - canvas.top) * H) / canvas.height : NaN;
+    const areaBottom = Number.isFinite(measured) && measured > H * 0.4 ? Math.min(H - reserve, measured) : H - reserve;
     const topBoxY = 12;
     const bottomBoxY = areaBottom - 12 - CAMP.boxHeight;
     // 兩個對話框之間放火堆與英雄：上排英雄的頭不碰到上框，下排英雄的腳不碰到提示列
     const m0 = topBoxY + CAMP.boxHeight + 8;
     const m1 = bottomBoxY - 56;
-    const ry = Phaser.Math.Clamp((m1 - m0 - CAMP.heroHeightPx) / 2, 30, 120);
+    // 營火的倍率（整數）：一般畫面 3 倍、窄畫面 2 倍；英雄圍在營火旁邊（Alan 2026-10-22：再靠近一點）
+    const k = W >= 700 ? 3 : 2;
+    const fireHalf = 24 * k;
+    const ry = Phaser.Math.Clamp((m1 - m0 - CAMP.heroHeightPx) / 2, 30, fireHalf + CAMP.seatGap * 0.6);
     this.center = { x: W / 2, y: m0 + CAMP.heroHeightPx + ry };
     const c = this.center;
 
     // 四名英雄圍坐的半徑（營火的大小也看它）
-    const rx = Math.min(W * 0.3, 180);
-    if (this.textures.exists(fbbKey('tileA5_outside')) && this.textures.exists(fbbKey('fires'))) this.buildPixelFire(W, areaBottom, rx);
+    const rx = Math.min(W * 0.3, fireHalf + CAMP.seatGap);
+    if (this.textures.exists(fbbKey('tileA5_outside')) && this.textures.exists(fbbKey('fires'))) this.buildPixelFire(W, areaBottom, k);
     else {
       // 沒有授權素材：程式畫的地面
       const ground = this.add.graphics();
@@ -250,7 +264,7 @@ export class CampfireScene extends Phaser.Scene {
 
   private makeBox(y: number): DialogBox {
     const W = this.scale.width;
-    const w = Math.min(W - 24, 640);
+    const w = Math.min(W - 24, CAMP.boxMaxWidth);
     const x = (W - w) / 2;
     const root = this.add.container(x, y).setDepth(50);
     const bg = this.add.graphics();
@@ -265,8 +279,8 @@ export class CampfireScene extends Phaser.Scene {
     bg.fillRoundedRect(py, py, P, P, 4);
     bg.lineStyle(2, 0xffffff, 1);
     bg.strokeRoundedRect(py, py, P, P, 4);
-    const name = this.add.text(py * 2 + P, 12, '', { fontFamily: FONT, fontSize: '16px', fontStyle: 'bold', color: '#ffffff' });
-    const body = this.add.text(py * 2 + P, 38, '', { fontFamily: FONT, fontSize: '16px', color: '#ffffff', wordWrap: { width: w - P - py * 3 - 4, useAdvancedWrap: true }, lineSpacing: 4 });
+    const name = this.add.text(py * 2 + P, 14, '', { fontFamily: FONT, fontSize: `${CAMP.nameSize}px`, fontStyle: 'bold', color: '#ffffff' });
+    const body = this.add.text(py * 2 + P, 20 + CAMP.nameSize + 10, '', { fontFamily: FONT, fontSize: `${CAMP.bodySize}px`, color: '#ffffff', wordWrap: { width: w - P - py * 3 - 4, useAdvancedWrap: true }, lineSpacing: 4 });
     root.add([bg, name, body]);
     root.setAlpha(0);
     const maskShape = this.make.graphics({}, false);
@@ -354,10 +368,9 @@ export class CampfireScene extends Phaser.Scene {
 
   /**
    * 素材版營火：地面（泥土格＋木材 3 × 3）烘成一張貼圖，整數倍放大；火焰是四格動畫疊在中央格。
-   * 倍率看英雄圍坐的距離（2～4 倍），太大會蓋到英雄。
+   * 倍率 k 是整數（一般畫面 3、窄畫面 2）。
    */
-  private buildPixelFire(W: number, bottom: number, rx: number): void {
-    const k = Math.max(2, Math.min(4, Math.round(rx / 60)));
+  private buildPixelFire(W: number, bottom: number, k: number): void {
     const T = 16;
     const { x: cx, y: cy } = this.center;
     // 中央格的左上角（畫面座標）：中央格的中心對準營火中心
