@@ -277,6 +277,11 @@ export const SKILLS: Record<string, SkillDef> = {
     target: 'ground', range: 13, windup: 1.6, recovery: 1.2, cooldown: 9, requiresLos: false, telegraph: true,
     effect: { kind: 'aoe', radius: 2.2, damage: [14, 20], friendlyFire: false, projectileSpeed: 10, projectileKind: 'flask' },
   },
+  hatch: {
+    id: 'hatch', name: '孵化', description: '孵出 3 隻小蟲',
+    target: 'self', range: 0, windup: 1.2, recovery: 1.0, cooldown: 9, requiresLos: false, telegraph: true,
+    effect: { kind: 'summon', enemy: 'swarmling', count: 3, radius: 1.3 },
+  },
   mend: {
     id: 'mend', name: '治癒禱言', description: '準備約 2.5 秒（可打斷）後恢復一名同伴 30 生命',
     target: 'ally', range: 9, windup: 1.4, recovery: 1.0, cooldown: 4, requiresLos: true, telegraph: true,

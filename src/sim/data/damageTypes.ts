@@ -143,6 +143,15 @@ export const AFFINITY: Record<string, { resist?: Attribute[]; weak?: Attribute[]
   warTotem: { resist: ['pierce', 'cut'], weak: ['blunt', 'fire'] },
   orcChief: { resist: ['cleave'], weak: ['pierce', 'holy'] },
   champion: { resist: ['cut', 'dark'], weak: ['holy'] },
+  hollowArmor: { resist: ['cut', 'pierce'], weak: ['blunt'] },
+  golem: { resist: ['cut', 'pierce'], weak: ['blunt'] },
+  templeKnight: { resist: ['holy'], weak: ['dark'] },
+  crystalGuardian: { resist: ['holy', 'cut'], weak: ['dark', 'blunt'] },
+  swarmling: { weak: ['fire', 'cleave'] },
+  bugNest: { resist: ['pierce'], weak: ['fire'] },
+  caveBeast: { resist: ['blunt'], weak: ['fire', 'holy'] },
+  demonElite: { resist: ['dark', 'fire'], weak: ['holy'] },
+  demonGuard: { resist: ['dark', 'cut', 'pierce'], weak: ['holy', 'blunt'] },
 };
 
 /** 特殊防禦／特殊護甲（依單位 def.id）；沒列的：特殊防禦＝物理防禦的基本值、特殊護甲＝物理護甲的基本值 */

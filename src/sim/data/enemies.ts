@@ -239,6 +239,72 @@ export const ENEMIES: Record<string, UnitDef> = {
     projectsZoc: false, knockbackImmune: true, interruptibleBy: ['shieldBash', 'aimedShot', 'sureShot'], pushWeight: 4,
     skills: ['sentinelSweep', 'sentinelRush', 'sentinelStomp', 'sentinelSweepRush', 'sentinelBreath'],
   },
+  // ── 第 3 章「試煉地城」：神殿衛士（考驗英雄，不是要殺人；外觀用素材 session 的佔位換色，數值佔位） ──
+  /** 神殿騎士：一般戰力 */
+  templeKnight: {
+    id: 'templeKnight', name: '神殿騎士', letter: 'k', color: 0xbfe0f0, team: 'enemy', ai: 'brute',
+    maxHp: 56, armor: 3, accuracy: 34, defense: 28, damage: [8, 12],
+    range: 0.3, windup: 0.55, recovery: 0.9, attackSpeed: 1, moveSpeed: 3.0, radius: 0.42,
+    projectsZoc: true, skills: [],
+  },
+  /** 活化鎧甲：盾牌型，擋在窄門前（力之試煉的鐵砧）；怕衝擊 */
+  hollowArmor: {
+    id: 'hollowArmor', name: '活化鎧甲', letter: 'h', color: 0xc8ccd4, team: 'enemy', ai: 'brute',
+    maxHp: 120, armor: 5, accuracy: 25, defense: 26, damage: [6, 10],
+    range: 0.3, windup: 0.7, recovery: 1.1, attackSpeed: 1, moveSpeed: 2.2, radius: 0.48,
+    projectsZoc: true, shield: { hpFrac: 0.5, defense: 20, armor: 4 }, pushWeight: 3, skills: [],
+  },
+  /** 魔像：重型、慢；怕衝擊，抗切割與穿刺（勇之試煉從四面八方湧出） */
+  golem: {
+    id: 'golem', name: '魔像', letter: 'G', color: 0x8a8070, team: 'enemy', ai: 'brute',
+    maxHp: 110, armor: 4, accuracy: 26, defense: 18, damage: [10, 15],
+    range: 0.4, windup: 0.9, recovery: 1.2, attackSpeed: 1, moveSpeed: 2.3, radius: 0.55,
+    projectsZoc: true, pushWeight: 3, skills: [],
+  },
+  /** 頭目：水晶守衛（打倒是被它認可） */
+  crystalGuardian: {
+    id: 'crystalGuardian', name: '水晶守衛', letter: 'Q', color: 0xf0e8b0, team: 'enemy', ai: 'boss',
+    maxHp: 600, armor: 6, accuracy: 36, defense: 34, damage: [12, 18],
+    range: 0.5, windup: 0.8, recovery: 1.2, attackSpeed: 1, moveSpeed: 2.4, radius: 0.7,
+    projectsZoc: true, skills: ['clubSweep', 'chiefLeap'],
+  },
+  // ── 第 4 章「密道」：蟲群（佔位） ──
+  /** 小蟲：小、快、多 */
+  swarmling: {
+    id: 'swarmling', name: '小蟲', letter: 'w', color: 0x8a6a9a, team: 'enemy', ai: 'brute',
+    maxHp: 14, armor: 0, accuracy: 30, defense: 22, damage: [3, 5],
+    range: 0.3, windup: 0.3, recovery: 0.6, attackSpeed: 1, moveSpeed: 4.0, radius: 0.3,
+    projectsZoc: false, targeting: { distance: 1, lowHp: 0.6, backline: 1.2, threat: 0.2, sticky: 0.3 }, skills: [],
+  },
+  /** 蟲巢：不會動，一直孵出小蟲；打掉才會停 */
+  bugNest: {
+    id: 'bugNest', name: '蟲巢', letter: 'N', color: 0x6a4a5a, team: 'enemy', ai: 'summoner',
+    maxHp: 140, armor: 2, accuracy: 0, defense: 0, damage: [0, 0],
+    range: 0, windup: 1, recovery: 1, attackSpeed: 1, moveSpeed: 0, radius: 0.8,
+    projectsZoc: false, immovable: true, skills: ['hatch'],
+  },
+  /** 頭目：洞穴巨獸 */
+  caveBeast: {
+    id: 'caveBeast', name: '洞穴巨獸', letter: 'B', color: 0x5a3a7a, team: 'enemy', ai: 'boss',
+    maxHp: 700, armor: 6, accuracy: 34, defense: 30, damage: [14, 20],
+    range: 0.5, windup: 0.9, recovery: 1.2, attackSpeed: 1, moveSpeed: 2.6, radius: 0.8,
+    projectsZoc: true, skills: ['clubSweep', 'chiefLeap'],
+  },
+  // ── 第 5 章「魔王城」：惡魔（佔位） ──
+  /** 惡魔精英 */
+  demonElite: {
+    id: 'demonElite', name: '惡魔精英', letter: 'd', color: 0xb03030, team: 'enemy', ai: 'brute',
+    maxHp: 70, armor: 3, accuracy: 36, defense: 28, damage: [10, 15],
+    range: 0.3, windup: 0.55, recovery: 0.9, attackSpeed: 1, moveSpeed: 3.2, radius: 0.44,
+    projectsZoc: false, targeting: { distance: 1, lowHp: 0.6, backline: 1.2, threat: 0.4, sticky: 0.5 }, skills: [],
+  },
+  /** 魔王親衛：盾牌型 */
+  demonGuard: {
+    id: 'demonGuard', name: '魔王親衛', letter: 'V', color: 0x7a1a2a, team: 'enemy', ai: 'brute',
+    maxHp: 130, armor: 5, accuracy: 30, defense: 28, damage: [8, 12],
+    range: 0.3, windup: 0.7, recovery: 1.1, attackSpeed: 1, moveSpeed: 2.4, radius: 0.48,
+    projectsZoc: true, shield: { hpFrac: 0.5, defense: 20, armor: 4 }, pushWeight: 3, skills: [],
+  },
   /** 頭目：戰爭領主（SPEC_SLICE2 §7.3） */
   warlord: {
     id: 'warlord', name: '戰爭領主', letter: 'L', color: 0x7a0d0d, team: 'enemy', ai: 'boss',
