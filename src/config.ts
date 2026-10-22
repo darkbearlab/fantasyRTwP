@@ -61,6 +61,11 @@ export const GAME_CONFIG = {
   },
   /** 技能鍵在 UI 上顯示的字（和 keys.skills 對應；空的時候技能鈕顯示二段式的數字） */
   skillKeyLabels: [] as string[],
+  /**
+   * 要打倒特定敵人才能離開的地圖（Alan 2026-10-22）：戰鬥時間超過這麼多秒（暫停不算），
+   * 或英雄走進非回程的出口時，標示出那些敵人的方向
+   */
+  targetHintDelay: 90,
   /** 數字鍵二段式：選英雄後，這段時間內再按數字就是放技能（毫秒） */
   heroChordMs: 2000,
   /** 正俯視（topdown）模式的渲染比例：1 m = 32 px */
