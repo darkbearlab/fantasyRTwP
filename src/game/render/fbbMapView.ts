@@ -8,6 +8,7 @@
  * - 調色（GRADES）：整張地圖蓋一層乘色（夜晚、黃昏）；飽和度在遊戲裡先不做。
  * 需要正角俯視、不壓縮（Alan：取消縱向壓縮；BattleScene 載入這種地圖時把 squash 設成 1）。
  */
+import { tr } from '../../i18n';
 import Phaser from 'phaser';
 import { GAME_CONFIG } from '../../config';
 import { PREFABS } from '../../run/data/prefabs';
@@ -357,6 +358,6 @@ export class FbbMapView {
     ctx.font = '8px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('房屋', (w * T) / 2, (h * T) / 2);
+    ctx.fillText(tr("房屋"), (w * T) / 2, (h * T) / 2);
   }
 }

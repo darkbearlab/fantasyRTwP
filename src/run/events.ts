@@ -1,7 +1,7 @@
 /**
  * 事件解析與結果套用（SPEC_SLICE2 §6）。事件內容在 data/events.ts。
  */
-import { tr } from '../i18n/lang';
+import { listSep, tr } from '../i18n/lang';
 import { HEROES } from '../sim/data/heroes';
 import type { Rng } from '../sim/rng';
 import type { EventCondition, EventEffect, EventOption, HeroTarget } from './data/events';
@@ -125,7 +125,7 @@ export function applyEffect(r: RunState, e: EventEffect, rng: Rng): string {
       const pool = recruitPool(r);
       const classId = e.classId ?? pool[rng.int(0, pool.length - 1)];
       const bonus = recruitInto(r, slot, classId, rng);
-      return tr("{0}加入了隊伍（欄位 {1}）{2}", { 0: HEROES[classId].name, 1: slot + 1, 2: bonus.length ? tr("，帶著「{0}」", { 0: bonus.join('、') }) : '' });
+      return tr("{0}加入了隊伍（欄位 {1}）{2}", { 0: HEROES[classId].name, 1: slot + 1, 2: bonus.length ? tr("，帶著「{0}」", { 0: bonus.join(listSep()) }) : '' });
     }
     case 'nextBattleBuff': {
       const b = (r.nextBattleBuff ??= {});

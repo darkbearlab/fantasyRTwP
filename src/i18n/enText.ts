@@ -430,6 +430,8 @@ export const EN_TEXT: Record<string, string> = {
   "，昇變成{0}！": ", evolved into {0}!",
   "頭目正等待你的挑戰": "The boss awaits your challenge",
   "精英隊長正等待你的挑戰": "The elite captain awaits your challenge",
+  "打斷！": "Interrupt!",
+  "房屋": "House",
   // 標點、排版用的鍵
   "MVP　{0}{1}": "MVP  {0}{1}",
   "You must gather your party before venturing forth.（{0}／{1}）": "You must gather your party before venturing forth. ({0}/{1})",
