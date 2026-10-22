@@ -26,6 +26,7 @@ import type { BattleSession, DebugFlags } from '../session';
 import type { BattleScene } from './BattleScene';
 import { MobileHeroBar } from '../ui/mobileBar';
 import { RouteMini } from '../ui/routeMini';
+import { getLayoutPref, setLayoutPref, sidePanel } from '../layout';
 import { exitInfos } from '../exitInfo';
 import type { RunState } from '../../run/runState';
 import { AUTO_PAUSE_OPTIONS, LOW_HP_THRESHOLDS } from '../autoPause';
@@ -103,7 +104,12 @@ export class UIScene extends Phaser.Scene {
     // 自己的容器，關閉場景時一起移除（其他畫面也會掛在 #ui 上）
     this.root = el('div', 'hud-root');
     document.getElementById('ui')!.appendChild(this.root);
-    this.events.once('shutdown', () => this.root.remove());
+    this.events.once('shutdown', () => {
+      this.root.remove();
+      // 中欄版面時路線圖、戰鬥紀錄放在兩側（不在 root 裡），要另外拿掉
+      this.routeMini?.root.remove();
+      this.logBox?.remove();
+    });
     this.session = null;
     this.buildTop();
     this.buildBanner();
@@ -215,6 +221,21 @@ export class UIScene extends Phaser.Scene {
       row.appendChild(lab);
       p.appendChild(row);
     }
+    if (!window.matchMedia('(pointer: coarse)').matches) {
+      // 電腦版：直式中欄（和手機一樣的視野）或整個螢幕的橫式版面（Alan 2026-10-23）
+      const row = el('div', 'settings-row');
+      const lab = el('label', 'settings-check');
+      const cb = el('input');
+      cb.type = 'checkbox';
+      cb.tabIndex = -1;
+      cb.checked = getLayoutPref() === 'column';
+      cb.addEventListener('change', () => setLayoutPref(cb.checked ? 'column' : 'wide'));
+      const text = el('div', 'settings-text');
+      text.append(el('div', '', tr("直式畫面（和手機一致）")), el('div', 'settings-hint', tr("路線圖、戰鬥紀錄放在兩側")));
+      lab.append(cb, text);
+      row.appendChild(lab);
+      p.appendChild(row);
+    }
     p.appendChild(el('div', 'settings-sub', tr("自動暫停")));
     for (const o of AUTO_PAUSE_OPTIONS) {
       // 列是 div：勾選框與文字包在 label 裡，門檻下拉選單放在 label 外面（點選單不會切換勾選）
@@ -252,6 +273,21 @@ export class UIScene extends Phaser.Scene {
     const sub = el('div', 'sub', tr("可以下指令——按空白鍵繼續"));
     this.banner.append(title, this.bannerReason, sub);
     this.root.appendChild(this.banner);
+  }
+
+  /**
+   * 電腦版的直式中欄（Alan 2026-10-23）：路線圖常開放在左上、戰鬥紀錄放在右下；
+   * 切回橫式版面（或視窗變窄）時放回遊戲畫面裡。每幀檢查，切換版面不用重開戰鬥。
+   */
+  private dockSides(): void {
+    const place = (node: HTMLElement, side: HTMLElement | null) => {
+      const target = side ?? this.root;
+      if (node.parentElement !== target) target.appendChild(node);
+      node.classList.toggle('docked', !!side);
+    };
+    const left = sidePanel('left');
+    place(this.routeMini.root, left && this.routeBtn.style.display !== 'none' ? left : null);
+    place(this.logBox, sidePanel('right'));
   }
 
   private buildLog(): void {
@@ -675,7 +711,8 @@ export class UIScene extends Phaser.Scene {
       }
     }
 
-    this.logBox.classList.toggle('collapsed', !s.logOpen);
+    this.dockSides();
+    this.logBox.classList.toggle('collapsed', !s.logOpen && !this.logBox.classList.contains('docked'));
     this.logBox.classList.toggle('off', !s.controls.showLog);
     const last = s.log[s.log.length - 1];
     if (s.log.length !== this.logCount || last !== this.logLast) {

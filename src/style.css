@@ -2965,3 +2965,75 @@ html[lang='en'] .title-box h1 {
 #stage.portrait .hud-root.mobile .log {
   top: 52px;
 }
+
+/*
+ * 電腦版的直式中欄（Alan 2026-10-23）：遊戲畫面在中間，左右兩側鋪壓暗的牆面圖塊（像斑鳩電腦版的梵文底圖），
+ * 左上常開章節路線圖、右下放戰鬥紀錄。兩側內容在 .side-inner 裡，縮放倍率和遊戲畫面相同（main.ts 的 fitStage）。
+ */
+.side {
+  display: none;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+body.column .side {
+  display: block;
+}
+body.column {
+  background-color: #000;
+  background-image: var(--side-pattern, repeating-linear-gradient(45deg, #0b0b0b 0 6px, #000 6px 12px));
+  background-size: 192px 96px;
+  image-rendering: pixelated;
+}
+.side-inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+}
+#side-left .side-inner,
+#side-right .side-inner {
+  color: #fff;
+}
+/* 中欄：兩側靠遊戲畫面的那一邊畫一條白線 */
+#side-left {
+  border-right: 2px solid #fff;
+  box-sizing: border-box;
+}
+#side-right {
+  border-left: 2px solid #fff;
+  box-sizing: border-box;
+}
+/* 左上：章節路線圖常開 */
+.route-mini.docked {
+  display: block;
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  left: auto;
+  transform: scale(1.5);
+  transform-origin: top right;
+  pointer-events: auto;
+}
+body.column .route-btn {
+  display: none !important;
+}
+/* 右下：戰鬥紀錄（常開） */
+.log.docked {
+  position: absolute;
+  left: 16px;
+  right: auto;
+  bottom: 16px;
+  top: auto;
+  width: min(380px, calc(100% - 32px));
+  pointer-events: auto;
+}
+.log.docked .log-body {
+  display: block;
+  height: 320px;
+}
+.log.docked .log-head::after {
+  content: '';
+}
