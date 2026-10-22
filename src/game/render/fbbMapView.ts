@@ -48,8 +48,8 @@ export function isFbbMap(map: MapDef): boolean {
 
 export class FbbMapView {
   readonly objects: Phaser.GameObjects.GameObject[] = [];
-  private anims: { sprite: Phaser.GameObjects.Image; sheet: string; k: number; phase: number; fps: number }[] = [];
-  private lights: { img: Phaser.GameObjects.Image; base: number; phase: number }[] = [];
+  private anims: { sprite: Phaser.GameObjects.Image; sheet: string; k: number; phase: number; fps: number; anchor: { x: number; y: number } }[] = [];
+  private lights: { img: Phaser.GameObjects.Image; base: number; phase: number; anchor: { x: number; y: number } }[] = [];
   private readonly art: FbbArt;
   private readonly H: number;
   private readonly k = GAME_CONFIG.ortho.pxPerM / T;
@@ -74,9 +74,25 @@ export class FbbMapView {
     this.buildGrade();
   }
 
-  update(timeSec: number): void {
-    for (const a of this.anims) a.sprite.setFrame(`${a.k}_${(Math.floor(timeSec * a.fps) + a.phase) % 4}`);
-    for (const l of this.lights) l.img.setAlpha(l.base * (0.9 + 0.1 * Math.sin(timeSec * 11 + l.phase)));
+  /**
+   * 每幀：動畫換格、火光閃爍。
+   * visible：戰爭迷霧（有的話）——根部（錨點）不在視野裡的火、煙、火光整個不畫
+   * （Alan 2026-10-23：根部在迷霧裡、畫面上卻從迷霧邊緣冒出完整的煙和火光）
+   */
+  update(timeSec: number, visible?: (p: { x: number; y: number }) => boolean): void {
+    for (const a of this.anims) {
+      a.sprite.setFrame(`${a.k}_${(Math.floor(timeSec * a.fps) + a.phase) % 4}`);
+      a.sprite.setVisible(!visible || visible(a.anchor));
+    }
+    for (const l of this.lights) {
+      l.img.setAlpha(l.base * (0.9 + 0.1 * Math.sin(timeSec * 11 + l.phase)));
+      l.img.setVisible(!visible || visible(l.anchor));
+    }
+  }
+
+  /** 格子 (gx, gy) 中心的世界座標（迷霧查詢用） */
+  private cellWorld(gx: number, gy: number): { x: number; y: number } {
+    return { x: this.H - gy - 0.5, y: gx + 0.5 };
   }
 
   // ───────────── 共用 ─────────────
@@ -160,13 +176,16 @@ export class FbbMapView {
     for (let k = 0; k < 8; k++) for (let f = 0; f < 4; f++) tex.add(`${k}_${f}`, 0, (k % 4) * 48 + 16, Math.floor(k / 4) * 128 + f * 32, 16, 32);
   }
 
-  /** 動畫物件（火、煙）：左上角在格子 (gx, gy) */
-  private anim(name: string, gx: number, gy: number, depth: number, phase: number, alpha = 1): void {
+  /**
+   * 動畫物件（火、煙）：左上角在格子 (gx, gy)。
+   * anchor：根部所在的格子（迷霧判斷用；預設是下面那一格，煙要傳它冒出來的那團火）
+   */
+  private anim(name: string, gx: number, gy: number, depth: number, phase: number, alpha = 1, anchor: [number, number] = [gx, gy + 1]): void {
     const a = ANIM_OBJECTS[name];
     const p = this.topLeft(gx, gy);
     const sprite = this.scene.add.image(p.x, p.y, fbbKey(a.sheet), `${a.index}_0`).setOrigin(0).setScale(this.k).setDepth(depth).setAlpha(alpha);
     this.objects.push(sprite);
-    this.anims.push({ sprite, sheet: a.sheet, k: a.index, phase: phase % 4, fps: a.sheet === 'smoke' ? 3 : 7 });
+    this.anims.push({ sprite, sheet: a.sheet, k: a.index, phase: phase % 4, fps: a.sheet === 'smoke' ? 3 : 7, anchor: this.cellWorld(anchor[0], anchor[1]) });
   }
 
   /** 火光（加亮混合的暖色光暈）；中心在格子 (gx, gy) 的中心，半徑 r 格 */
@@ -181,7 +200,7 @@ export class FbbMapView {
       .setDepth(LIGHT_DEPTH)
       .setAlpha(strength);
     this.objects.push(img);
-    this.lights.push({ img, base: strength, phase });
+    this.lights.push({ img, base: strength, phase, anchor: this.cellWorld(gx, gy) });
   }
 
   /** 雜湊（同一張地圖每次一樣） */
@@ -315,7 +334,7 @@ export class FbbMapView {
       this.put(key, h.x, h.y, depth);
       h.fires.forEach(([fx, fy], j) => {
         this.anim(TOWN_TILES.houseFire, fx, fy - 1, depth + 0.01 + j * 0.001, n + j);
-        this.anim(TOWN_TILES.smoke, fx, fy - 3, SMOKE_DEPTH, n + j, 0.8);
+        this.anim(TOWN_TILES.smoke, fx, fy - 3, SMOKE_DEPTH, n + j, 0.8, [fx, fy]);
         this.light(fx, fy, 4.4, 0.75, n + j);
       });
     });

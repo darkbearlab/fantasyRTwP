@@ -970,7 +970,9 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
     this.updateConcealment();
     const simTime = w.time + this.alpha * DT;
     for (const v of this.views.values()) v.update(this.alpha, selected.has(v.unit.id), s.hoverUnitId === v.unit.id, simTime);
-    this.fbbView?.update(this.time.now / 1000);
+    // 迷霧裡的火、煙、火光不畫（看根部那一格現在看不看得到）
+    const vis = w.vision && w.fogActive ? w.vision : null;
+    this.fbbView?.update(this.time.now / 1000, vis ? (p) => vis.isVisible(p) : undefined);
     this.bossShow.update();
     this.drawDynamicTerrain();
     this.drawInteractables();
