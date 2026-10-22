@@ -76,11 +76,12 @@ const FIRE = {
   flameFps: 7,
   /**
    * 火光（Alan 2026-10-22：光芒也要像素化、周圍壓暗）：一張低解析度的光照貼圖放大成一格一格。
-   * cellArt：一格光照是幾個原始像素；radiusGap：光照半徑＝英雄圍坐距離＋這麼多 px；
+   * cellArt：一格光照是幾個原始像素（Alan 2026-10-22：對齊城裡的火光——半徑 4 格、24px 光照貼圖在 3 倍下是 16px 一格，約 5.33 個原始像素）；
+   * radiusGap：光照半徑＝英雄圍坐距離＋這麼多 px；
    * darkness：最暗處的黑色透明度；warm：火邊暖光的最大透明度；bands：分幾階；flickerMs：多久跳一次；
    * rootLift：光圈中心在火焰根部往上幾個原始像素
    */
-  light: { cellArt: 2, radiusGap: 120, darkness: 0.9, warm: 0.5, bands: 6, flickerMs: 120, rootLift: 4 },
+  light: { cellArt: 16 / 3, radiusGap: 120, darkness: 0.9, warm: 0.5, bands: 5, flickerMs: 120, rootLift: 4 },
 };
 
 /** 一名英雄的 sprite（可能是多層） */
@@ -439,7 +440,7 @@ export class CampfireScene extends Phaser.Scene {
     this.fireRoot = oy + (FIRE.flameOffset[1] + fh - FIRE.light.rootLift) * k;
     // 光照貼圖：暗處（一般疊加）＋火邊暖光（加亮），蓋在地面與英雄上、火焰下
     const L = FIRE.light;
-    const cell = L.cellArt * k;
+    const cell = Math.round(L.cellArt * k);
     const gw = Math.ceil(W / cell);
     // 蓋滿整個畫面高度（地面貼圖會鋪到英雄面板後面）
     const gh = Math.ceil(this.scale.height / cell);
