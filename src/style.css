@@ -2693,8 +2693,23 @@ body {
   border: 2px solid transparent;
   transition: border-color 0.3s, background 0.3s;
 }
-.arc-row.dead .arc-who {
-  filter: grayscale(1) brightness(0.6);
+/* 每一行先藏著，依序出現；陣亡的英雄倒下、整行變灰 */
+.arc-row {
+  opacity: 0;
+  transform: translateX(-24px);
+}
+.arc-row.in {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.25s, transform 0.25s, filter 0.4s, background 0.4s;
+}
+.arc-row.fallen {
+  filter: grayscale(1) brightness(0.55);
+  background: rgba(0, 0, 0, 0.25);
+}
+.arc-row.fallen .arc-who .arc-icon {
+  transform: rotate(-90deg) translate(-6px, 8px);
+  transition: transform 0.4s cubic-bezier(0.5, 0, 0.9, 0.5);
 }
 .arc-row.mvp {
   border-color: #ffd75e;
@@ -2754,7 +2769,13 @@ body {
   background-size: 288px 504px !important;
   background-position: 0 -180px !important;
   opacity: 0;
-  animation: arc-kill-in 0.22s ease-out forwards, arc-kill-down 0.5s ease-in forwards;
+}
+/* 依序：出現（pop）→ 倒下（down） */
+.arc-icon.kill.pop {
+  animation: arc-kill-in 0.22s ease-out forwards;
+}
+.arc-icon.kill.pop.down {
+  animation: arc-kill-down 0.5s ease-in forwards;
 }
 .arc-icon.kill img {
   width: 24px;
