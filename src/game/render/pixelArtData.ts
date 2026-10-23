@@ -15,10 +15,13 @@ import { HEROES } from '../../sim/data/heroes';
 export type PixelUnitArt =
   /** recolor：把藍隊的兩個隊伍色換成這兩個顏色（英雄用職業色，見 heroTeamColors） */
   /** scale：在 PIXEL.unitScale 之外再放大的倍率（大型單位；素材 session 的佔位對照表 2026-10-22） */
-  | { kind: 'mw'; path: string; recolor?: { dark: number; light: number }; scale?: number }
+  /** footY／bodyPx：腳底在格子裡的位置（比例）、身體高幾個像素；省略用 Matt Walkden 的值（MiniFolks 的腳在格子最下面、身體比較矮） */
+  | { kind: 'mw'; path: string; recolor?: { dark: number; light: number }; scale?: number; footY?: number; bodyPx?: number }
   | { kind: 'm72'; idle: string; run: string; frames: number; scale?: number };
 
 const mw = (path: string, scale?: number): PixelUnitArt => (scale ? { kind: 'mw', path, scale } : { kind: 'mw', path });
+/** MiniFolks 隨從（轉成 Matt Walkden 版面）：英雄倍率的 0.75；腳在第 31 列、身體約 16 像素高 */
+const mf = (path: string): PixelUnitArt => ({ kind: 'mw', path, scale: 0.75, footY: 31 / 32, bodyPx: 16 });
 
 /** mw 藍隊的兩個隊伍色（原包固定值；recolor.py 也用這兩個） */
 export const MW_TEAM_DARK = 0x0000c0;
@@ -82,6 +85,11 @@ export const PIXEL_UNITS: Record<string, PixelUnitArt> = {
   // 小波次的雜魚（Alan：用劍兵、斧兵的 sprite）：帝國軍
   raider: mw('mw/recolor/Imperial/SwordFighter/SwordFighter_ShortHair_Imperial1.png'),
   axeman: mw('mw/recolor/Imperial/AxeFighter/AxeFighter_LongHair_Imperial1.png'),
+  // 隨從（Alan 2026-10-23）：MiniFolks 轉成 Matt Walkden 版面；比英雄小一號（約英雄的 2/3 高）
+  fSword: mf('minifolks/MF_SwordMan.png'),
+  fShield: mf('minifolks/MF_ShieldMan.png'),
+  fSpear: mf('minifolks/MF_SpearMan.png'),
+  fArcher: mf('minifolks/MF_Archer.png'),
   // ── 非人類（0x72） ──
   thrall: m72('skelet'),
   minion: m72('skelet'),

@@ -199,7 +199,7 @@ export class InputController {
     this.dragStart = null;
     this.dragNow = null;
     const shift = !!(p.event as MouseEvent | undefined)?.shiftKey;
-    const heroes = s.world.units.filter((u) => u.team === 'hero' && !u.dead);
+    const heroes = s.world.units.filter((u) => u.isHero && !u.dead);
     if (Math.hypot(b.x - a.x, b.y - a.y) > 6) {
       // 框選：比對腳下中心投影後的畫面座標
       const x0 = Math.min(a.x, b.x);
@@ -217,7 +217,7 @@ export class InputController {
       return;
     }
     const unit = this.host.unitAtScreen(a.x, a.y);
-    if (unit && unit.team === 'hero' && !unit.dead) this.selectHero(unit.id, shift);
+    if (unit && unit.isHero && !unit.dead) this.selectHero(unit.id, shift);
     else if (!shift) s.selection = [];
   }
 
@@ -237,7 +237,7 @@ export class InputController {
     const ids = sel.map((u) => u.id);
     if (unit && !unit.dead && unit.team === 'enemy') {
       s.enqueue({ type: 'attack', unitIds: ids, targetId: unit.id });
-    } else if (unit && !unit.dead && unit.team === 'hero') {
+    } else if (unit && !unit.dead && unit.isHero) {
       const others = ids.filter((id) => id !== unit.id);
       if (others.length > 0) s.enqueue({ type: 'follow', unitIds: others, targetId: unit.id });
     } else {
@@ -291,7 +291,7 @@ export class InputController {
    */
   private tapOrder(m: Vec, unit: Unit | undefined, attack = false): void {
     const s = this.session;
-    if (unit && !unit.dead && unit.team === 'hero') {
+    if (unit && !unit.dead && unit.isHero) {
       s.selection = [unit.id];
       return;
     }
@@ -483,7 +483,7 @@ export class InputController {
   /** Tab：主要選取切換到下一名存活英雄（只選他一人） */
   cycleHero(): void {
     const s = this.session;
-    const heroes = s.world.units.filter((u) => u.team === 'hero' && !u.dead).sort((a, b) => a.heroSlot - b.heroSlot);
+    const heroes = s.world.units.filter((u) => u.isHero && !u.dead).sort((a, b) => a.heroSlot - b.heroSlot);
     if (heroes.length === 0) return;
     const p = s.primary();
     const i = p ? heroes.findIndex((u) => u.id === p.id) : -1;
@@ -499,7 +499,7 @@ export class InputController {
     const t = this.tap;
     if (!t || t.moved || t.fired || !this.deliberate) return null;
     const unit = this.host.unitAtScreen(t.sx, t.sy);
-    if (unit && !unit.dead && unit.team === 'hero') return null;
+    if (unit && !unit.dead && unit.isHero) return null;
     const held = (this.now() - t.t0) / 1000;
     // 剛按下的一小段不畫（輕點不會閃一下）
     if (held < 0.15) return null;

@@ -37,8 +37,9 @@ export interface ActionRequest {
 export function actionRate(world: World, u: Unit, kind?: 'attack' | 'skill'): number {
   let r = u.def.attackSpeed * world.config.actionSpeedMult * (u.curseTime > 0 ? 1 - u.curseSlow : 1) * (u.chillTime > 0 ? 1 - u.chillSlow : 1);
   if (kind === 'attack') r *= 1 + u.mods.attackSpeedPct;
-  if (kind === 'attack' && u.team === 'enemy') r *= world.config.enemyAttackSpeedMult;
-  if (kind === 'attack' && u.team === 'hero') {
+  // 隨從（比照敵人小兵）吃敵人的攻速倍率，不吃英雄的
+  if (kind === 'attack' && (u.team === 'enemy' || u.follower)) r *= world.config.enemyAttackSpeedMult;
+  if (kind === 'attack' && u.isHero) {
     r *= world.config.basicAttackSpeedMult;
     const style = hordeStyle(world, u);
     // 狂戰士：生命越低攻速越快
@@ -51,7 +52,7 @@ export function actionRate(world: World, u: Unit, kind?: 'attack' | 'skill'): nu
  * 英雄的普攻方式：怪群模式用 HORDE_ATTACKS；沉穩節奏用被動（職業被動提供，SPEC_SLICE5 §14）；戰術模式沒有。
  */
 export function hordeStyle(world: World, u: Unit): BasicAttackStyle | undefined {
-  if (u.team !== 'hero') return undefined;
+  if (!u.isHero) return undefined;
   if (world.config.battleStyle === 'horde') return HORDE_ATTACKS[u.def.id];
   if (world.config.battleStyle === 'deliberate') return u.passives.find((p) => p.attack)?.attack;
   return undefined;
@@ -828,14 +829,14 @@ export function mitigate(world: World, src: Unit, target: Unit, dmg: number, ski
 
 /** 英雄技能的效果倍率（沉穩節奏 1.5；敵人與舊模式是 1） */
 export function skillPower(world: World, u: Unit): number {
-  return u.team === 'hero' ? world.config.heroSkillPowerMult : 1;
+  return u.isHero ? world.config.heroSkillPowerMult : 1;
 }
 
 /** 造成傷害的總倍率：單位自身（強化、增益）× 我方傷害倍率設定 */
 export function damageMultOf(world: World, u: Unit): number {
   // 狂戰士：生命越低傷害越高
   const lowHp = u.def.lowHpDamageBonus ? 1 + u.def.lowHpDamageBonus * (1 - Math.max(0, u.hp) / u.maxHp) : 1;
-  return u.outgoingDamageMult * lowHp * (u.team === 'hero' ? world.config.heroDamageMult : 1);
+  return u.outgoingDamageMult * lowHp * (u.isHero ? world.config.heroDamageMult : 1);
 }
 
 export interface StrikeParams {

@@ -5,6 +5,8 @@ import { DT, NAV_CELL, RANGE_TOLERANCE } from './constants';
 import { BOSS_INTRO, ENEMIES, enemyRank } from './data/enemies';
 import { BAG, CONSUMABLES } from './data/consumables';
 import { SHRINE_RULES, SHRINES } from './data/shrines';
+import { FOLLOWER_RULES, FOLLOWERS } from './data/followers';
+import { followerOrder } from './ai/follower';
 import { ACTIVE_CYCLES } from './data/cycles';
 import { ITEMS } from './data/items';
 import { offCycle } from './cycle';
@@ -68,6 +70,8 @@ export interface UnitSpawn {
   passives?: string[];
   /** 初始面向（弧度）；省略時英雄朝 +x、敵人朝 −x */
   facing?: number;
+  /** 隨從：主人的英雄欄位（Alan 2026-10-23） */
+  followerOf?: number;
 }
 
 export interface WorldOptions {
@@ -231,14 +235,16 @@ export class World implements ZocContext {
     for (const s of opts.spawns) {
       const def = s.def ?? defs[s.defId];
       if (!def) throw new Error(`未知的單位定義：${s.defId}`);
-      const slot = def.team === 'hero' ? (s.heroSlot ?? heroSlot++) : -1;
+      const follower = s.followerOf !== undefined;
+      const slot = def.team === 'hero' && !follower ? (s.heroSlot ?? heroSlot++) : -1;
       const u = new Unit(this.nextUnitId++, def, s.pos, slot);
+      u.follower = follower;
       if (s.hp !== undefined) u.hp = Math.max(1, Math.min(def.maxHp, Math.round(s.hp)));
       if (s.personality) u.personality = s.personality;
       if (s.squad) u.squad = s.squad;
       if (s.facing !== undefined) u.facing = s.facing;
       // 沉穩節奏（SPEC_SLICE5 §14）：英雄帶職業被動
-      if (def.team === 'hero' && this.config.battleStyle === 'deliberate') {
+      if (def.team === 'hero' && !follower && this.config.battleStyle === 'deliberate') {
         for (const id of CLASS_PASSIVES[def.id] ?? []) u.addPassive(PASSIVES[id]);
         for (const id of s.items ?? []) if (ITEMS[id]) u.addPassive(ITEMS[id].passive);
         for (const id of s.passives ?? []) if (PASSIVES[id]) u.addPassive(PASSIVES[id]);
@@ -253,6 +259,13 @@ export class World implements ZocContext {
       this.units.push(u);
       this.unitById.set(u.id, u);
     }
+    // 隨從認主人（依英雄欄位）
+    opts.spawns.forEach((s, i) => {
+      if (s.followerOf === undefined) return;
+      const u = this.units[i];
+      const master = this.units.find((m) => m.heroSlot === s.followerOf && m.isHero);
+      if (u && master) u.masterId = master.id;
+    });
     this.horde = opts.horde ?? null;
     if (this.horde) {
       for (const s of this.horde.spawners) {
@@ -285,7 +298,7 @@ export class World implements ZocContext {
     if (!def || !def.inBattle || !this.bag.includes(itemId) || this.time < this.consumableReadyAt || this.result) return false;
     if (def.target === 'party') return true;
     const t = targetId !== undefined ? this.getUnit(targetId) : undefined;
-    if (!t || t.team !== 'hero') return false;
+    if (!t || !t.isHero) return false;
     return def.target === 'fallen' ? t.dead : !t.dead;
   }
 
@@ -294,7 +307,7 @@ export class World implements ZocContext {
     const def = CONSUMABLES[itemId];
     this.bag.splice(this.bag.indexOf(itemId), 1);
     this.consumableReadyAt = this.time + BAG.cooldown;
-    const heroes = this.units.filter((u) => u.team === 'hero' && !u.dead);
+    const heroes = this.units.filter((u) => u.isHero && !u.dead);
     const heal = (u: Unit, frac: number) => {
       const amount = Math.min(Math.round(u.maxHp * frac), u.maxHp - u.hp);
       if (amount <= 0) return;
@@ -304,6 +317,8 @@ export class World implements ZocContext {
     const t = targetId !== undefined ? this.getUnit(targetId) : undefined;
     if (def.heal) for (const u of def.target === 'party' ? heroes : t ? [t] : []) heal(u, def.heal);
     if (def.revive && t?.dead) this.reviveUnit(t, def.revive);
+    // 號召戰旗：隨機叫幾隻兵跟著這名英雄
+    if (def.summon && t && !t.dead) this.summonFollowers(t, Array.from({ length: def.summon.count }, () => def.summon!.pool[this.rng.int(0, def.summon!.pool.length - 1)]));
     if (def.stealth)
       for (const u of heroes) {
         u.stealthTime = Math.max(u.stealthTime, def.stealth);
@@ -352,7 +367,21 @@ export class World implements ZocContext {
   }
 
   heroes(): Unit[] {
-    return this.units.filter((u) => u.team === 'hero');
+    return this.units.filter((u) => u.isHero);
+  }
+
+  /**
+   * 召喚隨從（Alan 2026-10-23）：在主人身邊生成 kinds 的小兵，跟著主人。
+   * 回傳生成的單位；遠征在戰後把活著的隨從記回英雄身上。
+   */
+  summonFollowers(master: Unit, kinds: string[]): Unit[] {
+    return kinds.map((kind, i) => {
+      const a = master.facing + Math.PI + (i - (kinds.length - 1) / 2) * 0.7;
+      const u = this.spawnUnit(FOLLOWERS[kind], { x: master.pos.x + Math.cos(a) * 1.4, y: master.pos.y + Math.sin(a) * 1.4 });
+      u.follower = true;
+      u.masterId = master.id;
+      return u;
+    });
   }
 
   enemies(): Unit[] {
@@ -411,7 +440,7 @@ export class World implements ZocContext {
     let toGold = false;
     if (loot.kind === 'heal') {
       for (const h of this.units) {
-        if (h.team !== 'hero' || h.dead) continue;
+        if (!h.isHero || h.dead) continue;
         const amount = Math.min(Math.round(h.maxHp * loot.pct), h.maxHp - h.hp);
         if (amount <= 0) continue;
         h.hp += amount;
@@ -430,7 +459,7 @@ export class World implements ZocContext {
   /** 祭壇：活著的英雄全部得到增益（新的蓋掉舊的） */
   private useShrine(u: Unit, objectId: string, shrine: ShrineKind): void {
     for (const h of this.units) {
-      if (h.team !== 'hero' || h.dead) continue;
+      if (!h.isHero || h.dead) continue;
       h.shrine = shrine;
       h.shrineTime = SHRINE_RULES.duration;
     }
@@ -729,7 +758,7 @@ export class World implements ZocContext {
       case 'interact': {
         const u = this.getUnit(cmd.unitId);
         const s = this.interactables.get(cmd.objectId);
-        if (!u || u.dead || u.team !== 'hero' || !s) break;
+        if (!u || u.dead || !u.isHero || !s) break;
         if (!this.interactables.usable(s)) {
           this.emit({ type: 'notice', unitId: u.id, text: s.def.locked ? tr("上鎖了") : tr("已經用過了") });
           break;
@@ -1138,6 +1167,14 @@ export class World implements ZocContext {
     if (u.team === 'enemy') {
       if (u.def.ai === 'horde') hordeThink(this, u);
       else if (u.def.ai !== 'nest') enemyThink(this, u);
+    } else if (u.follower) {
+      // 隨從（Alan 2026-10-23）：跟著主人、自己打
+      if (u.aiTimer <= 0) {
+        u.aiTimer = FOLLOWER_RULES.thinkInterval;
+        const o = followerOrder(this, u);
+        if (o === null) this.setOrder(u, null);
+        else if (o && !sameOrder(o, u.order)) this.setOrder(u, o);
+      }
     } else if (u.autocast.size > 0 && (!u.order || u.order.type === 'attack' || u.order.type === 'attackMove')) {
       // 技能自動施放：玩家正在移動或施放其他技能時不搶指令
       u.autocastTimer -= DT;
@@ -1746,11 +1783,11 @@ export class World implements ZocContext {
 
   private checkEnd(): void {
     if (this.result) return;
-    const heroAlive = this.units.some((u) => u.team === 'hero' && !u.dead);
+    const heroAlive = this.units.some((u) => u.isHero && !u.dead);
     if (!this.horde && (this.map.exits?.length || this.map.exitLock)) {
       // 出口制（SPEC_SLICE6 §2）：不以全滅判定勝利
       if (!heroAlive) this.result = 'enemy';
-      else if (this.map.exits?.length) this.checkExits(this.units.filter((u) => u.team === 'hero' && !u.dead));
+      else if (this.map.exits?.length) this.checkExits(this.units.filter((u) => u.isHero && !u.dead));
       else if (this.exitsOpen()) this.result = 'hero';
       if (this.result) this.emit({ type: 'battleEnd', winner: this.result, exitId: this.exitId ?? undefined });
       return;
@@ -1779,7 +1816,7 @@ export class World implements ZocContext {
         return this.waveFired(obj.wave) && !this.units.some((u) => u.waveId === obj.wave && !u.dead);
       case 'exit': {
         const r = obj.rect;
-        return this.units.every((h) => h.team !== 'hero' || h.dead || (h.pos.x >= r.x && h.pos.x <= r.x + r.w && h.pos.y >= r.y && h.pos.y <= r.y + r.h));
+        return this.units.every((h) => !h.isHero || h.dead || (h.pos.x >= r.x && h.pos.x <= r.x + r.w && h.pos.y >= r.y && h.pos.y <= r.y + r.h));
       }
     }
   }

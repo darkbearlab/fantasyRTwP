@@ -236,7 +236,7 @@ export class MobileHeroBar {
   build(s: BattleSession): void {
     this.row.innerHTML = '';
     this.cards = [];
-    const heroes = s.world.units.filter((u) => u.team === 'hero').sort((a, b) => a.heroSlot - b.heroSlot);
+    const heroes = s.world.units.filter((u) => u.isHero).sort((a, b) => a.heroSlot - b.heroSlot);
     // 遠征中陣亡或空的欄位也佔一張卡，位置不會錯
     if (s.partySlots) {
       s.partySlots.forEach((info, slot) => {
@@ -314,7 +314,7 @@ export class MobileHeroBar {
 
   /** 存活英雄是否全部被選取（沒有存活英雄時視為否） */
   private allSelected(s: BattleSession): boolean {
-    const alive = s.world.units.filter((u) => u.team === 'hero' && !u.dead);
+    const alive = s.world.units.filter((u) => u.isHero && !u.dead);
     return alive.length > 0 && alive.every((u) => s.selection.includes(u.id));
   }
 
@@ -322,7 +322,7 @@ export class MobileHeroBar {
   private selectAll(): void {
     const s = this.host.session();
     if (s.world.result) return;
-    s.selection = s.world.units.filter((u) => u.team === 'hero' && !u.dead).sort((a, b) => a.heroSlot - b.heroSlot).map((u) => u.id);
+    s.selection = s.world.units.filter((u) => u.isHero && !u.dead).sort((a, b) => a.heroSlot - b.heroSlot).map((u) => u.id);
   }
 
   update(s: BattleSession): void {

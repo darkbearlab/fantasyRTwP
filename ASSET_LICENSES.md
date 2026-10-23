@@ -40,6 +40,12 @@
 - 授權：可以修改；不可再散布或轉售（即使修改過）。放在私有素材 repo 的 `vfx/kml/`。
 - 署名：不需要，遊戲內「製作人員」仍列出。
 
+## LYASeeK〈MiniFolks - Humans〉（**不在本 repo 內**）
+
+- 來源：https://lyaseek.itch.io/minifhumans（免費）。授權：可以使用、可以商用；不可轉售或散布。
+- 用途：隨從（劍兵、盾兵、槍兵、弓兵），轉成 Matt Walkden 版面後放在私有素材 repo 的 `minifolks/`。
+- 署名：不需要，遊戲內「製作人員」仍列出。
+
 ## 0x72〈16x16 DungeonTileset II〉v1.7（`public/assets/0x72/`）
 
 - 來源：https://0x72.itch.io/dungeontileset-ii

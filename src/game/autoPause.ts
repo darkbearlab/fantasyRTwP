@@ -36,7 +36,7 @@ export function installAutoPause(s: BattleSession): void {
     switch (ev.type) {
       case 'hit': {
         const t = w.getUnit(ev.targetId);
-        if (!t || t.team !== 'hero' || t.dead || !cfg.heroLowHp) break;
+        if (!t || !t.isHero || t.dead || !cfg.heroLowHp) break;
         if (t.hp / t.maxHp < cfg.heroLowHpThreshold && !s.lowHpWarned.has(t.id)) {
           s.lowHpWarned.add(t.id);
           pause(tr("{0}生命低於 {1}%", { 0: s.label(t.id), 1: Math.round(cfg.heroLowHpThreshold * 100) }));
@@ -50,7 +50,7 @@ export function installAutoPause(s: BattleSession): void {
       }
       case 'death': {
         const u = w.getUnit(ev.unitId);
-        if (u?.team === 'hero' && cfg.heroDeath) pause(tr("{0}陣亡", { 0: s.label(u.id) }));
+        if (u?.isHero && cfg.heroDeath) pause(tr("{0}陣亡", { 0: s.label(u.id) }));
         break;
       }
       case 'actionStart': {

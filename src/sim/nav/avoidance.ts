@@ -35,6 +35,8 @@ export function separateUnits(units: readonly Unit[], gridFor: (u: Unit) => NavG
       if (j <= i) continue;
       const b = units[j];
       if (b.dead) continue;
+      // 隨從（Alan 2026-10-23）：不擋自己人（同隊而且其中一方是隨從就不推開）；照樣擋敵人
+      if (a.team === b.team && (a.follower || b.follower)) continue;
       let dx = b.pos.x - a.pos.x;
       let dy = b.pos.y - a.pos.y;
       let d = Math.hypot(dx, dy);

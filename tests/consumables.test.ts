@@ -23,6 +23,8 @@ describe('消耗品（Alan 2026-10-21）', () => {
   it('遠征開始時包包有兩瓶治療藥水；戰鬥中用掉會從包包拿掉，戰後寫回遠征', () => {
     const r = createRun(3, { style: 'deliberate' });
     expect(r.bag).toEqual(BAG.start);
+    // 開局包包現在多一面號召戰旗（測試用，Alan 2026-10-23）：這裡只測藥水
+    r.bag = ['potion', 'potion'];
     const w = battle(r);
     const h = w.units.find((u) => u.team === 'hero')!;
     h.hp = 20;
@@ -59,6 +61,7 @@ describe('消耗品（Alan 2026-10-21）', () => {
   });
   it('路線圖上用藥水、在商人那裡買消耗品', () => {
     let r = createRun(3, { style: 'deliberate' });
+    r.bag = ['potion', 'potion'];
     const h = r.party[0]!;
     h.hp = 10;
     expect(canUseOnMap(r, 'potion', 0)).toBe(true);

@@ -188,6 +188,14 @@ export class Unit {
 
   /** 沉穩節奏的敵人（SPEC_SLICE5 §15）：所屬小隊（一起警覺）、是否已警覺、最近受到的傷害（仇恨） */
   squad?: string;
+  /** 隨從（Alan 2026-10-23）：跟著英雄的小兵；不算英雄（不能選、不算出口與全滅、不吃補血） */
+  follower = false;
+  /** 隨從的主人（英雄的 unit id；-1＝沒有） */
+  masterId = -1;
+  /** 是不是玩家的英雄本人（我方而且不是隨從） */
+  get isHero(): boolean {
+    return this.team === 'hero' && !this.follower;
+  }
   alerted = false;
   /** 小衝突導演叫來的敵人：附近沒有看得到的英雄時沿著流場（水流法）往隊伍走 */
   hunting = false;

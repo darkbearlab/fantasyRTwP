@@ -2,6 +2,8 @@
  * 消耗品的遠征規則（Alan 2026-10-21）：包包、商人、掉落、在路線圖上使用。純函式（舊狀態 → 新狀態）。
  * 戰鬥中的使用在 sim（World.useConsumable），戰後剩下的寫回 RunState.bag。
  */
+import { FOLLOWERS } from '../sim/data/followers';
+import { rngFor } from './seed';
 import { tr } from '../i18n/lang';
 import { BAG, CONSUMABLES } from '../sim/data/consumables';
 import type { Rng } from '../sim/rng';
@@ -54,6 +56,7 @@ export function canUseOnMap(run: RunState, id: string, slot?: number): boolean {
   if (def.target === 'party') return run.party.some((h) => h && !h.dead && h.hp < maxHpOf(h));
   const h = slot !== undefined ? run.party[slot] : null;
   if (!h) return false;
+  if (def.summon) return !h.dead;
   return def.target === 'fallen' ? h.dead : !h.dead && h.hp < maxHpOf(h);
 }
 
@@ -71,6 +74,14 @@ export function useOnMap(run: RunState, id: string, slot?: number): RunState {
       h.dead = false;
       h.hp = Math.max(1, Math.round(maxHpOf(h) * (def.revive ?? 0.3)));
     } else if (def.heal) heal(h, def.heal);
+    // 號召戰旗：隨機叫兵（種子決定），滿血跟著這名英雄
+    if (def.summon) {
+      const rng = rngFor(r.seed, 'summon', r.stats.battles, (h.followers ?? []).length, r.journal.length);
+      for (let i = 0; i < def.summon.count; i++) {
+        const kind = def.summon.pool[rng.int(0, def.summon.pool.length - 1)];
+        (h.followers ??= []).push({ kind, hp: FOLLOWERS[kind].maxHp });
+      }
+    }
   }
   r.journal.push(tr("用了「{0}」。", { 0: def.name }));
   return r;

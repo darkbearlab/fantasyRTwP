@@ -51,6 +51,11 @@ const UNIT_HEIGHT: Record<string, number> = {
   ogre: 2.6,
   warTotem: 2.4,
   orcChief: 3.0,
+  // 隨從（Alan 2026-10-23）：比英雄小一號（sprite 是英雄倍率的 0.75）
+  fSword: 1.3,
+  fShield: 1.3,
+  fSpear: 1.3,
+  fArcher: 1.3,
   // 沉穩節奏的新敵人（借用現有素材）
   shieldbearer: 2.1,
   charger: 2.2,
