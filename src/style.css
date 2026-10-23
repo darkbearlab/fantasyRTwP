@@ -3006,34 +3006,54 @@ body.column {
   border-left: 2px solid #fff;
   box-sizing: border-box;
 }
-/* 左上：章節路線圖常開 */
+/* 左側：章節路線圖常開，盡量放大、上下置中（倍率由 UIScene 依側邊大小算），半透明底 */
 .route-mini.docked {
   display: block;
   position: absolute;
-  top: 16px;
-  right: 16px;
-  left: auto;
-  transform: scale(1.5);
-  transform-origin: top right;
+  top: 50%;
+  left: 50%;
+  transform-origin: center;
+  background: rgba(0, 0, 0, 0.55);
   pointer-events: auto;
 }
 body.column .route-btn {
   display: none !important;
 }
-/* 右下：戰鬥紀錄（常開） */
-.log.docked {
+/* 右側：由下往上排的欄——包包（常開）在上、戰鬥紀錄（收起，按了才展開）在下 */
+.side-stack {
   position: absolute;
   left: 16px;
-  right: auto;
+  right: 16px;
   bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 12px;
+  max-width: 380px;
+}
+.log.docked {
+  position: relative;
+  left: auto;
+  right: auto;
+  bottom: auto;
   top: auto;
-  width: min(380px, calc(100% - 32px));
+  width: 100%;
   pointer-events: auto;
 }
 .log.docked .log-body {
-  display: block;
   height: 320px;
 }
-.log.docked .log-head::after {
-  content: '';
+.m-bag-pop.docked {
+  position: relative;
+  bottom: auto;
+  left: auto;
+  margin: 0;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+.m-bag-title {
+  font-size: 13px;
+  font-weight: bold;
+  margin-bottom: 2px;
 }

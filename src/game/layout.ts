@@ -8,8 +8,8 @@ const KEY = 'fantasyRTwP.layout';
 export type LayoutPref = 'column' | 'wide';
 
 export const COLUMN = {
-  /** 中欄的邏輯大小（和手機直拿 390 × 844、縮放 0.85 時看到的範圍差不多） */
-  width: 460,
+  /** 中欄的邏輯大小：9 : 19.5（手機直拿的比例；Alan 2026-10-23） */
+  width: 462,
   height: 1000,
   /** 螢幕寬高比至少這麼寬才用中欄（再窄就直接用原本的版面） */
   minAspect: 1.05,

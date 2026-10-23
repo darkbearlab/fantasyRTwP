@@ -14,7 +14,7 @@ import { currentActiveSkill } from '../../sim/cycle';
 import { HEROES } from '../../sim/data/heroes';
 import { SKILLS } from '../../sim/data/skills';
 import type { Unit } from '../../sim/unit';
-import { CONSUMABLES } from '../../sim/data/consumables';
+import { BAG, CONSUMABLES } from '../../sim/data/consumables';
 import { beginSkill, confirmTargeting, targetingDef, validSkillTarget } from '../input/targeting';
 import type { BattleSession } from '../session';
 import { hex } from '../render/palette';
@@ -163,6 +163,7 @@ export class MobileHeroBar {
     for (const k of mc.order) if (buttons[k]) pauseRow.appendChild(buttons[k]);
     const pauseCol = el('div', `m-pause-col align-${mc.align}`);
     pauseCol.append(this.pauseLabel, this.bagPop, pauseRow);
+    this.bagHome = pauseCol;
     this.row = el('div', 'm-cards');
     // 控制鈕列與卡片列包在一起，寬度跟著卡片列
     const dock = el('div', 'm-dock');
@@ -173,6 +174,25 @@ export class MobileHeroBar {
   private bagBtn: HTMLElement;
   private bagPop: HTMLElement;
   private bagOpen = false;
+  private bagHome!: HTMLElement;
+  /** 電腦版直式中欄：包包放在右側常開（Alan 2026-10-23：空間讓給包包） */
+  private bagDocked = false;
+
+  /** 把包包清單放到 side（右側）常開；null＝放回按鈕上方的彈出清單 */
+  dockBag(side: HTMLElement | null): void {
+    const docked = !!side;
+    const target = side ?? this.bagHome;
+    if (this.bagPop.parentElement !== target) {
+      if (side) target.prepend(this.bagPop);
+      else this.bagHome.insertBefore(this.bagPop, this.bagHome.children[1] ?? null);
+    }
+    if (docked !== this.bagDocked) {
+      this.bagDocked = docked;
+      this.bagPop.classList.toggle('docked', docked);
+      this.bagKey = '';
+      this.renderBag();
+    }
+  }
   /** 包包清單的內容（變了才重畫） */
   private bagKey = '';
 
@@ -181,14 +201,16 @@ export class MobileHeroBar {
     const s = this.host.session();
     const w = s.world;
     const cd = Math.max(0, w.consumableReadyAt - w.time);
-    const key = `${this.bagOpen}|${w.bag.join(',')}|${Math.ceil(cd)}|${s.itemTargeting}`;
+    const open = this.bagOpen || this.bagDocked;
+    const key = `${open}|${w.bag.join(',')}|${Math.ceil(cd)}|${s.itemTargeting}`;
     this.bagBtn.classList.toggle('active', this.bagOpen || !!s.itemTargeting);
     this.bagBtn.textContent = s.itemTargeting ? '✕' : `🎒${w.bag.length ? w.bag.length : ''}`;
     if (key === this.bagKey) return;
     this.bagKey = key;
     this.bagPop.innerHTML = '';
-    this.bagPop.classList.toggle('open', this.bagOpen);
-    if (!this.bagOpen) return;
+    this.bagPop.classList.toggle('open', open);
+    if (!open) return;
+    if (this.bagDocked) this.bagPop.appendChild(el('div', 'm-bag-title', tr("🧪 包包（消耗品 {0}／{1}）", { 0: w.bag.length, 1: BAG.capacity })));
     if (w.bag.length === 0) this.bagPop.appendChild(el('div', 'm-bag-empty', tr("包包是空的")));
     for (const id of [...new Set(w.bag)]) {
       const def = CONSUMABLES[id];

@@ -109,6 +109,9 @@ export class UIScene extends Phaser.Scene {
       // 中欄版面時路線圖、戰鬥紀錄放在兩側（不在 root 裡），要另外拿掉
       this.routeMini?.root.remove();
       this.logBox?.remove();
+      // 右側的欄會沿用到下一場：裡面這場的包包、戰鬥紀錄清掉
+      this.rightStack.replaceChildren();
+      this.rightStack.remove();
     });
     this.session = null;
     this.buildTop();
@@ -286,9 +289,24 @@ export class UIScene extends Phaser.Scene {
       node.classList.toggle('docked', !!side);
     };
     const left = sidePanel('left');
-    place(this.routeMini.root, left && this.routeBtn.style.display !== 'none' ? left : null);
-    place(this.logBox, sidePanel('right'));
+    const mini = left && this.routeBtn.style.display !== 'none' ? left : null;
+    place(this.routeMini.root, mini);
+    // 左側的路線圖：盡量放大、上下置中（Alan 2026-10-23）
+    if (mini) {
+      const k = Math.max(1, Math.min((mini.clientWidth - 32) / this.routeMini.root.offsetWidth, (mini.clientHeight - 32) / this.routeMini.root.offsetHeight));
+      const t = `translate(-50%, -50%) scale(${k.toFixed(3)})`;
+      if (this.routeMini.root.style.transform !== t) this.routeMini.root.style.transform = t;
+    } else if (this.routeMini.root.style.transform) this.routeMini.root.style.transform = '';
+    // 右側：包包（常開）在上、戰鬥紀錄（收起，按了才展開）在下
+    const right = sidePanel('right');
+    if (right && this.rightStack.parentElement !== right) right.appendChild(this.rightStack);
+    if (!right && this.rightStack.parentElement) this.rightStack.remove();
+    place(this.logBox, right ? this.rightStack : null);
+    this.mobileBar.dockBag(right ? this.rightStack : null);
   }
+
+  /** 右側的欄：由下往上排（包包、戰鬥紀錄） */
+  private rightStack = el('div', 'side-stack');
 
   private buildLog(): void {
     this.logBox = el('div', 'log interactive');
@@ -712,7 +730,7 @@ export class UIScene extends Phaser.Scene {
     }
 
     this.dockSides();
-    this.logBox.classList.toggle('collapsed', !s.logOpen && !this.logBox.classList.contains('docked'));
+    this.logBox.classList.toggle('collapsed', !s.logOpen);
     this.logBox.classList.toggle('off', !s.controls.showLog);
     const last = s.log[s.log.length - 1];
     if (s.log.length !== this.logCount || last !== this.logLast) {
