@@ -37,7 +37,7 @@ export class ResultScene extends Phaser.Scene {
     box.className = 'result interactive';
     const t = w.time;
     const rows = w.units
-      .filter((u) => u.team === 'hero')
+      .filter((u) => u.isHero)
       .sort((a, b) => a.heroSlot - b.heroSlot)
       .map(
         (u) =>

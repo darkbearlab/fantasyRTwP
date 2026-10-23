@@ -1393,13 +1393,22 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
       const w = 30;
       const x = head.x - w / 2;
       const y = head.y - (iso ? 4 : 11);
-      g.fillStyle(COLORS.hpBack, 0.85);
-      g.fillRect(x - 1, y - 1, w + 2, 6);
       const frac = Math.max(0, u.hp / u.maxHp);
-      g.fillStyle(u.team === 'hero' ? (frac < 0.3 ? 0xff5e3a : COLORS.hpHero) : COLORS.hpEnemy, 1);
-      g.fillRect(x, y, w * frac, 4);
+      if (u.follower) {
+        // 隨從（Alan 2026-10-23）：生命只用一個點表示——綠＝健康、黃＝受傷、紅＝瀕死
+        const c = frac > 0.6 ? 0x5dd16a : frac > 0.3 ? 0xf2d24b : 0xe8473a;
+        g.fillStyle(0x000000, 0.9);
+        g.fillRect(head.x - 4, y - 1, 8, 8);
+        g.fillStyle(c, 1);
+        g.fillRect(head.x - 3, y, 6, 6);
+      } else {
+        g.fillStyle(COLORS.hpBack, 0.85);
+        g.fillRect(x - 1, y - 1, w + 2, 6);
+        g.fillStyle(u.team === 'hero' ? (frac < 0.3 ? 0xff5e3a : COLORS.hpHero) : COLORS.hpEnemy, 1);
+        g.fillRect(x, y, w * frac, 4);
+      }
       const a = u.action;
-      if (a && (a.phase === 'windup' || a.phase === 'recovery')) {
+      if (a && !u.follower && (a.phase === 'windup' || a.phase === 'recovery')) {
         g.fillStyle(COLORS.hpBack, 0.85);
         g.fillRect(x - 1, y + 5, w + 2, 5);
         g.fillStyle(a.phase === 'windup' ? COLORS.windup : COLORS.recovery, 1);

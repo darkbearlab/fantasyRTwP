@@ -174,6 +174,16 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
   }
   // 包包：戰鬥中用掉的消耗品拿掉
   if (runStyle(r) === 'deliberate' && outcome.bag) r.bag = [...outcome.bag];
+  // 隨從（Alan 2026-10-23）：只留下活著的，生命照戰後的樣子（不補血）；主人陣亡就散了
+  if (outcome.followers) {
+    for (const o of outcome.heroes) {
+      const h = r.party[o.slot];
+      if (!h) continue;
+      const left = outcome.followers.filter((f) => f.slot === o.slot).map((f) => ({ kind: f.kind, hp: Math.round(f.hp) }));
+      if (h.dead || left.length === 0) delete h.followers;
+      else h.followers = left;
+    }
+  }
   r.nextBattleBuff = null;
   r.stats.battles++;
   r.stats.battleTime += outcome.time;

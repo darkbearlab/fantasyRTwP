@@ -4,6 +4,7 @@
  *
  * target：hero＝一名活著的英雄、party＝全隊、fallen＝一名陣亡的英雄。
  */
+import { RALLY_POOL } from './followers';
 export interface ConsumableDef {
   id: string;
   name: string;
@@ -15,6 +16,8 @@ export interface ConsumableDef {
   revive?: number;
   /** 全隊隱身秒數（煙霧） */
   stealth?: number;
+  /** 號召：叫 count 隻兵跟著目標英雄（從 pool 隨機抽；Alan 2026-10-23） */
+  summon?: { count: number; pool: string[] };
   /** 戰鬥中、路線圖上能不能用 */
   inBattle: boolean;
   onMap: boolean;
@@ -25,6 +28,10 @@ export const CONSUMABLES: Record<string, ConsumableDef> = {
   potion: { id: 'potion', name: '治療藥水', description: '一名英雄回復 40% 生命', target: 'hero', heal: 0.4, inBattle: true, onMap: true, price: 30 },
   elixir: { id: 'elixir', name: '群體藥劑', description: '全隊回復 20% 生命', target: 'party', heal: 0.2, inBattle: true, onMap: true, price: 50 },
   phoenix: { id: 'phoenix', name: '鳳凰羽毛', description: '陣亡的英雄以 30% 生命復活（戰鬥中也能用）', target: 'fallen', revive: 0.3, inBattle: true, onMap: true, price: 90 },
+  rallyBanner: {
+    id: 'rallyBanner', name: '號召戰旗', description: '隨機叫 4 名兵（劍兵、盾兵、槍兵、弓兵）跟著一名英雄；死了就沒了，不會補充、不會補血',
+    target: 'hero', summon: { count: 4, pool: RALLY_POOL }, inBattle: true, onMap: true, price: 80,
+  },
   smoke: { id: 'smoke', name: '煙霧彈', description: '全隊隱身 3 秒（脫離戰鬥用；只能在戰鬥中用）', target: 'party', stealth: 3, inBattle: true, onMap: false, price: 40 },
 };
 
@@ -34,5 +41,5 @@ export const BAG = {
   /** 戰鬥中使用的共用冷卻（秒） */
   cooldown: 3,
   /** 遠征開始時的包包 */
-  start: ['potion', 'potion'],
+  start: ['potion', 'potion', 'rallyBanner'],
 };

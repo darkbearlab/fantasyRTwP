@@ -45,8 +45,8 @@ export class PixelView implements UnitVisual {
     const s = PIXEL.unitScale * (art.scale ?? 1);
     this.ring = scene.add.graphics();
     if (art.kind === 'mw') {
-      this.sprite = scene.add.sprite(0, 0, artKey(art), mwFrame(1, 0, 0)).setOrigin(0.5, PIXEL.mwFootY);
-      this.bodyH = PIXEL.mwBodyPx * s;
+      this.sprite = scene.add.sprite(0, 0, artKey(art), mwFrame(1, 0, 0)).setOrigin(0.5, art.footY ?? PIXEL.mwFootY);
+      this.bodyH = (art.bodyPx ?? PIXEL.mwBodyPx) * s;
     } else {
       this.sprite = scene.add.sprite(0, 0, m72Key(`${art.idle}_f0`)).setOrigin(0.5, 1);
       this.bodyH = this.sprite.height * s;

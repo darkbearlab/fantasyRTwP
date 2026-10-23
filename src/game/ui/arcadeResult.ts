@@ -70,7 +70,7 @@ export function showArcadeResult(scene: Phaser.Scene, world: World, before: RunS
   root.appendChild(title);
 
   // ── 英雄與擊殺 ──
-  const heroes = world.units.filter((u) => u.team === 'hero').sort((a, b) => a.heroSlot - b.heroSlot);
+  const heroes = world.units.filter((u) => u.isHero).sort((a, b) => a.heroSlot - b.heroSlot);
   const board = el('div', 'arc-board');
   const killIcons: HTMLElement[] = [];
   const rows = new Map<Unit, HTMLElement>();

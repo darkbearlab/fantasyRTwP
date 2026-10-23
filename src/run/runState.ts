@@ -36,6 +36,8 @@ export interface HeroRecord {
   upgrades: OwnedUpgrade[];
   /** 裝備的道具（SPEC_SLICE5 §17；舊紀錄沒有） */
   items?: string[];
+  /** 隨從（Alan 2026-10-23）：兵種與目前生命；戰鬥中死了就拿掉，不會補充、不會補血 */
+  followers?: { kind: string; hp: number }[];
   dead: boolean;
   kills: number;
   damageDealt: number;

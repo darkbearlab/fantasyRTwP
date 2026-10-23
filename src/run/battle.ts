@@ -1,6 +1,7 @@
 /**
  * 遠征 ↔ 戰鬥的介面（SPEC_SLICE2 §10.2）：由 RunState 建立 World、把戰鬥結果寫回。
  */
+import { FOLLOWERS } from '../sim/data/followers';
 import { tr } from '../i18n/lang';
 import { dist } from '../sim/math';
 import { ENEMIES, enemyRank } from '../sim/data/enemies';
@@ -213,6 +214,16 @@ export function createBattleFromRun(run: RunState, config?: Partial<SimConfig>, 
     if (deliberate) def = { ...def, skills: deliberateSkillsOf(hero.classId) };
     spawns.push({ defId: hero.classId, def, pos: map.heroSpawns[i % map.heroSpawns.length], heroSlot: slot, hp: hero.hp, personality: hero.personality, items: hero.items, passives: deliberate ? heroPassives(hero) : undefined });
   });
+  // 隨從（Alan 2026-10-23）：跟在主人身邊出場，生命延續上一場
+  livingHeroes(run).forEach(({ slot, hero }, i) => {
+    const at = map.heroSpawns[i % map.heroSpawns.length];
+    (hero.followers ?? []).forEach((f, k) => {
+      const def = FOLLOWERS[f.kind];
+      if (!def) return;
+      const a = (k / Math.max(1, (hero.followers ?? []).length)) * Math.PI * 2;
+      spawns.push({ defId: f.kind, def, pos: { x: at.x + Math.cos(a) * 0.9, y: at.y + Math.sin(a) * 0.9 }, hp: f.hp, followerOf: slot });
+    });
+  });
   // 怪群模式：地圖與遭遇的生成點合併，戰鬥模式自動設成 horde，精英與頭目生命下降
   const horde = enc.horde ? { ...enc.horde, spawners: [...(map.spawners ?? []), ...enc.horde.spawners] } : undefined;
   // 沉穩節奏（Alan 2026-10-21：太泥濘）：一般敵人生命減半，精英隊長與頭目不變
@@ -246,6 +257,8 @@ export interface BattleOutcome {
   loot?: LootDef[];
   time: number;
   heroes: { slot: number; hp: number; dead: boolean; kills: number; damageDealt: number; damageTaken: number; personality?: Personality }[];
+  /** 戰後還活著的隨從（主人的欄位、兵種、生命）；戰鬥中新叫的也在裡面 */
+  followers?: { slot: number; kind: string; hp: number }[];
 }
 
 export function battleOutcomeFromWorld(world: World): BattleOutcome {
@@ -257,8 +270,12 @@ export function battleOutcomeFromWorld(world: World): BattleOutcome {
     time: world.time,
     bag: [...world.bag],
     loot: [...world.loot],
+    followers: world.units
+      .filter((u) => u.follower && !u.dead && u.masterId >= 0)
+      .map((u) => ({ slot: world.getUnit(u.masterId)?.heroSlot ?? -1, kind: u.def.id, hp: u.hp }))
+      .filter((f) => f.slot >= 0),
     heroes: world.units
-      .filter((u) => u.team === 'hero')
+      .filter((u) => u.isHero)
       .map((u) => ({ slot: u.heroSlot, hp: u.hp, dead: u.dead, kills: u.stats.kills, damageDealt: u.stats.damageDealt, damageTaken: u.stats.damageTaken, personality: u.personality })),
   };
 }

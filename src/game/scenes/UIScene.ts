@@ -558,7 +558,7 @@ export class UIScene extends Phaser.Scene {
   private buildHeroBar(s: BattleSession): void {
     this.heroBar.innerHTML = '';
     this.cards = [];
-    const heroes = s.world.units.filter((u) => u.team === 'hero').sort((a, b) => a.heroSlot - b.heroSlot);
+    const heroes = s.world.units.filter((u) => u.isHero).sort((a, b) => a.heroSlot - b.heroSlot);
     // 遠征模式：陣亡或空欄位也佔位，數字鍵不會錯位
     if (s.partySlots) {
       s.partySlots.forEach((info, slot) => {

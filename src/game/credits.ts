@@ -11,6 +11,7 @@ export const CREDITS = {
     { title: '戰鬥地圖地形', line: 'finalbossblues（Jason Perry）— Time Elements: Hometown、Four Seasons Terrain、Castles and Catacombs、Caves and Mines（finalbossblues.itch.io）' },
     { title: '特效', line: 'Kendrick ML — All Fantasy World Explosions vfx（xthekendrick.itch.io）' },
     { title: '英文字體', line: 'Alagard font by Hewett Tsoi' },
+    { title: '隨從', line: 'LYASeeK — MiniFolks - Humans（lyaseek.itch.io）' },
   ],
   flare: {
     title: 'Flare 美術素材（flare-game · mods/fantasycore）',

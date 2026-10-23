@@ -187,7 +187,11 @@ export const EN_CONSUMABLES: NameDesc = {
   elixir: ['Party Elixir', 'The whole party recovers 20% HP'],
   phoenix: ['Phoenix Feather', 'Revives a fallen hero with 30% HP (usable in battle)'],
   smoke: ['Smoke Bomb', 'The whole party is hidden for 3 s (to disengage; battle only)'],
+  rallyBanner: ['Rally Banner', 'Calls 4 random soldiers (sword, shield, spear, bow) to follow one hero; they do not come back or heal once lost'],
 };
+
+/** 隨從（Alan 2026-10-23） */
+export const EN_FOLLOWERS: Record<string, string> = { fSword: 'Swordsman', fShield: 'Shieldbearer', fSpear: 'Spearman', fArcher: 'Archer' };
 
 export const EN_CLASS_ROLES: Record<string, string> = {
   warrior: 'Front-line blocker',
