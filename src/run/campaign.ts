@@ -6,6 +6,8 @@
 import { tr } from '../i18n/lang';
 import { CHAPTERS, chapterAt, chapterDepth } from './data/chapters';
 import { initOverworld } from './overworld';
+import { chooseNode } from './progression';
+import { startNodeOf } from './journey';
 import { generateRouteMap } from './routeMap';
 import type { RunState } from './runState';
 import { cloneRun, livingHeroes } from './runState';
@@ -52,5 +54,7 @@ export function startChapter(run: RunState): RunState {
     r.journal.push(tr("第 {0} 章「{1}」開始。", { 0: n + 1, 1: ch.name }));
   }
   r.phase = { kind: 'map' };
+  // 一路向前（SPEC_SLICE7 §1）：每章第一張圖直接進去（不經過「前方的路」畫面）
+  if (r.forward && r.currentNodeId === null) return chooseNode(r, startNodeOf(r));
   return r;
 }

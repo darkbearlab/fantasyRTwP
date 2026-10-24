@@ -4,7 +4,8 @@ import type { BattleOutcome } from '../src/run/battle';
 import { createBattleFromRun } from '../src/run/battle';
 import { buyConsumable, canBuyConsumable } from '../src/run/consumables';
 import { buyItem, canBuy, shopOf } from '../src/run/items';
-import { journeyDepth, journeyStrength, previewOf, rescueAt } from '../src/run/journey';
+import { journeyDepth, journeyStrength, previewOf, rescueAt, startNodeOf } from '../src/run/journey';
+import { startChapter } from '../src/run/campaign';
 import { JOURNEY } from '../src/run/data/journey';
 import { CHAPTERS } from '../src/run/data/chapters';
 import { ENEMIES } from '../src/sim/data/enemies';
@@ -143,5 +144,13 @@ describe('強度曲線（SPEC_SLICE7 §3.3）', () => {
     if (!e) return;
     const s = journeyStrength(r, r.map.nodes[r.currentNodeId!]);
     expect(e.def.damageMult ?? 1).toBeCloseTo((ENEMIES.raider.damageMult ?? 1) * s);
+  });
+});
+
+describe('章節開頭', () => {
+  it('一路向前：看完過場直接進第一張圖（不經過「前方的路」畫面）', () => {
+    const r = startChapter(createRun(12, { style: 'deliberate', intro: true }));
+    expect(r.phase.kind).toBe('battle');
+    expect(r.currentNodeId).toBe(startNodeOf(r));
   });
 });
