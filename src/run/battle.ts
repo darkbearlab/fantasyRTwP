@@ -16,7 +16,7 @@ import type { EncounterDef } from './data/encounters';
 import { ENCOUNTERS } from './data/encounters';
 import type { RunState } from './runState';
 import { livingHeroes } from './runState';
-import { deriveSeed } from './seed';
+import { deriveSeed, rngFor } from './seed';
 import type { LevelTier } from './levelGen';
 import type { DeliberateTier } from './data/deliberateLevels';
 import { generateLevel } from './levelGen';
@@ -38,7 +38,7 @@ import { DEFAULT_SIM_CONFIG } from '../sim/simConfig';
 import { heroDef, heroPassives } from './upgrades';
 import { currentChapter, depthOffset } from './campaign';
 import { factionOf } from './data/factions';
-import { freeSpotNear, journeyStrength, withMerchant } from './journey';
+import { freeSpotNear, journeyDepth, journeyStrength, withMerchant } from './journey';
 import { JOURNEY } from './data/journey';
 
 /** 敵人數值隨層數成長；隊長另外強化。strength：直接指定強度倍率（一路向前，SPEC_SLICE7 §3.3） */
@@ -248,9 +248,31 @@ export function createBattleFromRun(run: RunState, config?: Partial<SimConfig>, 
   const lighter = (d: UnitDef): UnitDef => (deliberate && enemyRank(d) === 'normal' ? { ...d, maxHp: Math.max(1, Math.round(d.maxHp * DELIBERATE_PACE.enemyHpMult)) } : d);
   // 一路向前：敵人強度照全程深度（SPEC_SLICE7 §3.3）
   const strength = run.forward && run.phase.kind === 'battle' ? journeyStrength(run, run.map.nodes[run.phase.nodeId]) : undefined;
-  const scaled = (id: string, captain?: boolean) => (horde ? hordeEnemyDef(enemyDef(id, layer, captain)) : lighter(enemyDef(id, layer, captain, strength)));
+  // 前期的一般敵人生命向下對齊到基準值（級距，SPEC_SLICE7 §3.3）
+  const node = run.phase.kind === 'battle' ? run.map.nodes[run.phase.nodeId] : null;
+  const B = JOURNEY.hpBaseline;
+  const spread = node && run.forward ? Math.min(1, Math.max(0, (journeyDepth(run, node) - 1) / Math.max(1, B.fullAtDepth - 1))) : 1;
+  const baseline = (d: UnitDef): UnitDef =>
+    spread < 1 && enemyRank(d) === 'normal' && d.maxHp > B.hp * (strength ?? 1) ? { ...d, maxHp: Math.round(B.hp * (strength ?? 1) + (d.maxHp - B.hp * (strength ?? 1)) * spread) } : d;
+  const scaled = (id: string, captain?: boolean) => (horde ? hordeEnemyDef(enemyDef(id, layer, captain)) : lighter(baseline(enemyDef(id, layer, captain, strength))));
   // 沉穩節奏：同小隊一起警覺；舊的手工遭遇沒有小隊，全部算同一隊（看到一名就全體進攻）
   for (const e of enc.enemies) spawns.push({ defId: e.enemy, def: scaled(e.enemy, e.captain), pos: { x: e.x, y: e.y }, squad: e.squad ?? 'main', facing: e.facing });
+  // 敵人數量（Alan 2026-10-24）：一般敵人照 countMult 多出幾名，站在同一小隊旁邊；頭目圖不加
+  if (run.forward && deliberate && enc.tier !== 'boss' && JOURNEY.countMult > 1) {
+    const rng = rngFor(seed, 'extraEnemies');
+    const taken = spawns.map((s) => s.pos);
+    for (const e of enc.enemies) {
+      if (e.captain || enemyRank(ENEMIES[e.enemy]) !== 'normal') continue;
+      const extra = Math.floor(JOURNEY.countMult - 1) + (rng.chance((JOURNEY.countMult - 1) % 1) ? 1 : 0);
+      for (let k = 0; k < extra; k++) {
+        const spot = freeSpotNear(map, { x: e.x, y: e.y }, [1, 1.5, 2, 2.5], 0.6, taken);
+        if (!spot) break;
+        const pos = { x: spot.x + 0.3, y: spot.y + 0.3 };
+        taken.push(pos);
+        spawns.push({ defId: e.enemy, def: scaled(e.enemy, false), pos, squad: e.squad ?? 'main', facing: e.facing });
+      }
+    }
+  }
   // 沉穩節奏（SPEC_SLICE5）：小地圖遭遇套用變慢的設定
   const cfg = horde ? { ...config, ...HORDE_CONFIG } : runStyle(run) === 'deliberate' ? { ...config, ...deliberateConfig({ ...DEFAULT_SIM_CONFIG, ...config }) } : config;
   // 冠軍以獵人身分加入（Alan 2026-10-22）；本來沒有戰鬥的節點：地圖上只有冠軍
