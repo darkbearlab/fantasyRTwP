@@ -7,7 +7,8 @@ import { button, el, noFocus } from './dom';
 import { partyPanel } from './partyPanel';
 import { battleSkillsOf } from '../../run/loadout';
 import { BRANCH_RULES, branchDef } from '../../run/data/branches';
-import { branchProgress } from '../../run/upgrades';
+import { branchProgress, maxRankOf, rankOf } from '../../run/upgrades';
+import { RECIPES } from '../../run/data/recipes';
 
 export interface UpgradeChoice {
   upgradeId: string;
@@ -31,6 +32,24 @@ export function upgradePicker(run: RunState, options: string[], onDone: (c: Upgr
       const u = UPGRADES[id];
       // 專屬升級（SPEC_CLASSES §1）：固定給抽到的英雄，顯示分支與進度；選了會昇變的那一張特別標示
       const own = optionSlots?.[i];
+      // 一路向前（SPEC_SLICE7 §3.2）：職業升級顯示等級與用在哪些配方；昇變卡
+      if (run.forward && own !== undefined && own !== null && (u.branch || u.evolve)) {
+        const h = run.party[own]!;
+        const c = el('div', `upgrade-card exclusive${u.evolve ? ' evolve' : ''}`);
+        c.appendChild(el('div', 'up-hero', `${own + 1}. ${HEROES[h.classId].name}`));
+        c.append(el('div', 'up-name', u.name), el('div', 'up-desc', u.description));
+        if (u.branch) {
+          const max = maxRankOf(id);
+          const used = RECIPES.filter((rc) => rc.base === h.classId && rc.requires.includes(id)).map((rc) => HEROES[rc.evolvesTo].name);
+          if (max > 1) c.appendChild(el('div', 'up-branch', tr("等級 {0}／{1}", { 0: rankOf(h, id) + 1, 1: max })));
+          if (used.length) c.appendChild(el('div', 'up-branch', tr("配方：{0}", { 0: used.join(tr("、")) })));
+        }
+        c.appendChild(el('div', 'up-scope', u.evolve ? tr("昇變！") : tr("職業升級")));
+        noFocus(c);
+        c.addEventListener('click', () => onDone({ upgradeId: id, slot: own }));
+        cards.appendChild(c);
+        return;
+      }
       if (own !== undefined && own !== null && u.branch) {
         const h = run.party[own]!;
         const b = branchDef(u.branch.classId, u.branch.id)!;

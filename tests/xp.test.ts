@@ -6,7 +6,7 @@ import { createRun } from '../src/run/runState';
 import { gainXp, xpForKill, xpForKills, xpToNext } from '../src/run/xp';
 
 function inBattle(style: 'deliberate' | 'tactical'): RunState {
-  let r = createRun(5, { style });
+  let r = createRun(5, { forward: false, style });
   r = chooseNode(r, availableNodes(r)[0].id);
   expect(r.phase.kind).toBe('battle');
   return r;
@@ -25,7 +25,7 @@ describe('經驗值與升級（SPEC_SLICE6 §3）', () => {
   });
 
   it('一次升好幾級：等級、剩餘經驗值、待選次數都正確', () => {
-    const r = createRun(1);
+    const r = createRun(1, { forward: false });
     const amount = xpToNext(1) + xpToNext(2) + 3;
     expect(gainXp(r, amount)).toBe(2);
     expect(r.level).toBe(3);

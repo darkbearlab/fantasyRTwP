@@ -1143,6 +1143,18 @@ body {
   color: #fff;
 }
 
+/* 配方昇變（SPEC_SLICE7 §3.2）：每份配方一行；還沒開始的變暗，湊齊的金色 */
+.party-branches.recipes {
+  flex-direction: column;
+}
+.party-branches.recipes .branch:not(.on) {
+  color: #8a8a8a;
+}
+.party-branches.recipes .branch.ready {
+  color: #ffd23f;
+  font-weight: bold;
+}
+
 /* 昇變演出 */
 .evo-overlay {
   position: absolute;

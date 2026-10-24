@@ -87,6 +87,8 @@ export type RunPhase =
       levelUpTo?: number;
       /** 和 options 對齊：專屬升級固定給哪一名英雄（欄位）；通用升級是 null（SPEC_CLASSES §1） */
       optionSlots?: (number | null)[];
+      /** 一路向前（SPEC_SLICE7 §3.1）：這一次是哪一名英雄自己的三選一 */
+      pickSlot?: number;
     }
   /** 商人（SPEC_SLICE5 §17）：貨架與已售出的道具 */
   | { kind: 'shop'; nodeId: number; stock: string[]; sold: string[] }
@@ -144,6 +146,8 @@ export interface RunState {
   xp?: number;
   /** 還沒選的升級三選一次數 */
   pendingLevelUps?: number;
+  /** 一路向前（SPEC_SLICE7 §3.1）：還沒選的升級（每升一級，每名活著的英雄各一次） */
+  heroPicks?: { slot: number; level: number }[];
   /** 戰役（SPEC_CAMPAIGN）：目前第幾章（從 0 開始；舊存檔沒有＝第 0 章）；打倒本章頭目、還沒進過場時為 true */
   chapter?: number;
   chapterCleared?: boolean;

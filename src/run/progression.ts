@@ -18,7 +18,7 @@ import { cloneRun, firstEmptySlot, livingHeroes } from './runState';
 import { pickN, rngFor } from './seed';
 import { depthOffset, enterInterlude, isFinalChapter } from './campaign';
 import { ROUTE_MAP } from './data/routeMap';
-import { generalUpgradeIds, grantUpgrade, levelUpOffer, maxHpOf, recruitInto, rollUpgrades } from './upgrades';
+import { generalUpgradeIds, grantUpgrade, heroLevelUpOffer, levelUpOffer, maxHpOf, recruitInto, rollUpgrades } from './upgrades';
 import { recruitPool } from './classes';
 import { rollItemDrop, rollShopStock } from './items';
 import { ITEMS } from '../sim/data/items';
@@ -259,7 +259,12 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
     xpGained = xpForKills(outcome.killed ?? [], enemyStrength(battleLayer)) + lootXp(outcome.loot);
     const ups = gainXp(r, xpGained);
     if (ups > 0) r.journal.push(tr("隊伍升到第 {0} 級！", { 0: r.level }));
-    const offer = (r.pendingLevelUps ?? 0) > 0 ? levelUpOptions(r) : { options: [], optionSlots: [] };
+    // 一路向前（SPEC_SLICE7 §3.1）：每升一級，每名活著的英雄各自三選一
+    if (r.forward && ups > 0) {
+      r.pendingLevelUps = 0;
+      for (let lv = r.level! - ups + 1; lv <= r.level!; lv++) for (const { slot } of livingHeroes(r)) (r.heroPicks ??= []).push({ slot, level: lv });
+    }
+    const offer = r.forward ? heroPickOffer(r) : (r.pendingLevelUps ?? 0) > 0 ? levelUpOptions(r) : { options: [], optionSlots: [] };
     options = offer.options;
     optionSlots = offer.optionSlots;
   } else {
@@ -286,6 +291,11 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
     }
   }
   r.phase = { kind: 'reward', nodeId, options, elite: elite && !deliberate, gold, item, consumable, xpGained, levelUpTo: options.length ? nextLevelUpTo(r) : undefined, optionSlots };
+  // 一路向前：第一名英雄的三選一
+  if (r.forward && r.heroPicks?.[0] && options.length) {
+    r.phase.pickSlot = r.heroPicks[0].slot;
+    r.phase.levelUpTo = r.heroPicks[0].level;
+  }
   return r;
 }
 
@@ -295,6 +305,15 @@ function lootXp(loot: LootDef[] | undefined): number {
 }
 
 /** 升級三選一的選項（依要升到的等級決定，同一趟遠征每次一樣）：兩個專屬＋一個通用（SPEC_CLASSES §1） */
+/** 下一名英雄自己的三選一（沒有要選的時候是空的） */
+function heroPickOffer(r: RunState): { options: string[]; optionSlots: (number | null)[]; pickSlot?: number; levelUpTo?: number } {
+  r.heroPicks = (r.heroPicks ?? []).filter((p) => r.party[p.slot] && !r.party[p.slot]!.dead);
+  const next = r.heroPicks[0];
+  if (!next) return { options: [], optionSlots: [] };
+  const options = heroLevelUpOffer(r, next.slot, rngFor(r.seed, 'levelup', next.level, next.slot), ECONOMY.rewardChoices);
+  return { options, optionSlots: options.map(() => next.slot), pickSlot: next.slot, levelUpTo: next.level };
+}
+
 function levelUpOptions(r: RunState): { options: string[]; optionSlots: (number | null)[] } {
   return levelUpOffer(r, rngFor(r.seed, 'levelup', nextLevelUpTo(r)), ECONOMY.rewardChoices);
 }
@@ -330,6 +349,16 @@ export function chooseReward(run: RunState, choice: RewardChoice): RunState {
     const ok = run.phase.options.some((id, i) => id === choice.upgradeId && (slots?.[i] ?? null) === null) || run.phase.options.some((id, i) => id === choice.upgradeId && slots?.[i] === choice.slot);
     if (!ok) throw new Error('專屬升級只能給抽到的英雄');
     r.journal.push(grantUpgrade(r, choice.upgradeId, choice.slot, choice.skillId));
+  }
+  // 一路向前：輪到下一名英雄
+  if (r.forward && r.heroPicks?.length) {
+    r.heroPicks.shift();
+    const offer = heroPickOffer(r);
+    if (offer.options.length) {
+      r.phase = { kind: 'reward', nodeId: run.phase.nodeId, elite: false, gold: 0, ...offer };
+      return r;
+    }
+    return toMap(r);
   }
   // 升級三選一：升了好幾級就再選一次
   if (runStyle(r) === 'deliberate' && (r.pendingLevelUps ?? 0) > 0) {

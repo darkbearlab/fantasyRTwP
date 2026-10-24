@@ -91,6 +91,12 @@
     - 戰後：活著跟著離開就是 `outcome.rescued` → `RunState.pendingRescue` → 選完升級後進 `rescue` 階段（`RescueScene`），`resolveRescue` 決定加入（填第一個空欄位，陣亡的欄位也算）或離開，接著照常進下一張圖。
     - 陣亡就是沒了：一路向前時 `canRevive`、`canRecruit` 都是 false，休息畫面不顯示救人與招募；鳳凰羽毛不賣、不掉（`JOURNEY.removedConsumables`）；陣亡英雄的裝備掉回背包。
     - 第 1 章改用 `empireRaid` 陣營：劍兵、斧兵、弓手為主，盾兵權重降低，營地沒有鐵砧。
+  - **S7-4 每人各自升級、配方昇變**（已做）：
+    - 配方在 `src/run/data/recipes.ts`：`RECIPES`（這幾種升級都拿到＋其中 `maxed` 升滿）、`UPGRADE_MAX_RANK`（職業升級能拿幾次，沒列的只能一次；通用升級不限）、`RECIPE_RULES`（`mode` choice／auto、`classSlots`、保底 `pityFromLevel`）。目前每份配方是原本分支的三個專屬升級，佔位。
+    - 每升一級，每名活著的英雄各自三選一（`RunState.heroPicks`、獎勵階段的 `pickSlot`）：兩張職業升級（正在湊的配方優先）＋一張通用（不出全隊的）。湊齊配方時多一張昇變卡（`evolve_<配方>`，`UpgradeDef.evolve`），選了才昇變（`evolveHero`）。昇變後只剩通用升級。
+    - 規則在 `src/run/upgrades.ts`：`rankOf`、`maxRankOf`、`recipeDone`、`readyRecipes`、`heroLevelUpOffer`。一路向前時 `grantUpgrade` 用等級規則，不再用「同分支選滿三個」；舊模式照舊。
+    - 隊伍面板每份配方一行（拿到的亮、要升滿的標等級、湊齊的金色）；升級卡顯示等級與用在哪些配方。
+    - 被救的英雄照一份配方配點，湊齊就已經昇變。
 - **切片 6（SPEC_SLICE6.md）**：S6-1 模板拼接關卡已做（2026-10-20）。模板在 `src/run/data/templates.ts`（文字地圖，圖例在檔案開頭），池子與版面在 `src/run/data/levelPools.ts`，拼接在 `src/run/templateLevelGen.ts`；`LEVELS.deliberateGenerator` 可切回舊的隔牆關卡（classic）。預覽：`npm run level:preview` → `preview/levels.html`。效能：6 × 6 區塊（96 m）每節拍約 0.22 ms（桌機），可以做大型關鍵地點。S6-2 出口制也已做：`MapDef.exits`／`exitLock`，`World.checkExits`（全員在同一個出口才勝利，`exitWaiting` 事件提示「You must gather your party before venturing forth.」），生成時一個下一層節點一個出口（`carveExits`，依路線圖由左到右排在地圖遠端），`RunState.exitTo` 讓路線圖只能前往那個節點。精英關卡要打倒隊長、頭目關卡要打倒頭目才開門；最後的頭目戰沒有出口，打倒頭目就勝利。S6-3 經驗值也已做：經驗值只來自擊殺（`src/run/xp.ts`，數值在 `ECONOMY.xp`），隊伍共用等級；沉穩節奏不再每場三選一，升級才三選一（`RunState.pendingLevelUps`，升幾級選幾次，`levelUpTo` 是正在選第幾級），沒升級時戰果畫面只有「繼續」（`continueFromReward`）。封存模式照舊每場三選一。S6-4 FTL 式路線圖也已做：沉穩節奏的遠征用 `generateRouteMap`（`src/run/routeMap.ts`，旋鈕在 `src/run/data/routeMap.ts`；每層 4～5 個節點、同層橫向連線、所有連線雙向 `MapNode.links`），回合與壓力在 `src/run/overworld.ts`（`RunState.overworld`：回合、造訪次數、主力、冠軍）。`chooseNode` 每次移動推進一回合；被主力佔領的節點是強化戰鬥（`phase.mods.force`），冠軍追到是冠軍戰（`mods.champion`），重複訪問重新生成（`phase.visit`）。關卡的出口在相鄰節點的方向（上＝下一層、下＝前一層、左右＝同層），出生點在來的那一側（`templateLevelGen` 的 `entry`、`orient`）。休息時 `campfireSmoke` 讓冠軍多走一格。`createRun(seed, { layers })` 或封存模式仍用舊的單向路線圖。難度完全沒調：自動遠征目前通關率很低。
 - **營火對話**（休息節點）：先進 `CampfireScene`（英雄圍著程式畫的火堆、上下兩個對話框、頭像用 sprite），看完或略過才打開休息選單；看過的記在 `phase.talked`。台詞在 `src/run/data/campfire.ts`（通用台詞，`{0}` 換成職業名），挑選在 `src/run/campfire.ts`（依種子＋節點，同一節點每次一樣）。
 - **故事大綱**：`STORY.md`（Alan 口述，尚未實作：五張路線圖、魔法水晶、FTL 式路線圖與魔王冠軍追擊）。

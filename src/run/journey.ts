@@ -13,10 +13,9 @@ import type { HeroRecord, RunState } from './runState';
 import { cloneRun, newHero } from './runState';
 import { rngFor } from './seed';
 import type { Vec } from '../sim/math';
-import { BRANCHES } from './data/branches';
 import { UPGRADES } from './data/upgrades';
 import { classChoices } from './classes';
-import { canTakeExclusive, generalUpgradeIds, grantUpgrade, maxHpOf } from './upgrades';
+import { evolveHero, generalUpgradeIds, grantUpgrade, maxHpOf, maxRankOf, rankOf, recipeDone, recipesOf } from './upgrades';
 import { battleSkillsOf } from './loadout';
 
 /** 這個節點有沒有被困的英雄（依種子固定，出口預告才能先說） */
@@ -38,15 +37,17 @@ export function rescueHero(run: RunState, nodeId: number): HeroRecord {
   const h = newHero(classes[rng.int(0, classes.length - 1)]);
   h.level = run.level ?? 1;
   scratch.party[0] = h;
-  const branches = BRANCHES[h.classId] ?? [];
-  const branch = branches.length ? branches[rng.int(0, branches.length - 1)].id : null;
+  // 朝一份配方前進（SPEC_SLICE7 §4）：先拿配方要的、再把要升滿的升滿，湊齊就昇變，之後拿通用升級
+  const recipes = recipesOf(h);
+  const recipe = recipes.length ? recipes[rng.int(0, recipes.length - 1)] : null;
   const general = generalUpgradeIds(run.style).filter((id) => UPGRADES[id].scope === 'hero');
   for (let n = Math.floor(((run.level ?? 1) - 1) * JOURNEY.rescue.upgradesPerLevel); n > 0; n--) {
     const hero = scratch.party[0]!;
-    const next = Object.keys(UPGRADES).find((id) => UPGRADES[id].branch?.id === branch && canTakeExclusive(hero, id));
+    const next = recipe && !hero.baseClass ? (recipe.requires.find((id) => rankOf(hero, id) === 0) ?? (rankOf(hero, recipe.maxed) < maxRankOf(recipe.maxed) ? recipe.maxed : undefined)) : undefined;
     const id = next ?? general[rng.int(0, general.length - 1)];
     const skills = battleSkillsOf(scratch, hero);
     grantUpgrade(scratch, id, 0, UPGRADES[id].needsSkill ? skills[rng.int(0, skills.length - 1)] : undefined);
+    if (recipe && recipeDone(scratch.party[0]!, recipe)) evolveHero(scratch, 0, recipe);
   }
   const out = scratch.party[0]!;
   out.hp = maxHpOf(out);

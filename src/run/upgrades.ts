@@ -12,6 +12,8 @@ import { ECONOMY } from './data/economy';
 import { UPGRADES } from './data/upgrades';
 import type { BattleBuff, HeroRecord, OwnedUpgrade, RunState } from './runState';
 import type { RunStyle } from './data/levels';
+import { RECIPE_RULES, RECIPES, UPGRADE_MAX_RANK, evolveUpgradeId } from './data/recipes';
+import type { RecipeDef } from './data/recipes';
 import { BRANCH_RULES, BRANCHES, branchDef } from './data/branches';
 import { currentLayer, livingHeroes, newHero } from './runState';
 import { pickN } from './seed';
@@ -104,7 +106,7 @@ export function generalUpgradeIds(style?: RunStyle): string[] {
   const deliberate = style === 'deliberate';
   return Object.keys(UPGRADES).filter((id) => {
     const u = UPGRADES[id];
-    return !u.branch && (!u.style || u.style === (deliberate ? 'deliberate' : 'tactical'));
+    return !u.branch && !u.evolve && (!u.style || u.style === (deliberate ? 'deliberate' : 'tactical'));
   });
 }
 
@@ -132,13 +134,29 @@ export function grantUpgrade(run: RunState, upgradeId: string, slot?: number, sk
   }
   const h = slot !== undefined ? run.party[slot] : null;
   if (!h || h.dead) throw new Error('強化需要指定一名存活英雄');
+  // 配方昇變（SPEC_SLICE7 §3.2）
+  if (def.evolve) {
+    const rc = RECIPES.find((x) => x.id === def.evolve)!;
+    if (!recipeDone(h, rc)) throw new Error(`「${def.name}」的配方還沒湊齊`);
+    return evolveHero(run, slot!, rc);
+  }
+  if (run.forward && def.branch && rankOf(h, def.id) >= maxRankOf(def.id)) throw new Error(`「${def.name}」已經升滿了`);
   if (def.needsSkill && (!skillId || !battleSkillsOf(run, h).includes(skillId))) throw new Error(`「${def.name}」需要指定該英雄的技能`);
-  if (def.branch && !canTakeExclusive(h, def.id)) throw new Error(`「${def.name}」不是這名英雄能選的專屬升級`);
+  if (run.forward && def.branch && (h.baseClass || def.branch.classId !== h.classId)) throw new Error(`「${def.name}」不是這名英雄的職業升級`);
+  if (def.branch && !run.forward && !canTakeExclusive(h, def.id)) throw new Error(`「${def.name}」不是這名英雄能選的專屬升級`);
   const before = maxHpOf(h);
   const name = HEROES[h.classId].name;
   h.upgrades.push(def.needsSkill ? { id: def.id, skillId } : { id: def.id });
   if (def.healPct) h.hp = Math.min(maxHpOf(h), h.hp + Math.round(maxHpOf(h) - before));
   let text = tr("{0}獲得「{1}」", { 0: name, 1: def.name });
+  // 一路向前：配方昇變（湊到配方時，自動模式直接昇變；選擇模式下次升級多一張昇變卡）
+  if (run.forward) {
+    if (RECIPE_RULES.mode === 'auto') {
+      const rc = readyRecipes(h)[0];
+      if (rc) text += tr("，") + evolveHero(run, slot!, rc);
+    }
+    return text;
+  }
   // 同一個分支選滿就昇變（SPEC_CLASSES §1）
   if (def.branch && branchProgress(h)[def.branch.id] >= BRANCH_RULES.threshold) {
     const b = branchDef(def.branch.classId, def.branch.id)!;
@@ -150,6 +168,85 @@ export function grantUpgrade(run: RunState, upgradeId: string, slot?: number, sk
     text += tr("，昇變成{0}！", { 0: HEROES[h.classId].name });
   }
   return text;
+}
+
+// ───────────── 配方昇變（SPEC_SLICE7 §3.2） ─────────────
+
+/** 職業升級最多拿幾次（通用升級不限） */
+export function maxRankOf(upgradeId: string): number {
+  return UPGRADES[upgradeId]?.branch ? (UPGRADE_MAX_RANK[upgradeId] ?? 1) : Infinity;
+}
+
+/** 這名英雄拿了幾次這個升級 */
+export function rankOf(h: HeroRecord, upgradeId: string): number {
+  return h.upgrades.filter((o) => o.id === upgradeId).length;
+}
+
+/** 這名英雄的職業有哪些配方（還沒昇變時） */
+export function recipesOf(h: HeroRecord): RecipeDef[] {
+  return h.baseClass ? [] : RECIPES.filter((rc) => rc.base === h.classId);
+}
+
+export function recipeDone(h: HeroRecord, rc: RecipeDef): boolean {
+  return !h.baseClass && rc.base === h.classId && rc.requires.every((id) => rankOf(h, id) > 0) && rankOf(h, rc.maxed) >= maxRankOf(rc.maxed);
+}
+
+/** 已經湊齊、可以昇變的配方 */
+export function readyRecipes(h: HeroRecord): RecipeDef[] {
+  return recipesOf(h).filter((rc) => recipeDone(h, rc));
+}
+
+/** 配方還缺幾次選擇（每個沒拿的 1 次，升滿的那個缺幾級算幾次） */
+export function recipeMissing(h: HeroRecord, rc: RecipeDef): number {
+  const need = (id: string) => (id === rc.maxed ? maxRankOf(id) : 1);
+  return rc.requires.reduce((n, id) => n + Math.max(0, need(id) - rankOf(h, id)), 0);
+}
+
+/** 昇變（原地修改 run）：生命照比例、記錄原本的職業、播昇變演出 */
+export function evolveHero(run: RunState, slot: number, rc: RecipeDef): string {
+  const h = run.party[slot]!;
+  const ratio = h.hp / maxHpOf(h);
+  h.baseClass = h.classId;
+  h.classId = rc.evolvesTo;
+  h.hp = Math.max(1, Math.round(maxHpOf(h) * ratio));
+  const line = BRANCHES[rc.base]?.find((b) => b.evolvesTo === rc.evolvesTo)?.line ?? '';
+  (run.evolutionShow ??= []).push({ slot, from: h.baseClass, to: h.classId, line });
+  return tr("{0}昇變成{1}！", { 0: HEROES[h.baseClass].name, 1: HEROES[h.classId].name });
+}
+
+/** 還能拿的職業升級（沒升滿；昇變後就沒有了） */
+export function classUpgradesFor(h: HeroRecord): string[] {
+  if (h.baseClass) return [];
+  return Object.keys(UPGRADES).filter((id) => UPGRADES[id].branch?.classId === h.classId && rankOf(h, id) < maxRankOf(id));
+}
+
+/**
+ * 一名英雄自己的升級三選一（SPEC_SLICE7 §3.1）：湊到配方時另外多一張昇變卡（放在第一張），
+ * 其餘 classSlots 張職業升級（已經在湊某份配方時，leadBias 的機率優先出它還缺的）、剩下的是通用升級（不出全隊的）。
+ */
+export function heroLevelUpOffer(run: RunState, slot: number, rng: Rng, n: number): string[] {
+  const h = run.party[slot]!;
+  const out: string[] = [];
+  // 昇變卡是額外的一張（不佔三選一的格子）
+  if (RECIPE_RULES.mode === 'choice') for (const rc of readyRecipes(h)) out.push(evolveUpgradeId(rc.id));
+  n += out.length;
+  const pool = classUpgradesFor(h);
+  const pity = RECIPE_RULES.pityFromLevel > 0 && (run.level ?? 1) >= RECIPE_RULES.pityFromLevel;
+  // 正在湊的配方：缺最少的那一份
+  const lead = recipesOf(h)
+    .filter((rc) => !recipeDone(h, rc) && rc.requires.some((id) => rankOf(h, id) > 0))
+    .sort((a, b) => recipeMissing(h, a) - recipeMissing(h, b))[0];
+  const wanted = lead ? pool.filter((id) => lead.requires.includes(id) && (rankOf(h, id) === 0 || id === lead.maxed)) : [];
+  for (let k = 0; k < RECIPE_RULES.classSlots && out.length < n; k++) {
+    const left = pool.filter((id) => !out.includes(id));
+    if (!left.length) break;
+    const want = wanted.filter((id) => !out.includes(id));
+    const from = want.length && (pity || rng.chance(BRANCH_RULES.leadBias)) ? want : left;
+    out.push(from[rng.int(0, from.length - 1)]);
+  }
+  const general = generalUpgradeIds(run.style).filter((id) => UPGRADES[id].scope === 'hero');
+  for (const id of pickN(rng, general, n - out.length)) out.push(id);
+  return out;
 }
 
 // ───────────── 昇變分支（SPEC_CLASSES §1） ─────────────

@@ -5,7 +5,7 @@ import { PERSONALITY_LABEL } from '../../sim/ai/idleBehavior';
 import type { Personality } from '../../sim/data/types';
 import { UPGRADES } from '../../run/data/upgrades';
 import type { RunState } from '../../run/runState';
-import { branchProgress, canEvolve, maxHpOf } from '../../run/upgrades';
+import { branchProgress, canEvolve, maxHpOf, maxRankOf, rankOf, recipeDone, recipesOf } from '../../run/upgrades';
 import { BRANCH_RULES, BRANCHES } from '../../run/data/branches';
 import { battleSkillsOf } from '../../run/loadout';
 import { hex } from '../render/palette';
@@ -63,7 +63,24 @@ export function partyPanel(run: RunState, opts: PartyPanelOptions = {}): HTMLEle
     info.append(name, hp);
     // 昇變分支的進度（SPEC_CLASSES §5）；昇變後標出原本的職業
     const base = h.baseClass;
-    if (run.style === 'deliberate') {
+    if (run.forward) {
+      // 配方昇變（SPEC_SLICE7 §3.2）：每份配方一行，拿到的升級亮起來，要升滿的那個標出等級
+      const recipes = recipesOf(h);
+      if (recipes.length) {
+        const box2 = el('div', 'party-branches recipes');
+        for (const rc of recipes) {
+          const parts = rc.requires.map((id) => {
+            const n = rankOf(h, id);
+            const max = id === rc.maxed ? maxRankOf(id) : 1;
+            return `${UPGRADES[id].name}${max > 1 ? ` ${n}/${max}` : n > 0 ? '✓' : ''}`;
+          });
+          const done = recipeDone(h, rc);
+          const line = el('span', `branch${rc.requires.some((id) => rankOf(h, id) > 0) ? ' on' : ''}${done ? ' ready' : ''}`, tr("{0}：{1}", { 0: `${HEROES[rc.evolvesTo].name}${done ? tr("（可以昇變）") : ''}`, 1: parts.join('・') }));
+          box2.appendChild(line);
+        }
+        info.appendChild(box2);
+      } else if (base) info.appendChild(el('div', 'party-branches', tr("昇變自{0}", { 0: HEROES[base].name })));
+    } else if (run.style === 'deliberate') {
       if (canEvolve(h)) {
         const prog = branchProgress(h);
         const line = el('div', 'party-branches');
