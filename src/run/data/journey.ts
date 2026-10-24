@@ -25,6 +25,14 @@ export const JOURNEY = {
    */
   // 2026-10-24 用自動遠征（npm run curve，30 趟、腳本 AI）試出來的起點：第 1 章兩人能過、全滅平均分散在各章、等級接近預期曲線
   curve: { perDepth: 0.09, chapterMult: [0.55, 0.75, 0.95, 1.1, 1.25], xpMult: 0.4 },
+  /**
+   * 敵人強度的級距（Alan 2026-10-24，數字佔位，之後調手感）：
+   * - hpBaseline：前期的一般敵人（就算是盾兵）生命向下對齊到 hp（原始數值，和劍兵一樣），
+   *   全程深度越深越接近自己原本的生命，到 fullAtDepth 層完全回到原本的。精英隊長、頭目不受影響。
+   * - countMult：一般敵人的數量倍率（多出來的站在同一小隊旁邊；1.5＝每一名有一半機率多一名）。頭目圖不加。
+   */
+  hpBaseline: { hp: 34, fullAtDepth: 12 },
+  countMult: 1.5,
   /** 陣亡就是沒了（SPEC_SLICE7 §5）：拿掉會復活的消耗品（商人不賣、不會掉） */
   removedConsumables: ['phoenix'],
 };

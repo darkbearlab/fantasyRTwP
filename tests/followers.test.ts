@@ -86,6 +86,8 @@ describe('隨從的行為', () => {
     const e = w.units.find((u) => u.team === 'enemy' && !u.dead)!;
     e.pos = { x: h.pos.x + 2, y: h.pos.y };
     e.alerted = true;
+    // 前期敵人生命很低（級距），英雄一下就打倒：給牠耐打一點，才看得到隨從出手
+    e.hp = 500;
     step(w, 3);
     const fs = w.units.filter((u) => u.follower && !u.dead);
     expect(fs.some((f) => f.order?.type === 'attack' || f.action)).toBe(true);

@@ -1,7 +1,8 @@
 /** 一路向前（SPEC_SLICE7 §1、§2）：沒有路線圖、出口直接接下一張圖、出口預告、地圖上的商人 */
 import { describe, expect, it } from 'vitest';
 import type { BattleOutcome } from '../src/run/battle';
-import { createBattleFromRun } from '../src/run/battle';
+import { createBattleFromRun, currentEncounter } from '../src/run/battle';
+import { DELIBERATE_PACE } from '../src/sim/data/deliberate';
 import { buyConsumable, canBuyConsumable } from '../src/run/consumables';
 import { buyItem, canBuy, shopOf } from '../src/run/items';
 import { STOP_TYPES, journeyDepth, journeyStrength, previewOf, rescueAt, startNodeOf } from '../src/run/journey';
@@ -185,5 +186,27 @@ describe('途中停靠（休息、商人、事件）', () => {
       return;
     }
     throw new Error('找不到休息或商人的停靠');
+  });
+});
+
+describe('敵人強度的級距（Alan 2026-10-24，佔位）', () => {
+  it('前期的一般敵人生命向下對齊到基準值（盾兵和劍兵一樣）；精英隊長不受影響', () => {
+    let r = createRun(9, { style: 'deliberate' });
+    r = chooseNode(r, startNodeOf(r));
+    const w = createBattleFromRun(r);
+    const s = journeyStrength(r, r.map.nodes[r.currentNodeId!]);
+    for (const u of w.units.filter((x) => x.team === 'enemy' && x.def.rank !== 'elite' && x.def.rank !== 'boss'))
+      expect(u.def.maxHp).toBeLessThanOrEqual(Math.round(JOURNEY.hpBaseline.hp * s * DELIBERATE_PACE.enemyHpMult) + 1);
+  });
+
+  it('一般敵人的數量照 countMult 增加', () => {
+    let r = createRun(10, { style: 'deliberate' });
+    r = chooseNode(r, startNodeOf(r));
+    const enc = currentEncounter(r);
+    const w = createBattleFromRun(r);
+    const normal = enc.enemies.filter((e) => !e.captain).length;
+    const now = w.units.filter((u) => u.team === 'enemy' && u.def.rank !== 'elite').length;
+    expect(now).toBeGreaterThan(normal);
+    expect(now).toBeLessThanOrEqual(Math.ceil(normal * JOURNEY.countMult) + 2);
   });
 });
