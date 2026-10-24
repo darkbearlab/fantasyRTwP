@@ -119,6 +119,14 @@ export class Unit {
   coverPct = 0;
   /** 打斷敵人後下一次攻擊必定爆擊（角鬥士） */
   critPending = false;
+  /** 通用觸發（Alan 2026-10-24）：標記（受到傷害 +markVuln）、疊增益（造成傷害每層 +empowerPct）、每個觸發的次數與冷卻 */
+  markTime = 0;
+  markVuln = 0;
+  empowerStacks = 0;
+  empowerPct = 0;
+  empowerTime = 0;
+  triggerCounts: Record<string, number> = {};
+  triggerReadyAt: Record<string, number> = {};
   /** 集中（引導，SPEC_CLASSES §2）：開始的時間（< 0 表示沒有在集中）、開始的位置、每秒加成與上限 */
   focusStart = -1;
   focusPos: Vec = { x: 0, y: 0 };
@@ -274,7 +282,7 @@ export class Unit {
 
   /** 造成傷害的總倍率 */
   get outgoingDamageMult(): number {
-    return (this.def.damageMult ?? 1) * (1 + this.mods.damagePct) * (this.damageBuffTime > 0 ? this.damageBuffMult : 1) * (this.blessTime > 0 ? 1 + this.blessDamage : 1) * (1 + this.stackDamage) * (1 + (this.shrineDef?.damagePct ?? 0));
+    return (this.def.damageMult ?? 1) * (1 + this.mods.damagePct) * (this.damageBuffTime > 0 ? this.damageBuffMult : 1) * (this.blessTime > 0 ? 1 + this.blessDamage : 1) * (1 + this.stackDamage) * (1 + (this.shrineDef?.damagePct ?? 0)) * (this.empowerTime > 0 ? 1 + this.empowerStacks * this.empowerPct : 1);
   }
 
   get isMelee(): boolean {

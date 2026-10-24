@@ -5,6 +5,7 @@
  */
 import type { BasicAttackStyle } from './horde';
 import type { LingeringDef, ProjectileKind } from './types';
+import type { TriggerDef } from '../triggers';
 
 /** 數值修正（同一名單位身上的被動相加） */
 export interface PassiveMods {
@@ -48,6 +49,8 @@ export interface PassiveDef {
   taunt?: number;
   mods?: PassiveMods;
   onHit?: OnHitEffect[];
+  /** 通用觸發（Alan 2026-10-24）：在命中、爆擊、擊殺、被打、放技能…時觸發效果（見 sim/triggers.ts） */
+  triggers?: TriggerDef[];
   /** 斬殺：對生命低於 below 比例的目標傷害 +pct */
   execute?: { below: number; pct: number };
   /**
