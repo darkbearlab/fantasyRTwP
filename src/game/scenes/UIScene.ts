@@ -183,7 +183,7 @@ export class UIScene extends Phaser.Scene {
     gear.title = tr("設定");
     noFocus(gear);
     gear.addEventListener('click', () => this.toggleSettings());
-    const hint = el('div', 'pill hint', tr("空白鍵 暫停　1–4 選人→再按 1–3 放技能　Tab 切換　右鍵技能鈕 自動施放　右鍵 移動・攻擊・跟隨　F＋點擊／Ctrl＋右鍵 攻擊移動　WASD 鏡頭　G 切換性格　H 停止　` 除錯"));
+    const hint = el('div', 'pill hint', tr("空白鍵 暫停　1–4 選人（Shift 加選）　Q 放技能　Tab 切換　右鍵技能鈕 自動施放　右鍵 移動・攻擊・跟隨　F＋點擊／Ctrl＋右鍵 攻擊移動　WASD 鏡頭　G 切換性格　H 停止　` 除錯"));
     // 迷你路線圖（遠征中才有）：出口通往大地圖的哪裡
     this.routeBtn = el('div', 'pill route-btn interactive', '🗺');
     this.routeBtn.title = tr("路線圖（出口通往哪裡）");
