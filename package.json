@@ -11,6 +11,7 @@
     "test": "vitest run",
     "autobattle": "tsx tools/autobattle.ts",
     "autorun": "tsx tools/autorun.ts",
+    "curve": "tsx tools/journeyCurve.ts",
     "perf": "tsx tools/perf.ts",
     "assets:pull": "node tools/pullAssets.mjs",
     "level:preview": "tsx tools/levelPreview.ts"

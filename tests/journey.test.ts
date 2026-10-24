@@ -4,7 +4,10 @@ import type { BattleOutcome } from '../src/run/battle';
 import { createBattleFromRun } from '../src/run/battle';
 import { buyConsumable, canBuyConsumable } from '../src/run/consumables';
 import { buyItem, canBuy, shopOf } from '../src/run/items';
-import { previewOf, rescueAt } from '../src/run/journey';
+import { journeyDepth, journeyStrength, previewOf, rescueAt } from '../src/run/journey';
+import { JOURNEY } from '../src/run/data/journey';
+import { CHAPTERS } from '../src/run/data/chapters';
+import { ENEMIES } from '../src/sim/data/enemies';
 import { applyBattleResult, availableNodes, chooseNode, chooseReward, continueFromReward } from '../src/run/progression';
 import type { RunState } from '../src/run/runState';
 import { createRun } from '../src/run/runState';
@@ -113,5 +116,32 @@ describe('地圖上的商人', () => {
     w.enqueue({ type: 'stockBag', itemId: 'potion' });
     w.step();
     expect(w.bag.length).toBe(Math.min(n + 1, BAG.capacity));
+  });
+});
+
+describe('強度曲線（SPEC_SLICE7 §3.3）', () => {
+  it('敵人照全程深度變強、乘上章節倍率；頭目從第 1 章頭目那一層開始算', () => {
+    const r = createRun(7, { style: 'deliberate' });
+    const C = JOURNEY.curve;
+    const first = r.map.nodes[r.map.layers[0][0]];
+    expect(journeyDepth(r, first)).toBe(1);
+    expect(journeyStrength(r, first)).toBeCloseTo(C.chapterMult[0]);
+    const boss = r.map.nodes.find((n) => n.type === 'boss')!;
+    expect(journeyStrength(r, boss)).toBeCloseTo(C.chapterMult[0]);
+    // 第 3 章第 2 層：前兩章的層數全部算進去
+    const r3 = { ...r, chapter: 2 };
+    const n2 = r.map.nodes[r.map.layers[1][0]];
+    expect(journeyDepth(r3, n2)).toBe(CHAPTERS[0].layers + CHAPTERS[1].layers + 2);
+    expect(journeyStrength(r3, n2)).toBeCloseTo((1 + C.perDepth * (journeyDepth(r3, n2) - 1)) * C.chapterMult[2]);
+  });
+
+  it('戰鬥裡的敵人數值跟著強度走', () => {
+    let r = createRun(8, { style: 'deliberate' });
+    r = chooseNode(r, availableNodes(r)[0].id);
+    const w = createBattleFromRun(r);
+    const e = w.units.find((u) => u.team === 'enemy' && u.def.id === 'raider');
+    if (!e) return;
+    const s = journeyStrength(r, r.map.nodes[r.currentNodeId!]);
+    expect(e.def.damageMult ?? 1).toBeCloseTo((ENEMIES.raider.damageMult ?? 1) * s);
   });
 });

@@ -71,6 +71,8 @@ describe('被困的英雄', () => {
     expect(guards.length).toBeGreaterThan(0);
     for (const g of guards) expect(w.canTarget(g, c)).toBe(false);
     const at = { ...c.pos };
+    // 還沒被找到前不聽指令
+    w.enqueue({ type: 'move', unitIds: [c.id], point: { x: c.pos.x + 5, y: c.pos.y } });
     for (let i = 0; i < 2 / DT; i++) w.step();
     expect(dist(c.pos, at)).toBeLessThan(0.01);
     // 把一名英雄放到旁邊
