@@ -47,8 +47,13 @@ export const GAME_CONFIG = {
     selectSlot: ['Digit1', 'Digit2', 'Digit3', 'Digit4'],
     /** 二段式第二下可以用的數字鍵（技能 1–9） */
     skillDigits: ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9'],
-    /** 主要選取英雄的技能 1–3（Alan：先關掉，改用數字鍵二段式；要恢復就填回 ['KeyQ', 'KeyE', 'KeyR']） */
-    skills: [] as string[],
+    /**
+     * 主要選取英雄的技能（Alan 2026-10-24：數字鍵改成直接選英雄，技能改用 Q；沉穩節奏的 Q＝那名英雄唯一的主動技能）。
+     * 舊模式是技能 1–3（['KeyQ', 'KeyE', 'KeyR']）。
+     */
+    skills: ['KeyQ'] as string[],
+    /** 數字鍵二段式（1–4 選人、再按數字放技能）；false＝數字鍵只選英雄（Alan 2026-10-24） */
+    digitChord: false,
     cycleHero: ['Tab'],
     pause: ['Space'],
     stop: ['KeyH'],

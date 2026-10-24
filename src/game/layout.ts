@@ -15,11 +15,12 @@ export const COLUMN = {
   minAspect: 1.05,
 };
 
+/** 預設整個螢幕（Alan 2026-10-24：電腦版取消中間的手機比例）；設定裡勾選才用中欄 */
 export function getLayoutPref(): LayoutPref {
   try {
-    return localStorage.getItem(KEY) === 'wide' ? 'wide' : 'column';
+    return localStorage.getItem(KEY) === 'column' ? 'column' : 'wide';
   } catch {
-    return 'column';
+    return 'wide';
   }
 }
 

@@ -427,7 +427,8 @@ export class InputController {
       e.preventDefault();
       const p = s.primary();
       if (!p) s.showToast(tr("請先選取英雄（1–4）"), this.now(), 1000);
-      else beginSkill(s, p.heroSlot, K.skills.indexOf(code), this.now());
+      // 沉穩節奏：每名英雄只有一招主動技能（技能循環時是目前這一招）
+      else beginSkill(s, p.heroSlot, this.deliberate ? activeSkillIndex(p) : K.skills.indexOf(code), this.now());
     }
   }
 
@@ -438,6 +439,12 @@ export class InputController {
   digit(n: number, shift: boolean): void {
     const s = this.session;
     const now = this.now();
+    // Alan 2026-10-24：數字鍵 1–4 直接選英雄（Shift＋數字加選），不再用二段式
+    if (!GAME_CONFIG.keys.digitChord) {
+      s.chord = null;
+      if (n < GAME_CONFIG.keys.selectSlot.length) this.selectSlot(n, shift);
+      return;
+    }
     // 沉穩節奏：每名英雄只有一招主動技能（第二下的 1）
     const one = this.deliberate;
     const a = decideDigit(s.chord, now, n, shift, GAME_CONFIG.keys.selectSlot.length, (slot) => (one ? 1 : (s.heroBySlot(slot)?.def.skills.length ?? 0)));
