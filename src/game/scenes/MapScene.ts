@@ -199,8 +199,9 @@ export class MapScene extends DomScene {
   /** 一路向前（SPEC_SLICE7 §1）：出發時、離開休息或事件之後，從幾條路裡選一條（只看得到預告，看不到路線圖） */
   private buildAhead(side: HTMLElement): void {
     const run = getRun(this);
+    // 舊存檔停在章節開頭：直接進第一張圖。不能在建畫面的途中切場景（戰鬥畫面會全黑），等下一個節拍
     if (run.currentNodeId === null) {
-      advance(this, chooseNode(run, startNodeOf(run)));
+      this.time.delayedCall(0, () => advance(this, chooseNode(getRun(this), startNodeOf(getRun(this)))));
       return;
     }
     const area = el('div', 'ahead-area');
