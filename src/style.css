@@ -64,6 +64,34 @@ body {
   font-weight: bold;
 }
 
+/* 戰鬥中／非戰鬥中（SPEC_SLICE7 §2） */
+.pill.combat-state {
+  color: #9fd89f;
+  border-color: #9fd89f;
+}
+.pill.combat-state.in-combat {
+  color: #ff8a7a;
+  border-color: #ff8a7a;
+  font-weight: bold;
+}
+.pill.prep-btn {
+  cursor: pointer;
+}
+.pill.prep-btn.active {
+  background: #fff;
+  color: #000;
+}
+.prep-panel .bag-panel {
+  max-height: none;
+  overflow: visible;
+  border: none;
+  padding: 0;
+}
+.prep-locked {
+  color: #ff8a7a;
+  margin: 2px 0 8px;
+}
+
 .pill.speed {
   cursor: pointer;
   font-weight: bold;

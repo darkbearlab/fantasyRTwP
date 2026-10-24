@@ -8,12 +8,12 @@ import { SHRINE_RULES, SHRINES } from './data/shrines';
 import { FOLLOWER_RULES, FOLLOWERS } from './data/followers';
 import { followerOrder } from './ai/follower';
 import { ACTIVE_CYCLES } from './data/cycles';
-import { ITEMS } from './data/items';
 import { offCycle } from './cycle';
 import { HEROES } from './data/heroes';
 import { SKILLS } from './data/skills';
 import type { DamageType, HordeSetup, InteractAction, LootDef, MapDef, ShrineKind, Personality, ProjectileKind, Rect, SkillDef, SpawnerDef, Team, UnitDef, WaveDef, WaveTrigger } from './data/types';
 import { INTERACT } from './data/interact';
+import { COMBAT_STATE } from './data/deliberate';
 import { CLASS_PASSIVES, PASSIVES } from './data/passives';
 import type { GroundZone } from './zones';
 import { updateZones, zoneMoveMult } from './zones';
@@ -246,7 +246,7 @@ export class World implements ZocContext {
       // 沉穩節奏（SPEC_SLICE5 §14）：英雄帶職業被動
       if (def.team === 'hero' && !follower && this.config.battleStyle === 'deliberate') {
         for (const id of CLASS_PASSIVES[def.id] ?? []) u.addPassive(PASSIVES[id]);
-        for (const id of s.items ?? []) if (ITEMS[id]) u.addPassive(ITEMS[id].passive);
+        u.setItems(s.items ?? []);
         for (const id of s.passives ?? []) if (PASSIVES[id]) u.addPassive(PASSIVES[id]);
         // 技能循環（SPEC_SLICE5 §16）：英雄帶齊循環的每一招才啟用
         const cyc = ACTIVE_CYCLES[def.id];
@@ -645,6 +645,24 @@ export class World implements ZocContext {
 
   emit(ev: SimEvent): void {
     this.events.push(ev);
+    // 敵我有人打中對方＝交戰中
+    if (ev.type === 'hit' && this.getUnit(ev.sourceId)?.team !== this.getUnit(ev.targetId)?.team) this.lastClash = this.time;
+  }
+
+  /** 戰鬥中／非戰鬥中（SPEC_SLICE7 §2）：非戰鬥中才能換裝備 */
+  inCombat = false;
+  private lastClash = -Infinity;
+
+  private updateCombatState(): void {
+    const C = COMBAT_STATE;
+    if (this.tick % C.interval !== 0) return;
+    const ours = this.units.filter((u) => u.team === 'hero' && !u.dead);
+    const near = this.units.some((e) => e.team === 'enemy' && !e.dead && e.alerted && ours.some((h) => dist(e.pos, h.pos) <= C.engageRange));
+    if (near) this.lastClash = this.time;
+    const now = this.time - this.lastClash < C.exitDelay;
+    if (now === this.inCombat) return;
+    this.inCombat = now;
+    this.emit({ type: 'combatState', inCombat: now });
   }
 
   // ───────────── 指令 ─────────────
@@ -685,6 +703,7 @@ export class World implements ZocContext {
     this.updateProjectiles();
     this.updateFire();
     this.updateZones();
+    this.updateCombatState();
     separateUnits(this.units, (u) => this.navFor(u), this.config.unitSpacing > 0 ? { gap: this.config.unitSpacing, rate: this.config.unitSpacingRate } : undefined);
     this.checkEnd();
     this.tick++;
@@ -755,6 +774,12 @@ export class World implements ZocContext {
       case 'useConsumable':
         this.useConsumable(cmd.itemId, cmd.targetId);
         break;
+      case 'setItems': {
+        const u = this.units.find((o) => o.isHero && o.heroSlot === cmd.heroSlot);
+        if (!u || u.dead || this.inCombat) break;
+        u.setItems(cmd.items);
+        break;
+      }
       case 'interact': {
         const u = this.getUnit(cmd.unitId);
         const s = this.interactables.get(cmd.objectId);

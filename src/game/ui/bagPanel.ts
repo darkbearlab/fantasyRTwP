@@ -41,6 +41,13 @@ export function consumablePanel(run: RunState, onChange: (r: RunState) => void):
 export function bagPanel(run: RunState, onChange: (r: RunState) => void): HTMLElement {
   const box = el('div', 'bag-panel');
   box.appendChild(consumablePanel(run, onChange));
+  box.appendChild(equipmentPanel(run, onChange));
+  return box;
+}
+
+/** 裝備與背包裡的道具；locked＝戰鬥中，按鈕全部不能按（SPEC_SLICE7 §2） */
+export function equipmentPanel(run: RunState, onChange: (r: RunState) => void, locked = false): HTMLElement {
+  const box = el('div', 'bag-panel');
   box.appendChild(el('div', 'bag-title', tr("🎒 裝備（每名英雄 2 格）")));
   run.party.forEach((h, slot) => {
     if (!h) return;
@@ -51,7 +58,7 @@ export function bagPanel(run: RunState, onChange: (r: RunState) => void): HTMLEl
     const items = h.items ?? [];
     for (const id of items) {
       const it = el('div', `bag-item${ITEMS[id].rarity === 'rare' ? ' rare' : ''}`);
-      it.append(el('span', 'bag-desc', itemLabel(id)), button(tr("卸下"), 'small', () => onChange(unequipItem(run, slot, id))));
+      it.append(el('span', 'bag-desc', itemLabel(id)), button(tr("卸下"), 'small', () => onChange(unequipItem(run, slot, id)), locked));
       row.appendChild(it);
     }
     for (let i = items.length; i < ECONOMY.itemSlots; i++) row.appendChild(el('div', 'bag-item empty', tr("（空）")));
@@ -66,7 +73,7 @@ export function bagPanel(run: RunState, onChange: (r: RunState) => void): HTMLEl
     const btns = el('div', 'bag-btns');
     run.party.forEach((h, slot) => {
       if (!h || h.dead) return;
-      btns.appendChild(button(tr("給{0}", { 0: HEROES[h.classId].name }), 'small', () => onChange(equipItem(run, slot, id)), !canEquip(run, slot, id)));
+      btns.appendChild(button(tr("給{0}", { 0: HEROES[h.classId].name }), 'small', () => onChange(equipItem(run, slot, id)), locked || !canEquip(run, slot, id)));
     });
     it.appendChild(btns);
     box.appendChild(it);

@@ -18,7 +18,9 @@ export type Command =
   /** 使用包包裡的消耗品（不佔英雄的動作，共用冷卻；Alan 2026-10-21） */
   | { type: 'useConsumable'; itemId: string; targetId?: number }
   /** 和地圖物件互動（開關門、拉桿）：走過去再互動（SPEC_SLICE4 §15.1） */
-  | { type: 'interact'; unitId: number; objectId: string };
+  | { type: 'interact'; unitId: number; objectId: string }
+  /** 換裝備（SPEC_SLICE7 §2）：非戰鬥中才有效，戰鬥中直接忽略 */
+  | { type: 'setItems'; heroSlot: number; items: string[] };
 
 /** 單位層級的指令（單位目前在做的事） */
 export type Order =

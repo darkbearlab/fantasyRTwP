@@ -42,5 +42,7 @@ export type SimEvent =
   | { type: 'door'; objectId: string; open: boolean; blocked?: boolean }
   /** exitId：從哪個出口離開（出口制，SPEC_SLICE6 §2） */
   | { type: 'battleEnd'; winner: Team; exitId?: string }
+  /** 進入／脫離戰鬥（SPEC_SLICE7 §2） */
+  | { type: 'combatState'; inCombat: boolean }
   /** 有英雄在出口裡但還沒到齊（inside／total）；或出口還封著（locked） */
   | { type: 'exitWaiting'; exitId: string; inside: number; total: number; locked: boolean }

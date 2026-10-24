@@ -459,6 +459,11 @@ export const EN_TEXT: Record<string, string> = {
   "英雄只用側面圖": "Heroes use side view only",
   "往上下走、攻擊時也只左右翻轉": "Only flips left/right, even when moving up or down",
   "連鎖": "Chain",
+  "整備（換裝備；非戰鬥中才能換）": "Gear (swap equipment; only out of combat)",
+  "整備": "Gear",
+  "⚔ 戰鬥中不能換裝備：脫離戰鬥後再來": "⚔ Can't swap gear in combat: come back once the fight is over",
+  "⚔ 戰鬥中": "⚔ In combat",
+  "非戰鬥中": "Out of combat",
   // 標點、排版用的鍵
   "MVP　{0}{1}": "MVP  {0}{1}",
   "You must gather your party before venturing forth.（{0}／{1}）": "You must gather your party before venturing forth. ({0}/{1})",
