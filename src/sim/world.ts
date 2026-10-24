@@ -1100,6 +1100,8 @@ export class World implements ZocContext {
     }
     if (u.rootTime > 0) u.rootTime = Math.max(0, u.rootTime - DT);
     if (u.blessTime > 0) u.blessTime = Math.max(0, u.blessTime - DT);
+    if (u.markTime > 0) u.markTime = Math.max(0, u.markTime - DT);
+    if (u.empowerTime > 0) u.empowerTime = Math.max(0, u.empowerTime - DT);
     if (u.shrineTime > 0) {
       u.shrineTime = Math.max(0, u.shrineTime - DT);
       // 復甦祭壇：每秒回復（累積到整數才加，不跳字）

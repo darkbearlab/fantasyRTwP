@@ -1,6 +1,8 @@
 /**
  * 動作狀態機（準備 → 生效 → 恢復）與效果結算（SPEC §5、§6、§10.2）。
  */
+import { fireTriggers } from './triggers';
+import type { OnHitEffect } from './data/passives';
 import { tr } from '../i18n/lang';
 import { applyArmor, CRIT_MULT, rollDamage, rollHit } from './combat';
 import { AFFINITY, BACKSTAB_ACCURACY, BASIC_ATTACK, critTierOf, DAMAGE_FORMULA, SKILL_ATTACK, SPEC_DEFENSE } from './data/damageTypes';
@@ -58,34 +60,35 @@ export function hordeStyle(world: World, u: Unit): BasicAttackStyle | undefined 
   return undefined;
 }
 
-/** 被動的普攻命中效果（SPEC_SLICE5 §14）：每第 N 擊、機率觸發的暈眩／定身 */
-function passiveOnHit(world: World, src: Unit, t: Unit): void {
-  src.basicHits++;
-  for (const p of src.passives) {
-    for (const e of p.onHit ?? []) {
-      if (e.every && src.basicHits % e.every !== 0) continue;
-      if (e.chance !== undefined && !world.rng.chance(e.chance)) continue;
-      if (e.kind === 'stun') applyStun(world, t, e.duration ?? 0.5);
-      else if (e.kind === 'root') {
-        t.rootTime = Math.max(t.rootTime, e.duration ?? 1);
-        t.path = null;
-        world.emit({ type: 'status', unitId: t.id, text: tr("定身") });
-      } else if (e.kind === 'burn') {
-        if (t.burnTime <= 0) t.burnTick = 1;
-        t.burnTime = Math.max(t.burnTime, e.duration ?? TERRAIN.burnDuration);
-        t.burnSourceId = src.id;
-        world.emit({ type: 'status', unitId: t.id, text: tr("燃燒") });
-      } else if (e.kind === 'sunder') {
-        t.sunderStacks = Math.min(e.maxStacks ?? 1, (t.sunderTime > 0 ? t.sunderStacks : 0) + 1);
-        t.sunderArmor = Math.max(t.sunderTime > 0 ? t.sunderArmor : 0, e.armor ?? 1);
-        t.sunderTime = e.duration ?? 4;
-        world.emit({ type: 'status', unitId: t.id, text: tr("破甲 {0}", { 0: t.sunderStacks }) });
-      } else if (e.lingering) {
-        addZone(world, src, t.pos, e.radius ?? 1.5, e.lingering, p.id);
-      }
-      world.emit({ type: 'notice', unitId: src.id, text: p.name });
-    }
+/**
+ * 普攻命中效果（暈眩、定身、燃燒、破甲、留下地面區域）打在目標身上。
+ * 由通用觸發框架（triggers.ts）呼叫：舊的 onHit 與新的觸發共用。
+ */
+export function applyOnHitEffect(world: World, src: Unit, t: Unit, e: OnHitEffect, passiveId: string): void {
+  if (e.kind === 'stun') applyStun(world, t, e.duration ?? 0.5);
+  else if (e.kind === 'root') {
+    t.rootTime = Math.max(t.rootTime, e.duration ?? 1);
+    t.path = null;
+    world.emit({ type: 'status', unitId: t.id, text: tr("定身") });
+  } else if (e.kind === 'burn') {
+    if (t.burnTime <= 0) t.burnTick = 1;
+    t.burnTime = Math.max(t.burnTime, e.duration ?? TERRAIN.burnDuration);
+    t.burnSourceId = src.id;
+    world.emit({ type: 'status', unitId: t.id, text: tr("燃燒") });
+  } else if (e.kind === 'sunder') {
+    t.sunderStacks = Math.min(e.maxStacks ?? 1, (t.sunderTime > 0 ? t.sunderStacks : 0) + 1);
+    t.sunderArmor = Math.max(t.sunderTime > 0 ? t.sunderArmor : 0, e.armor ?? 1);
+    t.sunderTime = e.duration ?? 4;
+    world.emit({ type: 'status', unitId: t.id, text: tr("破甲 {0}", { 0: t.sunderStacks }) });
+  } else if (e.lingering) {
+    addZone(world, src, t.pos, e.radius ?? 1.5, e.lingering, passiveId);
   }
+}
+
+/** 觸發框架的「引爆」：對目標追加 mult × 自己基本傷害（普攻的傷害類型，不判定命中） */
+export function triggerDamage(world: World, src: Unit, t: Unit, mult: number, passiveId: string): void {
+  const base = rollDamage(world.rng, src.def.damage, mult * damageMultOf(world, src));
+  applyDamage(world, t, Math.max(1, Math.round(base)), basicDamageType(src.def), src, { skillId: passiveId });
 }
 
 /** 技能冷卻（個別修飾 × 全域倍率） */
@@ -171,6 +174,8 @@ export function finishWindup(world: World, u: Unit): void {
   advanceCycleOnCast(u, def.id);
   const target = a.targetId !== undefined ? world.getUnit(a.targetId) : undefined;
   const dash = applySkillEffect(world, u, def, target, a.point, power);
+  // 通用觸發：放出技能
+  if (!u.dead && u.passives.length > 0) fireTriggers(world, u, 'skillCast', { target });
   if (u.dead || !u.action) return;
   if (dash) {
     a.phase = 'dash';
@@ -228,7 +233,7 @@ function hordeMelee(world: World, u: Unit, t: Unit, style: BasicAttackStyle): vo
 }
 
 /** 回復生命（吸血、吸取用）；回傳實際回復量 */
-function restoreHp(world: World, src: Unit, t: Unit, amount: number): number {
+export function restoreHp(world: World, src: Unit, t: Unit, amount: number): number {
   const healed = Math.min(Math.round(amount), t.maxHp - t.hp);
   if (healed <= 0 || t.dead) return 0;
   t.hp += healed;
@@ -913,6 +918,8 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): Uni
   const result = rolled ? rolled.result : 'crit';
   if (result === 'miss') {
     world.emit({ type: 'miss', sourceId: src.id, targetId: target.id, skillId: p.skillId, freeAttack: p.freeAttack });
+    fireTriggers(world, src, 'miss', { target, basic: !!p.basic });
+    fireTriggers(world, target, 'dodge', { target: src });
     if (target.team === 'enemy') world.triggerAggro(target);
     return null;
   }
@@ -938,8 +945,16 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): Uni
   const final = info ? typedDamage(base * critMult, target, info, mu) : applyArmor(base * critMult, target.armor);
   if (info && (mu.w > 0 || mu.r > 0)) world.emit({ type: 'status', unitId: target.id, text: mu.w > 0 ? tr("有效！") : tr("抵抗") });
   applyDamage(world, target, final, p.damageType, src, { crit, skillId: p.skillId, freeAttack: p.freeAttack });
-  if (target.dead) return target;
-  if (p.basic && src.passives.length > 0) passiveOnHit(world, src, target);
+  // 通用觸發（Alan 2026-10-24）：打倒目標只觸發「擊殺」；沒倒就觸發「命中」與「爆擊」
+  const trig = { target, basic: !!p.basic };
+  if (target.dead) {
+    fireTriggers(world, src, 'kill', trig);
+    return target;
+  }
+  if (src.passives.length > 0) {
+    fireTriggers(world, src, 'hit', trig);
+    if (crit && !target.dead) fireTriggers(world, src, 'crit', trig);
+  }
   // 蓄力循環（法師）：普攻命中累積充能
   if (p.basic && src.cycle && chargeCycleOnHit(src)) world.emit({ type: 'notice', unitId: src.id, text: tr("{0}準備好了", { 0: SKILLS[src.cycle.steps[1]].name }) });
   if (target.dead) return target;
@@ -974,6 +989,8 @@ export function applyDamage(
   if (foe && src.drainAuraTime > 0) amount = Math.round(amount * (1 + src.drainAuraDamagePct));
   // 衰弱詛咒：受到傷害增加
   if (target.curseTime > 0) amount = Math.round(amount * (1 + target.curseVuln));
+  // 標記（通用觸發的效果）：受到傷害增加
+  if (target.markTime > 0) amount = Math.round(amount * (1 + target.markVuln));
   // 凋零光環：受到傷害增加
   if (target.chillTime > 0 && target.chillVuln > 0) amount = Math.round(amount * (1 + target.chillVuln));
   // 聖域：範圍內的友軍減傷（取最強的一個）
@@ -1012,6 +1029,8 @@ export function applyDamage(
       }
     }
   }
+  // 通用觸發：被打（「目標」是打自己的人）
+  if (foe && dealt > 0 && target.hp > 0 && target.passives.length > 0) fireTriggers(world, target, 'hitTaken', { target: src });
   // 沉穩節奏：敵人記下誰打了自己（仇恨）
   if (src.team !== target.team && world.config.battleStyle === 'deliberate') target.threatLog.push({ id: src.id, amount: dealt, t: world.time });
   // 盾兵：生命跌破門檻就盾破
