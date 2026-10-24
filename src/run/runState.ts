@@ -66,7 +66,11 @@ export type RunPhase =
       mods?: { force?: boolean; champion?: boolean; championOnly?: boolean; smoke?: boolean };
       /** 一路向前（SPEC_SLICE7 §1）：商人節點變成地圖上的商人，貨架與已售出的道具 */
       shop?: { stock: string[]; sold: string[] };
+      /** 這張圖有被困的英雄（SPEC_SLICE7 §4）：加入前已經配好的樣子 */
+      rescue?: HeroRecord;
     }
+  /** 解救的英雄跟著離開了這張圖：決定要不要讓他加入（SPEC_SLICE7 §4） */
+  | { kind: 'rescue'; hero: HeroRecord }
   /** item：這場掉落的道具（已放進背包） */
   | {
       kind: 'reward';
@@ -133,6 +137,8 @@ export interface RunState {
   exitTo?: number | null;
   /** 一路向前（SPEC_SLICE7 §1）：沒有路線圖畫面、不能回頭；從出口離開直接進下一張圖 */
   forward?: boolean;
+  /** 剛救出來、還沒決定要不要加入的英雄 */
+  pendingRescue?: HeroRecord;
   /** 隊伍等級與經驗值（SPEC_SLICE6 §3，沉穩節奏） */
   level?: number;
   xp?: number;

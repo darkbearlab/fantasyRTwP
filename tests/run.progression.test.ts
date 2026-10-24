@@ -10,7 +10,7 @@ import { playRun } from '../tools/runPolicy';
 
 /** 進入第一個戰鬥節點 */
 function toFirstBattle(seed = 1): RunState {
-  const r = createRun(seed);
+  const r = createRun(seed, { forward: false });
   return chooseNode(r, availableNodes(r)[0].id);
 }
 
@@ -31,7 +31,7 @@ function atRest(r: RunState): RunState {
 
 describe('遠征狀態（SPEC_SLICE2 §3、§11-2/3）', () => {
   it('初始狀態：4 名英雄滿血、50 金幣、可序列化', () => {
-    const r = createRun(5);
+    const r = createRun(5, { forward: false });
     expect(r.party.map((h) => h?.classId)).toEqual(['warrior', 'ranger', 'mage', 'cleric']);
     expect(r.gold).toBe(ECONOMY.startGold);
     expect(deserializeRun(serializeRun(r))).toEqual(r);
@@ -114,7 +114,7 @@ describe('休息、復活與招募（SPEC_SLICE2 §4、§5、§11-3/4）', () =>
   }
 
   it('復活後以 50% 生命回歸，花 80 金幣', () => {
-    const r = atRest(withDead(createRun(2), 2, 200));
+    const r = atRest(withDead(createRun(2, { forward: false }), 2, 200));
     expect(canRevive(r, 2)).toBe(true);
     const after = restRevive(r, 2);
     expect(after.party[2]!.dead).toBe(false);
@@ -125,14 +125,14 @@ describe('休息、復活與招募（SPEC_SLICE2 §4、§5、§11-3/4）', () =>
   });
 
   it('金幣不足時無法復活或招募', () => {
-    const r = atRest(withDead(createRun(2), 1, 60));
+    const r = atRest(withDead(createRun(2, { forward: false }), 1, 60));
     expect(canRevive(r, 1)).toBe(false);
     expect(() => restRevive(r, 1)).toThrow();
     expect(canRecruit(r)).toBe(false);
   });
 
   it('招募填入第一個空欄位（陣亡者的欄位也算空位），新英雄滿血、依層數獲得強化', () => {
-    let r = withDead(createRun(2), 1, 300);
+    let r = withDead(createRun(2, { forward: false }), 1, 300);
     r.party[3] = null;
     r = atRest(r);
     expect(firstEmptySlot(r)).toBe(1);
@@ -151,7 +151,7 @@ describe('休息、復活與招募（SPEC_SLICE2 §4、§5、§11-3/4）', () =>
   });
 
   it('紮營恢復 40% 最大生命', () => {
-    const r0 = createRun(2);
+    const r0 = createRun(2, { forward: false });
     r0.party[0]!.hp = 20;
     const after = restCamp(atRest(r0));
     expect(after.party[0]!.hp).toBe(20 + Math.round(140 * 0.4));

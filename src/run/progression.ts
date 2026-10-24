@@ -26,6 +26,8 @@ import type { LootDef } from '../sim/data/types';
 import { enemyStrength, gainXp, nextLevelUpTo, xpForKills } from './xp';
 import { neighbors } from './routeMap';
 import { advanceTurn, campfireSmoke, caught, championDefeated, isOccupied } from './overworld';
+import { rescueAt, rescueHero } from './journey';
+import { JOURNEY } from './data/journey';
 
 /** 下一步可以前往的節點 */
 export function availableNodes(run: RunState): MapNode[] {
@@ -100,6 +102,8 @@ export function chooseNode(run: RunState, nodeId: number): RunState {
     case 'elite':
     case 'boss':
       r.phase = { kind: 'battle', nodeId, encounterId: pickEncounter(r, node), fromEvent: false };
+      // 被困的英雄（SPEC_SLICE7 §4）
+      if (rescueAt(r, nodeId)) r.phase.rescue = rescueHero(r, nodeId);
       break;
     case 'event': {
       const rng = rngFor(r.seed, 'eventPick', nodeId);
@@ -160,7 +164,14 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
   for (const o of outcome.heroes) {
     const h = r.party[o.slot];
     if (!h) continue;
-    if (!h.dead && o.dead) r.stats.heroesLost++;
+    if (!h.dead && o.dead) {
+      r.stats.heroesLost++;
+      // 陣亡就是沒了（SPEC_SLICE7 §5）：身上的裝備掉回背包
+      if (r.forward && h.items?.length) {
+        (r.inventory ??= []).push(...h.items);
+        h.items = [];
+      }
+    }
     const startHp = h.hp;
     h.hp = o.dead ? 0 : Math.max(1, Math.min(maxHpOf(h), Math.round(o.hp)));
     // 戰後整補（參考永恆之柱）：勝利後存活者回復本場損失生命的一部分，其餘是長期傷勢
@@ -176,6 +187,8 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
     h.battles++;
     if (o.personality) h.personality = o.personality;
   }
+  // 救出來的英雄：戰後決定要不要讓他加入
+  if (outcome.won && outcome.rescued && run.phase.kind === 'battle' && run.phase.rescue) r.pendingRescue = { ...run.phase.rescue, hp: Math.max(1, Math.round(outcome.rescued.hp)) };
   // 包包：戰鬥中用掉的消耗品拿掉
   if (runStyle(r) === 'deliberate' && outcome.bag) r.bag = [...outcome.bag];
   // 隨從（Alan 2026-10-23）：只留下活著的，生命照戰後的樣子（不補血）；主人陣亡就散了
@@ -266,7 +279,7 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
   // 消耗品掉落（精英必掉；包包滿了就撿不了）
   let consumable: string | undefined;
   if (deliberate) {
-    const c = rollConsumableDrop(rngFor(r.seed, 'consumableDrop', nodeId, fromEvent ? 'event' : 'node'), elite ? 'elite' : fromEvent ? 'event' : 'battle');
+    const c = rollConsumableDrop(rngFor(r.seed, 'consumableDrop', nodeId, fromEvent ? 'event' : 'node'), elite ? 'elite' : fromEvent ? 'event' : 'battle', r.forward ? JOURNEY.removedConsumables : []);
     if (c && addToBag(r, c)) {
       consumable = c;
       r.journal.push(tr("撿到了「{0}」。", { 0: CONSUMABLES[c].name }));
@@ -331,6 +344,10 @@ export function chooseReward(run: RunState, choice: RewardChoice): RunState {
 }
 
 function toMap(r: RunState): RunState {
+  if (r.pendingRescue) {
+    r.phase = { kind: 'rescue', hero: r.pendingRescue };
+    return r;
+  }
   if (r.chapterCleared) enterInterlude(r);
   else {
     r.phase = { kind: 'map' };
@@ -347,15 +364,41 @@ export function leaveNode(run: RunState): RunState {
   return toMap(cloneRun(run));
 }
 
+// ───────────── 解救的英雄（SPEC_SLICE7 §4） ─────────────
+
+/** 隊伍還有空位（陣亡的欄位也算）才能加入 */
+export function canAcceptRescue(run: RunState): boolean {
+  return run.phase.kind === 'rescue' && firstEmptySlot(run) >= 0;
+}
+
+/** 讓他加入（填進第一個空欄位），或讓他離開；之後照常往下走 */
+export function resolveRescue(run: RunState, accept: boolean): RunState {
+  if (run.phase.kind !== 'rescue') throw new Error('目前沒有要決定的英雄');
+  if (accept && !canAcceptRescue(run)) throw new Error('隊伍已滿');
+  const r = cloneRun(run);
+  const hero = r.pendingRescue!;
+  r.pendingRescue = undefined;
+  if (accept) {
+    const slot = firstEmptySlot(r);
+    r.party[slot] = hero;
+    r.journal.push(tr("{0}加入了隊伍。", { 0: HEROES[hero.classId].name }));
+  } else r.journal.push(tr("{0}道謝後離開了。", { 0: HEROES[hero.classId].name }));
+  return toMap(r);
+}
+
 // ───────────── 休息節點 ─────────────
 
 export function canRevive(run: RunState, slot?: number): boolean {
+  // 陣亡就是沒了（SPEC_SLICE7 §5）
+  if (run.forward) return false;
   if (run.phase.kind !== 'rest' || run.phase.used || run.gold < ECONOMY.reviveCost) return false;
   if (slot === undefined) return run.party.some((h) => h?.dead);
   return !!run.party[slot]?.dead;
 }
 
 export function canRecruit(run: RunState): boolean {
+  // 一路向前：隊友靠路上解救（SPEC_SLICE7 §4），休息點不招募
+  if (run.forward) return false;
   return run.phase.kind === 'rest' && !run.phase.recruited && run.gold >= ECONOMY.recruitCost && firstEmptySlot(run) >= 0;
 }
 

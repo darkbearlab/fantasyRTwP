@@ -8,6 +8,14 @@ import { DELIBERATE_PACE } from './deliberate';
 import { ENEMIES } from './enemies';
 import type { UnitDef } from './types';
 
+/**
+ * 解救英雄（SPEC_SLICE7 §4）：被困的英雄和看守的敵人在玩家靠近前都不動；
+ * 有英雄走到 wakeRange 公尺內（或看守被驚動）就開打，被救的英雄先當最近那名英雄的隨從。
+ */
+export const CAPTIVE = {
+  wakeRange: 7,
+};
+
 export const FOLLOWER_RULES = {
   /** 離主人超過這麼遠就放下手邊的事，跑回主人身邊（m） */
   leash: 7,

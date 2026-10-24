@@ -35,7 +35,7 @@ export const CHAPTER_RULES = {
 
 export const CHAPTERS: ChapterDef[] = [
   {
-    id: 'capital', name: '首都突圍', layers: 5, townUntilLayer: 3, fieldLooks: ['fallDusk'], faction: 'empire',
+    id: 'capital', name: '首都突圍', layers: 5, townUntilLayer: 3, fieldLooks: ['fallDusk'], faction: 'empireRaid',
     intro: ['王都陷入火海。', '國王選擇與將士同進退，把最後的希望交給了你們四人：', '找到傳說中的魔法水晶，用它的力量打倒魔王。', '先活著離開這座城。'],
   },
   {

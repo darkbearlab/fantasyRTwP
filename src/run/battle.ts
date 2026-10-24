@@ -38,7 +38,8 @@ import { DEFAULT_SIM_CONFIG } from '../sim/simConfig';
 import { heroDef, heroPassives } from './upgrades';
 import { currentChapter, depthOffset } from './campaign';
 import { factionOf } from './data/factions';
-import { withMerchant } from './journey';
+import { freeSpotNear, withMerchant } from './journey';
+import { JOURNEY } from './data/journey';
 
 /** 敵人數值隨層數成長；隊長另外強化 */
 export function enemyDef(enemyId: string, layer: number, captain = false): UnitDef {
@@ -225,6 +226,22 @@ export function createBattleFromRun(run: RunState, config?: Partial<SimConfig>, 
       spawns.push({ defId: f.kind, def, pos: { x: at.x + Math.cos(a) * 0.9, y: at.y + Math.sin(a) * 0.9 }, hp: f.hp, followerOf: slot });
     });
   });
+  // 被困的英雄（SPEC_SLICE7 §4）：困在離出生點中等距離的一個小隊旁邊，玩家靠近前雙方都不動
+  const captive = run.phase.kind === 'battle' ? run.phase.rescue : undefined;
+  if (captive && deliberate) {
+    const squads = new Map<string, { x: number; y: number }[]>();
+    for (const e of enc.enemies) if (!e.captain) (squads.get(e.squad ?? 'main') ?? squads.set(e.squad ?? 'main', []).get(e.squad ?? 'main')!).push({ x: e.x, y: e.y });
+    const spawn = map.heroSpawns[0] ?? { x: map.width / 2, y: map.height / 2 };
+    const centers = [...squads.entries()]
+      .map(([id, ps]) => ({ id, ps, c: { x: ps.reduce((a, p) => a + p.x, 0) / ps.length, y: ps.reduce((a, p) => a + p.y, 0) / ps.length } }))
+      .sort((a, b) => dist(a.c, spawn) - dist(b.c, spawn));
+    const guard = centers[Math.floor(centers.length / 2)];
+    const spot = guard && freeSpotNear(map, guard.c, JOURNEY.rescue.spotDistances, 0.6, guard.ps);
+    if (guard && spot) {
+      const def = { ...heroDef(captive), skills: deliberateSkillsOf(captive.classId) };
+      spawns.push({ defId: captive.classId, def, pos: { x: spot.x + 0.3, y: spot.y + 0.3 }, hp: captive.hp, personality: captive.personality, items: captive.items, passives: heroPassives(captive), captive: guard.id });
+    }
+  }
   // 怪群模式：地圖與遭遇的生成點合併，戰鬥模式自動設成 horde，精英與頭目生命下降
   const horde = enc.horde ? { ...enc.horde, spawners: [...(map.spawners ?? []), ...enc.horde.spawners] } : undefined;
   // 沉穩節奏（Alan 2026-10-21：太泥濘）：一般敵人生命減半，精英隊長與頭目不變
@@ -260,6 +277,8 @@ export interface BattleOutcome {
   heroes: { slot: number; hp: number; dead: boolean; kills: number; damageDealt: number; damageTaken: number; personality?: Personality }[];
   /** 戰後還活著的隨從（主人的欄位、兵種、生命）；戰鬥中新叫的也在裡面 */
   followers?: { slot: number; kind: string; hp: number }[];
+  /** 被救出來、跟著離開的英雄的生命（SPEC_SLICE7 §4）；沒救到就省略 */
+  rescued?: { hp: number };
 }
 
 export function battleOutcomeFromWorld(world: World): BattleOutcome {
@@ -271,8 +290,12 @@ export function battleOutcomeFromWorld(world: World): BattleOutcome {
     time: world.time,
     bag: [...world.bag],
     loot: [...world.loot],
+    rescued: (() => {
+      const u = world.units.find((o) => o.rescue && !o.captive && !o.dead);
+      return u && world.result === 'hero' ? { hp: u.hp } : undefined;
+    })(),
     followers: world.units
-      .filter((u) => u.follower && !u.dead && u.masterId >= 0)
+      .filter((u) => u.follower && !u.rescue && !u.dead && u.masterId >= 0)
       .map((u) => ({ slot: world.getUnit(u.masterId)?.heroSlot ?? -1, kind: u.def.id, hp: u.hp }))
       .filter((f) => f.slot >= 0),
     heroes: world.units

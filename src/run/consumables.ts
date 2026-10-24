@@ -10,6 +10,7 @@ import type { Rng } from '../sim/rng';
 import { maxHpOf } from './upgrades';
 import type { RunState } from './runState';
 import { cloneRun } from './runState';
+import { JOURNEY } from './data/journey';
 
 export const bagOf = (r: RunState): string[] => r.bag ?? [];
 export const bagFull = (r: RunState): boolean => bagOf(r).length >= BAG.capacity;
@@ -23,6 +24,11 @@ export function addToBag(r: RunState, id: string): boolean {
 
 /** 商人賣的消耗品（每種都有，不限數量，只受包包大小與金幣限制） */
 export const SHOP_CONSUMABLES = Object.keys(CONSUMABLES);
+
+/** 這趟遠征商人賣的消耗品（一路向前：陣亡就是沒了，不賣復活的） */
+export function shopConsumables(run: RunState): string[] {
+  return run.forward ? SHOP_CONSUMABLES.filter((id) => !JOURNEY.removedConsumables.includes(id)) : SHOP_CONSUMABLES;
+}
 
 /**
  * bagLen：包包裡現在有幾個（戰鬥中包包在 sim 裡，要從畫面傳進來）。
@@ -45,9 +51,9 @@ export function buyConsumable(run: RunState, id: string, bagLen?: number): RunSt
 /** 打贏後的消耗品掉落（機率依節點類型；精英、頭目必掉） */
 export const CONSUMABLE_DROP = { chance: { battle: 0.35, elite: 1, event: 0.35 } as Record<string, number>, weights: { potion: 5, elixir: 2, phoenix: 1, smoke: 2 } as Record<string, number> };
 
-export function rollConsumableDrop(rng: Rng, kind: 'battle' | 'elite' | 'event'): string | null {
+export function rollConsumableDrop(rng: Rng, kind: 'battle' | 'elite' | 'event', exclude: string[] = []): string | null {
   if (!rng.chance(CONSUMABLE_DROP.chance[kind] ?? 0)) return null;
-  const entries = Object.entries(CONSUMABLE_DROP.weights);
+  const entries = Object.entries(CONSUMABLE_DROP.weights).filter(([id]) => !exclude.includes(id));
   const total = entries.reduce((a, [, w]) => a + w, 0);
   let x = rng.range(0, total);
   for (const [id, w] of entries) if ((x -= w) < 0) return id;

@@ -43,7 +43,38 @@ const ORC_GRUNTS = [
   { enemy: 'goblinSlinger', weight: 2 },
 ];
 
+/**
+ * 第 1 章「首都突圍」（SPEC_SLICE7 §6，Alan）：開局只有兩人，敵人要是兩人隊伍可以快速解決的程度。
+ * 輕裝快速離開王城，路上打的是還在掠奪的小兵：以劍兵、斧兵、弓手為主，少放盾兵（營地沒有鐵砧、池子裡盾兵權重降低）。
+ */
+const RAID_POOLS: Record<string, PoolEntry[]> = {
+  ...LEVEL_POOLS,
+  melee: [
+    { enemy: 'raider', weight: 4, minLayer: 1, cost: 1 },
+    { enemy: 'axeman', weight: 3, minLayer: 1, cost: 1 },
+    ...LEVEL_POOLS.melee.map((e) => (e.enemy === 'shieldbearer' ? { ...e, weight: 1 } : e)),
+  ],
+  mixed: [
+    { enemy: 'raider', weight: 4, minLayer: 1, cost: 1 },
+    { enemy: 'axeman', weight: 3, minLayer: 1, cost: 1 },
+    ...LEVEL_POOLS.mixed.map((e) => (e.enemy === 'shieldbearer' ? { ...e, weight: 1 } : e)),
+  ],
+};
+
 export const FACTIONS: Record<string, FactionDef> = {
+  empireRaid: {
+    id: 'empireRaid',
+    name: '帝國叛軍（掠奪中的小兵）',
+    sites: {
+      lookout: { grunts: [{ enemy: 'archer', weight: 1 }] },
+      camp: { grunts: EMPIRE_GRUNTS },
+      checkpoint: { grunts: EMPIRE_GRUNTS, anvil: 'shieldbearer' },
+    },
+    pools: RAID_POOLS,
+    skirmish: SKIRMISH.pool,
+    captainPool: DELIBERATE_LEVELS.captainPool,
+    boss: { enemy: DELIBERATE_LEVELS.boss.enemy, escorts: DELIBERATE_LEVELS.boss.escorts, arena: 'camp', place: '戰爭領主的營地' },
+  },
   empire: {
     id: 'empire',
     name: '帝國叛軍',
