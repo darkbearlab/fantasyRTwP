@@ -122,9 +122,20 @@ export function pixelFloorReady(scene: Phaser.Scene): boolean {
 
 /**
  * 外框貼圖（Alan：陣營色腳下圈以外，sprite 的輪廓也框起來，被遮住時也看得到）：
- * 原圖的不透明像素往外擴 1 px 的那一圈，填白色（畫的時候再染成陣營色）。格子排列和原圖相同。
- * sheet＝mw 的 spritesheet（32 px 一格）；否則是 0x72 的單張圖。
+ * 原圖的不透明像素往外擴 1 px 的那一圈，填白色（畫的時候再染成陣營色）。
+ * sheet＝mw 的 spritesheet（32 px 一格）：每一格各自算，放大成 (32 + 2) px 的格子（外框可以伸出原本的格邊），
+ * 格子之間再留 OUTLINE_GAP 的空白——外框貼著格邊時，縮放取樣才不會取到隔壁格（攻擊動作會框到旁邊那格的外框）。
+ * 外框格比原圖大一圈，對位用 outlineOrigin。否則是 0x72 的單張圖（格子大小和原圖相同）。
  */
+const OUTLINE_PAD = 1;
+const OUTLINE_GAP = 2;
+
+/** mw 外框格要對齊身體 sprite：身體的原點（0～1）換算成外框格的原點 */
+export function outlineOrigin(ox: number, oy: number): { x: number; y: number } {
+  const size = PIXEL.cell + OUTLINE_PAD * 2;
+  return { x: (ox * PIXEL.cell + OUTLINE_PAD) / size, y: (oy * PIXEL.cell + OUTLINE_PAD) / size };
+}
+
 export function outlineKey(scene: Phaser.Scene, key: string, sheet: boolean): string | undefined {
   const out = `${key}#outline`;
   if (scene.textures.exists(out)) return out;
@@ -132,24 +143,53 @@ export function outlineKey(scene: Phaser.Scene, key: string, sheet: boolean): st
   const src = recolored.get(key) ?? (scene.textures.get(key).getSourceImage() as HTMLImageElement);
   const w = src.width;
   const h = src.height;
-  const canvas = document.createElement('canvas');
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext('2d')!;
-  ctx.drawImage(src, 0, 0);
-  const a = ctx.getImageData(0, 0, w, h);
-  const o = ctx.createImageData(w, h);
+  const read = document.createElement('canvas');
+  read.width = w;
+  read.height = h;
+  const rctx = read.getContext('2d')!;
+  rctx.drawImage(src, 0, 0);
+  const a = rctx.getImageData(0, 0, w, h);
   const solid = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < h && a.data[(y * w + x) * 4 + 3] > 0;
-  for (let y = 0; y < h; y++)
-    for (let x = 0; x < w; x++) {
-      if (solid(x, y)) continue;
-      if (!(solid(x + 1, y) || solid(x - 1, y) || solid(x, y + 1) || solid(x, y - 1))) continue;
-      const i = (y * w + x) * 4;
-      o.data[i] = o.data[i + 1] = o.data[i + 2] = o.data[i + 3] = 255;
+  // 一格一格算（單張圖＝整張一格）：只看同一格裡的像素
+  const C = sheet ? PIXEL.cell : 0;
+  const cols = sheet ? Math.floor(w / C) : 1;
+  const rows = sheet ? Math.floor(h / C) : 1;
+  const cw = sheet ? C : w;
+  const ch = sheet ? C : h;
+  const pad = sheet ? OUTLINE_PAD : 0;
+  const step = (sheet ? cw + pad * 2 + OUTLINE_GAP : cw);
+  const stepY = (sheet ? ch + pad * 2 + OUTLINE_GAP : ch);
+  const ow = sheet ? cols * step - OUTLINE_GAP + OUTLINE_GAP * 2 : w;
+  const oh = sheet ? rows * stepY - OUTLINE_GAP + OUTLINE_GAP * 2 : h;
+  const canvas = document.createElement('canvas');
+  canvas.width = ow;
+  canvas.height = oh;
+  const ctx = canvas.getContext('2d')!;
+  const o = ctx.createImageData(ow, oh);
+  const margin = sheet ? OUTLINE_GAP : 0;
+  for (let r = 0; r < rows; r++)
+    for (let c = 0; c < cols; c++) {
+      const sx = c * cw;
+      const sy = r * ch;
+      const inCell = (x: number, y: number) => x >= sx && y >= sy && x < sx + cw && y < sy + ch && solid(x, y);
+      for (let y = sy - pad; y < sy + ch + pad; y++)
+        for (let x = sx - pad; x < sx + cw + pad; x++) {
+          if (inCell(x, y)) continue;
+          if (!(inCell(x + 1, y) || inCell(x - 1, y) || inCell(x, y + 1) || inCell(x, y - 1))) continue;
+          const tx = margin + c * step + (x - sx + pad);
+          const ty = margin + r * stepY + (y - sy + pad);
+          const i = (ty * ow + tx) * 4;
+          o.data[i] = o.data[i + 1] = o.data[i + 2] = o.data[i + 3] = 255;
+        }
     }
-  ctx.clearRect(0, 0, w, h);
   ctx.putImageData(o, 0, 0);
-  if (sheet) scene.textures.addSpriteSheet(out, canvas as unknown as HTMLImageElement, { frameWidth: PIXEL.cell, frameHeight: PIXEL.cell });
+  if (sheet)
+    scene.textures.addSpriteSheet(out, canvas as unknown as HTMLImageElement, {
+      frameWidth: cw + pad * 2,
+      frameHeight: ch + pad * 2,
+      margin: OUTLINE_GAP,
+      spacing: OUTLINE_GAP,
+    });
   else scene.textures.addCanvas(out, canvas);
   return out;
 }
