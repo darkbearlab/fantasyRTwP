@@ -456,6 +456,8 @@ export const EN_TEXT: Record<string, string> = {
   "直式畫面（和手機一致）": "Portrait view (same as phone)",
   "路線圖、戰鬥紀錄放在兩側": "Route map and battle log on the sides",
   "標記": "Marked",
+  "英雄只用側面圖": "Heroes use side view only",
+  "往上下走、攻擊時也只左右翻轉": "Only flips left/right, even when moving up or down",
   // 標點、排版用的鍵
   "MVP　{0}{1}": "MVP  {0}{1}",
   "You must gather your party before venturing forth.（{0}／{1}）": "You must gather your party before venturing forth. ({0}/{1})",

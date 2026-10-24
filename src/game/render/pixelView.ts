@@ -10,7 +10,7 @@ import { displayFacing } from './art';
 import { COLORS } from './palette';
 import { artKey, m72Key, outlineKey } from './pixelArt';
 import type { PixelUnitArt } from './pixelArtData';
-import { PIXEL, facingBlock, m72Lunge, mwAnim, mwFrame } from './pixelArtData';
+import { PIXEL, facingBlock, m72Lunge, mwAnim, mwFrame, sideBlock, sideOnlyHeroes } from './pixelArtData';
 import { depthOf, groundAxes, groundCirclePoints, heightPx, worldToScreen } from './projection';
 import type { Concealment, UnitVisual } from './unitView';
 import { DEAD_DEPTH, OBJECT_DEPTH_BASE } from './unitView';
@@ -119,7 +119,7 @@ export class PixelView implements UnitVisual {
       const q = worldToScreen(Math.cos(f), Math.sin(f));
       fsx = q.x - o.x;
       fsy = q.y - o.y;
-      const fb = facingBlock(fsx, fsy);
+      const fb = u.isHero && sideOnlyHeroes() ? sideBlock(fsx, fsy, this.flip) : facingBlock(fsx, fsy);
       this.block = fb.block;
       this.flip = fb.flip;
     }

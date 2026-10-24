@@ -165,6 +165,33 @@ export function mwFrame(block: number, action: number, i: number): number {
  * 面向（畫面上的方向向量）→ 方向區塊與是否鏡像。
  * 左右分量比較大 → 側面（朝左鏡像）；否則往下＝正面、往上＝背面。
  */
+/**
+ * 英雄只用側面 sprite（Alan 2026-10-24：試看看只有左右移動的美術風格）：往上下走、攻擊時也用側面，只左右翻轉。
+ * 存在瀏覽器；設定選單可以切換。
+ */
+const SIDE_ONLY_KEY = 'fantasyRTwP.sideOnlyHeroes';
+export function sideOnlyHeroes(): boolean {
+  try {
+    return localStorage.getItem(SIDE_ONLY_KEY) !== 'off';
+  } catch {
+    return true;
+  }
+}
+export function setSideOnlyHeroes(on: boolean): void {
+  try {
+    localStorage.setItem(SIDE_ONLY_KEY, on ? 'on' : 'off');
+  } catch {
+    // 存不了就只在這次有效
+  }
+}
+
+/** 只用側面：左右看畫面上的水平方向；幾乎正上正下時維持原本的左右（prevFlip） */
+export function sideBlock(sx: number, sy: number, prevFlip: boolean): { block: number; flip: boolean } {
+  const len = Math.hypot(sx, sy);
+  if (len === 0 || Math.abs(sx) < len * 0.15) return { block: MW_SIDE, flip: prevFlip };
+  return { block: MW_SIDE, flip: sx < 0 };
+}
+
 export function facingBlock(sx: number, sy: number): { block: number; flip: boolean } {
   if (Math.abs(sx) >= Math.abs(sy)) return { block: MW_SIDE, flip: sx < 0 };
   return { block: sy > 0 ? MW_FRONT : MW_BACK, flip: false };
