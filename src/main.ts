@@ -14,6 +14,7 @@ import { RestScene } from './game/scenes/RestScene';
 import { RewardScene } from './game/scenes/RewardScene';
 import { InterludeScene } from './game/scenes/InterludeScene';
 import { ShopScene } from './game/scenes/ShopScene';
+import { RescueScene } from './game/scenes/RescueScene';
 import { RunEndScene } from './game/scenes/RunEndScene';
 import { CampfireScene } from './game/scenes/CampfireScene';
 
@@ -34,7 +35,7 @@ const game = new Phaser.Game({
   // 放大時保持像素化：貼圖用最近鄰取樣（不做雙線性模糊）、座標取整數
   pixelArt: true,
   scale: { mode: Phaser.Scale.NONE },
-  scene: [BootScene, TitleScene, PartySelectScene, MapScene, BattleScene, UIScene, ResultScene, EventScene, RestScene, RewardScene, ShopScene, RunEndScene, CampfireScene, InterludeScene],
+  scene: [BootScene, TitleScene, PartySelectScene, MapScene, BattleScene, UIScene, ResultScene, EventScene, RestScene, RewardScene, ShopScene, RunEndScene, CampfireScene, InterludeScene, RescueScene],
 });
 
 /** 觸控裝置（手機、平板）的介面縮放下限：太小的字在手機上看不清楚（SPEC_SLICE5 §8） */

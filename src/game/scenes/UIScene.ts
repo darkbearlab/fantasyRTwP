@@ -35,7 +35,7 @@ import { portraitSheetUrl } from '../render/pixelArt';
 import { equipmentPanel } from '../ui/bagPanel';
 import { button } from '../ui/dom';
 import { buyItem, canBuy, itemLabel, shopOf } from '../../run/items';
-import { SHOP_CONSUMABLES, buyConsumable, canBuyConsumable } from '../../run/consumables';
+import { buyConsumable, canBuyConsumable, shopConsumables } from '../../run/consumables';
 import { BAG, CONSUMABLES } from '../../sim/data/consumables';
 import { ITEMS } from '../../sim/data/items';
 import { setRun } from '../runFlow';
@@ -271,7 +271,7 @@ export class UIScene extends Phaser.Scene {
     }
     const bagLen = this.bagCount(s);
     box.appendChild(el('div', 'bag-title', tr("🧪 消耗品（包包 {0}／{1}）", { 0: bagLen, 1: BAG.capacity })));
-    for (const id of SHOP_CONSUMABLES) {
+    for (const id of shopConsumables(run)) {
       const d = CONSUMABLES[id];
       const row = el('div', 'shop-item');
       row.append(

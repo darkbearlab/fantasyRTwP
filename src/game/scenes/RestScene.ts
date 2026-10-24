@@ -106,10 +106,12 @@ export class RestScene extends DomScene {
           this.mode = 'train';
           this.rebuild();
         }));
-        row.appendChild(button(tr("救人：花 {0} 金幣復活一名陣亡者（{1}% 生命）{2}", { 0: ECONOMY.reviveCost, 1: ECONOMY.reviveHpRatio * 100, 2: smoke }), 'rest-option', () => {
-          this.mode = 'revive';
-          this.rebuild();
-        }, !canRevive(run)));
+        // 一路向前：陣亡就是沒了（SPEC_SLICE7 §5）
+        if (!run.forward)
+          row.appendChild(button(tr("救人：花 {0} 金幣復活一名陣亡者（{1}% 生命）{2}", { 0: ECONOMY.reviveCost, 1: ECONOMY.reviveHpRatio * 100, 2: smoke }), 'rest-option', () => {
+            this.mode = 'revive';
+            this.rebuild();
+          }, !canRevive(run)));
         row.appendChild(button(tr("繼續趕路：跳過這裡（不會引來冠軍）"), 'rest-option', () => advance(this, leaveNode(getRun(this)))));
         box.appendChild(row);
       } else if (this.mode === 'revive') {
@@ -123,8 +125,9 @@ export class RestScene extends DomScene {
       }
     } else box.appendChild(el('div', 'event-result', p.resultText ?? ''));
 
-    // 招募（不佔三選一）
+    // 招募（不佔三選一）；一路向前：隊友靠路上解救（SPEC_SLICE7 §4）
     const rec = el('div', 'recruit');
+    if (run.forward) rec.style.display = 'none';
     rec.appendChild(el('div', 'step-title', tr("招募（{0} 金幣，填入第一個空欄位）：", { 0: ECONOMY.recruitCost })));
     const slot = firstEmptySlot(run);
     const replaced = slot >= 0 ? run.party[slot] : null;

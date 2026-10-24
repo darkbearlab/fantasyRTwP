@@ -4,7 +4,7 @@ import type { BattleOutcome } from '../src/run/battle';
 import { createBattleFromRun } from '../src/run/battle';
 import { buyConsumable, canBuyConsumable } from '../src/run/consumables';
 import { buyItem, canBuy, shopOf } from '../src/run/items';
-import { previewOf } from '../src/run/journey';
+import { previewOf, rescueAt } from '../src/run/journey';
 import { applyBattleResult, availableNodes, chooseNode, chooseReward, continueFromReward } from '../src/run/progression';
 import type { RunState } from '../src/run/runState';
 import { createRun } from '../src/run/runState';
@@ -66,7 +66,7 @@ describe('一路向前', () => {
     for (const n of r.map.nodes) {
       const p = previewOf(r, n.id);
       expect(p.terrain.length).toBeGreaterThan(0);
-      expect(p.presence).toBe(n.type === 'shop' || n.type === 'event');
+      expect(p.presence).toBe(n.type === 'shop' || n.type === 'event' || rescueAt(r, n.id));
       expect(p.threat).toBe(n.type === 'elite' ? 'elite' : n.type === 'boss' ? 'boss' : null);
       expect(Object.keys(p)).not.toContain('type');
     }

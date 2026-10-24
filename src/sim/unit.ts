@@ -201,6 +201,11 @@ export class Unit {
   follower = false;
   /** 隨從的主人（英雄的 unit id；-1＝沒有） */
   masterId = -1;
+  /** 被困的英雄（SPEC_SLICE7 §4）：還沒被找到前不動、敵人也不打；captiveSquad＝看守的小隊 */
+  captive = false;
+  captiveSquad?: string;
+  /** 這名單位是來解救的英雄（找到以後也一直是 true；戰後決定要不要加入） */
+  rescue = false;
   /** 是不是玩家的英雄本人（我方而且不是隨從） */
   get isHero(): boolean {
     return this.team === 'hero' && !this.follower;

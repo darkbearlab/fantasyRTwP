@@ -222,6 +222,11 @@ export class BattleScene extends Phaser.Scene {
     if (!data.encounterId) this.quickEncounter = null;
     const seed = this.session.seed;
     installAutoPause(this.session);
+    // 被困的英雄（SPEC_SLICE7 §4）：進地圖時提示
+    if (this.session.world.units.some((u) => u.captive)) {
+      this.session.addLog(tr("遠處傳來打鬥聲……有人被困住了。"), 'warn');
+      this.session.showToast(tr("遠處傳來打鬥聲……"), this.time.now, 2600);
+    }
     this.registry.set('session', this.session);
     this.views.clear();
     this.statusTexts.clear();
@@ -951,6 +956,10 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
           s.addLog(tr("⚠ {0} 發出戰吼！援軍進場，敵人傷害提高", { 0: L(u.id) }), 'warn');
           break;
         }
+        case 'captiveFreed':
+          s.addLog(tr("找到被困的{0}了！護送他離開這張地圖。", { 0: w.getUnit(ev.unitId)?.def.name ?? '' }), 'warn');
+          s.showToast(tr("護送他離開這張地圖！"), this.time.now, 2200);
+          break;
         case 'aggro':
           s.addLog(tr("敵人開始進攻！"), 'warn');
           s.showToast(tr("敵人開始進攻！"), this.time.now, 1800);
@@ -1403,8 +1412,8 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
       const x = head.x - w / 2;
       const y = head.y - (iso ? 4 : 11);
       const frac = Math.max(0, u.hp / u.maxHp);
-      if (u.follower) {
-        // 隨從（Alan 2026-10-23）：生命只用一個點表示——綠＝健康、黃＝受傷、紅＝瀕死
+      if (u.follower && !u.rescue) {
+        // 隨從（Alan 2026-10-23）：生命只用一個點表示——綠＝健康、黃＝受傷、紅＝瀕死（要護送的英雄照常顯示生命條）
         const c = frac > 0.6 ? 0x5dd16a : frac > 0.3 ? 0xf2d24b : 0xe8473a;
         g.fillStyle(0x000000, 0.9);
         g.fillRect(head.x - 4, y - 1, 8, 8);
@@ -1417,7 +1426,7 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
         g.fillRect(x, y, w * frac, 4);
       }
       const a = u.action;
-      if (a && !u.follower && (a.phase === 'windup' || a.phase === 'recovery')) {
+      if (a && (!u.follower || u.rescue) && (a.phase === 'windup' || a.phase === 'recovery')) {
         g.fillStyle(COLORS.hpBack, 0.85);
         g.fillRect(x - 1, y + 5, w + 2, 5);
         g.fillStyle(a.phase === 'windup' ? COLORS.windup : COLORS.recovery, 1);

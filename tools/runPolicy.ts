@@ -18,6 +18,8 @@ import {
   restRevive,
   restTrain,
   continueFromReward,
+  canAcceptRescue,
+  resolveRescue,
 } from '../src/run/progression';
 import type { RunState } from '../src/run/runState';
 import { createRun, livingHeroes } from '../src/run/runState';
@@ -82,6 +84,9 @@ export function stepRun(r: RunState, scripted = true): RunState {
       const target = livingHeroes(r).reduce((a, b) => (a.hero.upgrades.length <= b.hero.upgrades.length ? a : b));
       return chooseReward(r, { upgradeId: id, slot: target.slot, skillId: up.needsSkill ? battleSkillsOf(r, target.hero)[0] : undefined });
     }
+    // 解救的英雄：有空位就讓他加入
+    case 'rescue':
+      return resolveRescue(r, canAcceptRescue(r));
     case 'interlude':
       return startChapter(r);
     case 'rest': {

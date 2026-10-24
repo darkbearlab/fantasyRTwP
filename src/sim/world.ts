@@ -5,7 +5,7 @@ import { DT, NAV_CELL, RANGE_TOLERANCE } from './constants';
 import { BOSS_INTRO, ENEMIES, enemyRank } from './data/enemies';
 import { BAG, CONSUMABLES } from './data/consumables';
 import { SHRINE_RULES, SHRINES } from './data/shrines';
-import { FOLLOWER_RULES, FOLLOWERS } from './data/followers';
+import { CAPTIVE, FOLLOWER_RULES, FOLLOWERS } from './data/followers';
 import { followerOrder } from './ai/follower';
 import { ACTIVE_CYCLES } from './data/cycles';
 import { offCycle } from './cycle';
@@ -72,6 +72,8 @@ export interface UnitSpawn {
   facing?: number;
   /** 隨從：主人的英雄欄位（Alan 2026-10-23） */
   followerOf?: number;
+  /** 被困的英雄（SPEC_SLICE7 §4）：看守的小隊 id */
+  captive?: string;
 }
 
 export interface WorldOptions {
@@ -235,16 +237,21 @@ export class World implements ZocContext {
     for (const s of opts.spawns) {
       const def = s.def ?? defs[s.defId];
       if (!def) throw new Error(`未知的單位定義：${s.defId}`);
-      const follower = s.followerOf !== undefined;
+      const follower = s.followerOf !== undefined || s.captive !== undefined;
       const slot = def.team === 'hero' && !follower ? (s.heroSlot ?? heroSlot++) : -1;
       const u = new Unit(this.nextUnitId++, def, s.pos, slot);
       u.follower = follower;
+      if (s.captive !== undefined) {
+        u.captive = true;
+        u.rescue = true;
+        u.captiveSquad = s.captive;
+      }
       if (s.hp !== undefined) u.hp = Math.max(1, Math.min(def.maxHp, Math.round(s.hp)));
       if (s.personality) u.personality = s.personality;
       if (s.squad) u.squad = s.squad;
       if (s.facing !== undefined) u.facing = s.facing;
       // 沉穩節奏（SPEC_SLICE5 §14）：英雄帶職業被動
-      if (def.team === 'hero' && !follower && this.config.battleStyle === 'deliberate') {
+      if (def.team === 'hero' && (!follower || u.rescue) && this.config.battleStyle === 'deliberate') {
         for (const id of CLASS_PASSIVES[def.id] ?? []) u.addPassive(PASSIVES[id]);
         u.setItems(s.items ?? []);
         for (const id of s.passives ?? []) if (PASSIVES[id]) u.addPassive(PASSIVES[id]);
@@ -540,6 +547,7 @@ export class World implements ZocContext {
   canTarget(viewer: Unit, target: Unit): boolean {
     if (target.dead) return false;
     if (viewer.team === target.team) return true;
+    if (target.captive) return false;
     // 戰爭迷霧：英雄看不到視野外的敵人（SPEC_SLICE4 §6）
     if (viewer.team === 'hero' && this.fogActive && !this.vision!.isVisible(target.pos)) return false;
     // 煙霧彈：貼近才看得到
@@ -649,6 +657,22 @@ export class World implements ZocContext {
     if (ev.type === 'hit' && this.getUnit(ev.sourceId)?.team !== this.getUnit(ev.targetId)?.team) this.lastClash = this.time;
   }
 
+  /** 被困的英雄：有英雄靠近、或看守被驚動，就開打（SPEC_SLICE7 §4） */
+  private updateCaptives(): void {
+    for (const c of this.units) {
+      if (!c.captive || c.dead) continue;
+      const heroes = this.units.filter((h) => h.isHero && !h.dead);
+      const near = heroes.filter((h) => dist(h.pos, c.pos) <= CAPTIVE.wakeRange);
+      const guards = this.units.filter((e) => e.team === 'enemy' && !e.dead && e.squad === c.captiveSquad);
+      if (!near.length && !guards.some((e) => e.alerted)) continue;
+      c.captive = false;
+      const master = [...heroes].sort((a, b) => dist(a.pos, c.pos) - dist(b.pos, c.pos))[0];
+      c.masterId = master ? master.id : -1;
+      if (guards[0]) this.alertUnit(guards[0]);
+      this.emit({ type: 'captiveFreed', unitId: c.id });
+    }
+  }
+
   /** 戰鬥中／非戰鬥中（SPEC_SLICE7 §2）：非戰鬥中才能換裝備 */
   inCombat = false;
   private lastClash = -Infinity;
@@ -704,6 +728,7 @@ export class World implements ZocContext {
     this.updateFire();
     this.updateZones();
     this.updateCombatState();
+    this.updateCaptives();
     separateUnits(this.units, (u) => this.navFor(u), this.config.unitSpacing > 0 ? { gap: this.config.unitSpacing, rate: this.config.unitSpacingRate } : undefined);
     this.checkEnd();
     this.tick++;
@@ -1199,7 +1224,8 @@ export class World implements ZocContext {
       if (u.def.ai === 'horde') hordeThink(this, u);
       else if (u.def.ai !== 'nest') enemyThink(this, u);
     } else if (u.follower) {
-      // 隨從（Alan 2026-10-23）：跟著主人、自己打
+      // 隨從（Alan 2026-10-23）：跟著主人、自己打；被困的英雄還沒被找到前不動
+      if (u.captive) return;
       if (u.aiTimer <= 0) {
         u.aiTimer = FOLLOWER_RULES.thinkInterval;
         const o = followerOrder(this, u);

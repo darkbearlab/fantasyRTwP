@@ -44,5 +44,7 @@ export type SimEvent =
   | { type: 'battleEnd'; winner: Team; exitId?: string }
   /** 進入／脫離戰鬥（SPEC_SLICE7 §2） */
   | { type: 'combatState'; inCombat: boolean }
+  /** 被困的英雄被找到，開打（SPEC_SLICE7 §4） */
+  | { type: 'captiveFreed'; unitId: number }
   /** 有英雄在出口裡但還沒到齊（inside／total）；或出口還封著（locked） */
   | { type: 'exitWaiting'; exitId: string; inside: number; total: number; locked: boolean }

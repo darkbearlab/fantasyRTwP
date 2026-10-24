@@ -9,7 +9,49 @@ import { ECONOMY } from './data/economy';
 import { JOURNEY } from './data/journey';
 import type { MapNode } from './mapGen';
 import { availableNodes } from './progression';
-import type { RunState } from './runState';
+import type { HeroRecord, RunState } from './runState';
+import { cloneRun, newHero } from './runState';
+import { rngFor } from './seed';
+import type { Vec } from '../sim/math';
+import { BRANCHES } from './data/branches';
+import { UPGRADES } from './data/upgrades';
+import { classChoices } from './classes';
+import { canTakeExclusive, generalUpgradeIds, grantUpgrade, maxHpOf } from './upgrades';
+import { battleSkillsOf } from './loadout';
+
+/** 這個節點有沒有被困的英雄（依種子固定，出口預告才能先說） */
+export function rescueAt(run: RunState, nodeId: number): boolean {
+  const node = run.map.nodes[nodeId];
+  const R = JOURNEY.rescue;
+  if (!run.forward || node.type !== 'battle' || node.layer < R.minLayer) return false;
+  return rngFor(run.seed, 'rescue', run.chapter ?? 0, nodeId).chance(R.chance);
+}
+
+/**
+ * 被困的英雄（SPEC_SLICE7 §4）：隊伍等級；加入前的升級已經配好，玩家不能改。
+ * 先走一個昇變分支（選滿就昇變），分支走完再拿通用升級。
+ */
+export function rescueHero(run: RunState, nodeId: number): HeroRecord {
+  const rng = rngFor(run.seed, 'rescueHero', run.chapter ?? 0, nodeId);
+  const classes = classChoices(run.style);
+  const scratch = cloneRun(run);
+  const h = newHero(classes[rng.int(0, classes.length - 1)]);
+  h.level = run.level ?? 1;
+  scratch.party[0] = h;
+  const branches = BRANCHES[h.classId] ?? [];
+  const branch = branches.length ? branches[rng.int(0, branches.length - 1)].id : null;
+  const general = generalUpgradeIds(run.style).filter((id) => UPGRADES[id].scope === 'hero');
+  for (let n = Math.floor(((run.level ?? 1) - 1) * JOURNEY.rescue.upgradesPerLevel); n > 0; n--) {
+    const hero = scratch.party[0]!;
+    const next = Object.keys(UPGRADES).find((id) => UPGRADES[id].branch?.id === branch && canTakeExclusive(hero, id));
+    const id = next ?? general[rng.int(0, general.length - 1)];
+    const skills = battleSkillsOf(scratch, hero);
+    grantUpgrade(scratch, id, 0, UPGRADES[id].needsSkill ? skills[rng.int(0, skills.length - 1)] : undefined);
+  }
+  const out = scratch.party[0]!;
+  out.hp = maxHpOf(out);
+  return out;
+}
 
 /** 出口預告：前方地圖的地形、可能取得的東西、敵人以外的氣息、可預見的威脅 */
 export interface PathPreview {
@@ -45,7 +87,7 @@ export function previewOf(run: RunState, nodeId: number): PathPreview {
     nodeId,
     terrain: terrainOf(run, node),
     loot,
-    presence: JOURNEY.presence.includes(node.type),
+    presence: JOURNEY.presence.includes(node.type) || rescueAt(run, nodeId),
     threat: node.type === 'elite' ? 'elite' : node.type === 'boss' ? 'boss' : null,
   };
 }
@@ -63,22 +105,28 @@ export function pathsAhead(run: RunState): PathPreview[] {
 
 const overlaps = (a: Rect, b: Rect, pad = 0) => a.x < b.x + b.w + pad && b.x < a.x + a.w + pad && a.y < b.y + b.h + pad && b.y < a.y + a.h + pad;
 
-/** 地圖上的商人（SPEC_SLICE7 §2）：站在出生點附近的空地；回傳加上商人的新地圖 */
-export function withMerchant(map: MapDef): MapDef {
-  const spawn = map.heroSpawns[0] ?? { x: map.width / 2, y: map.height / 2 };
-  const size = 0.9;
+/** 某一點附近的空地（size × size 的方格左上角）；avoid：要離開這些點至少 1.2 m */
+export function freeSpotNear(map: MapDef, at: Vec, distances: number[], size: number, avoid: Vec[] = []): Rect | null {
   const taken: Rect[] = [...map.obstacles, ...(map.exits ?? []), ...(map.interactables ?? [])];
-  for (const d of JOURNEY.merchantDistances)
+  for (const d of distances)
     for (let k = 0; k < 12; k++) {
       const a = (k / 12) * Math.PI * 2;
-      const x = spawn.x + Math.cos(a) * d - size / 2;
-      const y = spawn.y + Math.sin(a) * d - size / 2;
+      const x = at.x + Math.cos(a) * d - size / 2;
+      const y = at.y + Math.sin(a) * d - size / 2;
       const r = { x, y, w: size, h: size };
       if (x < 1 || y < 1 || x + size > map.width - 1 || y + size > map.height - 1) continue;
       if (taken.some((t) => overlaps(r, t, 0.4))) continue;
-      if (map.heroSpawns.some((p) => Math.hypot(p.x - (x + size / 2), p.y - (y + size / 2)) < 1.2)) continue;
-      const merchant: InteractableDef = { id: 'merchant', kind: 'merchant', name: tr("商人"), ...r };
-      return { ...map, interactables: [...(map.interactables ?? []), merchant] };
+      if (avoid.some((p) => Math.hypot(p.x - (x + size / 2), p.y - (y + size / 2)) < 1.2)) continue;
+      return r;
     }
-  return map;
+  return null;
+}
+
+/** 地圖上的商人（SPEC_SLICE7 §2）：站在出生點附近的空地；回傳加上商人的新地圖 */
+export function withMerchant(map: MapDef): MapDef {
+  const spawn = map.heroSpawns[0] ?? { x: map.width / 2, y: map.height / 2 };
+  const r = freeSpotNear(map, spawn, JOURNEY.merchantDistances, 0.9, map.heroSpawns);
+  if (!r) return map;
+  const merchant: InteractableDef = { id: 'merchant', kind: 'merchant', name: tr("商人"), ...r };
+  return { ...map, interactables: [...(map.interactables ?? []), merchant] };
 }
