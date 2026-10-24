@@ -95,6 +95,8 @@ export const VISUAL = {
    * 被擋住時也看得到；overlayAlpha＝那一層的透明度、overlayDepth＝深度。
    */
   teamOutline: { hero: 0x50aaff, enemy: 0xff5050, overlayAlpha: 0.7, overlayDepth: 875 },
+  /** 被選取的英雄頭上往下的箭頭（Alan 2026-10-24 試作）：半寬、高、離生命條多高、上下跳的幅度與頻率（畫面 px） */
+  selectArrow: { half: 8, height: 11, gap: 6, bob: 2, bobHz: 1.2 },
   /**
    * 英雄的指令線（移動路線、攻擊、技能；Alan 2026-10-21：常駐，指令更新一段時間後變淡變細）：
    * 下指令後 hold 秒維持原樣，接著 fade 秒內淡到 minAlpha、細到 minWidth（倍率）。用戰鬥時間算，暫停時不會變淡。

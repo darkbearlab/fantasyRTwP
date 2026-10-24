@@ -112,6 +112,28 @@ export interface MobileBarHost {
 export class MobileHeroBar {
   readonly root: HTMLElement;
   private cards: MobileCard[] = [];
+  /**
+   * 拖曳選取（Alan 2026-10-24 試作）：按住一張英雄卡往左右拖，經過的卡（起點到目前這張之間）都會被選取。
+   * base：開始拖之前的選取；moved：真的拖到別張卡了（放開後的 click 就不再切換選取）。
+   */
+  private drag: { start: number; base: number[]; moved: boolean } | null = null;
+  private skipClick = false;
+
+  /** 某個畫面座標底下的英雄卡（沒有就是 undefined） */
+  private cardAt(x: number, y: number): MobileCard | undefined {
+    const hit = document.elementFromPoint(x, y)?.closest('.m-card');
+    return this.cards.find((c) => c.root === hit);
+  }
+
+  /** 起點到這張卡之間（依欄位順序）的存活英雄都選起來，加在開始拖之前的選取上 */
+  private dragTo(card: MobileCard): void {
+    const d = this.drag!;
+    const s = this.host.session();
+    const a = Math.min(d.start, card.unit.heroSlot);
+    const b = Math.max(d.start, card.unit.heroSlot);
+    const range = this.cards.filter((c) => !c.unit.dead && c.unit.heroSlot >= a && c.unit.heroSlot <= b).map((c) => c.unit.id);
+    s.selection = [...d.base, ...range.filter((id) => !d.base.includes(id))];
+  }
   private row: HTMLElement;
   private pauseBtn: HTMLElement;
   private pauseLabel: HTMLElement;
@@ -265,8 +287,35 @@ export class MobileHeroBar {
       const status = el('span', 'm-status');
       head.append(portrait(this.host.portraitUrl?.(u.def.id)), name, status, hp);
       head.addEventListener('mousedown', (ev) => ev.preventDefault());
+      // 拖曳選取：按住卡片往左右拖，經過的英雄都選起來
+      head.addEventListener('pointerdown', (ev) => {
+        const s2 = this.host.session();
+        if (u.dead || s2.itemTargeting || targetingDef(s2)) return;
+        this.drag = { start: u.heroSlot, base: [...s2.selection], moved: false };
+        head.setPointerCapture(ev.pointerId);
+      });
+      head.addEventListener('pointermove', (ev) => {
+        if (!this.drag) return;
+        const card = this.cardAt(ev.clientX, ev.clientY);
+        if (!card || card.unit.dead || (!this.drag.moved && card.unit.heroSlot === this.drag.start)) return;
+        this.drag.moved = true;
+        this.dragTo(card);
+      });
+      const endDrag = (ev: PointerEvent) => {
+        if (!this.drag) return;
+        this.skipClick = this.drag.moved;
+        this.drag = null;
+        if (head.hasPointerCapture(ev.pointerId)) head.releasePointerCapture(ev.pointerId);
+      };
+      head.addEventListener('pointerup', endDrag);
+      head.addEventListener('pointercancel', endDrag);
       // 點名字：選取／取消選取（可以同時選多名）
       head.addEventListener('click', () => {
+        // 剛拖曳選取完：這一下 click 不算
+        if (this.skipClick) {
+          this.skipClick = false;
+          return;
+        }
         const s2 = this.host.session();
         // 選消耗品的目標：點卡片就用（陣亡的英雄也可以，鳳凰羽毛）
         if (s2.itemTargeting) {
