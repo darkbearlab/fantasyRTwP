@@ -111,9 +111,13 @@ export function chooseNode(run: RunState, nodeId: number): RunState {
       r.phase = { kind: 'event', nodeId, eventId, resolved: false };
       break;
     }
-    case 'shop':
-      r.phase = { kind: 'shop', nodeId, stock: rollShopStock(rngFor(r.seed, 'shop', nodeId)), sold: [] };
+    case 'shop': {
+      const stock = rollShopStock(rngFor(r.seed, 'shop', nodeId));
+      // 一路向前：商人站在一張普通的戰鬥地圖上（SPEC_SLICE7 §2）
+      if (r.forward) r.phase = { kind: 'battle', nodeId, encounterId: deliberateLevelId('battle'), fromEvent: false, shop: { stock, sold: [] } };
+      else r.phase = { kind: 'shop', nodeId, stock, sold: [] };
       break;
+    }
     case 'rest': {
       const rng = rngFor(r.seed, 'rest', nodeId);
       r.phase = {
@@ -328,7 +332,11 @@ export function chooseReward(run: RunState, choice: RewardChoice): RunState {
 
 function toMap(r: RunState): RunState {
   if (r.chapterCleared) enterInterlude(r);
-  else r.phase = { kind: 'map' };
+  else {
+    r.phase = { kind: 'map' };
+    // 一路向前（SPEC_SLICE7 §1）：從出口離開就直接進那張圖，不回路線圖
+    if (r.forward && r.exitTo != null) return chooseNode(r, r.exitTo);
+  }
   return r;
 }
 

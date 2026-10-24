@@ -171,7 +171,7 @@ describe('2026-10-21 修正', () => {
   });
   it('魔王主力從玩家後方（第一層）開始，往玩家擴散', async () => {
     const { createRun } = await import('../src/run/runState');
-    const r = createRun(4, { style: 'deliberate' });
+    const r = createRun(4, { forward: false, style: 'deliberate' });
     const ow = r.overworld!;
     expect(ow.force.length).toBeGreaterThan(0);
     for (const id of ow.force) expect(r.map.nodes[id].layer).toBe(r.map.nodes[r.map.layers[0][0]].layer);

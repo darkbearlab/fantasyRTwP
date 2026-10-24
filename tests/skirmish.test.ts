@@ -52,7 +52,7 @@ describe('小衝突導演', () => {
     for (let t = 0; t < 120 / DT; t++) {
       const evs = w.step();
       if (fighting && evs.some((e) => e.type === 'spawn' && e.waveId?.startsWith('wave'))) spawnedWhileFighting++;
-      if (w.tick % 5 === 0) fighting = w.skirmish!.inCombat(w);
+      fighting = w.skirmish!.inCombat(w);
     }
     expect(spawnedWhileFighting).toBe(0);
   });

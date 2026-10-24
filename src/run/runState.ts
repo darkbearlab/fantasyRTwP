@@ -12,6 +12,7 @@ import { generateMap } from './mapGen';
 import { generateRouteMap } from './routeMap';
 import { CHAPTERS } from './data/chapters';
 import { initOverworld } from './overworld';
+import { JOURNEY } from './data/journey';
 import type { Overworld } from './overworld';
 import { LEVELS } from './data/levels';
 import type { RunStyle } from './data/levels';
@@ -63,6 +64,8 @@ export type RunPhase =
       visit?: number;
       /** champion：冠軍會加入這張地圖；championOnly：本來沒有戰鬥的節點（地圖上只有冠軍）；smoke：被營火的煙引來（馬上到） */
       mods?: { force?: boolean; champion?: boolean; championOnly?: boolean; smoke?: boolean };
+      /** 一路向前（SPEC_SLICE7 §1）：商人節點變成地圖上的商人，貨架與已售出的道具 */
+      shop?: { stock: string[]; sold: string[] };
     }
   /** item：這場掉落的道具（已放進背包） */
   | {
@@ -128,6 +131,8 @@ export interface RunState {
   nextBattleBuff: BattleBuff | null;
   /** 出口制（SPEC_SLICE6 §2）：從戰鬥的哪個出口離開＝下一個節點；回到路線圖時只能前往這個節點 */
   exitTo?: number | null;
+  /** 一路向前（SPEC_SLICE7 §1）：沒有路線圖畫面、不能回頭；從出口離開直接進下一張圖 */
+  forward?: boolean;
   /** 隊伍等級與經驗值（SPEC_SLICE6 §3，沉穩節奏） */
   level?: number;
   xp?: number;
@@ -173,7 +178,7 @@ export function newHero(classId: string, personality?: Personality): HeroRecord 
 /**
  * 建立遠征。opts.party：隊伍職業（組隊畫面用 rollParty 產生）；省略時為四個 Archetype。
  */
-export function createRun(seed: number, opts: { layers?: number; party?: string[]; style?: RunStyle; intro?: boolean } = {}): RunState {
+export function createRun(seed: number, opts: { layers?: number; party?: string[]; style?: RunStyle; intro?: boolean; forward?: boolean } = {}): RunState {
   const party: (HeroRecord | null)[] = (opts.party ?? HERO_ORDER).slice(0, ECONOMY.partySize).map((id) => newHero(id));
   while (party.length < ECONOMY.partySize) party.push(null);
   const style = opts.style ?? LEVELS.expeditionStyle;
@@ -199,7 +204,9 @@ export function createRun(seed: number, opts: { layers?: number; party?: string[
     bag: style === 'deliberate' ? [...BAG.start] : [],
   };
   if (style === 'deliberate' && opts.layers === undefined) {
-    run.overworld = initOverworld(run);
+    // 一路向前（SPEC_SLICE7 §1）：只走往下一層的連線，沒有主力與冠軍
+    if (opts.forward ?? JOURNEY.forward) run.forward = true;
+    else run.overworld = initOverworld(run);
     run.chapter = 0;
     // 組隊後先看第一章的開場過場
     if (opts.intro) run.phase = { kind: 'interlude', chapter: 0 };

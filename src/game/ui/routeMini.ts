@@ -30,6 +30,10 @@ export class RouteMini {
     this.root.innerHTML = '';
     this.nodes.clear();
     this.exitNode.clear();
+    if (run.forward) {
+      this.buildAhead(infos);
+      return;
+    }
     const map = run.map;
     const L = map.layerCount;
     const most = Math.max(...map.layers.map((l) => l.length));
@@ -100,6 +104,24 @@ export class RouteMini {
     }
     this.root.appendChild(el('div', 'rm-legend', tr("字母＝出口通往的節點・☠ 紅色＝主力佔領")));
     this.root.appendChild(svg);
+  }
+
+  /** 一路向前（SPEC_SLICE7 §1）：沒有路線圖，列出每個出口的預告（點地上的出口時那一張閃一下） */
+  private buildAhead(infos: ExitInfo[]): void {
+    this.root.appendChild(el('div', 'rm-legend', tr("前方的路（出口的字母和顏色對應地上的出口）")));
+    if (!infos.length) this.root.appendChild(el('div', 'rm-ahead', tr("這裡沒有出口：打倒頭目就結束這一章。")));
+    infos.forEach((info, i) => {
+      const card = el('div', 'rm-ahead');
+      card.style.borderColor = info.css;
+      const head = el('div', 'rm-ahead-title', info.title);
+      head.style.color = info.css;
+      card.appendChild(head);
+      for (const line of info.detail.split('\n').filter(Boolean)) card.appendChild(el('div', '', line));
+      this.root.appendChild(card);
+      // 和路線圖的節點共用「閃一下」
+      this.nodes.set(i, card as unknown as SVGElement);
+      this.exitNode.set(info.id, i);
+    });
   }
 
   /** 每幀：開關、點到出口時閃一下 */

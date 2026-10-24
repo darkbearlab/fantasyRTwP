@@ -6,6 +6,18 @@ import { tr } from '../i18n';
 import { NODE_ICON, NODE_LABEL } from '../run/mapGen';
 import type { RunState } from '../run/runState';
 import type { World } from '../sim/world';
+import type { PathPreview } from '../run/journey';
+import { previewOf } from '../run/journey';
+
+/** 出口預告的文字（SPEC_SLICE7 §1）：威脅、敵人以外的氣息、可能取得的東西；不說節點類型 */
+export function previewLines(p: PathPreview): string[] {
+  const out: string[] = [];
+  if (p.threat === 'boss') out.push(tr("💀 頭目"));
+  else if (p.threat === 'elite') out.push(tr("⚔ 精英"));
+  if (p.presence) out.push(tr("✨ 前方有敵人以外的氣息"));
+  if (p.loot.length) out.push(tr("可能有：{0}", { 0: p.loot.join(tr("、")) }));
+  return out;
+}
 
 export interface ExitInfo {
   id: string;
@@ -37,6 +49,11 @@ export function exitInfos(world: World, run: RunState | null): ExitInfo[] {
     const m = e.id.match(/^node:(\d+)$/);
     const nodeId = m ? Number(m[1]) : undefined;
     const node = run && nodeId !== undefined ? run.map.nodes[nodeId] : null;
+    // 一路向前：只預告地形、威脅、氣息與可能取得的東西
+    if (run?.forward && node) {
+      const p = previewOf(run, node.id);
+      return { id: e.id, nodeId, letter, color, css, title: `${letter} ${ARROW[e.edge ?? 'top'] ?? ''} ${p.terrain}`, detail: previewLines(p).join('\n'), back: false };
+    }
     const type = (node?.type ?? e.label) as keyof typeof NODE_LABEL | undefined;
     const kind = type && NODE_LABEL[type] ? `${NODE_ICON[type]} ${NODE_LABEL[type]}` : tr("出口");
     const title = `${letter} ${ARROW[e.edge ?? 'top'] ?? ''} ${kind}`;

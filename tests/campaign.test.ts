@@ -33,7 +33,7 @@ function beatBoss(r: RunState): RunState {
 
 describe('戰役：五章（SPEC_CAMPAIGN）', () => {
   it('第一章 5 層；組隊後先看開場過場，出發後還是同一張路線圖', () => {
-    const r = createRun(4, { style: 'deliberate', intro: true });
+    const r = createRun(4, { forward: false, style: 'deliberate', intro: true });
     expect(r.chapter).toBe(0);
     expect(r.map.layerCount).toBe(CHAPTERS[0].layers);
     expect(r.phase).toEqual({ kind: 'interlude', chapter: 0 });
@@ -44,7 +44,7 @@ describe('戰役：五章（SPEC_CAMPAIGN）', () => {
 
   it('各章的層數越來越多，路線圖都合法', () => {
     for (let i = 1; i < CHAPTERS.length; i++) expect(CHAPTERS[i].layers).toBeGreaterThan(CHAPTERS[i - 1].layers);
-    let r = createRun(6, { style: 'deliberate' });
+    let r = createRun(6, { forward: false, style: 'deliberate' });
     for (let c = 1; c < CHAPTERS.length; c++) {
       r = beatBoss(r);
       expect(r.phase).toEqual({ kind: 'interlude', chapter: c });
@@ -55,7 +55,7 @@ describe('戰役：五章（SPEC_CAMPAIGN）', () => {
   });
 
   it('打倒本章頭目：照常拿經驗值，接著進過場；全隊回滿、陣亡的不復活；下一章重新開始路線圖', () => {
-    const r = createRun(5, { style: 'deliberate' });
+    const r = createRun(5, { forward: false, style: 'deliberate' });
     const xp = r.xp ?? 0;
     const after = beatBoss(r);
     expect(after.phase).toEqual({ kind: 'interlude', chapter: 1 });
@@ -72,7 +72,7 @@ describe('戰役：五章（SPEC_CAMPAIGN）', () => {
   });
 
   it('最後一章的頭目打倒就是遠征勝利', () => {
-    let r = createRun(8, { style: 'deliberate' });
+    let r = createRun(8, { forward: false, style: 'deliberate' });
     for (let c = 1; c < CHAPTERS.length; c++) r = startChapter(beatBoss(r));
     expect(r.chapter).toBe(CHAPTERS.length - 1);
     r = beatBoss(r);
@@ -89,8 +89,8 @@ describe('戰役：五章（SPEC_CAMPAIGN）', () => {
       for (const u of w.units) if (u.team === 'enemy' && u.def.rank !== 'elite') out.set(u.def.id, u.maxHp);
       return out;
     };
-    const r0 = createRun(9, { style: 'deliberate' });
-    const r2 = createRun(9, { style: 'deliberate' });
+    const r0 = createRun(9, { forward: false, style: 'deliberate' });
+    const r2 = createRun(9, { forward: false, style: 'deliberate' });
     r2.chapter = 2;
     expect(depthOffset(r2)).toBe(Math.round((CHAPTERS[0].layers + CHAPTERS[1].layers) * CHAPTER_RULES.depthCarry));
     // 第 3 章是室內地圖、敵人組成不同：每種敵人和它在第 1 章同一層（沒有全程深度）的生命比
@@ -107,7 +107,7 @@ describe('冠軍不會搶走頭目戰（Alan 2026-10-21 回報）', () => {
   it('玩家走進頭目節點時，追獵中的冠軍停在門外，不會進頭目節點', async () => {
     const { advanceTurn, caught } = await import('../src/run/overworld');
     const { neighbors } = await import('../src/run/routeMap');
-    const r = createRun(12, { style: 'deliberate' });
+    const r = createRun(12, { forward: false, style: 'deliberate' });
     const boss = r.map.nodes.find((n) => n.type === 'boss')!;
     const next = neighbors(r.map, boss.id)[0];
     r.overworld!.champion = { node: next, hunting: true, respawnAt: 0 };
@@ -120,7 +120,7 @@ describe('冠軍不會搶走頭目戰（Alan 2026-10-21 回報）', () => {
   });
 
   it('就算冠軍戰發生在頭目節點，打贏也不算打倒頭目', () => {
-    const r = createRun(13, { style: 'deliberate' });
+    const r = createRun(13, { forward: false, style: 'deliberate' });
     const boss = r.map.nodes.find((n) => n.type === 'boss')!;
     r.currentNodeId = boss.id;
     r.phase = { kind: 'battle', nodeId: boss.id, encounterId: deliberateLevelId('elite'), fromEvent: false, mods: { champion: true } };
@@ -135,7 +135,7 @@ describe('休息節點：訓練＝升級三選一、繼續趕路（Alan 2026-10-
   async function atRest(seed: number) {
     const { chooseNode } = await import('../src/run/progression');
     const { distances } = await import('../src/run/routeMap');
-    let r = createRun(seed, { style: 'deliberate' });
+    let r = createRun(seed, { forward: false, style: 'deliberate' });
     const rest = r.map.nodes.find((n) => n.type === 'rest')!;
     // 直接站到休息節點旁邊再走進去（路線圖的可前往判定）
     const nb = (r.map.nodes[rest.id].links ?? [])[0];
@@ -191,7 +191,7 @@ describe('強度曲線（Alan 2026-10-22：深度減半、經驗值跟著敵人�
   it('升級時全隊最大生命、造成傷害一起成長，現有生命跟著加', async () => {
     const { gainXp, xpToNext } = await import('../src/run/xp');
     const { heroDef } = await import('../src/run/upgrades');
-    const r = createRun(30, { style: 'deliberate' });
+    const r = createRun(30, { forward: false, style: 'deliberate' });
     const h = r.party[0]!;
     const hp0 = maxHpOf(h);
     const dmg0 = heroDef(h).damageMult ?? 1;

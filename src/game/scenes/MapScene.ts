@@ -16,6 +16,8 @@ import { xpBar } from '../ui/xpBar';
 import { ROUTE_MAP } from '../../run/data/routeMap';
 import { showEvolutions } from '../ui/evolutionShow';
 import { currentChapter } from '../../run/campaign';
+import { pathsAhead, startNodeOf } from '../../run/journey';
+import { previewLines } from '../exitInfo';
 
 const NODE_DESC: Record<string, string> = {
   battle: tr("一般戰鬥。勝利後獲得金幣與強化。"),
@@ -93,6 +95,10 @@ export class MapScene extends DomScene {
     for (const j of run.journal.slice(-6)) journal.appendChild(el('div', '', j));
     side.appendChild(journal);
 
+    if (run.forward) {
+      this.buildAhead(side);
+      return;
+    }
     const area = el('div', 'map-area');
     // 直拿（行動版）：路線圖改成由下往上推進，隊伍面板放在下面
     const portrait = this.scale.width < this.scale.height;
@@ -187,6 +193,31 @@ export class MapScene extends DomScene {
     if (portrait) this.root.append(area, side);
     else this.root.append(side, area);
     // 昇變演出（SPEC_CLASSES §5）
+    showEvolutions(this, this.root);
+  }
+
+  /** 一路向前（SPEC_SLICE7 §1）：出發時、離開休息或事件之後，從幾條路裡選一條（只看得到預告，看不到路線圖） */
+  private buildAhead(side: HTMLElement): void {
+    const run = getRun(this);
+    if (run.currentNodeId === null) {
+      advance(this, chooseNode(run, startNodeOf(run)));
+      return;
+    }
+    const area = el('div', 'ahead-area');
+    area.appendChild(el('h2', '', tr("前方的路")));
+    const list = el('div', 'ahead-list');
+    pathsAhead(run).forEach((p) => {
+      const card = el('button', 'ahead-card');
+      noFocus(card);
+      card.appendChild(el('div', 'ahead-terrain', p.terrain));
+      for (const line of previewLines(p)) card.appendChild(el('div', 'ahead-line', line));
+      card.addEventListener('click', () => advance(this, chooseNode(getRun(this), p.nodeId)));
+      list.appendChild(card);
+    });
+    area.appendChild(list);
+    const portrait = this.scale.width < this.scale.height;
+    if (portrait) this.root.append(area, side);
+    else this.root.append(side, area);
     showEvolutions(this, this.root);
   }
 }

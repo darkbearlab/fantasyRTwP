@@ -38,6 +38,7 @@ import { DEFAULT_SIM_CONFIG } from '../sim/simConfig';
 import { heroDef, heroPassives } from './upgrades';
 import { currentChapter, depthOffset } from './campaign';
 import { factionOf } from './data/factions';
+import { withMerchant } from './journey';
 
 /** 敵人數值隨層數成長；隊長另外強化 */
 export function enemyDef(enemyId: string, layer: number, captain = false): UnitDef {
@@ -200,7 +201,7 @@ export function mapOf(enc: EncounterDef): MapDef {
 /** 由遠征狀態建立戰鬥：帶入存活英雄的目前生命、強化與性格 */
 export function createBattleFromRun(run: RunState, config?: Partial<SimConfig>, seed = battleSeed(run)): World {
   const enc = currentEncounter(run);
-  const map = mapOf(enc);
+  const map = run.phase.kind === 'battle' && run.phase.shop ? withMerchant(mapOf(enc)) : mapOf(enc);
   // 頭目戰的數值是為最後一層設計的，不再套用層數成長（大型關卡的頭目關卡也一樣）
   // 頭目的數值是為第一章最後一層設計的，不套用本章的層數成長，但後面的章節要加上全程深度
   const layer = (enc.tier === 'boss' ? 1 : run.phase.kind === 'battle' ? run.map.nodes[run.phase.nodeId].layer + levelBonus(run.phase.mods ?? {}) : 1) + depthOffset(run);

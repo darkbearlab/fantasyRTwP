@@ -104,6 +104,8 @@ export class BattleSession {
   itemTargeting: string | null = null;
   /** 迷你路線圖打開了嗎；剛點到的出口（迷你路線圖上對應的節點閃一下） */
   routeOpen = false;
+  /** 和地圖上的商人交易：畫面層打開商店（SPEC_SLICE7 §2） */
+  merchantOpen = false;
   exitPing: { id: string; at: number } | null = null;
   /** 數字鍵二段式：剛用數字鍵選了哪名英雄、到什麼時候前再按數字就是放技能（畫面時間，毫秒） */
   chord: { slot: number; until: number } | null = null;

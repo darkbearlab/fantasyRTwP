@@ -103,7 +103,7 @@ describe('牧師的戰地救護', () => {
 describe('出口通往哪裡（Alan 2026-10-21）', () => {
   it('每個出口有字母、顏色、方向、節點類型與層數', async () => {
     const { exitInfos } = await import('../src/game/exitInfo');
-    const r = createRun(3, { style: 'deliberate' });
+    const r = createRun(3, { forward: false, style: 'deliberate' });
     const w = battle(r);
     const infos = exitInfos(w, r);
     expect(infos.length).toBe(w.map.exits!.length);

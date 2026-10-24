@@ -335,7 +335,8 @@ export interface ExitDef {
  * door：關著時擋路、擋視線與投射物；lever：拉下後觸發動作。
  * chest：寶箱、pickup：地上的道具（打開／撿起拿到 loot）；shrine：祭壇（全隊暫時增益；Alan 2026-10-22）
  */
-export type InteractableKind = 'door' | 'lever' | 'chest' | 'pickup' | 'shrine';
+/** merchant：地圖上的商人（SPEC_SLICE7 §2），可以一直交易，非戰鬥中才做生意（畫面層打開商店） */
+export type InteractableKind = 'door' | 'lever' | 'chest' | 'pickup' | 'shrine' | 'merchant';
 
 /**
  * 寶箱與地上道具的內容（生成地圖時決定）：
