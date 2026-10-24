@@ -27,6 +27,17 @@ export const DELIBERATE_PACE = {
   unitSpacing: 0.5,
 };
 
+/**
+ * 戰鬥中／非戰鬥中（SPEC_SLICE7 §2）：已警覺的敵人離我方（英雄、隨從）engageRange 公尺以內，或雙方有人打中對方，就算戰鬥中；
+ * 這些情況停止 exitDelay 秒後才算脫離戰鬥（免得狀態一直閃）。
+ */
+export const COMBAT_STATE = {
+  engageRange: 14,
+  exitDelay: 3,
+  /** 每幾個節拍檢查一次 */
+  interval: 5,
+};
+
 /** 沉穩節奏的戰鬥設定（相對於 base，預設是 DEFAULT_SIM_CONFIG） */
 export function deliberateConfig(base: SimConfig = DEFAULT_SIM_CONFIG): Partial<SimConfig> {
   return {

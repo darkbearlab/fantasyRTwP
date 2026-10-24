@@ -6,6 +6,7 @@ import type { Vec } from './math';
 import type { Attribute } from './data/damageTypes';
 import type { PassiveDef, PassiveMods } from './data/passives';
 import type { ActiveCycle } from './data/cycles';
+import { ITEMS } from './data/items';
 
 export enum UnitState {
   Idle = 'Idle',
@@ -220,6 +221,22 @@ export class Unit {
     if (this.passives.some((q) => q.id === p.id)) return;
     this.passives.push(p);
     for (const [k, v] of Object.entries(p.mods ?? {})) this.mods[k as keyof PassiveMods] += v ?? 0;
+  }
+
+  removePassive(id: string): void {
+    const i = this.passives.findIndex((q) => q.id === id);
+    if (i < 0) return;
+    const [p] = this.passives.splice(i, 1);
+    for (const [k, v] of Object.entries(p.mods ?? {})) this.mods[k as keyof PassiveMods] -= v ?? 0;
+  }
+
+  /** 身上的裝備道具（id）；換裝備時拿掉舊道具的被動、加上新的 */
+  items: string[] = [];
+
+  setItems(ids: string[]): void {
+    for (const id of this.items) if (ITEMS[id] && !ids.includes(id)) this.removePassive(ITEMS[id].passive.id);
+    this.items = ids.filter((id) => ITEMS[id]);
+    for (const id of this.items) this.addPassive(ITEMS[id].passive);
   }
 
   constructor(id: number, def: UnitDef, pos: Vec, heroSlot: number) {

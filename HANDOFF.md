@@ -73,6 +73,11 @@
   - **英雄換成職業色**：藍隊 sheet 的兩個隊伍色（#0000C0、#7D7DEA）在遊戲載入後換成職業色（`heroTeamColors`、`pixelArt.ts` 的 `ensureRecolored`），不另外產生圖檔。咒術師、牧師因此改用藍隊 Wizard 換色，不用 Cult／Holy 版。
   - **英雄卡頭像**：有像素素材時用 sprite 的側面（朝左）與正面待機格，選取時換正面（CSS `.m-sprite`）；沒有素材時是原本的色塊臉。
   - 建議表沒有、我先挑的：煉金術士＝綠色 Wizard、siege＝ogre、bomber＝goblin、exploder＝muddy、nest＝swampy。
+- **切片 7（SPEC_SLICE7.md，2026-10-24 Alan 確認）**：一路向前、地圖上整備、解救英雄、配方昇變，分 S7-1～S7-5。
+  - **S7-1 戰鬥狀態機**（已做）：
+    - `World.inCombat`：已警覺的敵人離我方 `COMBAT_STATE.engageRange` 以內，或敵我有人打中對方，就是戰鬥中；停止 `exitDelay` 秒後才脫離（`src/sim/data/deliberate.ts`）。進出時發 `combatState` 事件。
+    - 換裝備：指令 `setItems`（戰鬥中忽略），`Unit.setItems` 拿掉舊道具的被動、加上新的。
+    - 畫面：頂列的「戰鬥中／非戰鬥中」標示與 🎒 整備鈕（沉穩節奏的遠征才有）。整備面板用 `equipmentPanel`（`bagPanel.ts`），打開時暫停、戰鬥中按鈕全部鎖住；改了就 `setRun` 並送 `setItems`。
 - **切片 6（SPEC_SLICE6.md）**：S6-1 模板拼接關卡已做（2026-10-20）。模板在 `src/run/data/templates.ts`（文字地圖，圖例在檔案開頭），池子與版面在 `src/run/data/levelPools.ts`，拼接在 `src/run/templateLevelGen.ts`；`LEVELS.deliberateGenerator` 可切回舊的隔牆關卡（classic）。預覽：`npm run level:preview` → `preview/levels.html`。效能：6 × 6 區塊（96 m）每節拍約 0.22 ms（桌機），可以做大型關鍵地點。S6-2 出口制也已做：`MapDef.exits`／`exitLock`，`World.checkExits`（全員在同一個出口才勝利，`exitWaiting` 事件提示「You must gather your party before venturing forth.」），生成時一個下一層節點一個出口（`carveExits`，依路線圖由左到右排在地圖遠端），`RunState.exitTo` 讓路線圖只能前往那個節點。精英關卡要打倒隊長、頭目關卡要打倒頭目才開門；最後的頭目戰沒有出口，打倒頭目就勝利。S6-3 經驗值也已做：經驗值只來自擊殺（`src/run/xp.ts`，數值在 `ECONOMY.xp`），隊伍共用等級；沉穩節奏不再每場三選一，升級才三選一（`RunState.pendingLevelUps`，升幾級選幾次，`levelUpTo` 是正在選第幾級），沒升級時戰果畫面只有「繼續」（`continueFromReward`）。封存模式照舊每場三選一。S6-4 FTL 式路線圖也已做：沉穩節奏的遠征用 `generateRouteMap`（`src/run/routeMap.ts`，旋鈕在 `src/run/data/routeMap.ts`；每層 4～5 個節點、同層橫向連線、所有連線雙向 `MapNode.links`），回合與壓力在 `src/run/overworld.ts`（`RunState.overworld`：回合、造訪次數、主力、冠軍）。`chooseNode` 每次移動推進一回合；被主力佔領的節點是強化戰鬥（`phase.mods.force`），冠軍追到是冠軍戰（`mods.champion`），重複訪問重新生成（`phase.visit`）。關卡的出口在相鄰節點的方向（上＝下一層、下＝前一層、左右＝同層），出生點在來的那一側（`templateLevelGen` 的 `entry`、`orient`）。休息時 `campfireSmoke` 讓冠軍多走一格。`createRun(seed, { layers })` 或封存模式仍用舊的單向路線圖。難度完全沒調：自動遠征目前通關率很低。
 - **營火對話**（休息節點）：先進 `CampfireScene`（英雄圍著程式畫的火堆、上下兩個對話框、頭像用 sprite），看完或略過才打開休息選單；看過的記在 `phase.talked`。台詞在 `src/run/data/campfire.ts`（通用台詞，`{0}` 換成職業名），挑選在 `src/run/campfire.ts`（依種子＋節點，同一節點每次一樣）。
 - **故事大綱**：`STORY.md`（Alan 口述，尚未實作：五張路線圖、魔法水晶、FTL 式路線圖與魔王冠軍追擊）。

@@ -32,6 +32,8 @@ import { exitInfos } from '../exitInfo';
 import type { RunState } from '../../run/runState';
 import { AUTO_PAUSE_OPTIONS, LOW_HP_THRESHOLDS } from '../autoPause';
 import { portraitSheetUrl } from '../render/pixelArt';
+import { equipmentPanel } from '../ui/bagPanel';
+import { setRun } from '../runFlow';
 
 const STATE_LABEL: Record<UnitState, string> = {
   [UnitState.Idle]: tr("閒置"),
@@ -96,6 +98,13 @@ export class UIScene extends Phaser.Scene {
   private routeMini!: RouteMini;
   private routeBtn!: HTMLElement;
   private mobile = false;
+  /** 戰鬥中／非戰鬥中的標示與地圖上的整備（SPEC_SLICE7 §2） */
+  private combatEl!: HTMLElement;
+  private prepBtn!: HTMLElement;
+  private prepEl!: HTMLElement;
+  private prepKey = '';
+  /** 打開整備時是我們暫停的：關掉時要繼續 */
+  private prepPaused = false;
 
   constructor() {
     super('UI');
@@ -169,10 +178,65 @@ export class UIScene extends Phaser.Scene {
       const s = this.cur();
       s.routeOpen = !s.routeOpen;
     });
-    top.append(this.timeEl, this.speedEl, gear, this.routeBtn, hint);
+    this.prepBtn = el('div', 'pill prep-btn interactive', '🎒');
+    this.prepBtn.title = tr("整備（換裝備；非戰鬥中才能換）");
+    noFocus(this.prepBtn);
+    this.prepBtn.addEventListener('click', () => this.togglePrep());
+    this.combatEl = el('div', 'pill combat-state');
+    top.append(this.timeEl, this.speedEl, gear, this.routeBtn, this.prepBtn, this.combatEl, hint);
     this.root.appendChild(top);
     this.settingsEl = el('div', 'settings-panel interactive');
     this.root.appendChild(this.settingsEl);
+    this.prepEl = el('div', 'settings-panel prep-panel interactive');
+    this.root.appendChild(this.prepEl);
+  }
+
+  /** 開關地圖上的整備：打開時暫停（整理裝備不必趕時間），關掉時繼續 */
+  private togglePrep(): void {
+    const s = this.cur();
+    const open = !this.prepEl.classList.contains('show');
+    this.prepEl.classList.toggle('show', open);
+    this.prepBtn.classList.toggle('active', open);
+    this.prepKey = '';
+    if (open && !s.paused && !s.world.result) {
+      s.setPaused(true, tr("整備"));
+      this.prepPaused = true;
+    } else if (!open && this.prepPaused) {
+      if (s.paused && !s.world.result) s.setPaused(false);
+      this.prepPaused = false;
+    }
+  }
+
+  /** 整備面板：裝備變了、或進出戰鬥時重畫 */
+  private renderPrep(s: BattleSession): void {
+    const run = this.registry.get('run') as RunState | undefined;
+    if (!run || !this.prepEl.classList.contains('show')) return;
+    const locked = s.world.inCombat;
+    const key = `${locked}|${run.party.map((h) => (h ? (h.items ?? []).join(',') : '-')).join('|')}|${(run.inventory ?? []).join(',')}`;
+    if (key === this.prepKey) return;
+    this.prepKey = key;
+    this.prepEl.innerHTML = '';
+    const head = el('div', 'settings-head');
+    const close = el('button', 'btn small', tr("關閉"));
+    noFocus(close);
+    close.addEventListener('click', () => this.togglePrep());
+    head.append(el('div', 'settings-title', tr("整備")), close);
+    this.prepEl.appendChild(head);
+    if (locked) this.prepEl.appendChild(el('div', 'prep-locked', tr("⚔ 戰鬥中不能換裝備：脫離戰鬥後再來")));
+    this.prepEl.appendChild(
+      equipmentPanel(
+        run,
+        (r) => {
+          // 暫停中按下的才算數（暫停時不會進出戰鬥），sim 那邊也會再檢查一次
+          if (this.cur().world.inCombat) return;
+          setRun(this, r);
+          r.party.forEach((h, slot) => {
+            if (h && !h.dead) this.cur().enqueue({ type: 'setItems', heroSlot: slot, items: [...(h.items ?? [])] });
+          });
+        },
+        locked,
+      ),
+    );
   }
 
   /** 開關設定選單；每次打開都依目前設定重建內容 */
@@ -678,7 +742,19 @@ export class UIScene extends Phaser.Scene {
       if (run) this.routeMini.build(run, exitInfos(s.world, run));
       else s.routeOpen = false;
       this.logCount = -1;
+      // 地圖上的整備：沉穩節奏的遠征才有
+      const prep = !!run && this.mobile;
+      this.prepBtn.style.display = prep ? '' : 'none';
+      this.combatEl.style.display = prep ? '' : 'none';
+      this.prepEl.classList.remove('show');
+      this.prepBtn.classList.remove('active');
+      this.prepPaused = false;
     }
+    const fighting = s.world.inCombat;
+    this.combatEl.classList.toggle('in-combat', fighting);
+    const ct = fighting ? tr("⚔ 戰鬥中") : tr("非戰鬥中");
+    if (this.combatEl.textContent !== ct) this.combatEl.textContent = ct;
+    this.renderPrep(s);
     if (this.mobile) this.mobileBar.update(s);
     this.routeMini.update(s, this.time.now);
     this.routeBtn.classList.toggle('active', s.routeOpen);
