@@ -27,6 +27,7 @@ import type { BattleScene } from './BattleScene';
 import { MobileHeroBar } from '../ui/mobileBar';
 import { RouteMini } from '../ui/routeMini';
 import { getLayoutPref, setLayoutPref, sidePanel } from '../layout';
+import { setSideOnlyHeroes, sideOnlyHeroes } from '../render/pixelArtData';
 import { exitInfos } from '../exitInfo';
 import type { RunState } from '../../run/runState';
 import { AUTO_PAUSE_OPTIONS, LOW_HP_THRESHOLDS } from '../autoPause';
@@ -221,6 +222,21 @@ export class UIScene extends Phaser.Scene {
       cb.checked = s.controls.showLog;
       cb.addEventListener('change', () => s.setControls({ showLog: cb.checked }));
       lab.append(cb, el('div', 'settings-text', tr("顯示戰鬥紀錄")));
+      row.appendChild(lab);
+      p.appendChild(row);
+    }
+    {
+      // 英雄只用側面 sprite（Alan 2026-10-24：試看看只有左右的美術風格）
+      const row = el('div', 'settings-row');
+      const lab = el('label', 'settings-check');
+      const cb = el('input');
+      cb.type = 'checkbox';
+      cb.tabIndex = -1;
+      cb.checked = sideOnlyHeroes();
+      cb.addEventListener('change', () => setSideOnlyHeroes(cb.checked));
+      const text = el('div', 'settings-text');
+      text.append(el('div', '', tr("英雄只用側面圖")), el('div', 'settings-hint', tr("往上下走、攻擊時也只左右翻轉")));
+      lab.append(cb, text);
       row.appendChild(lab);
       p.appendChild(row);
     }
