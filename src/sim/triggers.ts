@@ -15,7 +15,9 @@ import { tr } from '../i18n/lang';
 import type { OnHitEffect, PassiveDef } from './data/passives';
 import { DT } from './constants';
 import type { Unit } from './unit';
-import { applyOnHitEffect, restoreHp, triggerDamage } from './actions';
+import { applyOnHitEffect, isBehind, restoreHp, triggerDamage } from './actions';
+import { enemyRank } from './data/enemies';
+import { dist } from './math';
 import type { World } from './world';
 
 export type TriggerEvent = 'hit' | 'crit' | 'kill' | 'miss' | 'dodge' | 'hitTaken' | 'skillCast';
@@ -37,7 +39,11 @@ export type TriggerEffect =
   /** 自己疊增益：造成傷害每層 +damagePct，最多 maxStacks 層，持續 duration 秒（再觸發會刷新時間） */
   | { kind: 'empower'; damagePct: number; duration: number; maxStacks: number }
   /** 引爆：對目標追加 mult × 自己基本傷害的傷害；consume：同時移除 targetHas 指定的狀態 */
-  | { kind: 'detonate'; mult: number; consume?: boolean };
+  | { kind: 'detonate'; mult: number; consume?: boolean }
+  /** 連鎖：從目標彈到附近 radius 內另外 count 名敵人，各受 mult × 自己基本傷害 */
+  | { kind: 'chain'; mult: number; count: number; radius: number }
+  /** 治療隊友：自己身邊 radius 內的英雄（含自己）回復最大生命的 pct（隨從不吃） */
+  | { kind: 'healAllies'; pct: number; radius: number };
 
 export interface TriggerDef {
   on: TriggerEvent;
@@ -46,6 +52,14 @@ export interface TriggerDef {
   every?: number;
   chance?: number;
   targetHas?: StatusTag;
+  /** 目標的階級：一般、精英隊長、頭目 */
+  targetRank?: 'normal' | 'elite' | 'boss';
+  /** 自己的生命低於這個比例才觸發（0.5＝半血以下） */
+  selfHpBelow?: number;
+  /** 從目標背後打（近戰、遠程都算；看目標的面向） */
+  behind?: boolean;
+  /** 只算這些技能（skillCast，或 source: any 的 hit／crit／kill） */
+  skillIds?: string[];
   /** 觸發後幾秒內不再觸發 */
   cooldown?: number;
   effects: TriggerEffect[];
@@ -56,6 +70,8 @@ export interface TriggerContext {
   target?: Unit;
   /** 這次是普攻嗎（hit／crit／kill／miss 用） */
   basic?: boolean;
+  /** 技能的 id（技能造成的命中、放出技能） */
+  skillId?: string;
 }
 
 /** 目標身上有沒有這個狀態 */
@@ -123,6 +139,10 @@ function fireTriggersInner(world: World, owner: Unit, on: TriggerEvent, ctx: Tri
       if ((on === 'hit' || on === 'crit' || on === 'kill' || on === 'miss') && (tr0.source ?? 'basic') === 'basic' && !ctx.basic) return;
       const t = ctx.target;
       if (tr0.targetHas && (!t || !hasStatus(t, tr0.targetHas))) return;
+      if (tr0.targetRank && (!t || enemyRank(t.def) !== tr0.targetRank)) return;
+      if (tr0.selfHpBelow !== undefined && owner.hp / owner.maxHp >= tr0.selfHpBelow) return;
+      if (tr0.behind && (!t || !isBehind(owner, t))) return;
+      if (tr0.skillIds && (!ctx.skillId || !tr0.skillIds.includes(ctx.skillId))) return;
       const key = `${p.id}#${i}`;
       if (tr0.cooldown && (owner.triggerReadyAt[key] ?? 0) > world.time) return;
       // 每第 N 次：舊的 onHit 用普攻命中總數；新的觸發各自計數
@@ -156,6 +176,9 @@ function applyTriggerEffect(world: World, owner: Unit, t: Unit | undefined, e: T
       owner.empowerPct = e.damagePct;
       owner.empowerTime = e.duration;
       return;
+    case 'healAllies':
+      for (const a of world.units) if (a.isHero && !a.dead && dist(a.pos, owner.pos) <= e.radius) restoreHp(world, owner, a, a.maxHp * e.pct);
+      return;
     default:
       break;
   }
@@ -170,6 +193,16 @@ function applyTriggerEffect(world: World, owner: Unit, t: Unit | undefined, e: T
       if (e.consume && targetHas) clearStatus(t, targetHas);
       triggerDamage(world, owner, t, e.mult, p.id);
       return;
+    case 'chain': {
+      // 由近到遠彈到其他敵人（不含原本的目標）
+      const next = world.units
+        .filter((o) => !o.dead && o !== t && o.team === t.team && dist(o.pos, t.pos) <= e.radius)
+        .sort((a, b) => dist(a.pos, t.pos) - dist(b.pos, t.pos))
+        .slice(0, e.count);
+      for (const o of next) triggerDamage(world, owner, o, e.mult, p.id);
+      if (next.length) world.emit({ type: 'status', unitId: t.id, text: tr("連鎖") });
+      return;
+    }
     default:
       applyOnHitEffect(world, owner, t, e, p.id);
   }

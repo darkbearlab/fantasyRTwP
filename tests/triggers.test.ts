@@ -6,6 +6,7 @@ import type { TriggerDef } from '../src/sim/triggers';
 import { DT } from '../src/sim/constants';
 import { HEROES } from '../src/sim/data/heroes';
 import { ENEMIES } from '../src/sim/data/enemies';
+import { ITEMS } from '../src/sim/data/items';
 import type { Unit } from '../src/sim/unit';
 import type { World } from '../src/sim/world';
 import { HOLD, PASSIVE, makeWorld } from './helpers';
@@ -125,5 +126,64 @@ describe('通用觸發', () => {
     strike(w, a, e, { melee: true, mult: 1, damageType: 'melee', basic: true, accBonus: -9999 });
     expect(a.cooldowns.shieldBash).toBeCloseTo(4);
     expect(e.empowerStacks).toBe(1);
+  });
+
+  it('條件：目標階級、自己生命低於、從背後、只算某些技能', () => {
+    const { w, a, e } = setup();
+    a.addPassive(passive('elite', [{ on: 'hit', targetRank: 'elite', effects: [{ kind: 'root', duration: 1 }] }]));
+    basicHit(w, a, e);
+    expect(e.rootTime).toBe(0);
+    a.addPassive(passive('low', [{ on: 'hit', selfHpBelow: 0.5, effects: [{ kind: 'mark', vuln: 0.1, duration: 2 }] }]));
+    basicHit(w, a, e);
+    expect(e.markTime).toBe(0);
+    a.hp = Math.floor(a.maxHp * 0.3);
+    basicHit(w, a, e);
+    expect(e.markTime).toBeGreaterThan(0);
+    // 背後：目標面向攻擊者時不算
+    a.addPassive(passive('behind', [{ on: 'hit', behind: true, effects: [{ kind: 'empower', damagePct: 0.1, duration: 3, maxStacks: 5 }] }]));
+    e.facing = Math.atan2(a.pos.y - e.pos.y, a.pos.x - e.pos.x);
+    basicHit(w, a, e);
+    expect(a.empowerStacks).toBe(0);
+    e.facing += Math.PI;
+    basicHit(w, a, e);
+    expect(a.empowerStacks).toBe(1);
+    // 只算某些技能
+    a.addPassive(passive('only', [{ on: 'hit', source: 'any', skillIds: ['charge'], effects: [{ kind: 'heal', pct: 0.5 }] }]));
+    const hp = a.hp;
+    strike(w, a, e, { melee: true, mult: 1, damageType: 'melee', skillId: 'shieldBash' });
+    expect(a.hp).toBe(hp);
+    strike(w, a, e, { melee: true, mult: 1, damageType: 'melee', skillId: 'charge' });
+    expect(a.hp).toBeGreaterThan(hp);
+  });
+
+  it('效果：連鎖彈到附近的敵人；治療身邊的英雄', () => {
+    const { w, a, b, e } = setup();
+    const other = w.spawnUnit({ ...ENEMIES.brute, maxHp: 500 }, { x: e.pos.x + 1, y: e.pos.y });
+    const far = w.spawnUnit({ ...ENEMIES.brute, maxHp: 500 }, { x: e.pos.x + 10, y: e.pos.y });
+    a.addPassive(passive('chain', [{ on: 'hit', effects: [{ kind: 'chain', mult: 1, count: 2, radius: 3 }] }]));
+    basicHit(w, a, e);
+    expect(other.hp).toBeLessThan(500);
+    expect(far.hp).toBe(500);
+    b.hp = 10;
+    a.addPassive(passive('heal', [{ on: 'hit', effects: [{ kind: 'healAllies', pct: 0.5, radius: 6 }] }]));
+    basicHit(w, a, e);
+    expect(b.hp).toBeGreaterThan(10);
+  });
+
+  it('試作道具：每一件掛在英雄身上打一場都正常（沒有錯誤、會觸發）', () => {
+    const trial = ['huntersMark', 'metronome', 'warTrophy', 'dancerSash', 'backstabber', 'executionerAxe', 'reaperSigil', 'fervorCharm', 'thornMail', 'stormRing', 'prayerBeads', 'lastStand'];
+    for (const id of trial) {
+      expect(ITEMS[id]?.passive.triggers?.length, id).toBeGreaterThan(0);
+      const { w, a, e } = setup();
+      a.addPassive(ITEMS[id].passive);
+      a.cooldowns.shieldBash = 5;
+      a.hp = Math.floor(a.maxHp * 0.3);
+      e.hp = 60;
+      for (let i = 0; i < 12 && !e.dead; i++) {
+        a.critPending = i % 2 === 0;
+        basicHit(w, a, e);
+        strike(w, e, a, { melee: true, mult: 1, damageType: 'melee', basic: true, accBonus: i % 2 ? 999 : -9999 });
+      }
+    }
   });
 });

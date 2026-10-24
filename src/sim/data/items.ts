@@ -41,4 +41,45 @@ export const ITEMS: Record<string, ItemDef> = {
   towerShield: item('towerShield', '塔盾', 'rare', 120, '護甲 +3；每第 3 次普攻命中使目標暈眩 0.8 秒', { mods: { armor: 3 }, onHit: [{ kind: 'stun', duration: 0.8, every: 3 }] }),
   stormBoots: item('stormBoots', '風暴之靴', 'rare', 110, '移動速度 +20%、普攻速度 +10%', { mods: { moveSpeedPct: 0.2, attackSpeedPct: 0.1 } }),
   glacierHeart: item('glacierHeart', '冰川之心', 'rare', 120, '普攻 30% 機率定身目標 1.5 秒；防禦 +5', { onHit: [{ kind: 'root', duration: 1.5, chance: 0.3 }], mods: { defense: 5 } }),
+
+  // ── 觸發框架的試作道具（Alan 2026-10-24；說明見 docs/TRIGGERS.md，數值全部佔位） ──
+  // 一般
+  huntersMark: item('huntersMark', '獵人印記', 'common', 60, '普攻命中時標記目標 4 秒：受到的傷害 +15%（每 3 秒最多一次）', {
+    triggers: [{ on: 'hit', cooldown: 3, effects: [{ kind: 'mark', vuln: 0.15, duration: 4 }] }],
+  }),
+  metronome: item('metronome', '節拍器', 'common', 60, '每第 4 次普攻命中，技能冷卻 −1.5 秒', {
+    triggers: [{ on: 'hit', every: 4, effects: [{ kind: 'cooldown', seconds: 1.5 }] }],
+  }),
+  warTrophy: item('warTrophy', '戰利品項鍊', 'common', 55, '普攻打倒敵人時回復 6% 最大生命', {
+    triggers: [{ on: 'kill', effects: [{ kind: 'heal', pct: 0.06 }] }],
+  }),
+  dancerSash: item('dancerSash', '舞者腰帶', 'common', 55, '閃過攻擊時，造成傷害 +8%（最多 3 層，5 秒）', {
+    triggers: [{ on: 'dodge', effects: [{ kind: 'empower', damagePct: 0.08, duration: 5, maxStacks: 3 }] }],
+  }),
+  backstabber: item('backstabber', '背刺匕首', 'common', 65, '從背後普攻命中時，追加 0.4 倍傷害', {
+    triggers: [{ on: 'hit', behind: true, effects: [{ kind: 'detonate', mult: 0.4 }] }],
+  }),
+  // 稀有
+  executionerAxe: item('executionerAxe', '處刑者之斧', 'rare', 120, '普攻打中被標記的目標時引爆標記：追加 1 倍傷害並消耗標記', {
+    triggers: [{ on: 'hit', targetHas: 'marked', effects: [{ kind: 'detonate', mult: 1, consume: true }] }],
+  }),
+  reaperSigil: item('reaperSigil', '收割者徽記', 'rare', 125, '普攻打倒敵人時，技能冷卻立刻轉好（每 10 秒最多一次）', {
+    triggers: [{ on: 'kill', cooldown: 10, effects: [{ kind: 'resetCooldown' }] }],
+  }),
+  fervorCharm: item('fervorCharm', '戰意護符', 'rare', 115, '爆擊時造成傷害 +10%（最多 3 層，6 秒）', {
+    triggers: [{ on: 'crit', effects: [{ kind: 'empower', damagePct: 0.1, duration: 6, maxStacks: 3 }] }],
+  }),
+  thornMail: item('thornMail', '荊棘甲', 'rare', 110, '被打時反擊攻擊者 0.3 倍傷害（每 1 秒最多一次）；護甲 +1', {
+    mods: { armor: 1 },
+    triggers: [{ on: 'hitTaken', cooldown: 1, effects: [{ kind: 'detonate', mult: 0.3 }] }],
+  }),
+  stormRing: item('stormRing', '雷鳴指環', 'rare', 125, '爆擊時閃電彈到附近 3 m 內另外 2 名敵人，各受 0.5 倍傷害', {
+    triggers: [{ on: 'crit', effects: [{ kind: 'chain', mult: 0.5, count: 2, radius: 3 }] }],
+  }),
+  prayerBeads: item('prayerBeads', '禱念珠', 'rare', 115, '放出技能時，6 m 內的英雄（含自己）回復 6% 最大生命', {
+    triggers: [{ on: 'skillCast', effects: [{ kind: 'healAllies', pct: 0.06, radius: 6 }] }],
+  }),
+  lastStand: item('lastStand', '背水一戰', 'rare', 110, '生命低於 40% 時，普攻命中使造成傷害 +12%（最多 3 層，4 秒）', {
+    triggers: [{ on: 'hit', selfHpBelow: 0.4, effects: [{ kind: 'empower', damagePct: 0.12, duration: 4, maxStacks: 3 }] }],
+  }),
 };
