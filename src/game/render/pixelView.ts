@@ -8,7 +8,7 @@ import Phaser from 'phaser';
 import type { Unit } from '../../sim/unit';
 import { displayFacing } from './art';
 import { COLORS } from './palette';
-import { artKey, m72Key, outlineKey } from './pixelArt';
+import { artKey, m72Key, outlineKey, outlineOrigin } from './pixelArt';
 import type { PixelUnitArt } from './pixelArtData';
 import { PIXEL, facingBlock, m72Lunge, mwAnim, mwFrame, sideBlock, sideOnlyHeroes } from './pixelArtData';
 import { depthOf, groundAxes, groundCirclePoints, heightPx, worldToScreen } from './projection';
@@ -58,7 +58,9 @@ export class PixelView implements UnitVisual {
     const parts: Phaser.GameObjects.GameObject[] = [this.ring];
     if (ol) {
       const color = unit.team === 'hero' ? VISUAL.teamOutline.hero : VISUAL.teamOutline.enemy;
-      const make = () => scene.add.sprite(0, 0, ol, art.kind === 'mw' ? mwFrame(1, 0, 0) : undefined).setOrigin(this.sprite.originX, this.sprite.originY).setScale(s).setTint(color);
+      // mw 的外框格比身體大一圈（外框貼圖的說明），原點要對齊
+      const origin = art.kind === 'mw' ? outlineOrigin(this.sprite.originX, this.sprite.originY) : { x: this.sprite.originX, y: this.sprite.originY };
+      const make = () => scene.add.sprite(0, 0, ol, art.kind === 'mw' ? mwFrame(1, 0, 0) : undefined).setOrigin(origin.x, origin.y).setScale(s).setTint(color);
       this.outline = make();
       this.overlay = make().setDepth(VISUAL.teamOutline.overlayDepth).setAlpha(VISUAL.teamOutline.overlayAlpha);
       parts.push(this.outline);
