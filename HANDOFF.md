@@ -103,6 +103,12 @@
     - 實測工具：`npm run curve -- --runs 30 [--seed 1] [--policy exit|clear] [--perDepth …] [--chapterMult …] [--xpMult …]`（`tools/journeyCurve.ts`）。腳本 AI 新增 `SCRIPT.mode = 'exit'`：像玩家一樣往出口走，打附近或追上來的敵人；精英、頭目圖先打隊長、頭目；有空位就先去救人。
     - 2026-10-24 的起點：perDepth 0.09、章節倍率 0.55／0.75／0.95／1.1／1.25、xpMult 0.4。腳本 AI 30 趟：第 1 章每張圖 93～97%，全滅平均分散在各章（8／8／5／3／2），通關 13%，等級接近預期。
     - 順手修：被困的英雄不聽指令（`liveUnits` 排除）；自動玩家給需要技能的升級時傳對技能。
+  - **途中停靠**（Alan 2026-10-24，SPEC_SLICE7 §1）：
+    - `foldStops`（`src/run/journey.ts`）：一路向前時，休息、商人、事件節點變成一般戰鬥地圖，原本的類型記在 `MapNode.stop`。
+    - `toMap` 走進出口時，先進停靠點的畫面（`enterStop`，`RunState.stopsDone` 記住停過了），離開後直接進那張圖。
+    - 出口預告的 `PathPreview.campfire`、`wayPresence`。
+    - 事件打起來時，那一場就算這張圖（`applyBattleResult` 把 `currentNodeId` 設成它）。
+    - 地圖上的商人 NPC（`withMerchant`、`merchant` 互動、商店面板、`stockBag`）保留，目前沒用到。
 - **切片 6（SPEC_SLICE6.md）**：S6-1 模板拼接關卡已做（2026-10-20）。模板在 `src/run/data/templates.ts`（文字地圖，圖例在檔案開頭），池子與版面在 `src/run/data/levelPools.ts`，拼接在 `src/run/templateLevelGen.ts`；`LEVELS.deliberateGenerator` 可切回舊的隔牆關卡（classic）。預覽：`npm run level:preview` → `preview/levels.html`。效能：6 × 6 區塊（96 m）每節拍約 0.22 ms（桌機），可以做大型關鍵地點。S6-2 出口制也已做：`MapDef.exits`／`exitLock`，`World.checkExits`（全員在同一個出口才勝利，`exitWaiting` 事件提示「You must gather your party before venturing forth.」），生成時一個下一層節點一個出口（`carveExits`，依路線圖由左到右排在地圖遠端），`RunState.exitTo` 讓路線圖只能前往那個節點。精英關卡要打倒隊長、頭目關卡要打倒頭目才開門；最後的頭目戰沒有出口，打倒頭目就勝利。S6-3 經驗值也已做：經驗值只來自擊殺（`src/run/xp.ts`，數值在 `ECONOMY.xp`），隊伍共用等級；沉穩節奏不再每場三選一，升級才三選一（`RunState.pendingLevelUps`，升幾級選幾次，`levelUpTo` 是正在選第幾級），沒升級時戰果畫面只有「繼續」（`continueFromReward`）。封存模式照舊每場三選一。S6-4 FTL 式路線圖也已做：沉穩節奏的遠征用 `generateRouteMap`（`src/run/routeMap.ts`，旋鈕在 `src/run/data/routeMap.ts`；每層 4～5 個節點、同層橫向連線、所有連線雙向 `MapNode.links`），回合與壓力在 `src/run/overworld.ts`（`RunState.overworld`：回合、造訪次數、主力、冠軍）。`chooseNode` 每次移動推進一回合；被主力佔領的節點是強化戰鬥（`phase.mods.force`），冠軍追到是冠軍戰（`mods.champion`），重複訪問重新生成（`phase.visit`）。關卡的出口在相鄰節點的方向（上＝下一層、下＝前一層、左右＝同層），出生點在來的那一側（`templateLevelGen` 的 `entry`、`orient`）。休息時 `campfireSmoke` 讓冠軍多走一格。`createRun(seed, { layers })` 或封存模式仍用舊的單向路線圖。難度完全沒調：自動遠征目前通關率很低。
 - **營火對話**（休息節點）：先進 `CampfireScene`（英雄圍著程式畫的火堆、上下兩個對話框、頭像用 sprite），看完或略過才打開休息選單；看過的記在 `phase.talked`。台詞在 `src/run/data/campfire.ts`（通用台詞，`{0}` 換成職業名），挑選在 `src/run/campfire.ts`（依種子＋節點，同一節點每次一樣）。
 - **故事大綱**：`STORY.md`（Alan 口述，尚未實作：五張路線圖、魔法水晶、FTL 式路線圖與魔王冠軍追擊）。

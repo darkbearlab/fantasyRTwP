@@ -498,6 +498,8 @@ export const EN_TEXT: Record<string, string> = {
   "職業升級": "Class upgrade",
   "升到第 {0} 級：{1}選擇一個強化{2}": "Level {0}: {1} chooses an upgrade{2}",
   "（還有 {0} 次）": " ({0} more)",
+  "途中：🔥 營火": "On the way: 🔥 Campfire",
+  "途中：✨ 有敵人以外的氣息": "On the way: ✨ You sense someone who is not an enemy",
   // 標點、排版用的鍵
   "，": ", ",
   "MVP　{0}{1}": "MVP  {0}{1}",

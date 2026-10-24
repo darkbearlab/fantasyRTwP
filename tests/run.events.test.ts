@@ -7,7 +7,7 @@ import { leaveNode } from '../src/run/progression';
 
 /** 把遠征放進指定事件（測試用） */
 function inEvent(eventId: string, patch: (r: RunState) => void = () => {}): RunState {
-  const r = createRun(9);
+  const r = createRun(9, { forward: false });
   const node = r.map.nodes.find((n) => n.type === 'event')!;
   r.currentNodeId = node.id;
   r.phase = { kind: 'event', nodeId: node.id, eventId, resolved: false };

@@ -20,6 +20,8 @@ export interface MapNode {
   next: number[];
   /** FTL 式路線圖（SPEC_SLICE6 §4）：所有相鄰節點（雙向，含往回走與同層橫向）；舊的單向路線圖沒有 */
   links?: number[];
+  /** 途中停靠（SPEC_SLICE7 §1）：走進這張圖之前，路上先經過的休息、商人或事件 */
+  stop?: 'rest' | 'shop' | 'event';
 }
 
 export interface RunMap {

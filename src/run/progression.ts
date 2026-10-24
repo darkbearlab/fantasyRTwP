@@ -26,7 +26,7 @@ import type { LootDef } from '../sim/data/types';
 import { enemyStrength, gainXp, nextLevelUpTo, xpForKills } from './xp';
 import { neighbors } from './routeMap';
 import { advanceTurn, campfireSmoke, caught, championDefeated, isOccupied } from './overworld';
-import { journeyStrength, rescueAt, rescueHero } from './journey';
+import { journeyStrength, rescueAt, rescueHero, stopsOn } from './journey';
 import { JOURNEY } from './data/journey';
 
 /** 下一步可以前往的節點 */
@@ -59,6 +59,7 @@ export function chooseNode(run: RunState, nodeId: number): RunState {
   const node = r.map.nodes[nodeId];
   r.currentNodeId = nodeId;
   r.exitTo = null;
+  r.stopsDone = [];
   r.path.push(nodeId);
   if (r.overworld) {
     // FTL 式路線圖（SPEC_SLICE6 §4）：一回合——主力擴散、冠軍行動
@@ -105,6 +106,19 @@ export function chooseNode(run: RunState, nodeId: number): RunState {
       // 被困的英雄（SPEC_SLICE7 §4）
       if (rescueAt(r, nodeId)) r.phase.rescue = rescueHero(r, nodeId);
       break;
+    case 'event':
+    case 'shop':
+    case 'rest':
+      enterStop(r, nodeId);
+      break;
+  }
+  return r;
+}
+
+/** 休息、商人、事件的畫面（一路向前時是途中停靠，原地修改；不改目前所在的圖） */
+function enterStop(r: RunState, nodeId: number): void {
+  const node = r.map.nodes[nodeId];
+  switch (node.stop ?? node.type) {
     case 'event': {
       const rng = rngFor(r.seed, 'eventPick', nodeId);
       const all = Object.keys(EVENTS);
@@ -115,13 +129,9 @@ export function chooseNode(run: RunState, nodeId: number): RunState {
       r.phase = { kind: 'event', nodeId, eventId, resolved: false };
       break;
     }
-    case 'shop': {
-      const stock = rollShopStock(rngFor(r.seed, 'shop', nodeId));
-      // 一路向前：商人站在一張普通的戰鬥地圖上（SPEC_SLICE7 §2）
-      if (r.forward) r.phase = { kind: 'battle', nodeId, encounterId: deliberateLevelId('battle'), fromEvent: false, shop: { stock, sold: [] } };
-      else r.phase = { kind: 'shop', nodeId, stock, sold: [] };
+    case 'shop':
+      r.phase = { kind: 'shop', nodeId, stock: rollShopStock(rngFor(r.seed, 'shop', nodeId)), sold: [] };
       break;
-    }
     case 'rest': {
       const rng = rngFor(r.seed, 'rest', nodeId);
       r.phase = {
@@ -141,7 +151,6 @@ export function chooseNode(run: RunState, nodeId: number): RunState {
       break;
     }
   }
-  return r;
 }
 
 /** 訓練只抽「給一名英雄」的強化 */
@@ -244,6 +253,11 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
   }
   // 出口制：走哪個出口，下一個節點就是哪個
   r.exitTo = outcome.exitNodeId ?? null;
+  // 一路向前：途中的事件打起來的話，那一場就算這張圖（出口通往這張圖的下一張）
+  if (r.forward && run.phase.fromEvent && r.map.nodes[nodeId].stop) {
+    r.currentNodeId = nodeId;
+    r.path.push(nodeId);
+  }
   const elite = node.type === 'elite' && !fromEvent;
   const gold = elite ? ECONOMY.goldPerElite : ECONOMY.goldPerBattle;
   r.gold += gold;
@@ -382,8 +396,16 @@ function toMap(r: RunState): RunState {
   if (r.chapterCleared) enterInterlude(r);
   else {
     r.phase = { kind: 'map' };
-    // 一路向前（SPEC_SLICE7 §1）：從出口離開就直接進那張圖，不回路線圖
-    if (r.forward && r.exitTo != null) return chooseNode(r, r.exitTo);
+    // 一路向前（SPEC_SLICE7 §1）：從出口離開，先停路上的休息、商人、事件，再直接進那張圖，不回路線圖
+    if (r.forward && r.exitTo != null) {
+      const stop = stopsOn(r.map, r.currentNodeId, r.exitTo).find((id) => !(r.stopsDone ?? []).includes(id));
+      if (stop !== undefined) {
+        (r.stopsDone ??= []).push(stop);
+        enterStop(r, stop);
+        return r;
+      }
+      return chooseNode(r, r.exitTo);
+    }
   }
   return r;
 }
