@@ -4,6 +4,7 @@
 import { tr } from '../i18n/lang';
 import type { InteractableDef, MapDef, Rect } from '../sim/data/types';
 import { currentChapter } from './campaign';
+import { CHAPTERS } from './data/chapters';
 import { CONSUMABLE_DROP } from './consumables';
 import { ECONOMY } from './data/economy';
 import { JOURNEY } from './data/journey';
@@ -17,6 +18,20 @@ import { UPGRADES } from './data/upgrades';
 import { classChoices } from './classes';
 import { evolveHero, generalUpgradeIds, grantUpgrade, maxHpOf, maxRankOf, rankOf, recipeDone, recipesOf } from './upgrades';
 import { battleSkillsOf } from './loadout';
+
+/** 全程第幾層（前面各章的層數加總＋本章層數，不打折） */
+export function journeyDepth(run: RunState, node: MapNode): number {
+  let d = 0;
+  for (let k = 0; k < (run.chapter ?? 0); k++) d += CHAPTERS[k]?.layers ?? 0;
+  return d + node.layer;
+}
+
+/** 一路向前的敵人強度倍率（SPEC_SLICE7 §3.3）；頭目從第 1 章頭目那一層開始算 */
+export function journeyStrength(run: RunState, node: MapNode): number {
+  const C = JOURNEY.curve;
+  const base = node.type === 'boss' ? CHAPTERS[0].layers : 1;
+  return (1 + C.perDepth * Math.max(0, journeyDepth(run, node) - base)) * (C.chapterMult[run.chapter ?? 0] ?? 1);
+}
 
 /** 這個節點有沒有被困的英雄（依種子固定，出口預告才能先說） */
 export function rescueAt(run: RunState, nodeId: number): boolean {

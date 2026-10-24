@@ -835,7 +835,8 @@ export class World implements ZocContext {
     const out: Unit[] = [];
     for (const id of ids) {
       const u = this.getUnit(id);
-      if (u && !u.dead && !out.includes(u)) out.push(u);
+      // 被困的英雄（SPEC_SLICE7 §4）還沒被找到前不聽指令
+      if (u && !u.dead && !u.captive && !out.includes(u)) out.push(u);
     }
     return out;
   }

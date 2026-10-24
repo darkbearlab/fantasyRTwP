@@ -80,7 +80,7 @@ export function stepRun(r: RunState, scripted = true): RunState {
       if (up.scope === 'party') return chooseReward(r, { upgradeId: id });
       // 專屬升級（SPEC_CLASSES）固定給抽到的英雄
       const own = p.optionSlots?.[0];
-      if (own !== undefined && own !== null) return chooseReward(r, { upgradeId: id, slot: own });
+      if (own !== undefined && own !== null) return chooseReward(r, { upgradeId: id, slot: own, skillId: up.needsSkill ? battleSkillsOf(r, r.party[own]!)[0] : undefined });
       const target = livingHeroes(r).reduce((a, b) => (a.hero.upgrades.length <= b.hero.upgrades.length ? a : b));
       return chooseReward(r, { upgradeId: id, slot: target.slot, skillId: up.needsSkill ? battleSkillsOf(r, target.hero)[0] : undefined });
     }
@@ -96,10 +96,10 @@ export function stepRun(r: RunState, scripted = true): RunState {
         if (avgHpRatio(r) < 0.85) return restCamp(r);
         const id = p.trainOptions[0];
         const own = p.trainSlots?.[0];
-        if (own !== undefined && own !== null) return restTrain(r, own, id);
+        if (own !== undefined && own !== null) return restTrain(r, own, id, UPGRADES[id].needsSkill ? battleSkillsOf(r, r.party[own]!)[0] : undefined);
         if (UPGRADES[id].scope === 'party') return restTrain(r, undefined, id);
         const { slot, hero } = livingHeroes(r)[0];
-        return restTrain(r, slot, id, UPGRADES[id].needsSkill ? hero.skills[0] : undefined);
+        return restTrain(r, slot, id, UPGRADES[id].needsSkill ? battleSkillsOf(r, hero)[0] : undefined);
       }
       if (canRecruit(r)) return restRecruit(r, p.recruitCandidates[0]);
       return leaveNode(r);

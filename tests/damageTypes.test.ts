@@ -112,7 +112,7 @@ describe('手感調整（Alan 2026-10-21：太泥濘）', () => {
     const { createRun } = await import('../src/run/runState');
     const { createBattleFromRun, deliberateLevelId } = await import('../src/run/battle');
     const { DELIBERATE_PACE } = await import('../src/sim/data/deliberate');
-    const r = createRun(3, { style: 'deliberate' });
+    const r = createRun(3, { forward: false, style: 'deliberate' });
     const node = r.map.nodes.find((n) => n.layer === 4)!;
     r.currentNodeId = node.id;
     r.phase = { kind: 'battle', nodeId: node.id, encounterId: deliberateLevelId('elite'), fromEvent: false };

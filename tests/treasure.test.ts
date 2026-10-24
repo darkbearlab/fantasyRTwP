@@ -110,7 +110,7 @@ describe('寶箱與地上的道具', () => {
   });
 
   it('戰後結算：裝備進背包、經驗值和金幣入帳', () => {
-    const r = createRun(11, { style: 'deliberate' });
+    const r = createRun(11, { forward: false, style: 'deliberate' });
     const node = r.map.layers[0].map((id) => r.map.nodes[id])[0];
     r.currentNodeId = node.id;
     r.phase = { kind: 'battle', nodeId: node.id, encounterId: deliberateLevelId('battle'), fromEvent: false };

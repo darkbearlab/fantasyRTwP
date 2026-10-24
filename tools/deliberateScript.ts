@@ -13,6 +13,12 @@ import type { World } from '../src/sim/world';
 
 const THINK_INTERVAL = 0.5;
 
+/**
+ * 腳本的打法：clear＝把地圖上的敵人全部找出來打完才走（舊做法）；
+ * exit＝像玩家一樣往出口走，路上遇到、或已經交戰的敵人才打；精英／頭目圖先去打隊長／頭目；有空位就先去救被困的英雄（SPEC_SLICE7）
+ */
+export const SCRIPT = { mode: 'clear' as 'clear' | 'exit', engage: 10 };
+
 export class DeliberateScript {
   private nextThink = 0;
 
@@ -22,11 +28,25 @@ export class DeliberateScript {
     const w = this.world;
     if (w.time < this.nextThink) return;
     this.nextThink = w.time + THINK_INTERVAL;
-    const heroes = w.units.filter((u) => u.team === 'hero' && !u.dead);
+    const heroes = w.units.filter((u) => u.isHero && !u.dead);
     if (heroes.length === 0) return;
-    const alive = w.units.filter((u) => u.team === 'enemy' && !u.dead);
-    const visible = alive.filter((u) => w.visibleToTeam(u, 'hero'));
+    let alive = w.units.filter((u) => u.team === 'enemy' && !u.dead);
+    let visible = alive.filter((u) => w.visibleToTeam(u, 'hero'));
     const exits = w.map.exits ?? [];
+    if (SCRIPT.mode === 'exit') {
+      // 只打附近、或已經追上來的敵人；其他的當作不存在
+      const near = (e: Unit) => heroes.some((h) => dist(h.pos, e.pos) <= SCRIPT.engage) || (e.alerted && heroes.some((h) => dist(h.pos, e.pos) <= SCRIPT.engage * 1.5));
+      const fight = alive.filter((e) => near(e) && (w.visibleToTeam(e, 'hero') || e.alerted));
+      // 出口還封著：去打隊長／頭目
+      const key = w.map.exitLock ? alive.filter((e) => e.def.rank === 'elite' || e.def.rank === 'boss' || e.def.ai === 'boss') : [];
+      const captive = w.units.find((u) => u.captive && !u.dead);
+      if (!fight.length && !key.length && captive) {
+        w.enqueue({ type: 'move', unitIds: heroes.map((u) => u.id), point: { ...captive.pos } });
+        return;
+      }
+      alive = fight.length ? fight : key;
+      visible = alive.filter((u) => w.visibleToTeam(u, 'hero'));
+    }
     if (alive.length === 0 && exits.length) {
       const hurt = heroes.reduce((a, u) => a + u.hp / u.maxHp, 0) / heroes.length < 0.6;
       // 往前（top）的出口優先：受傷時找休息、否則戰鬥

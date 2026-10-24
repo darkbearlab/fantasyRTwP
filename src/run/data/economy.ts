@@ -61,6 +61,11 @@ export const ECONOMY = {
     scaleWithEnemy: true,
     /** Alan 2026-10-22：隊伍每升一級，全隊最大生命與造成傷害各 +這個比例（三選一之外的基本成長） */
     perLevelGrowth: 0.03,
+    /**
+     * 一路向前的預期等級（SPEC_SLICE7 §3.3）：整趟第 N 張圖進場時大約是 1 ＋ (N − 1) × targetPerMap 級。
+     * 只拿來對照實測（npm run curve），不會拉高或壓低經驗值。
+     */
+    targetPerMap: 0.5,
   },
   trainChoices: 3,
   /** 敵人數值隨層數成長：1 + layerScaling × (layer − 1) */

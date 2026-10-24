@@ -55,6 +55,11 @@ export function gainXp(run: RunState, amount: number): number {
   return ups;
 }
 
+/** 一路向前：整趟第 mapIndex 張圖（1 起算）進場時預期的隊伍等級（SPEC_SLICE7 §3.3） */
+export function targetLevelAt(mapIndex: number): number {
+  return Math.floor(1 + (mapIndex - 1) * ECONOMY.xp.targetPerMap);
+}
+
 /** 下一個要選的升級是升到第幾級（還有 pending 次時） */
 export function nextLevelUpTo(run: RunState): number {
   return (run.level ?? 1) - (run.pendingLevelUps ?? 0) + 1;

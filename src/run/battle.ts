@@ -38,14 +38,14 @@ import { DEFAULT_SIM_CONFIG } from '../sim/simConfig';
 import { heroDef, heroPassives } from './upgrades';
 import { currentChapter, depthOffset } from './campaign';
 import { factionOf } from './data/factions';
-import { freeSpotNear, withMerchant } from './journey';
+import { freeSpotNear, journeyStrength, withMerchant } from './journey';
 import { JOURNEY } from './data/journey';
 
-/** 敵人數值隨層數成長；隊長另外強化 */
-export function enemyDef(enemyId: string, layer: number, captain = false): UnitDef {
+/** 敵人數值隨層數成長；隊長另外強化。strength：直接指定強度倍率（一路向前，SPEC_SLICE7 §3.3） */
+export function enemyDef(enemyId: string, layer: number, captain = false, strength?: number): UnitDef {
   const base = ENEMIES[enemyId];
   if (!base) throw new Error(`未知的敵人：${enemyId}`);
-  const s = 1 + ECONOMY.layerScaling * Math.max(0, layer - 1);
+  const s = strength ?? 1 + ECONOMY.layerScaling * Math.max(0, layer - 1);
   const c = ECONOMY.captain;
   const hpMult = s * (captain ? c.hpMult : 1);
   const dmgMult = s * (captain ? c.damageMult : 1);
@@ -246,7 +246,9 @@ export function createBattleFromRun(run: RunState, config?: Partial<SimConfig>, 
   const horde = enc.horde ? { ...enc.horde, spawners: [...(map.spawners ?? []), ...enc.horde.spawners] } : undefined;
   // 沉穩節奏（Alan 2026-10-21：太泥濘）：一般敵人生命減半，精英隊長與頭目不變
   const lighter = (d: UnitDef): UnitDef => (deliberate && enemyRank(d) === 'normal' ? { ...d, maxHp: Math.max(1, Math.round(d.maxHp * DELIBERATE_PACE.enemyHpMult)) } : d);
-  const scaled = (id: string, captain?: boolean) => (horde ? hordeEnemyDef(enemyDef(id, layer, captain)) : lighter(enemyDef(id, layer, captain)));
+  // 一路向前：敵人強度照全程深度（SPEC_SLICE7 §3.3）
+  const strength = run.forward && run.phase.kind === 'battle' ? journeyStrength(run, run.map.nodes[run.phase.nodeId]) : undefined;
+  const scaled = (id: string, captain?: boolean) => (horde ? hordeEnemyDef(enemyDef(id, layer, captain)) : lighter(enemyDef(id, layer, captain, strength)));
   // 沉穩節奏：同小隊一起警覺；舊的手工遭遇沒有小隊，全部算同一隊（看到一名就全體進攻）
   for (const e of enc.enemies) spawns.push({ defId: e.enemy, def: scaled(e.enemy, e.captain), pos: { x: e.x, y: e.y }, squad: e.squad ?? 'main', facing: e.facing });
   // 沉穩節奏（SPEC_SLICE5）：小地圖遭遇套用變慢的設定

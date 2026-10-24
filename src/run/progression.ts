@@ -26,7 +26,7 @@ import type { LootDef } from '../sim/data/types';
 import { enemyStrength, gainXp, nextLevelUpTo, xpForKills } from './xp';
 import { neighbors } from './routeMap';
 import { advanceTurn, campfireSmoke, caught, championDefeated, isOccupied } from './overworld';
-import { rescueAt, rescueHero } from './journey';
+import { journeyStrength, rescueAt, rescueHero } from './journey';
 import { JOURNEY } from './data/journey';
 
 /** 下一步可以前往的節點 */
@@ -256,7 +256,9 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
     // SPEC_SLICE6 §3：不再每場三選一；經驗值只來自擊殺，升級了才三選一（升幾級選幾次）
     // 經驗值跟著這場敵人的強度（和 encounterFor 的層數相同）
     const battleLayer = node.layer + levelBonus(run.phase.mods ?? {}) + depthOffset(r);
-    xpGained = xpForKills(outcome.killed ?? [], enemyStrength(battleLayer)) + lootXp(outcome.loot);
+    // 一路向前：經驗值跟著全程深度的強度（SPEC_SLICE7 §3.3）
+    const xpMult = r.forward ? journeyStrength(r, node) * JOURNEY.curve.xpMult : enemyStrength(battleLayer);
+    xpGained = Math.round(xpForKills(outcome.killed ?? [], xpMult) + lootXp(outcome.loot) * (r.forward ? JOURNEY.curve.xpMult : 1));
     const ups = gainXp(r, xpGained);
     if (ups > 0) r.journal.push(tr("隊伍升到第 {0} 級！", { 0: r.level }));
     // 一路向前（SPEC_SLICE7 §3.1）：每升一級，每名活著的英雄各自三選一
