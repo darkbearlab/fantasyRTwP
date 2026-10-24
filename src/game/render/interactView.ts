@@ -22,6 +22,8 @@ export const INTERACT_VISUAL = {
   leverUsedColor: 0x4f8f5a,
   hoverColor: 0xffe066,
   chestColor: 0x8a5a2b,
+  /** 地圖上的商人（SPEC_SLICE7 §2） */
+  merchantColor: 0x3f7f5f,
   chestBand: 0xd9b24a,
   /** 地上的道具（依內容的顏色） */
   pickupColors: { heal: 0x5dbb63, consumable: 0xd04a4a, item: 0x4a8ad0, xp: 0xb388ff, gold: 0xe8c45a } as Record<string, number>,
@@ -156,6 +158,11 @@ export class InteractablesView {
     } else if (d.kind === 'pickup') {
       // 地上的道具：撿走就不見
       if (!p.state.open) boxes.push({ x: d.x, y: d.y, w: d.w, d: d.h, h: 0.3, color: V.pickupColors[d.loot?.kind ?? 'gold'] ?? V.pickupColors.gold });
+    } else if (d.kind === 'merchant') {
+      // 商人：攤位（木箱）＋站著的人（之後換成素材）
+      boxes.push({ x: d.x, y: d.y + d.h * 0.55, w: d.w, d: d.h * 0.45, h: 0.5, color: V.chestColor });
+      const s = Math.min(d.w, d.h) * 0.4;
+      boxes.push({ x: d.x + d.w / 2 - s / 2, y: d.y + d.h * 0.1, w: s, d: s, h: 1.6, color: V.merchantColor });
     } else if (d.kind === 'shrine') {
       // 祭壇：底座＋發光的柱子（用過就變暗）
       const used = p.state.open;

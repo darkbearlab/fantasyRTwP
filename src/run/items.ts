@@ -42,17 +42,22 @@ export function rollItemDrop(rng: Rng, kind: 'battle' | 'elite' | 'event'): stri
   return rollItem(rng, kind === 'elite' ? ECONOMY.eliteRareChance : ECONOMY.battleRareChance);
 }
 
-export function canBuy(run: RunState, itemId: string): boolean {
+/** 目前的貨架：商人節點，或地圖上的商人（SPEC_SLICE7 §2） */
+export function shopOf(run: RunState): { stock: string[]; sold: string[] } | undefined {
   const p = run.phase;
-  return p.kind === 'shop' && p.stock.includes(itemId) && !p.sold.includes(itemId) && run.gold >= ITEMS[itemId].price;
+  return p.kind === 'shop' ? p : p.kind === 'battle' ? p.shop : undefined;
+}
+
+export function canBuy(run: RunState, itemId: string): boolean {
+  const p = shopOf(run);
+  return !!p && p.stock.includes(itemId) && !p.sold.includes(itemId) && run.gold >= ITEMS[itemId].price;
 }
 
 /** 在商人那裡買一件道具（放進背包） */
 export function buyItem(run: RunState, itemId: string): RunState {
   if (!canBuy(run, itemId)) throw new Error('買不了（不在貨架上、已售出或金幣不足）');
   const r = cloneRun(run);
-  const p = r.phase as Extract<RunState['phase'], { kind: 'shop' }>;
-  p.sold.push(itemId);
+  shopOf(r)!.sold.push(itemId);
   r.gold -= ITEMS[itemId].price;
   (r.inventory ??= []).push(itemId);
   r.journal.push(tr("向商人買了「{0}」。", { 0: ITEMS[itemId].name }));

@@ -424,7 +424,7 @@ export class World implements ZocContext {
   interact(u: Unit, s: InteractableState): void {
     if (!this.interactables.usable(s)) return;
     s.uses++;
-    if (s.def.kind !== 'door') {
+    if (s.def.kind !== 'door' && s.def.kind !== 'merchant') {
       // 拉桿拉下、寶箱打開、道具撿走、祭壇用過
       s.open = true;
       this.interactables.version++;
@@ -773,6 +773,10 @@ export class World implements ZocContext {
       }
       case 'useConsumable':
         this.useConsumable(cmd.itemId, cmd.targetId);
+        break;
+      case 'stockBag':
+        // 向地圖上的商人買的消耗品（金幣由遠征那邊扣）
+        if (!this.inCombat && CONSUMABLES[cmd.itemId] && this.bag.length < BAG.capacity) this.bag.push(cmd.itemId);
         break;
       case 'setItems': {
         const u = this.units.find((o) => o.isHero && o.heroSlot === cmd.heroSlot);

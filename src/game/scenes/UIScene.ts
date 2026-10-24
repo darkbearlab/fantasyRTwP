@@ -33,6 +33,11 @@ import type { RunState } from '../../run/runState';
 import { AUTO_PAUSE_OPTIONS, LOW_HP_THRESHOLDS } from '../autoPause';
 import { portraitSheetUrl } from '../render/pixelArt';
 import { equipmentPanel } from '../ui/bagPanel';
+import { button } from '../ui/dom';
+import { buyItem, canBuy, itemLabel, shopOf } from '../../run/items';
+import { SHOP_CONSUMABLES, buyConsumable, canBuyConsumable } from '../../run/consumables';
+import { BAG, CONSUMABLES } from '../../sim/data/consumables';
+import { ITEMS } from '../../sim/data/items';
 import { setRun } from '../runFlow';
 
 const STATE_LABEL: Record<UnitState, string> = {
@@ -103,6 +108,15 @@ export class UIScene extends Phaser.Scene {
   private prepBtn!: HTMLElement;
   private prepEl!: HTMLElement;
   private prepKey = '';
+  /** 地圖上的商人（SPEC_SLICE7 §2）：和整備共用面板，多了貨架 */
+  private shopMode = false;
+  /** 暫停中買的消耗品還沒進 sim 的包包（下一個節拍才放進去）：先算進包包的格數，免得買超過 */
+  private pendingStock = { tick: -1, n: 0 };
+
+  private bagCount(s: BattleSession): number {
+    if (this.pendingStock.tick !== s.world.tick) this.pendingStock = { tick: s.world.tick, n: 0 };
+    return s.world.bag.length + this.pendingStock.n;
+  }
   /** 打開整備時是我們暫停的：關掉時要繼續 */
   private prepPaused = false;
 
@@ -192,9 +206,10 @@ export class UIScene extends Phaser.Scene {
   }
 
   /** 開關地圖上的整備：打開時暫停（整理裝備不必趕時間），關掉時繼續 */
-  private togglePrep(): void {
+  private togglePrep(shop = false): void {
     const s = this.cur();
     const open = !this.prepEl.classList.contains('show');
+    this.shopMode = open && shop;
     this.prepEl.classList.toggle('show', open);
     this.prepBtn.classList.toggle('active', open);
     this.prepKey = '';
@@ -212,7 +227,7 @@ export class UIScene extends Phaser.Scene {
     const run = this.registry.get('run') as RunState | undefined;
     if (!run || !this.prepEl.classList.contains('show')) return;
     const locked = s.world.inCombat;
-    const key = `${locked}|${run.party.map((h) => (h ? (h.items ?? []).join(',') : '-')).join('|')}|${(run.inventory ?? []).join(',')}`;
+    const key = `${locked}|${this.shopMode}|${run.gold}|${this.bagCount(s)}|${shopOf(run)?.sold.join(',') ?? ''}|${run.party.map((h) => (h ? (h.items ?? []).join(',') : '-')).join('|')}|${(run.inventory ?? []).join(',')}`;
     if (key === this.prepKey) return;
     this.prepKey = key;
     this.prepEl.innerHTML = '';
@@ -220,9 +235,10 @@ export class UIScene extends Phaser.Scene {
     const close = el('button', 'btn small', tr("關閉"));
     noFocus(close);
     close.addEventListener('click', () => this.togglePrep());
-    head.append(el('div', 'settings-title', tr("整備")), close);
+    head.append(el('div', 'settings-title', this.shopMode ? tr("💰 商人") : tr("整備")), close);
     this.prepEl.appendChild(head);
     if (locked) this.prepEl.appendChild(el('div', 'prep-locked', tr("⚔ 戰鬥中不能換裝備：脫離戰鬥後再來")));
+    if (this.shopMode) this.prepEl.appendChild(this.shopShelf(s, run, locked));
     this.prepEl.appendChild(
       equipmentPanel(
         run,
@@ -237,6 +253,44 @@ export class UIScene extends Phaser.Scene {
         locked,
       ),
     );
+  }
+
+  /** 商人的貨架：裝備放進背包；消耗品送指令放進戰鬥中的包包（金幣由遠征扣） */
+  private shopShelf(s: BattleSession, run: RunState, locked: boolean): HTMLElement {
+    const box = el('div', 'bag-panel');
+    box.appendChild(el('div', 'meta', tr("💰 {0} 金幣", { 0: run.gold })));
+    const shop = shopOf(run);
+    for (const id of shop?.stock ?? []) {
+      const sold = shop!.sold.includes(id);
+      const row = el('div', `shop-item${ITEMS[id].rarity === 'rare' ? ' rare' : ''}${sold ? ' sold' : ''}`);
+      row.append(
+        el('span', 'bag-desc', itemLabel(id)),
+        button(sold ? tr("已售出") : tr("買（{0} 金幣）", { 0: ITEMS[id].price }), 'small', () => setRun(this, buyItem(this.registry.get('run') as RunState, id)), locked || !canBuy(run, id)),
+      );
+      box.appendChild(row);
+    }
+    const bagLen = this.bagCount(s);
+    box.appendChild(el('div', 'bag-title', tr("🧪 消耗品（包包 {0}／{1}）", { 0: bagLen, 1: BAG.capacity })));
+    for (const id of SHOP_CONSUMABLES) {
+      const d = CONSUMABLES[id];
+      const row = el('div', 'shop-item');
+      row.append(
+        el('span', 'bag-desc', tr("{0}：{1}", { 0: d.name, 1: d.description })),
+        button(
+          tr("買（{0} 金幣）", { 0: d.price }),
+          'small',
+          () => {
+            if (this.cur().world.inCombat) return;
+            setRun(this, buyConsumable(this.registry.get('run') as RunState, id, this.bagCount(this.cur())));
+            this.cur().enqueue({ type: 'stockBag', itemId: id });
+            this.pendingStock.n += 1;
+          },
+          locked || !canBuyConsumable(run, id, bagLen),
+        ),
+      );
+      box.appendChild(row);
+    }
+    return box;
   }
 
   /** 開關設定選單；每次打開都依目前設定重建內容 */
@@ -749,6 +803,14 @@ export class UIScene extends Phaser.Scene {
       this.prepEl.classList.remove('show');
       this.prepBtn.classList.remove('active');
       this.prepPaused = false;
+    }
+    if (s.merchantOpen) {
+      s.merchantOpen = false;
+      if (!this.prepEl.classList.contains('show')) this.togglePrep(true);
+      else if (!this.shopMode) {
+        this.shopMode = true;
+        this.prepKey = '';
+      }
     }
     const fighting = s.world.inCombat;
     this.combatEl.classList.toggle('in-combat', fighting);

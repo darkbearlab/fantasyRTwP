@@ -27,7 +27,7 @@ describe('FTL 式路線圖（SPEC_SLICE6 §4）', () => {
   });
 
   it('可以往回走：相鄰節點都能前往（含上一個節點）', () => {
-    let r = noChampion(createRun(3));
+    let r = noChampion(createRun(3, { forward: false }));
     r.overworld!.force = [];
     const first = availableNodes(r)[0];
     r = chooseNode(r, first.id);
@@ -37,7 +37,7 @@ describe('FTL 式路線圖（SPEC_SLICE6 §4）', () => {
   });
 
   it('回合：每移動一次 +1；主力每 spreadEvery 回合擴散；重複訪問時往該節點額外蔓延', () => {
-    const r = noChampion(createRun(4));
+    const r = noChampion(createRun(4, { forward: false }));
     const ow = r.overworld!;
     const start = ow.force.length;
     const a = r.map.layers[0][0];
@@ -54,7 +54,7 @@ describe('FTL 式路線圖（SPEC_SLICE6 §4）', () => {
   });
 
   it('被主力佔領的節點：變成強化戰鬥', () => {
-    let r = noChampion(createRun(5));
+    let r = noChampion(createRun(5, { forward: false }));
     const target = r.map.layers[0][1];
     r.overworld!.force.push(target);
     r = chooseNode(r, target);
@@ -62,7 +62,7 @@ describe('FTL 式路線圖（SPEC_SLICE6 §4）', () => {
   });
 
   it('冠軍：發現玩家後每回合追一格；追到就被抓到；打倒後這一章不再出現', () => {
-    const r = createRun(6);
+    const r = createRun(6, { forward: false });
     const ow = r.overworld!;
     ow.force = [];
     const a = r.map.layers[0][0];
@@ -83,7 +83,7 @@ describe('FTL 式路線圖（SPEC_SLICE6 §4）', () => {
   });
 
   it('走進冠軍所在的節點：照常進這個節點的地圖，冠軍之後以獵人身分加入', () => {
-    let r = createRun(7);
+    let r = createRun(7, { forward: false });
     r.overworld!.force = [];
     const t = r.map.layers[0][1];
     r.overworld!.champion.node = t;
@@ -101,7 +101,7 @@ describe('FTL 式路線圖（SPEC_SLICE6 §4）', () => {
   });
 
   it('休息：營火的煙讓冠軍立刻往玩家走一格', () => {
-    const r = createRun(8);
+    const r = createRun(8, { forward: false });
     const ow = r.overworld!;
     ow.force = [];
     const rest = r.map.nodes.find((n) => n.type === 'rest')!;
@@ -118,7 +118,7 @@ describe('FTL 式路線圖（SPEC_SLICE6 §4）', () => {
   });
 
   it('冠軍戰打贏：冠軍消失，等一段時間才回來', () => {
-    let r = createRun(9);
+    let r = createRun(9, { forward: false });
     r.overworld!.force = [];
     const t = r.map.layers[0][2];
     r.overworld!.champion.node = t;
@@ -159,6 +159,6 @@ describe('FTL 式路線圖（SPEC_SLICE6 §4）', () => {
     expect(byId.get('node:2')!.y).toBe(0);
     expect(byId.get('node:3')!.y + byId.get('node:3')!.h).toBe(mp.height);
     expect(stepToward(m, a, a)).toBe(a);
-    spreadForce(createRun(1));
+    spreadForce(createRun(1, { forward: false }));
   });
 });

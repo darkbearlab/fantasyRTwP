@@ -82,6 +82,8 @@ function objectName(o: InteractableState): string {
       return o.def.shrine ? SHRINES[o.def.shrine].name : tr("祭壇");
     case 'pickup':
       return o.def.loot ? lootName(o.def.loot) : tr("道具");
+    case 'merchant':
+      return tr("商人");
     default:
       return tr("拉桿");
   }
@@ -118,6 +120,8 @@ function objectHint(usable: boolean, o: InteractableState): string {
       if (!usable) return tr("（已經用過了）");
       return d ? tr("{0}（{1} 秒）\n右鍵：祈禱", { 0: d.description, 1: SHRINE_RULES.duration }) : tr("右鍵：祈禱");
     }
+    case 'merchant':
+      return tr("右鍵：交易（非戰鬥中才做生意）");
     default:
       return usable ? tr("右鍵：拉動") : tr("（已經拉過了）");
   }
@@ -898,6 +902,11 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
         case 'interact': {
           const obj = w.interactables.get(ev.objectId);
           if (obj?.def.kind === 'lever') s.addLog(tr("{0} 拉動了{1}", { 0: L(ev.unitId), 1: objectName(obj) }), 'sys');
+          // 地圖上的商人（SPEC_SLICE7 §2）：非戰鬥中才打開商店
+          if (obj?.def.kind === 'merchant') {
+            if (w.inCombat) s.showToast(tr("戰鬥中，商人躲起來了"), this.time.now);
+            else s.merchantOpen = true;
+          }
           break;
         }
         case 'loot': {

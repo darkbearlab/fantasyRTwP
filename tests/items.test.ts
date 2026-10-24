@@ -20,7 +20,8 @@ const dummy = { ...ENEMIES.minion, maxHp: 9999, defense: -100, damage: [0, 0] as
 
 function toShop(seed = 1): RunState {
   for (let s = seed; s < seed + 50; s++) {
-    const r = createRun(s);
+    // 舊的商人節點（一路向前的商人在地圖上，見 journey.test.ts）
+    const r = createRun(s, { forward: false });
     const shop = r.map.nodes.find((n) => n.type === 'shop');
     if (!shop) continue;
     // 直接把目前位置放在商人的相鄰節點（測試用）；移開主力與冠軍，只測商人

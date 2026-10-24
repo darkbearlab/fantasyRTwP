@@ -3085,3 +3085,57 @@ body.column .route-btn {
   font-weight: bold;
   margin-bottom: 2px;
 }
+
+/* ───────── 一路向前（SPEC_SLICE7 §1）：前方的路 ───────── */
+.ahead-area {
+  flex: 1;
+  margin: 40px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.ahead-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+}
+.ahead-card {
+  width: 220px;
+  min-height: 130px;
+  padding: 12px;
+  background: #000;
+  color: #fff;
+  border: 2px solid #fff;
+  border-radius: 4px;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+.ahead-card:hover {
+  border-color: #ffd23f;
+}
+.ahead-terrain {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+.ahead-line {
+  font-size: 13px;
+  margin-top: 3px;
+}
+.rm-ahead {
+  width: 200px;
+  margin-top: 6px;
+  padding: 5px 7px;
+  border: 2px solid #fff;
+  border-radius: 4px;
+  font-size: 12px;
+}
+.rm-ahead-title {
+  font-weight: bold;
+}
+.rm-ahead.ping {
+  background: #333;
+}

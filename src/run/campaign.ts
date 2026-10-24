@@ -48,7 +48,7 @@ export function startChapter(run: RunState): RunState {
     r.currentNodeId = null;
     r.path = [];
     r.exitTo = null;
-    r.overworld = initOverworld(r);
+    if (!r.forward) r.overworld = initOverworld(r);
     r.journal.push(tr("第 {0} 章「{1}」開始。", { 0: n + 1, 1: ch.name }));
   }
   r.phase = { kind: 'map' };

@@ -24,15 +24,20 @@ export function addToBag(r: RunState, id: string): boolean {
 /** 商人賣的消耗品（每種都有，不限數量，只受包包大小與金幣限制） */
 export const SHOP_CONSUMABLES = Object.keys(CONSUMABLES);
 
-export function canBuyConsumable(run: RunState, id: string): boolean {
-  return run.phase.kind === 'shop' && !!CONSUMABLES[id] && run.gold >= CONSUMABLES[id].price && !bagFull(run);
+/**
+ * bagLen：包包裡現在有幾個（戰鬥中包包在 sim 裡，要從畫面傳進來）。
+ * 地圖上的商人（SPEC_SLICE7 §2）：這裡只扣金幣，消耗品由畫面送指令放進 sim 的包包。
+ */
+export function canBuyConsumable(run: RunState, id: string, bagLen = bagOf(run).length): boolean {
+  const shop = run.phase.kind === 'shop' || (run.phase.kind === 'battle' && !!run.phase.shop);
+  return shop && !!CONSUMABLES[id] && run.gold >= CONSUMABLES[id].price && bagLen < BAG.capacity;
 }
 
-export function buyConsumable(run: RunState, id: string): RunState {
-  if (!canBuyConsumable(run, id)) throw new Error('買不了（金幣不足或包包滿了）');
+export function buyConsumable(run: RunState, id: string, bagLen?: number): RunState {
+  if (!canBuyConsumable(run, id, bagLen)) throw new Error('買不了（金幣不足或包包滿了）');
   const r = cloneRun(run);
   r.gold -= CONSUMABLES[id].price;
-  addToBag(r, id);
+  if (r.phase.kind !== 'battle') addToBag(r, id);
   r.journal.push(tr("向商人買了「{0}」。", { 0: CONSUMABLES[id].name }));
   return r;
 }

@@ -51,7 +51,7 @@ export class Interactables {
 }
 
 export function isOnce(def: InteractableDef): boolean {
-  return def.once ?? def.kind !== 'door';
+  return def.once ?? (def.kind !== 'door' && def.kind !== 'merchant');
 }
 
 export function rectOf(d: InteractableDef): Rect {

@@ -20,7 +20,9 @@ export type Command =
   /** 和地圖物件互動（開關門、拉桿）：走過去再互動（SPEC_SLICE4 §15.1） */
   | { type: 'interact'; unitId: number; objectId: string }
   /** 換裝備（SPEC_SLICE7 §2）：非戰鬥中才有效，戰鬥中直接忽略 */
-  | { type: 'setItems'; heroSlot: number; items: string[] };
+  | { type: 'setItems'; heroSlot: number; items: string[] }
+  /** 向地圖上的商人買的消耗品放進包包（SPEC_SLICE7 §2）：非戰鬥中、包包還有空位才有效 */
+  | { type: 'stockBag'; itemId: string };
 
 /** 單位層級的指令（單位目前在做的事） */
 export type Order =
