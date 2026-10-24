@@ -175,7 +175,7 @@ export function finishWindup(world: World, u: Unit): void {
   const target = a.targetId !== undefined ? world.getUnit(a.targetId) : undefined;
   const dash = applySkillEffect(world, u, def, target, a.point, power);
   // 通用觸發：放出技能
-  if (!u.dead && u.passives.length > 0) fireTriggers(world, u, 'skillCast', { target });
+  if (!u.dead && u.passives.length > 0) fireTriggers(world, u, 'skillCast', { target, skillId: def.id });
   if (u.dead || !u.action) return;
   if (dash) {
     a.phase = 'dash';
@@ -918,7 +918,7 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): Uni
   const result = rolled ? rolled.result : 'crit';
   if (result === 'miss') {
     world.emit({ type: 'miss', sourceId: src.id, targetId: target.id, skillId: p.skillId, freeAttack: p.freeAttack });
-    fireTriggers(world, src, 'miss', { target, basic: !!p.basic });
+    fireTriggers(world, src, 'miss', { target, basic: !!p.basic, skillId: p.skillId });
     fireTriggers(world, target, 'dodge', { target: src });
     if (target.team === 'enemy') world.triggerAggro(target);
     return null;
@@ -946,7 +946,7 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): Uni
   if (info && (mu.w > 0 || mu.r > 0)) world.emit({ type: 'status', unitId: target.id, text: mu.w > 0 ? tr("有效！") : tr("抵抗") });
   applyDamage(world, target, final, p.damageType, src, { crit, skillId: p.skillId, freeAttack: p.freeAttack });
   // 通用觸發（Alan 2026-10-24）：打倒目標只觸發「擊殺」；沒倒就觸發「命中」與「爆擊」
-  const trig = { target, basic: !!p.basic };
+  const trig = { target, basic: !!p.basic, skillId: p.skillId };
   if (target.dead) {
     fireTriggers(world, src, 'kill', trig);
     return target;

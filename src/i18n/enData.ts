@@ -180,6 +180,18 @@ export const EN_ITEMS: NameDesc = {
   towerShield: ['Tower Shield', 'Armor +3; every 3rd basic hit stuns the target for 0.8 s'],
   stormBoots: ['Storm Boots', 'Movement speed +20%, basic attack speed +10%'],
   glacierHeart: ['Glacier Heart', 'Basic attacks have a 30% chance to root the target for 1.5 s; defense +5'],
+  huntersMark: ["Hunter's Mark", 'Basic hits mark the target for 4 s: it takes +15% damage (at most once every 3 s)'],
+  metronome: ['Metronome', 'Every 4th basic hit reduces skill cooldowns by 1.5 s'],
+  warTrophy: ['War Trophy', 'Killing an enemy with a basic attack restores 6% max HP'],
+  dancerSash: ["Dancer's Sash", 'Dodging an attack grants +8% damage (up to 3 stacks, 5 s)'],
+  backstabber: ['Backstabber', 'Basic hits from behind deal an extra 0.4× damage'],
+  executionerAxe: ["Executioner's Axe", 'Basic hits on a marked target detonate the mark: extra 1× damage, consumes the mark'],
+  reaperSigil: ["Reaper's Sigil", 'Killing an enemy with a basic attack resets skill cooldowns (at most once every 10 s)'],
+  fervorCharm: ['Fervor Charm', 'Critical hits grant +10% damage (up to 3 stacks, 6 s)'],
+  thornMail: ['Thorn Mail', 'When hit, strike back at the attacker for 0.3× damage (at most once per second); armor +1'],
+  stormRing: ['Storm Ring', 'Critical hits arc to 2 more enemies within 3 m for 0.5× damage each'],
+  prayerBeads: ['Prayer Beads', 'Casting a skill heals heroes within 6 m (including yourself) for 6% max HP'],
+  lastStand: ['Last Stand', 'Below 40% HP, basic hits grant +12% damage (up to 3 stacks, 4 s)'],
 };
 
 export const EN_CONSUMABLES: NameDesc = {
