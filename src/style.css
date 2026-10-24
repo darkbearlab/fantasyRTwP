@@ -1917,6 +1917,8 @@ body {
 }
 .m-head {
   border-bottom: 2px solid #fff;
+  /* 拖曳選取：在卡片上拖不要捲動畫面 */
+  touch-action: none;
   -webkit-user-select: none;
   user-select: none;
 }

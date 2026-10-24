@@ -1400,6 +1400,7 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
       g.strokePath();
     }
     const iso = hasHeight();
+    const selected = new Set(this.session.selection);
     for (const u of this.session.world.units) {
       const st = this.statusTexts.get(u.id);
       if (u.dead || this.hiddenIds.has(u.id)) {
@@ -1410,6 +1411,16 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
       const foot = this.wpos(u);
       const w = 30;
       const x = head.x - w / 2;
+      // 被選取的英雄頭上：往下的箭頭（Alan 2026-10-24 試作），上下輕輕跳
+      if (selected.has(u.id)) {
+        const A = VISUAL.selectArrow;
+        const bob = Math.sin((this.time.now / 1000) * Math.PI * 2 * A.bobHz) * A.bob;
+        const tip = head.y - (iso ? 4 : 11) - A.gap + bob;
+        g.fillStyle(0x000000, 0.9);
+        g.fillTriangle(head.x - A.half - 2, tip - A.height - 2, head.x + A.half + 2, tip - A.height - 2, head.x, tip + 2);
+        g.fillStyle(COLORS.selection, 1);
+        g.fillTriangle(head.x - A.half, tip - A.height, head.x + A.half, tip - A.height, head.x, tip);
+      }
       const y = head.y - (iso ? 4 : 11);
       const frac = Math.max(0, u.hp / u.maxHp);
       if (u.follower && !u.rescue) {
