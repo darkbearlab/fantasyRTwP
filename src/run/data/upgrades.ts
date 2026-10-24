@@ -1,3 +1,5 @@
+import { HEROES } from '../../sim/data/heroes';
+import { RECIPES, evolveUpgradeId } from './recipes';
 /** 強化池（SPEC_SLICE2 §9）。強化以修飾器套在基礎數值上，RunState 只記錄擁有哪些強化。 */
 export interface UpgradeMods {
   maxHpPct?: number;
@@ -41,6 +43,8 @@ export interface UpgradeDef {
   skill?: string;
   /** 只出現在某種節奏的通用池（例：同袍只留給舊的戰術模式） */
   style?: 'deliberate' | 'tactical';
+  /** 配方昇變（SPEC_SLICE7 §3.2）：選了就照這份配方昇變（data/recipes.ts） */
+  evolve?: string;
 }
 
 export const UPGRADES: Record<string, UpgradeDef> = {
@@ -132,4 +136,11 @@ function exclusiveUpgrades(): Record<string, UpgradeDef> {
   const out: Record<string, UpgradeDef> = {};
   for (const [classId, id, ups] of list) for (const u of ups) out[u.id] = { ...u, scope: 'hero', branch: { classId, id } };
   return out;
+}
+
+// 配方昇變（SPEC_SLICE7 §3.2）：湊到配方時，升級三選一多一張「昇變」卡
+for (const rc of RECIPES) {
+  const name = HEROES[rc.evolvesTo]?.name ?? rc.evolvesTo;
+  const id = evolveUpgradeId(rc.id);
+  UPGRADES[id] = { id, name: `昇變：${name}`, description: `配方湊齊了：昇變成${name}`, scope: 'hero', evolve: rc.id };
 }

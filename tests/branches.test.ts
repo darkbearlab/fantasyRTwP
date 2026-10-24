@@ -14,7 +14,7 @@ import { HEROES } from '../src/sim/data/heroes';
 import { SKILLS } from '../src/sim/data/skills';
 import { Rng } from '../src/sim/rng';
 
-const run4 = (seed = 3): RunState => createRun(seed, { style: 'deliberate', party: ['warrior', 'ranger', 'mage', 'cleric'] });
+const run4 = (seed = 3): RunState => createRun(seed, { forward: false, style: 'deliberate', party: ['warrior', 'ranger', 'mage', 'cleric'] });
 const branchUps = (branch: string) => Object.keys(UPGRADES).filter((id) => UPGRADES[id].branch?.id === branch);
 
 describe('昇變分支與兩個專屬＋一個通用（SPEC_CLASSES §1）', () => {
@@ -117,7 +117,7 @@ describe('昇變分支與兩個專屬＋一個通用（SPEC_CLASSES §1）', () 
   it('每一種進階職業都能進戰鬥', () => {
     for (const base of STARTER_CLASSES)
       for (const b of BRANCHES[base]) {
-        const r = createRun(5, { style: 'deliberate', party: [base, 'ranger', 'mage', 'cleric'] });
+        const r = createRun(5, { forward: false, style: 'deliberate', party: [base, 'ranger', 'mage', 'cleric'] });
         for (const id of branchUps(b.id)) grantUpgrade(r, id, 0);
         expect(r.party[0]!.classId).toBe(b.evolvesTo);
         const node = r.map.nodes.find((n) => n.layer === 2)!;

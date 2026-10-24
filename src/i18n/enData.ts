@@ -113,6 +113,18 @@ export const EN_PASSIVES: NameDesc = {
 };
 
 export const EN_UPGRADES: NameDesc = {
+  evolve_guardian: ['Evolve: Guardian', 'Recipe complete: evolve into a Guardian'],
+  evolve_gladiator: ['Evolve: Gladiator', 'Recipe complete: evolve into a Gladiator'],
+  evolve_berserker: ['Evolve: Berserker', 'Recipe complete: evolve into a Berserker'],
+  evolve_cutthroat: ['Evolve: Assassin', 'Recipe complete: evolve into an Assassin'],
+  evolve_sniper: ['Evolve: Sniper', 'Recipe complete: evolve into a Sniper'],
+  evolve_arbalest: ['Evolve: Arbalest', 'Recipe complete: evolve into an Arbalest'],
+  evolve_elementalist: ['Evolve: Elementalist', 'Recipe complete: evolve into an Elementalist'],
+  evolve_deathMage: ['Evolve: Death Mage', 'Recipe complete: evolve into a Death Mage'],
+  evolve_battlemage: ['Evolve: Battlemage', 'Recipe complete: evolve into a Battlemage'],
+  evolve_paladin: ['Evolve: Paladin', 'Recipe complete: evolve into a Paladin'],
+  evolve_zealot: ['Evolve: Zealot', 'Recipe complete: evolve into a Zealot'],
+  evolve_heretic: ['Evolve: Heretic', 'Recipe complete: evolve into a Heretic'],
   vigor: ['Vigor', 'Max HP +15%, and heal the same amount'],
   precise: ['Precise', 'Accuracy +8'],
   ironWall: ['Iron Wall', 'Armor +2'],
