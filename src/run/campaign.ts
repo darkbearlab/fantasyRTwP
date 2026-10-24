@@ -7,7 +7,7 @@ import { tr } from '../i18n/lang';
 import { CHAPTERS, chapterAt, chapterDepth } from './data/chapters';
 import { initOverworld } from './overworld';
 import { chooseNode } from './progression';
-import { startNodeOf } from './journey';
+import { foldStops, startNodeOf } from './journey';
 import { generateRouteMap } from './routeMap';
 import type { RunState } from './runState';
 import { cloneRun, livingHeroes } from './runState';
@@ -47,6 +47,7 @@ export function startChapter(run: RunState): RunState {
     const ch = chapterAt(n);
     r.chapter = n;
     r.map = generateRouteMap(deriveSeed(r.seed, 'chapter', n), ch.layers);
+    if (r.forward) foldStops(r.map);
     r.currentNodeId = null;
     r.path = [];
     r.exitTo = null;

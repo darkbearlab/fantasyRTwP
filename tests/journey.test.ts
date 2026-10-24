@@ -4,12 +4,14 @@ import type { BattleOutcome } from '../src/run/battle';
 import { createBattleFromRun } from '../src/run/battle';
 import { buyConsumable, canBuyConsumable } from '../src/run/consumables';
 import { buyItem, canBuy, shopOf } from '../src/run/items';
-import { journeyDepth, journeyStrength, previewOf, rescueAt, startNodeOf } from '../src/run/journey';
+import { STOP_TYPES, journeyDepth, journeyStrength, previewOf, rescueAt, startNodeOf } from '../src/run/journey';
+import { rollShopStock } from '../src/run/items';
+import { rngFor } from '../src/run/seed';
 import { startChapter } from '../src/run/campaign';
 import { JOURNEY } from '../src/run/data/journey';
 import { CHAPTERS } from '../src/run/data/chapters';
 import { ENEMIES } from '../src/sim/data/enemies';
-import { applyBattleResult, availableNodes, chooseNode, chooseReward, continueFromReward } from '../src/run/progression';
+import { applyBattleResult, availableNodes, chooseNode, chooseReward, continueFromReward, leaveNode } from '../src/run/progression';
 import type { RunState } from '../src/run/runState';
 import { createRun } from '../src/run/runState';
 import { BAG } from '../src/sim/data/consumables';
@@ -22,18 +24,12 @@ const won = (r: RunState, exitNodeId?: number): BattleOutcome => ({
   heroes: r.party.flatMap((h, slot) => (h ? [{ slot, hp: h.hp, dead: false, kills: 0, damageDealt: 0, damageTaken: 0 }] : [])),
 });
 
-/** 一趟有商人的遠征，站在商人前一個節點 */
-function besideShop(): RunState {
-  for (let s = 1; s < 80; s++) {
-    const r = createRun(s, { style: 'deliberate' });
-    const shop = r.map.nodes.find((n) => n.type === 'shop');
-    const prev = shop && r.map.nodes.find((n) => n.next.includes(shop.id));
-    if (!shop || !prev) continue;
-    r.currentNodeId = prev.id;
-    r.exitTo = shop.id;
-    return r;
-  }
-  throw new Error('找不到有商人的遠征');
+/** 一張站著商人的戰鬥地圖（商人節點現在是途中停靠；地圖上的商人保留給之後用） */
+function merchantMap(): RunState {
+  const run = createRun(1, { style: 'deliberate' });
+  const r = chooseNode(run, run.map.layers[0][0]);
+  if (r.phase.kind === 'battle') r.phase.shop = { stock: rollShopStock(rngFor(1, 'shop')), sold: [] };
+  return r;
 }
 
 describe('一路向前', () => {
@@ -44,7 +40,11 @@ describe('一路向前', () => {
     const first = availableNodes(r)[0];
     r = chooseNode(r, first.id);
     r = { ...r, phase: { kind: 'map' } };
-    for (const n of availableNodes(r)) expect(n.layer).toBe(first.layer + 1);
+    // 只往後面的層走；休息、商人、事件折進路上，不是能選的圖
+    for (const n of availableNodes(r)) {
+      expect(n.layer).toBeGreaterThan(first.layer);
+      expect(STOP_TYPES).not.toContain(n.type);
+    }
   });
 
   it('地圖的出口只通往下一層', () => {
@@ -77,10 +77,9 @@ describe('一路向前', () => {
   });
 });
 
-describe('地圖上的商人', () => {
+describe('地圖上的商人（目前遠征流程沒用到，保留給之後）', () => {
   it('商人節點是一張有商人的戰鬥地圖；商人可以一直交易', () => {
-    let r = besideShop();
-    r = chooseNode({ ...r, phase: { kind: 'map' } }, r.exitTo!);
+    let r = merchantMap();
     expect(r.phase.kind).toBe('battle');
     expect(shopOf(r)?.stock.length).toBeGreaterThan(0);
     const w = createBattleFromRun(r);
@@ -94,8 +93,7 @@ describe('地圖上的商人', () => {
   });
 
   it('買裝備放進背包；買消耗品只扣金幣（放進包包由 sim 處理）；戰鬥中不放', () => {
-    let r = besideShop();
-    r = chooseNode({ ...r, phase: { kind: 'map' } }, r.exitTo!);
+    let r = merchantMap();
     r = { ...r, gold: 999 };
     const item = shopOf(r)!.stock[0];
     expect(canBuy(r, item)).toBe(true);
@@ -152,5 +150,40 @@ describe('章節開頭', () => {
     const r = startChapter(createRun(12, { style: 'deliberate', intro: true }));
     expect(r.phase.kind).toBe('battle');
     expect(r.currentNodeId).toBe(startNodeOf(r));
+  });
+});
+
+describe('途中停靠（休息、商人、事件）', () => {
+  it('休息、商人、事件變成「走進下一張圖之前路上經過的地方」；每章的地圖數不變', () => {
+    for (let s = 1; s <= 10; s++) {
+      const r = createRun(s, { style: 'deliberate', forward: false });
+      const f = createRun(s, { style: 'deliberate' });
+      expect(f.map.nodes.length).toBe(r.map.nodes.length);
+      for (const n of f.map.nodes) {
+        expect(STOP_TYPES).not.toContain(n.type);
+        if (STOP_TYPES.includes(r.map.nodes[n.id].type)) expect(n.stop).toBe(r.map.nodes[n.id].type);
+      }
+    }
+  });
+
+  it('走進有停靠的出口：先停（商人／休息），離開後直接進那張圖；出口預告有寫', () => {
+    for (let s = 1; s < 60; s++) {
+      const run = createRun(s, { style: 'deliberate' });
+      const to = run.map.nodes.find((n) => (n.stop === 'rest' || n.stop === 'shop') && run.map.nodes.some((p) => p.next.includes(n.id) && !p.stop && p.type === 'battle'));
+      if (!to) continue;
+      const from = run.map.nodes.find((p) => p.next.includes(to.id) && !p.stop && p.type === 'battle')!;
+      const before = run.map.nodes.find((n) => n.next.includes(from.id));
+      let r: RunState = chooseNode({ ...run, currentNodeId: before?.id ?? null, phase: { kind: 'map' } }, from.id);
+      const p = previewOf(r, to.id);
+      expect(p.campfire || p.wayPresence).toBe(true);
+      r = applyBattleResult(r, won(r, to.id));
+      for (let i = 0; i < 10 && r.phase.kind === 'reward'; i++) r = r.phase.options.length ? chooseReward(r, 'skip') : continueFromReward(r);
+      expect(r.phase.kind).toBe(to.stop);
+      r = leaveNode(r);
+      expect(r.phase.kind).toBe('battle');
+      expect(r.currentNodeId).toBe(to.id);
+      return;
+    }
+    throw new Error('找不到休息或商人的停靠');
   });
 });

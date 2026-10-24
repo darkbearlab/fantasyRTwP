@@ -40,7 +40,7 @@ function toShop(seed = 1): RunState {
 describe('裝備道具（SPEC_SLICE5 §17）', () => {
   it('沉穩節奏的路線圖有 1–2 個商人；舊模式沒有', () => {
     for (let s = 1; s <= 20; s++) {
-      const r = createRun(s);
+      const r = createRun(s, { forward: false });
       const shops = r.map.nodes.filter((n) => n.type === 'shop').length;
       expect(shops).toBeGreaterThanOrEqual(1);
       expect(shops).toBeLessThanOrEqual(ROUTE_MAP.shops[1]);

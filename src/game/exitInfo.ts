@@ -12,6 +12,9 @@ import { previewOf } from '../run/journey';
 /** 出口預告的文字（SPEC_SLICE7 §1）：威脅、敵人以外的氣息、可能取得的東西；不說節點類型 */
 export function previewLines(p: PathPreview): string[] {
   const out: string[] = [];
+  // 途中停靠（SPEC_SLICE7 §1）：營火直接說；商人、事件只說有敵人以外的氣息
+  if (p.campfire) out.push(tr("途中：🔥 營火"));
+  if (p.wayPresence) out.push(tr("途中：✨ 有敵人以外的氣息"));
   if (p.threat === 'boss') out.push(tr("💀 頭目"));
   else if (p.threat === 'elite') out.push(tr("⚔ 精英"));
   if (p.presence) out.push(tr("✨ 前方有敵人以外的氣息"));

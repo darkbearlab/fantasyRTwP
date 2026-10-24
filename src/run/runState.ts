@@ -13,6 +13,7 @@ import { generateRouteMap } from './routeMap';
 import { CHAPTERS } from './data/chapters';
 import { initOverworld } from './overworld';
 import { JOURNEY } from './data/journey';
+import { foldStops } from './journey';
 import type { Overworld } from './overworld';
 import { LEVELS } from './data/levels';
 import type { RunStyle } from './data/levels';
@@ -139,6 +140,8 @@ export interface RunState {
   exitTo?: number | null;
   /** 一路向前（SPEC_SLICE7 §1）：沒有路線圖畫面、不能回頭；從出口離開直接進下一張圖 */
   forward?: boolean;
+  /** 這一段路上已經停過的途中停靠（節點 id；前往下一張圖時清空） */
+  stopsDone?: number[];
   /** 剛救出來、還沒決定要不要加入的英雄 */
   pendingRescue?: HeroRecord;
   /** 隊伍等級與經驗值（SPEC_SLICE6 §3，沉穩節奏） */
@@ -215,7 +218,10 @@ export function createRun(seed: number, opts: { layers?: number; party?: string[
   };
   if (style === 'deliberate' && opts.layers === undefined) {
     // 一路向前（SPEC_SLICE7 §1）：只走往下一層的連線，沒有主力與冠軍
-    if (opts.forward ?? JOURNEY.forward) run.forward = true;
+    if (opts.forward ?? JOURNEY.forward) {
+      run.forward = true;
+      foldStops(run.map);
+    }
     else run.overworld = initOverworld(run);
     run.chapter = 0;
     // 組隊後先看第一章的開場過場

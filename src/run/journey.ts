@@ -8,7 +8,7 @@ import { CHAPTERS } from './data/chapters';
 import { CONSUMABLE_DROP } from './consumables';
 import { ECONOMY } from './data/economy';
 import { JOURNEY } from './data/journey';
-import type { MapNode } from './mapGen';
+import type { MapNode, RunMap } from './mapGen';
 import { availableNodes } from './progression';
 import type { HeroRecord, RunState } from './runState';
 import { cloneRun, newHero } from './runState';
@@ -76,6 +76,9 @@ export interface PathPreview {
   loot: string[];
   /** 前方有敵人以外的氣息（商人、事件；不說是哪一種） */
   presence: boolean;
+  /** 途中停靠：營火；商人、事件只說「有敵人以外的氣息」 */
+  campfire: boolean;
+  wayPresence: boolean;
   threat: 'elite' | 'boss' | null;
 }
 
@@ -89,8 +92,12 @@ export function terrainOf(run: RunState, node: MapNode): string {
   return node.layer <= ch.townUntilLayer ? tr("城內街道") : tr("野外");
 }
 
-export function previewOf(run: RunState, nodeId: number): PathPreview {
+export function previewOf(run: RunState, nodeId: number, from: number | null = run.currentNodeId): PathPreview {
   const node = run.map.nodes[nodeId];
+  // 已經停過的不算（例：事件裡打起來的那張圖，出口預告不再說一次）
+  const way = stopsOn(run.map, from, nodeId)
+    .filter((id) => !(run.stopsDone ?? []).includes(id))
+    .map((id) => run.map.nodes[id].stop!);
   const loot: string[] = [];
   if (FIGHTS.includes(node.type)) {
     const kind = node.type === 'elite' ? 'elite' : 'battle';
@@ -104,8 +111,32 @@ export function previewOf(run: RunState, nodeId: number): PathPreview {
     terrain: terrainOf(run, node),
     loot,
     presence: JOURNEY.presence.includes(node.type) || rescueAt(run, nodeId),
+    campfire: way.includes('rest'),
+    wayPresence: way.some((t) => JOURNEY.presence.includes(t)),
     threat: node.type === 'elite' ? 'elite' : node.type === 'boss' ? 'boss' : null,
   };
+}
+
+/** 途中停靠的節點類型 */
+export const STOP_TYPES: MapNode['type'][] = ['rest', 'shop', 'event'];
+
+/**
+ * 途中停靠（SPEC_SLICE7 §1，Alan 2026-10-24）：休息、商人、事件不再是一個要選路的節點，
+ * 而是「走進下一張圖之前路上經過的地方」：節點變成一般戰鬥地圖，原本的類型記在 stop。原地修改。
+ * 這樣每章的地圖數不變，只是停靠點穿插在兩張圖之間。
+ */
+export function foldStops(map: RunMap): RunMap {
+  for (const n of map.nodes)
+    if (STOP_TYPES.includes(n.type)) {
+      n.stop = n.type as MapNode['stop'];
+      n.type = 'battle';
+    }
+  return map;
+}
+
+/** 從 from 圖往 to 圖的路上要停哪些（節點 id；停靠點用 to 自己的 id） */
+export function stopsOn(map: RunMap, from: number | null, to: number): number[] {
+  return from !== null && map.nodes[to].stop ? [to] : [];
 }
 
 /** 出發（每章開始）：直接進第一層中間的那張圖，不用選（第一層都是一般戰鬥，選了也沒差） */

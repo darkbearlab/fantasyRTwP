@@ -55,7 +55,7 @@ describe('小衝突導演', () => {
       fighting = w.skirmish!.inCombat(w);
     }
     expect(spawnedWhileFighting).toBe(0);
-  });
+  }, 20000); // 模擬 120 秒，全部測試一起跑時可能超過預設的 5 秒
   it('頭目關卡（模板地圖）沒有導演', () => {
     const r: RunState = createRun(5, { style: 'deliberate' });
     const node = r.map.nodes.find((n) => n.type === 'boss')!;
