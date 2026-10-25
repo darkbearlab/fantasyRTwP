@@ -383,6 +383,41 @@ body {
   background: #e8573a;
 }
 
+/* 失衡條（SPEC_STAGGER §6）：生命條下面細細一條 */
+.stagger,
+.m-stagger,
+.boss-stagger {
+  position: relative;
+  height: 4px;
+  margin-top: 2px;
+  background: #000;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.stagger[hidden],
+.m-stagger[hidden] {
+  display: none;
+}
+.stagger .fill,
+.m-stagger .fill,
+.boss-stagger .fill {
+  width: 0;
+  height: 100%;
+  background: #ffb03a;
+}
+.m-head > .m-stagger {
+  align-self: stretch;
+  width: 100%;
+  box-sizing: border-box;
+}
+.boss-stagger {
+  height: 5px;
+  margin: 3px auto 0;
+  width: 100%;
+  border: 1px solid #fff;
+  box-sizing: border-box;
+}
+
 .hp .hptext {
   position: absolute;
   inset: 0;

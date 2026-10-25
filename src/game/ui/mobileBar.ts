@@ -25,6 +25,8 @@ interface MobileCard {
   fill: HTMLElement;
   hpFill: HTMLElement;
   hpText: HTMLElement;
+  /** 失衡條（SPEC_STAGGER §6） */
+  stagger: HTMLElement;
   status: HTMLElement;
   skillBtn: HTMLElement;
   skillName: HTMLElement;
@@ -284,8 +286,12 @@ export class MobileHeroBar {
       const hpFill = el('div', 'fill');
       const hpText = el('span', 'hptext');
       hp.append(hpFill, hpText);
+      const staggerBox = el('div', 'm-stagger');
+      const stagger = el('div', 'fill');
+      staggerBox.appendChild(stagger);
+      staggerBox.hidden = this.host.session().world.config.battleStyle !== 'deliberate';
       const status = el('span', 'm-status');
-      head.append(portrait(this.host.portraitUrl?.(u.def.id)), name, status, hp);
+      head.append(portrait(this.host.portraitUrl?.(u.def.id)), name, status, hp, staggerBox);
       head.addEventListener('mousedown', (ev) => ev.preventDefault());
       // 拖曳選取：按住卡片往左右拖，經過的英雄都選起來
       head.addEventListener('pointerdown', (ev) => {
@@ -357,7 +363,7 @@ export class MobileHeroBar {
       const target = el('div', 'm-target', tr("▼ 目標"));
       root.append(fill, head, skillBtn, target);
       this.row.appendChild(root);
-      this.cards.push({ unit: u, root, fill, hpFill, hpText, status, skillBtn, skillName, cdText, cdCover, hint, skillId, target });
+      this.cards.push({ unit: u, root, fill, hpFill, hpText, stagger, status, skillBtn, skillName, cdText, cdCover, hint, skillId, target });
     }
   }
 
@@ -394,6 +400,7 @@ export class MobileHeroBar {
       c.hpFill.style.width = `${frac * 100}%`;
       c.hpFill.classList.toggle('low', frac < 0.3);
       c.hpText.textContent = `${Math.max(0, u.hp)} / ${u.maxHp}`;
+      c.stagger.style.width = `${Math.min(1, u.stagger / u.poise) * 100}%`;
       const st = statusIcons(u);
       if (c.status.textContent !== st) c.status.textContent = st;
       // 水位：準備動作的進度，填滿時行動生效；恢復期間水位歸零

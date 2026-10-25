@@ -18,6 +18,7 @@ import { DEFAULT_SIM_CONFIG } from '../src/sim/simConfig';
 import { World } from '../src/sim/world';
 import { LEGACY_HIT_RULE, hitBaseRule } from '../src/sim/data/hit';
 import type { UnitSpawn } from '../src/sim/world';
+import { poiseOf } from '../src/sim/data/stagger';
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(`--${name}`);
@@ -76,6 +77,8 @@ interface Duel {
   hits: number;
   crits: number;
   damage: number;
+  /** 累積到的失衡（被打的一方生命無限、上限也無限，所以不會打破；交戰中不消退） */
+  stagger: number;
 }
 
 /** attacker 站樁普攻 target（target 不還手、生命無限）SECONDS 秒 */
@@ -88,8 +91,9 @@ function duel(attacker: UnitSpawn, target: UnitSpawn, attackerIsHero: boolean): 
   const t = w.units[attackerIsHero ? 1 : 0];
   a.autocast.clear();
   t.autocast.clear();
-  const out: Duel = { attacks: 0, hits: 0, crits: 0, damage: 0 };
+  const out: Duel = { attacks: 0, hits: 0, crits: 0, damage: 0, stagger: 0 };
   for (let i = 0; i < SECONDS / DT; i++) {
+    w.inCombat = true;
     if (!a.order) w.setOrder(a, { type: 'attack', targetId: t.id });
     if (t.order) w.setOrder(t, null);
     for (const ev of w.step()) {
@@ -101,6 +105,7 @@ function duel(attacker: UnitSpawn, target: UnitSpawn, attackerIsHero: boolean): 
       } else if (ev.type === 'miss' && ev.sourceId === a.id && ev.targetId === t.id && !ev.skillId) out.attacks++;
     }
   }
+  out.stagger = t.stagger;
   return out;
 }
 
@@ -116,14 +121,16 @@ log('');
 log('- 只算普攻，不放技能；英雄只算等級成長，不算升級、裝備；職業被動照起始等級（遊俠沒有穿透、牧師沒有聖鎚）。');
 log('- 敵人數值取自真的遠征戰鬥（全程深度強度、前期生命對齊、一般敵人生命減半都算進去）。');
 log('- 「擊倒」＝打倒一名那種敵人（真實生命）平均要幾秒；「撐」＝那種敵人單挑英雄，英雄（滿血）撐幾秒。');
+log('- 失衡（SPEC_STAGGER）：「打破」＝英雄普攻打破那種敵人的失衡要幾秒（括號是失衡上限）；「被打破」＝那種敵人打破英雄要幾秒。只算第一次，不算暈眩後減半。');
 for (const P of POINTS) {
   const enemies = enemiesAt(P.chapter, P.layer);
   log('');
   log(`## 第 ${P.chapter + 1} 章「${CHAPTERS[P.chapter].name}」第 ${P.layer} 層（英雄 ${P.level} 級）`);
   log('');
-  log('| 英雄 | 敵人（生命） | 英雄命中 | 爆擊 | 每下傷害 | 每秒傷害 | 擊倒 | 敵人命中 | 敵人每秒傷害 | 撐 |');
-  log('|---|---|---|---|---|---|---|---|---|---|');
-  const agg = { hit: 0, dps: 0, kill: 0, ehit: 0, edps: 0, hold: 0, n: 0 };
+  log('| 英雄 | 敵人（生命） | 英雄命中 | 爆擊 | 每下傷害 | 每秒傷害 | 擊倒 | 打破 | 敵人命中 | 敵人每秒傷害 | 撐 | 被打破 |');
+  log('|---|---|---|---|---|---|---|---|---|---|---|---|');
+  const agg = { hit: 0, dps: 0, kill: 0, ehit: 0, edps: 0, hold: 0, n: 0, brk: 0, hbrk: 0 };
+  const secs = (rate: number, max: number) => (rate > 0 ? Math.min(600, max / rate) : 600);
   for (const cls of HERO_CLASSES) {
     const hs = heroSpawn(cls, P.level, { x: 10, y: 6 });
     for (const e of enemies) {
@@ -133,6 +140,12 @@ for (const P of POINTS) {
       const dps = h.damage / SECONDS;
       const edps = back.damage / SECONDS;
       const heroHp = hs.def!.maxHp;
+      const ePoise = poiseOf(e, e.maxHp);
+      const hPoise = poiseOf(hs.def!, heroHp);
+      const brk = secs(h.stagger / SECONDS, ePoise);
+      const hbrk = secs(back.stagger / SECONDS, hPoise);
+      agg.brk += brk;
+      agg.hbrk += hbrk;
       agg.n++;
       agg.hit += h.hits / Math.max(1, h.attacks);
       agg.dps += dps;
@@ -141,14 +154,14 @@ for (const P of POINTS) {
       agg.edps += edps;
       agg.hold += edps > 0 ? Math.min(600, heroHp / edps) : 600;
       log(
-        `| ${NAME[cls]} | ${e.name}（${e.maxHp}） | ${pct(h.hits / Math.max(1, h.attacks))} | ${pct(h.crits / Math.max(1, h.hits))} | ${(h.damage / Math.max(1, h.hits)).toFixed(1)} | ${dps.toFixed(1)} | ${dps > 0 ? (e.maxHp / dps).toFixed(1) + ' 秒' : '—'} | ${pct(back.hits / Math.max(1, back.attacks))} | ${edps.toFixed(1)} | ${edps > 0 ? (heroHp / edps).toFixed(0) + ' 秒' : '—'} |`,
+        `| ${NAME[cls]} | ${e.name}（${e.maxHp}） | ${pct(h.hits / Math.max(1, h.attacks))} | ${pct(h.crits / Math.max(1, h.hits))} | ${(h.damage / Math.max(1, h.hits)).toFixed(1)} | ${dps.toFixed(1)} | ${dps > 0 ? (e.maxHp / dps).toFixed(1) + ' 秒' : '—'} | ${brk.toFixed(1)} 秒（${ePoise}） | ${pct(back.hits / Math.max(1, back.attacks))} | ${edps.toFixed(1)} | ${edps > 0 ? (heroHp / edps).toFixed(0) + ' 秒' : '—'} | ${hbrk.toFixed(1)} 秒（${hPoise}） |`,
       );
     }
   }
   const n = Math.max(1, agg.n);
   log('');
-  log(`平均：英雄命中 ${pct(agg.hit / n)}、英雄每秒傷害 ${(agg.dps / n).toFixed(1)}、擊倒 ${(agg.kill / n).toFixed(1)} 秒；敵人命中 ${pct(agg.ehit / n)}、敵人每秒傷害 ${(agg.edps / n).toFixed(1)}、英雄撐 ${(agg.hold / n).toFixed(0)} 秒（最多算 600）`);
-  console.error(`SUMMARY ch${P.chapter + 1} hit ${pct(agg.hit / n)} dps ${(agg.dps / n).toFixed(2)} kill ${(agg.kill / n).toFixed(1)} | ehit ${pct(agg.ehit / n)} edps ${(agg.edps / n).toFixed(2)} hold ${(agg.hold / n).toFixed(0)}`);
+  log(`平均：英雄命中 ${pct(agg.hit / n)}、英雄每秒傷害 ${(agg.dps / n).toFixed(1)}、擊倒 ${(agg.kill / n).toFixed(1)} 秒；敵人命中 ${pct(agg.ehit / n)}、敵人每秒傷害 ${(agg.edps / n).toFixed(1)}、英雄撐 ${(agg.hold / n).toFixed(0)} 秒（最多算 600）；打破敵人 ${(agg.brk / n).toFixed(1)} 秒、英雄被打破 ${(agg.hbrk / n).toFixed(1)} 秒`);
+  console.error(`SUMMARY ch${P.chapter + 1} hit ${pct(agg.hit / n)} dps ${(agg.dps / n).toFixed(2)} kill ${(agg.kill / n).toFixed(1)} | ehit ${pct(agg.ehit / n)} edps ${(agg.edps / n).toFixed(2)} hold ${(agg.hold / n).toFixed(0)} | break ${(agg.brk / n).toFixed(1)} heroBroken ${(agg.hbrk / n).toFixed(1)}`);
 }
 if (arg('out')) {
   const { writeFileSync } = await import('node:fs');

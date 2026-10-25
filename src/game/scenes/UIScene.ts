@@ -54,6 +54,8 @@ interface CardRefs {
   root: HTMLElement;
   hpFill: HTMLElement;
   hpText: HTMLElement;
+  /** 失衡條（SPEC_STAGGER §6） */
+  stagger: HTMLElement;
   state: HTMLElement;
   personality: HTMLElement;
   bar: HTMLElement;
@@ -736,8 +738,12 @@ export class UIScene extends Phaser.Scene {
       const hpFill = el('div', 'fill');
       const hpText = el('span', 'hptext');
       hp.append(hpFill, hpText);
+      const staggerBox = el('div', 'stagger');
+      const stagger = el('div', 'fill');
+      staggerBox.appendChild(stagger);
+      staggerBox.hidden = s.world.config.battleStyle !== 'deliberate';
       const bar = el('div', 'actbar');
-      info.append(nameRow, hp, bar);
+      info.append(nameRow, hp, staggerBox, bar);
       const skillsBox = el('div', 'skills');
       const skills: CardRefs['skills'] = [];
       u.def.skills.forEach((skillId, idx) => {
@@ -773,7 +779,7 @@ export class UIScene extends Phaser.Scene {
       });
       root.addEventListener('dblclick', () => this.battle.centerOnUnit(u.id));
       this.heroBar.appendChild(root);
-      this.cards.push({ unit: u, root, hpFill, hpText, state, personality, bar, skills, slotKey });
+      this.cards.push({ unit: u, root, hpFill, hpText, stagger, state, personality, bar, skills, slotKey });
     }
   }
 
@@ -847,6 +853,7 @@ export class UIScene extends Phaser.Scene {
       c.hpFill.style.width = `${frac * 100}%`;
       c.hpFill.classList.toggle('low', frac < 0.3);
       c.hpText.textContent = `${Math.max(0, u.hp)} / ${u.maxHp}`;
+      c.stagger.style.width = `${Math.min(1, u.stagger / u.poise) * 100}%`;
       let label = STATE_LABEL[u.state];
       if (u.action?.skillId && u.state === UnitState.Windup) label = tr("準備：{0}", { 0: SKILLS[u.action.skillId].name });
       if (u.rooted && !u.dead) label += tr("・定身");

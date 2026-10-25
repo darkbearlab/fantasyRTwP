@@ -849,6 +849,11 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
           this.fx.text(u.pos, ev.text, '#e0e6f0', 13, 26, 900, this.headZ(u));
           // 逐格特效：撞牆、元素附魔
           if (ev.text === tr('撞牆')) this.fx.vfx(u.pos, VFX_USE.impact);
+          else if (ev.text === tr('失衡！')) {
+            // 失衡打破（SPEC_STAGGER §6）：橘色的圈＋衝擊
+            this.fx.ring(u.pos, u.radius + 0.9, COLORS.stagger, 450, 0.3, 4);
+            this.fx.vfx(u.pos, VFX_USE.impact);
+          }
           else if (ev.text === SKILLS.elementalEnchant.name) this.fx.vfx(u.pos, VFX_USE.elementalEnchant, 0.8);
           break;
         }
@@ -1413,6 +1418,7 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
     }
     const iso = hasHeight();
     const selected = new Set(this.session.selection);
+    const staggerShown = this.session.world.config.battleStyle === 'deliberate';
     for (const u of this.session.world.units) {
       const st = this.statusTexts.get(u.id);
       if (u.dead || this.hiddenIds.has(u.id)) {
@@ -1447,6 +1453,13 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
         g.fillRect(x - 1, y - 1, w + 2, 6);
         g.fillStyle(u.team === 'hero' ? (frac < 0.3 ? 0xff5e3a : COLORS.hpHero) : COLORS.hpEnemy, 1);
         g.fillRect(x, y, w * frac, 4);
+        // 失衡條（SPEC_STAGGER §6）：只有精英隊長與頭目，貼在生命條上方
+        if (staggerShown && u.team === 'enemy' && enemyRank(u.def) !== 'normal') {
+          g.fillStyle(COLORS.hpBack, 0.85);
+          g.fillRect(x - 1, y - 4, w + 2, 4);
+          g.fillStyle(COLORS.stagger, 1);
+          g.fillRect(x, y - 3, w * Math.min(1, u.stagger / u.poise), 2);
+        }
       }
       const a = u.action;
       if (a && (!u.follower || u.rescue) && (a.phase === 'windup' || a.phase === 'recovery')) {

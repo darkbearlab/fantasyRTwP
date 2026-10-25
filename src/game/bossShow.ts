@@ -58,6 +58,7 @@ export class BossShow {
   private bar: HTMLElement | null = null;
   private slotEl: HTMLElement | null = null;
   private hpEl: HTMLElement | null = null;
+  private staggerEl: HTMLElement | null = null;
   private bossId = -1;
   /** 血條的顯示比例（登場演出時從 0 填到目前的生命） */
   private shown = 1;
@@ -123,6 +124,13 @@ export class BossShow {
     const hp = el('div', 'boss-hp');
     slot.appendChild(hp);
     bar.appendChild(slot);
+    // 失衡條（SPEC_STAGGER §6；只有沉穩節奏）
+    if (this.host.session().world.config.battleStyle === 'deliberate') {
+      const st = el('div', 'boss-stagger');
+      this.staggerEl = el('div', 'fill');
+      st.appendChild(this.staggerEl);
+      bar.appendChild(st);
+    }
     document.getElementById('ui')!.appendChild(bar);
     this.bar = bar;
     this.slotEl = slot;
@@ -137,6 +145,7 @@ export class BossShow {
     const frac = Math.max(0, u.hp) / u.maxHp;
     const show = this.filling || this.shown < 1 ? Math.min(frac, this.shown) : frac;
     this.hpEl!.style.width = `${show * 100}%`;
+    if (this.staggerEl) this.staggerEl.style.width = `${Math.min(1, u.stagger / u.poise) * 100}%`;
   }
 
   /** 頭目被擊敗：暫停 → 鏡頭帶過去 → 原色定格 → 紅黑定格 → 抖動下沉變透明，回傳演出長度（毫秒） */

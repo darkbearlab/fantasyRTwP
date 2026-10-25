@@ -11,6 +11,8 @@ export const COLORS = {
   hpBack: 0x111111,
   windup: 0xf5d142,
   recovery: 0x9aa0a6,
+  /** 失衡條（SPEC_STAGGER §6） */
+  stagger: 0xffb03a,
   selection: 0xffffff,
   zocHero: 0x5fa8ff,
   zocEnemy: 0xff6b6b,
