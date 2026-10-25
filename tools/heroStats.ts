@@ -27,6 +27,9 @@ const SECONDS = Number(arg('seconds') ?? 120);
 // 試算命中公式（Alan 2026-10-25）：--hitBase 95＝基礎命中 95%（現行相當於 51）
 const HIT_BASE = arg('hitBase') ? Number(arg('hitBase')) : null;
 if (HIT_BASE !== null) setHitBase(HIT_BASE);
+// 試算盾牌（Alan 2026-10-25）：--heroDef 20＝英雄防禦 +20；--enemyDef 20＝敵人防禦 +20
+const HERO_DEF = Number(arg('heroDef') ?? 0);
+const ENEMY_DEF = Number(arg('enemyDef') ?? 0);
 
 const HERO_CLASSES = ['warrior', 'ranger', 'mage', 'cleric'];
 const NAME: Record<string, string> = { warrior: '戰士', ranger: '遊俠', mage: '法師', cleric: '牧師' };
@@ -63,7 +66,8 @@ function enemiesAt(chapter: number, layer: number): UnitDef[] {
 function heroSpawn(classId: string, level: number, pos: { x: number; y: number }): UnitSpawn {
   const h = newHero(classId);
   h.level = level;
-  const def = { ...heroDef(h), skills: deliberateSkillsOf(classId) };
+  const base = heroDef(h);
+  const def = { ...base, defense: base.defense + HERO_DEF, skills: deliberateSkillsOf(classId) };
   return { defId: classId, def, pos, heroSlot: 0, passives: heroPassives(h), classPassives: classPassivesOf(h) };
 }
 
@@ -123,7 +127,7 @@ for (const P of POINTS) {
   for (const cls of HERO_CLASSES) {
     const hs = heroSpawn(cls, P.level, { x: 10, y: 6 });
     for (const e of enemies) {
-      const es: UnitSpawn = { defId: e.id, def: e, pos: { x: 10.9 + e.radius, y: 6 } };
+      const es: UnitSpawn = { defId: e.id, def: { ...e, defense: e.defense + ENEMY_DEF }, pos: { x: 10.9 + e.radius, y: 6 } };
       const h = duel(hs, es, true);
       const back = duel(es, { ...hs, pos: { x: 10, y: 6 } }, false);
       const dps = h.damage / SECONDS;
