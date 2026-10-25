@@ -1,4 +1,3 @@
-import { HIT_RULE } from './hit';
 /**
  * 物理／特殊與屬性相剋（SPEC_DAMAGE.md，Alan 2026-10-21）。只用在沉穩節奏；全部是佔位數值。
  *
@@ -199,10 +198,9 @@ export const CRIT_TIERS: CritTier[] = [
 ];
 
 /** 判定結果對應的爆擊等級（沒有爆擊回傳 null） */
-export function critTierOf(roll: number): CritTier | null {
-  // 爆擊門檻改了（HIT_RULE.critAt）時，各等級的門檻一起平移
-  const shift = HIT_RULE.critAt - 100;
-  return CRIT_TIERS.find((t) => roll >= t.min + shift) ?? null;
+export function critTierOf(roll: number, critAt = 100): CritTier | null {
+  // 爆擊門檻（data/hit.ts）不是 100 時，各等級的門檻一起平移
+  return CRIT_TIERS.find((t) => roll >= t.min + critAt - 100) ?? null;
 }
 
 /** 背刺（沉穩節奏）：從背後攻擊改成加命中，不再另外乘傷害倍率；命中高了自然容易打出高等級爆擊 */

@@ -65,7 +65,8 @@ describe('物理／特殊與屬性相剋（SPEC_DAMAGE）', () => {
       cut += duel('warrior', 'shieldbearer', 20, seed).e.maxHp - duel('warrior', 'shieldbearer', 20, seed).e.hp;
       blunt += duel('cleric', 'shieldbearer', 20, seed).e.maxHp - duel('cleric', 'shieldbearer', 20, seed).e.hp;
     }
-    expect(blunt).toBeGreaterThan(cut * 2);
+    // 基礎命中 95%（Alan 2026-10-25）之後劍比較少落空，差距從兩倍多縮到將近兩倍
+    expect(blunt).toBeGreaterThan(cut * 1.5);
   });
   it('戰士的盾擊（衝擊）打盾兵也有效', () => {
     const w = new World({

@@ -156,7 +156,8 @@ export class SkirmishDirector {
       if (!reach[pc.cy * grid.cols + pc.cx]) continue;
       const nearest = Math.min(...heroes.map((h) => dist(h, p)));
       if (nearest < dMin) continue;
-      if (world.vision ? world.vision.isVisible(p) : false) continue;
+      // 整群都要在視野外：成員站在中心點周圍 0.8 m（spawn），只檢查中心點的話邊上那一名可能剛好看得到
+      if (world.vision && [0, 1, 2, 3, 4].some((k) => world.vision!.isVisible(k === 0 ? p : { x: p.x + Math.cos((k * Math.PI) / 2) * 0.9, y: p.y + Math.sin((k * Math.PI) / 2) * 0.9 }))) continue;
       // 水流法（流場，怪群模式就有）：一次算出地圖上每一格走到最近英雄的步數，不用每個候選點各跑一次 A*
       const path = world.flowDistanceAt(p) * HORDE.flowCell;
       if (!Number.isFinite(path)) continue;

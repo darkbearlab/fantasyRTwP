@@ -78,7 +78,12 @@ export interface PassiveDef {
   seesBrush?: number;
   /** 普攻的投射物外觀（例：法師的小火球） */
   attackProjectile?: ProjectileKind;
+  /** 拿著盾（Alan 2026-10-25）：防禦加這麼多；好幾個來源時只取最高的（盾不疊加） */
+  shieldDefense?: number;
 }
+
+/** 英雄的盾（Alan 2026-10-25）：基礎命中 95% 時，+25 防禦約讓敵人命中從九成降到六成多、生存 +50% 左右，又還不到硬坦（+40 起） */
+export const HERO_SHIELD = { defense: 25 };
 
 export const PASSIVES: Record<string, PassiveDef> = {
   // ── 職業被動（§14.2，沉穩版；數值佔位）──
@@ -86,6 +91,11 @@ export const PASSIVES: Record<string, PassiveDef> = {
     id: 'cleave', name: '橫掃', source: 'class',
     description: '普攻打前方扇形內的所有敵人；每第 3 擊是重擊（傷害 ×1.4、擊退）',
     attack: { kind: 'cleave', angle: 110, heavyEvery: 3, heavyMult: 1.4, heavyKnockback: 1 },
+  },
+  shieldBearer: {
+    id: 'shieldBearer', name: '持盾', source: 'class',
+    description: `拿著盾：防禦 +${HERO_SHIELD.defense}（和盾牌道具不疊加）`,
+    shieldDefense: HERO_SHIELD.defense,
   },
   tauntAura: {
     id: 'tauntAura', name: '嘲諷光環', source: 'class',
@@ -213,7 +223,7 @@ export const PASSIVES: Record<string, PassiveDef> = {
 
 /** 各職業的職業被動 */
 export const CLASS_PASSIVES: Record<string, string[]> = {
-  warrior: ['cleave', 'tauntAura'],
+  warrior: ['cleave', 'tauntAura', 'shieldBearer'],
   berserker: ['bloodRage'],
   ranger: ['pierce', 'eagleEye'],
   rogue: ['assassin'],
@@ -223,8 +233,8 @@ export const CLASS_PASSIVES: Record<string, string[]> = {
   cleric: ['smite', 'blessAura', 'fieldCare'],
   alchemist: ['grenade'],
   // ── 進階職業（SPEC_CLASSES §3）：先帶基本職業的被動，昇變被動在各階段補上 ──
-  guardian: ['cleave', 'tauntAura', 'bulwark'],
-  gladiator: ['cleave', 'tauntAura', 'duelist'],
+  guardian: ['cleave', 'tauntAura', 'bulwark', 'shieldBearer'],
+  gladiator: ['cleave', 'tauntAura', 'duelist', 'shieldBearer'],
   cutthroat: ['assassin'],
   sniper: ['pierce', 'eagleEye'],
   arbalest: ['pierce', 'eagleEye'],

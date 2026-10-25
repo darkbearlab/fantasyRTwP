@@ -1,3 +1,4 @@
+import { HERO_SHIELD } from './passives';
 /**
  * 裝備道具（SPEC_SLICE5 §17）：每件道具提供一個被動（與職業被動同一套，src/sim/data/passives.ts）。
  * 舊的共用技能回收成道具效果（v0.4）。只在沉穩節奏生效。全部數值、價格是佔位。
@@ -25,7 +26,7 @@ const item = (id: string, name: string, rarity: ItemRarity, price: number, descr
 
 export const ITEMS: Record<string, ItemDef> = {
   // ── 一般 ──
-  ironShield: item('ironShield', '鐵盾', 'common', 60, '每第 3 次普攻命中使目標暈眩 0.5 秒（舊：盾擊）', { onHit: [{ kind: 'stun', duration: 0.5, every: 3 }] }),
+  ironShield: item('ironShield', '鐵盾', 'common', 60, '拿著盾：防禦 +25（盾不疊加）；每第 3 次普攻命中使目標暈眩 0.5 秒', { shieldDefense: HERO_SHIELD.defense, onHit: [{ kind: 'stun', duration: 0.5, every: 3 }] }),
   swiftBoots: item('swiftBoots', '疾行靴', 'common', 50, '移動速度 +15%（舊：衝鋒）', { mods: { moveSpeedPct: 0.15 } }),
   hawkEye: item('hawkEye', '鷹眼', 'common', 60, '普攻射程 +1 m；對生命低於 30% 的目標傷害 +25%（舊：瞄準射擊）', { mods: { range: 1 }, execute: { below: 0.3, pct: 0.25 } }),
   frostRing: item('frostRing', '寒霜指環', 'common', 60, '普攻 20% 機率定身目標 1 秒（舊：冰縛）', { onHit: [{ kind: 'root', duration: 1, chance: 0.2 }] }),
@@ -38,7 +39,7 @@ export const ITEMS: Record<string, ItemDef> = {
   swiftGloves: item('swiftGloves', '迅捷手套', 'common', 55, '普攻速度 +15%', { mods: { attackSpeedPct: 0.15 } }),
   // ── 稀有：兩個效果或較強的掛鉤 ──
   flameBlade: item('flameBlade', '火焰之刃', 'rare', 110, '普攻 30% 機率點燃目標；造成傷害 +5%（舊：火焰瓶）', { onHit: [{ kind: 'burn', chance: 0.3 }], mods: { damagePct: 0.05 } }),
-  towerShield: item('towerShield', '塔盾', 'rare', 120, '護甲 +3；每第 3 次普攻命中使目標暈眩 0.8 秒', { mods: { armor: 3 }, onHit: [{ kind: 'stun', duration: 0.8, every: 3 }] }),
+  towerShield: item('towerShield', '塔盾', 'rare', 120, '拿著盾：防禦 +25（盾不疊加）；護甲 +3；每第 3 次普攻命中使目標暈眩 0.8 秒', { shieldDefense: HERO_SHIELD.defense, mods: { armor: 3 }, onHit: [{ kind: 'stun', duration: 0.8, every: 3 }] }),
   stormBoots: item('stormBoots', '風暴之靴', 'rare', 110, '移動速度 +20%、普攻速度 +10%', { mods: { moveSpeedPct: 0.2, attackSpeedPct: 0.1 } }),
   glacierHeart: item('glacierHeart', '冰川之心', 'rare', 120, '普攻 30% 機率定身目標 1.5 秒；防禦 +5', { onHit: [{ kind: 'root', duration: 1.5, chance: 0.3 }], mods: { defense: 5 } }),
 

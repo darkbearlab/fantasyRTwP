@@ -1,3 +1,4 @@
+import { HERO_SHIELD } from '../src/sim/data/passives';
 import { describe, expect, it } from 'vitest';
 import { deliberateConfig } from '../src/sim/data/deliberate';
 import { HEROES } from '../src/sim/data/heroes';
@@ -13,7 +14,8 @@ describe('英雄技能重整（Alan 2026-10-20）', () => {
     const w = world([{ defId: 'warrior', def: { ...HEROES.warrior, skills: ['shieldBash'] }, pos: { x: 5, y: 6 } }]);
     const u = w.getUnit(1)!;
     expect(u.passives.find((p) => p.id === 'tauntAura')!.taunt).toBe(5);
-    expect(u.defense).toBe(HEROES.warrior.defense + 10);
+    // 嘲諷光環 +10、拿著盾 +25（Alan 2026-10-25）
+    expect(u.defense).toBe(HEROES.warrior.defense + 10 + HERO_SHIELD.defense);
   });
 
   it('遊俠的瞄準射擊：打斷敵人的準備動作', () => {

@@ -1,3 +1,5 @@
+import type { HitRule } from './data/hit';
+import { LEGACY_HIT_RULE } from './data/hit';
 /**
  * 模擬層可調整設定。預設值由 src/config.ts 匯出給遊戲使用；
  * 執行中只能透過 `setConfig` 指令修改（畫面層不得直接改 sim）。
@@ -12,6 +14,8 @@ export type BattleStyle = 'tactical' | 'horde' | 'deliberate';
 export interface SimConfig {
   /** 戰鬥模式（怪群遭遇會自動設成 horde） */
   battleStyle: BattleStyle;
+  /** 命中門檻（data/hit.ts）：舊模式 50／100；沉穩節奏是基礎命中 95%（超過 100% 變爆擊） */
+  hitRule: HitRule;
   /** 控制區模式（SPEC §7） */
   zocMode: ZocMode;
   /**
@@ -76,6 +80,7 @@ export interface SimConfig {
 
 export const DEFAULT_SIM_CONFIG: SimConfig = {
   battleStyle: 'tactical',
+  hitRule: LEGACY_HIT_RULE,
   zocMode: 'pin',
   zocEngagedException: true,
   zocRange: 1.0,
