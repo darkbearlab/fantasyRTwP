@@ -166,7 +166,7 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
   const { nodeId, fromEvent } = run.phase;
   const node = r.map.nodes[nodeId];
   let recovered = 0;
-  // 沉穩節奏：戰後整補是牧師的被動（戰地救護），牧師要活著
+  // 沉穩節奏：有牧師（戰地救護）活著時戰後整補比較多；沒有也會回，只是比較少（Alan 2026-10-25）
   const fieldCare =
     runStyle(r) !== 'deliberate' ||
     outcome.heroes.some((o) => !o.dead && ECONOMY.fieldCareClasses.includes(r.party[o.slot]?.baseClass ?? r.party[o.slot]?.classId ?? ''));
@@ -184,8 +184,9 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
     const startHp = h.hp;
     h.hp = o.dead ? 0 : Math.max(1, Math.min(maxHpOf(h), Math.round(o.hp)));
     // 戰後整補（參考永恆之柱）：勝利後存活者回復本場損失生命的一部分，其餘是長期傷勢
-    if (outcome.won && fieldCare && !o.dead && startHp > h.hp) {
-      const heal = Math.round((startHp - h.hp) * ECONOMY.postBattleRecoveryRatio);
+    if (outcome.won && !o.dead && startHp > h.hp) {
+      const ratio = fieldCare ? ECONOMY.postBattleRecoveryRatio : ECONOMY.postBattleRecoveryNoCleric;
+      const heal = Math.round((startHp - h.hp) * ratio);
       h.hp = Math.min(maxHpOf(h), h.hp + heal);
       recovered += heal;
     }
@@ -233,7 +234,7 @@ export function applyBattleResult(run: RunState, outcome: BattleOutcome): RunSta
     }
     r.chapterCleared = true;
   }
-  if (recovered > 0) r.journal.push(runStyle(r) === 'deliberate' ? tr("戰地救護：牧師為全隊回復 {0} 生命。", { 0: recovered }) : tr("戰後整補：全隊回復 {0} 生命。", { 0: recovered }));
+  if (recovered > 0) r.journal.push(runStyle(r) === 'deliberate' && fieldCare ? tr("戰地救護：牧師為全隊回復 {0} 生命。", { 0: recovered }) : tr("戰後整補：全隊回復 {0} 生命。", { 0: recovered }));
   if (run.phase.mods?.champion) {
     // 打倒了：這一章不再出現；沒打倒就離開：冠軍傷勢恢復，繼續在大地圖上追
     if ((outcome.killed ?? []).some((k) => k.enemy === ROUTE_MAP.champion.enemy)) {

@@ -84,7 +84,7 @@ export const EN_PASSIVES: NameDesc = {
   tauntAura: ['Taunt Aura', 'Enemies within 5 m prefer the warrior when the warrior is about as close as anyone else; defense +10'],
   eagleEye: ['Eagle Eye', 'Sees enemies hiding in brush within 10 m and shares them with the party'],
   blessAura: ['Blessing Aura', 'Allies within 5 m (including self) gain +10 accuracy and +5 defense'],
-  fieldCare: ['Field Care', 'If the cleric survives a won battle, the party recovers half the HP lost in that battle'],
+  fieldCare: ['Field Care', 'If the cleric survives a won battle, the party recovers half the HP lost in that battle (only a quarter without a cleric)'],
   emberBolt: ['Ember Bolt', 'Basic attacks are small fireballs that burst on impact (no friendly fire); slower attacks, harder hits'],
   chillAura: ['Chill', 'Enemies within 3 m move and act 25% slower'],
   bloodRage: ['Cleave: Blood Rage', 'Basic attacks hit a frontal cone; attacks faster at low HP (up to +50%)'],
