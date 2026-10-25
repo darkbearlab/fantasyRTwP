@@ -914,7 +914,7 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): Uni
   const pendingCrit = src.critPending;
   src.critPending = false;
   const forcedCrit = (!!p.critVsStunned && target.stunTime > 0) || pendingCrit;
-  const rolled = forcedCrit ? null : rollHit(world.rng, accuracy, defense);
+  const rolled = forcedCrit ? null : rollHit(world.rng, accuracy, defense, world.config.hitRule);
   const result = rolled ? rolled.result : 'crit';
   if (result === 'miss') {
     world.emit({ type: 'miss', sourceId: src.id, targetId: target.id, skillId: p.skillId, freeAttack: p.freeAttack });
@@ -925,7 +925,8 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): Uni
   }
   const crit = result === 'crit';
   // 爆擊分級（沉穩節奏）：判定結果越高越重；必定爆擊算最低一級
-  const tier: CritTier | null = typed && crit ? (rolled ? critTierOf(rolled.roll) : critTierOf(100)) : null;
+  const critAt = world.config.hitRule.critAt;
+  const tier: CritTier | null = typed && crit ? critTierOf(rolled ? rolled.roll : critAt, critAt) : null;
   const critMult = tier ? tier.mult : crit ? CRIT_MULT : 1;
   let comboMult = 1;
   // 舊模式：背刺乘傷害倍率
@@ -958,7 +959,7 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): Uni
   // 蓄力循環（法師）：普攻命中累積充能
   if (p.basic && src.cycle && chargeCycleOnHit(src)) world.emit({ type: 'notice', unitId: src.id, text: tr("{0}準備好了", { 0: SKILLS[src.cycle.steps[1]].name }) });
   if (target.dead) return target;
-  if (tier && tier !== critTierOf(100)) world.emit({ type: 'status', unitId: target.id, text: tier.name });
+  if (tier && tier !== critTierOf(critAt, critAt)) world.emit({ type: 'status', unitId: target.id, text: tier.name });
   if (p.interrupts || tier?.interrupts) interrupt(world, src, target, p.interrupts ? p.skillId : undefined);
   if (p.stun || tier?.stun) applyStun(world, target, Math.max(p.stun ?? 0, tier?.stun ?? 0));
   if (p.knockback) {

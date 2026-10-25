@@ -1,3 +1,4 @@
+import { hitBaseRule } from './hit';
 /**
  * 沉穩節奏（SPEC_SLICE5 §1）：整體變慢，敵我同樣套用。全部是佔位數值。
  * 倍率相對於預設設定（DEFAULT_SIM_CONFIG），建立戰鬥時換算成 SimConfig 的修改。
@@ -25,6 +26,8 @@ export const DELIBERATE_PACE = {
   enemyAttackSpeed: 1.5,
   /** 同隊之間的間隔（公尺；Alan 2026-10-21：先 0.5，留旋鈕） */
   unitSpacing: 0.5,
+  /** 基礎命中率（Alan 2026-10-25：95%，命中加上去、防禦扣掉，超過 100% 的部分變爆擊；戰鬥比較快、不拖） */
+  hitBase: 95,
 };
 
 /**
@@ -42,6 +45,7 @@ export const COMBAT_STATE = {
 export function deliberateConfig(base: SimConfig = DEFAULT_SIM_CONFIG): Partial<SimConfig> {
   return {
     battleStyle: 'deliberate',
+    hitRule: hitBaseRule(DELIBERATE_PACE.hitBase),
     // Alan：攻擊移動只打目標點附近的敵人（才能脫離）；取消控制區，改由敵人 AI 決定目標優先度
     attackMoveFocus: 'point',
     zocMode: 'off',

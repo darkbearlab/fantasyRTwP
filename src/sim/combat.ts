@@ -1,19 +1,20 @@
 import type { Rng } from './rng';
-import { HIT_RULE } from './data/hit';
+import type { HitRule } from './data/hit';
+import { LEGACY_HIT_RULE } from './data/hit';
 
 export type HitResult = 'miss' | 'hit' | 'crit';
 
 export const CRIT_MULT = 1.5;
 
-/** SPEC §6.2：roll = d100 + accuracy − defense */
-export function rollHit(rng: Rng, accuracy: number, defense: number): { roll: number; result: HitResult } {
+/** SPEC §6.2：roll = d100 + accuracy − defense；rule＝命中門檻（data/hit.ts） */
+export function rollHit(rng: Rng, accuracy: number, defense: number, rule: HitRule = LEGACY_HIT_RULE): { roll: number; result: HitResult } {
   const roll = rng.int(1, 100) + accuracy - defense;
-  return { roll, result: hitFromRoll(roll) };
+  return { roll, result: hitFromRoll(roll, rule) };
 }
 
-export function hitFromRoll(roll: number): HitResult {
-  if (roll < HIT_RULE.missBelow) return 'miss';
-  if (roll < HIT_RULE.critAt) return 'hit';
+export function hitFromRoll(roll: number, rule: HitRule = LEGACY_HIT_RULE): HitResult {
+  if (roll < rule.missBelow) return 'miss';
+  if (roll < rule.critAt) return 'hit';
   return 'crit';
 }
 

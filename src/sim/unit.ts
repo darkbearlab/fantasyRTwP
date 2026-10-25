@@ -288,7 +288,9 @@ export class Unit {
     return this.def.accuracy + this.mods.accuracy + (this.blessTime > 0 ? this.blessAccuracy : 0) + (this.shrineDef?.accuracy ?? 0);
   }
   get defense(): number {
-    return this.def.defense + this.mods.defense + (this.blessTime > 0 ? this.blessDefense : 0) + (this.shieldUp ? this.def.shield!.defense : 0) + (this.shrineDef?.defense ?? 0);
+    // 英雄拿著盾（Alan 2026-10-25）：好幾個來源只取最高的
+    const held = this.passives.reduce((m, p) => Math.max(m, p.shieldDefense ?? 0), 0);
+    return this.def.defense + this.mods.defense + held + (this.blessTime > 0 ? this.blessDefense : 0) + (this.shieldUp ? this.def.shield!.defense : 0) + (this.shrineDef?.defense ?? 0);
   }
   maxCharges(skillId: string): number {
     return Math.max(1, this.def.skillMods?.[skillId]?.charges ?? 1);

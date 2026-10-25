@@ -16,7 +16,7 @@ import { deliberateConfig } from '../src/sim/data/deliberate';
 import type { MapDef, UnitDef } from '../src/sim/data/types';
 import { DEFAULT_SIM_CONFIG } from '../src/sim/simConfig';
 import { World } from '../src/sim/world';
-import { setHitBase } from '../src/sim/data/hit';
+import { LEGACY_HIT_RULE, hitBaseRule } from '../src/sim/data/hit';
 import type { UnitSpawn } from '../src/sim/world';
 
 function arg(name: string): string | undefined {
@@ -24,9 +24,9 @@ function arg(name: string): string | undefined {
   return i >= 0 ? process.argv[i + 1] : undefined;
 }
 const SECONDS = Number(arg('seconds') ?? 120);
-// 試算命中公式（Alan 2026-10-25）：--hitBase 95＝基礎命中 95%（現行相當於 51）
+// 試算命中公式：--hitBase 90＝基礎命中 90%（沉穩節奏現在是 95）；--legacyHit＝舊的公式（50／100）
 const HIT_BASE = arg('hitBase') ? Number(arg('hitBase')) : null;
-if (HIT_BASE !== null) setHitBase(HIT_BASE);
+const LEGACY = process.argv.includes('--legacyHit');
 // 試算盾牌（Alan 2026-10-25）：--heroDef 20＝英雄防禦 +20；--enemyDef 20＝敵人防禦 +20
 const HERO_DEF = Number(arg('heroDef') ?? 0);
 const ENEMY_DEF = Number(arg('enemyDef') ?? 0);
@@ -43,7 +43,7 @@ const POINTS = [
 ];
 
 const OPEN: MapDef = { id: 'stats', name: 'stats', width: 30, height: 12, obstacles: [], heroSpawns: [], enemySpawns: [] };
-const CONFIG = { ...DEFAULT_SIM_CONFIG, ...deliberateConfig(DEFAULT_SIM_CONFIG), enemyAggroRange: 0, enemyAggroTime: 1e9 };
+const CONFIG = { ...DEFAULT_SIM_CONFIG, ...deliberateConfig(DEFAULT_SIM_CONFIG), enemyAggroRange: 0, enemyAggroTime: 1e9, ...(HIT_BASE !== null ? { hitRule: hitBaseRule(HIT_BASE) } : LEGACY ? { hitRule: LEGACY_HIT_RULE } : {}) };
 
 /** 這個深度的真實敵人（每種一個），從真的遠征戰鬥裡拿數值 */
 function enemiesAt(chapter: number, layer: number): UnitDef[] {
@@ -111,7 +111,7 @@ const log = (s = '') => {
   console.log(s);
 };
 
-log(`# 英雄的預期命中率與傷害（npm run herostats，每組站樁 ${SECONDS} 秒${HIT_BASE !== null ? `，基礎命中 ${HIT_BASE}%` : ''}）`);
+log(`# 英雄的預期命中率與傷害（npm run herostats，每組站樁 ${SECONDS} 秒${HIT_BASE !== null ? `，基礎命中 ${HIT_BASE}%` : LEGACY ? '，舊的命中公式' : ''}）`);
 log('');
 log('- 只算普攻，不放技能；英雄只算等級成長，不算升級、裝備；職業被動照起始等級（遊俠沒有穿透、牧師沒有聖鎚）。');
 log('- 敵人數值取自真的遠征戰鬥（全程深度強度、前期生命對齊、一般敵人生命減半都算進去）。');
