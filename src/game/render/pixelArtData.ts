@@ -144,6 +144,11 @@ export const PIXEL = {
   flashPart: 0.18,
   /** 被打中閃白（秒） */
   hitFlashSec: 0.1,
+  /**
+   * 攻擊動作（Alan 2026-10-25：不再把幾格攤平在整個準備時間裡）：準備時間的最後 windSec 秒播舉起的 3 格，
+   * 生效後揮下那一格停 strikeSec 秒，其餘時間照常待機。準備時間比 windSec 短時就在整個準備時間播完。
+   */
+  attackAnim: { windSec: 0.45, strikeSec: 0.3 },
 };
 
 /** mw 的方向區塊 */
@@ -204,18 +209,21 @@ export interface PixelAnimInput {
   /** 倒下的時間（秒）；還活著時忽略 */
   deathStart: number;
   moving: boolean;
-  /** 正在做的動作：準備（windup）或恢復（recovery）與進度 0–1 */
-  action?: { phase: string; progress: number };
+  /** 正在做的動作：準備（windup）或恢復（recovery）、進度 0–1、這個階段還剩幾秒（left）與已經過幾秒（elapsed） */
+  action?: { phase: string; progress: number; left?: number; elapsed?: number };
 }
 
 /** 依狀態決定 mw 的動作列與格數 */
 export function mwAnim(s: PixelAnimInput): { action: number; frame: number } {
   if (s.dead) return { action: MW_DEATH, frame: Math.min(3, Math.floor(((s.time - s.deathStart) / PIXEL.deathSec) * 4)) };
   const a = s.action;
-  if (a && (a.phase === 'windup' || a.phase === 'recovery')) {
-    // 準備期間播前 3 格（舉起），生效後的恢復期停在最後一格（揮下／射出）
-    return { action: MW_ATTACK, frame: a.phase === 'windup' ? Math.min(2, Math.floor(a.progress * 3)) : 3 };
+  const A = PIXEL.attackAnim;
+  // 準備時間的最後 windSec 秒播舉起的 3 格（沒有秒數時照進度），生效後揮下那一格停 strikeSec 秒；其他時間照常待機
+  if (a && a.phase === 'windup') {
+    const k = a.left !== undefined ? 1 - a.left / A.windSec : a.progress;
+    if (k >= 0) return { action: MW_ATTACK, frame: Math.min(2, Math.floor(Math.max(0, k) * 3)) };
   }
+  if (a && a.phase === 'recovery' && (a.elapsed === undefined || a.elapsed < A.strikeSec)) return { action: MW_ATTACK, frame: 3 };
   if (s.moving) return { action: MW_MOVE, frame: Math.floor(s.time * PIXEL.moveFps) % 4 };
   return { action: MW_IDLE, frame: Math.floor(s.time * PIXEL.idleFps) % 4 };
 }

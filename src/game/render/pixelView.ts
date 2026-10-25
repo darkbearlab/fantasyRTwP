@@ -5,6 +5,7 @@
  * 被打中時閃白。腳下的圈、生命條位置與其他外觀共用 UnitVisual 介面。
  */
 import Phaser from 'phaser';
+import { DT } from '../../sim/constants';
 import type { Unit } from '../../sim/unit';
 import { displayFacing } from './art';
 import { COLORS } from './palette';
@@ -126,7 +127,7 @@ export class PixelView implements UnitVisual {
       this.flip = fb.flip;
     }
     const a = u.action;
-    const act = a ? { phase: a.phase, progress: u.actionProgress } : undefined;
+    const act = a ? { phase: a.phase, progress: u.actionProgress, left: a.ticksLeft * DT, elapsed: (a.ticksTotal - a.ticksLeft) * DT } : undefined;
     let flash = simTime < this.hitUntil;
     this.sprite.setPosition(0, -lift).setAngle(0);
     if (this.art.kind === 'mw') {

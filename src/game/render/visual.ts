@@ -68,6 +68,33 @@ const UNIT_HEIGHT: Record<string, number> = {
 };
 
 export const VISUAL = {
+  /**
+   * 血跡（Alan 2026-10-25）：受傷噴小血滴，陣亡依最後一下的攻擊類別換效果；全部是 artPx 大小的方塊、對齊背景的像素格。
+   * artPx：背景一個像素在畫面上多大（ortho.pxPerM ÷ 地圖拼塊 16 px）。count／speed（m/s）／spread（度）／size（像素數）／up（往上的初速 m/s）。
+   */
+  blood: {
+    artPx: 3,
+    colors: [0x8a0f14, 0xa8141b, 0x5e0b10],
+    gravity: 9.8,
+    /** 落地後留多久（毫秒）、淡出多久 */
+    linger: 5000,
+    fade: 1500,
+    /** 從身上的哪個高度噴出（公尺） */
+    z: 0.7,
+    hit: { count: [3, 5], speed: [1, 2.2], spread: 60, size: [1, 1], up: [0.8, 1.8] },
+    death: {
+      /** 近戰：大片噴濺＋地上一灘 */
+      melee: { count: [34, 46], speed: [1.2, 3.8], spread: 150, size: [1, 2], up: [1, 2.6], pool: 10, mist: 0 },
+      /** 遠程：往射來的反方向噴一道 */
+      projectile: { count: [24, 32], speed: [2.5, 5.5], spread: 45, size: [1, 2], up: [0.6, 1.6], pool: 6, mist: 0 },
+      /** 法術：血霧 */
+      spell: { count: [12, 16], speed: [0.6, 1.6], spread: 360, size: [1, 2], up: [0.5, 1.2], pool: 4, mist: 16 },
+      /** 範圍：四面八方炸開＋血霧 */
+      area: { count: [40, 54], speed: [1.5, 4.8], spread: 360, size: [1, 2], up: [1.2, 3], pool: 8, mist: 10 },
+    },
+    /** 血霧：一團一團往外擴散、變淡（毫秒、半徑公尺、每團大小像素數） */
+    mist: { dur: 1100, radius: 0.9, size: [2, 4], alpha: 0.45 },
+  },
   /** 角色外觀的整體縮放（Alan：sprite 縮小約 0.8 看效果；只影響畫面，碰撞半徑等規則不變） */
   unitScale: 0.8,
   /**
