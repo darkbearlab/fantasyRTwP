@@ -134,6 +134,8 @@ export const VISUAL = {
   fogFadeSec: 0.25,
   fogUnexploredAlpha: 0.94,
   fogExploredAlpha: 0.5,
+  /** 迷霧往地圖外多蓋幾格（樹冠、屋頂伸出地圖邊緣的部分），沿用最近的邊緣格 */
+  fogMargin: 8,
 };
 
 /** 角色在畫面上的身高（公尺，已乘 VISUAL.unitScale）：決定 sprite 大小、頭頂生命條與飄字的位置 */
