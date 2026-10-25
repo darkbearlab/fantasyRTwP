@@ -45,8 +45,9 @@ export class Fx {
   /**
    * 血跡（Alan 2026-10-25）：p 是受傷者的位置、from 是打過來的位置（決定往哪邊噴）。
    * 每一滴都是背景像素大小的方塊，位置對齊背景的像素格；飛行中畫在角色上方，落地後留在地上一陣子再淡出。
+   * open(x, y)：這一點可以有血跡嗎（Alan 2026-10-25：不噴到建築等地形上、不噴出地圖）；飛到不行的地方就停在邊緣。
    */
-  blood(p: Vec, kind: BloodKind, from?: Vec): void {
+  blood(p: Vec, kind: BloodKind, from?: Vec, open: (x: number, y: number) => boolean = () => true): void {
     const B = VISUAL.blood;
     const cfg = kind === 'hit' ? B.hit : B.death[kind];
     const rnd = (r: readonly number[]) => r[0] + Math.random() * (r[1] - r[0]);
@@ -66,6 +67,9 @@ export class Fx {
         landT: -1,
         x: p.x,
         y: p.y,
+        /** 最後一個可以有血跡的位置（撞到建築或地圖邊緣就停在這裡） */
+        cx: p.x,
+        cy: p.y,
       };
     });
     // 地上一灘（陣亡）：落在腳下附近、不飛
@@ -73,7 +77,9 @@ export class Fx {
     for (let i = 0; i < pool; i++) {
       const a = Math.random() * Math.PI * 2;
       const r = Math.random() * 0.35;
-      drops.push({ vx: 0, vy: 0, vz: 0, size: 2 * k, color: B.colors[2], landT: 0, x: p.x + Math.cos(a) * r, y: p.y + Math.sin(a) * r });
+      const x = p.x + Math.cos(a) * r;
+      const y = p.y + Math.sin(a) * r;
+      if (open(x, y)) drops.push({ vx: 0, vy: 0, vz: 0, size: 2 * k, color: B.colors[2], landT: 0, x, y, cx: x, cy: y });
     }
     const air = this.scene.add.graphics().setDepth(1100);
     const ground = this.scene.add.graphics().setDepth(4);
@@ -92,12 +98,16 @@ export class Fx {
           let z = 0;
           if (d.landT < 0) {
             z = B.z + d.vz * s - (B.gravity * s * s) / 2;
+            const wx = d.x + d.vx * s;
+            const wy = d.y + d.vy * s;
+            // 撞到建築、地形或地圖邊緣：停在最後一個可以的位置落下
+            if (open(wx, wy)) {
+              d.cx = wx;
+              d.cy = wy;
+            } else z = 0;
             if (z <= 0) d.landT = s;
           }
-          const ts = d.landT >= 0 ? d.landT : s;
-          const wx = d.x + d.vx * ts;
-          const wy = d.y + d.vy * ts;
-          const sp = worldToScreen(wx, wy, Math.max(0, z));
+          const sp = worldToScreen(d.cx, d.cy, Math.max(0, z));
           const g = d.landT >= 0 ? ground : air;
           g.fillStyle(d.color, d.landT >= 0 ? 0.85 * fade : 1);
           g.fillRect(snap(sp.x - d.size / 2), snap(sp.y - d.size / 2), d.size, d.size);
@@ -109,11 +119,11 @@ export class Fx {
       },
     });
     const mist = kind === 'hit' ? 0 : B.death[kind].mist;
-    if (mist > 0) this.bloodMist(p, mist);
+    if (mist > 0) this.bloodMist(p, mist, open);
   }
 
   /** 血霧：一團一團從身上往外擴散、變淡（也是對齊像素格的方塊） */
-  private bloodMist(p: Vec, puffs: number): void {
+  private bloodMist(p: Vec, puffs: number, open: (x: number, y: number) => boolean): void {
     const M = VISUAL.blood.mist;
     const k = VISUAL.blood.artPx;
     const snap = (v: number) => Math.round(v / k) * k;
@@ -134,7 +144,10 @@ export class Fx {
       onUpdate: () => {
         g.clear();
         for (const q of parts) {
-          const sp = worldToScreen(p.x + Math.cos(q.a) * q.r * state.t, p.y + Math.sin(q.a) * q.r * state.t, q.z + 0.3 * state.t);
+          const wx = p.x + Math.cos(q.a) * q.r * state.t;
+          const wy = p.y + Math.sin(q.a) * q.r * state.t;
+          if (!open(wx, wy)) continue;
+          const sp = worldToScreen(wx, wy, q.z + 0.3 * state.t);
           g.fillStyle(q.color, M.alpha * (1 - state.t));
           g.fillRect(snap(sp.x - q.size / 2), snap(sp.y - q.size / 2), q.size, q.size);
         }

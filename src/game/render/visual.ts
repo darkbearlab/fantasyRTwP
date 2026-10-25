@@ -84,13 +84,13 @@ export const VISUAL = {
     hit: { count: [3, 5], speed: [1, 2.2], spread: 60, size: [1, 1], up: [0.8, 1.8] },
     death: {
       /** 近戰：大片噴濺＋地上一灘 */
-      melee: { count: [18, 26], speed: [1.2, 3.5], spread: 150, size: [1, 2], up: [1, 2.6], pool: 6, mist: 0 },
+      melee: { count: [34, 46], speed: [1.2, 3.8], spread: 150, size: [1, 2], up: [1, 2.6], pool: 10, mist: 0 },
       /** 遠程：往射來的反方向噴一道 */
-      projectile: { count: [12, 16], speed: [2.5, 5], spread: 40, size: [1, 2], up: [0.6, 1.6], pool: 3, mist: 0 },
+      projectile: { count: [24, 32], speed: [2.5, 5.5], spread: 45, size: [1, 2], up: [0.6, 1.6], pool: 6, mist: 0 },
       /** 法術：血霧 */
-      spell: { count: [6, 8], speed: [0.6, 1.5], spread: 360, size: [1, 1], up: [0.5, 1.2], pool: 2, mist: 10 },
+      spell: { count: [12, 16], speed: [0.6, 1.6], spread: 360, size: [1, 2], up: [0.5, 1.2], pool: 4, mist: 16 },
       /** 範圍：四面八方炸開＋血霧 */
-      area: { count: [22, 30], speed: [1.5, 4.5], spread: 360, size: [1, 2], up: [1.2, 3], pool: 4, mist: 6 },
+      area: { count: [40, 54], speed: [1.5, 4.8], spread: 360, size: [1, 2], up: [1.2, 3], pool: 8, mist: 10 },
     },
     /** 血霧：一團一團往外擴散、變淡（毫秒、半徑公尺、每團大小像素數） */
     mist: { dur: 1100, radius: 0.9, size: [2, 4], alpha: 0.45 },
