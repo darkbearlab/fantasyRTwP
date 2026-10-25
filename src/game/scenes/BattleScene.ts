@@ -1113,41 +1113,47 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
   private drawSoftFog(): void {
     const w = this.session.world;
     const v = w.vision!;
+    // 地圖外也蓋（Alan 2026-10-25：樹冠、屋頂伸出地圖邊緣時沒被蓋到）：四周多 M 格，沿用最近的邊緣格的狀態
+    const M = VISUAL.fogMargin;
+    const cols = v.cols + 2 * M;
+    const rows = v.rows + 2 * M;
     // 畫面方向（世界 +x 朝上）：貼圖寬＝y 方向的格數、高＝x 方向的格數
-    const tw = v.rows;
-    const th = v.cols;
-    if (!this.fogSoft || this.fogSoft.alpha.length !== v.cols * v.rows) {
+    const tw = rows;
+    const th = cols;
+    if (!this.fogSoft || this.fogSoft.alpha.length !== cols * rows) {
       this.fogSoft?.img.destroy();
       const key = `fog-soft-${this.session.seed}-${Date.now()}`;
       const tex = this.textures.createCanvas(key, tw, th)!;
       tex.setFilter(Phaser.Textures.FilterMode.LINEAR);
-      const o = worldToScreen(v.cols * v.cell, 0);
+      const o = worldToScreen((v.cols + M) * v.cell, -M * v.cell);
       const img = this.add
         .image(o.x, o.y, key)
         .setOrigin(0)
         .setScale(v.cell * GAME_CONFIG.ortho.pxPerM, v.cell * GAME_CONFIG.ortho.pxPerM * orthoSquash())
         .setDepth(900);
       this.events.once('shutdown', () => this.textures.exists(key) && this.textures.remove(key));
-      const alpha = new Float32Array(v.cols * v.rows).fill(VISUAL.fogUnexploredAlpha);
-      this.fogSoft = { tex, img, alpha, target: new Float32Array(v.cols * v.rows), data: tex.getContext().createImageData(tw, th) };
+      const alpha = new Float32Array(cols * rows).fill(VISUAL.fogUnexploredAlpha);
+      this.fogSoft = { tex, img, alpha, target: new Float32Array(cols * rows), data: tex.getContext().createImageData(tw, th) };
     }
     const f = this.fogSoft;
     f.img.setVisible(true);
     const levels = [VISUAL.fogUnexploredAlpha, VISUAL.fogExploredAlpha, 0];
-    for (let i = 0; i < f.target.length; i++) f.target[i] = levels[v.state[i]];
+    const clamp = (n: number, max: number) => Math.min(max - 1, Math.max(0, n));
+    for (let cy = 0; cy < rows; cy++)
+      for (let cx = 0; cx < cols; cx++) f.target[cy * cols + cx] = levels[v.state[clamp(cy - M, v.rows) * v.cols + clamp(cx - M, v.cols)]];
     const step = Math.min(1, this.game.loop.delta / 1000 / VISUAL.fogFadeSec);
     let changed = false;
     const d = f.data.data;
-    for (let cy = 0; cy < v.rows; cy++) {
-      for (let cx = 0; cx < v.cols; cx++) {
-        const i = cy * v.cols + cx;
+    for (let cy = 0; cy < rows; cy++) {
+      for (let cx = 0; cx < cols; cx++) {
+        const i = cy * cols + cx;
         const a0 = f.alpha[i];
         const a1 = a0 + (f.target[i] - a0) * step;
         const a = Math.abs(f.target[i] - a1) < 0.01 ? f.target[i] : a1;
         if (a !== a0) changed = true;
         f.alpha[i] = a;
         // 貼圖像素：(x, y) = (cy, cols − 1 − cx)
-        const p = ((v.cols - 1 - cx) * tw + cy) * 4;
+        const p = ((cols - 1 - cx) * tw + cy) * 4;
         d[p] = 5;
         d[p + 1] = 6;
         d[p + 2] = 10;
