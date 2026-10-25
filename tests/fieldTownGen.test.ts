@@ -127,6 +127,17 @@ describe('城內地圖生成', () => {
       expect(lv.sightBlocked.length).toBeGreaterThan(100);
     }
   });
+  it('路燈只放在空曠的地方：周圍 2 格內沒有房子、井這類擋路的東西（Alan 2026-10-25：街口被路燈堵死）', () => {
+    const opts = { tier: 'battle' as const, layer: 3, exits, prefabs };
+    for (const seed of [1, 42, 2024, 7, 99]) {
+      const lv = generateTown(seed, opts);
+      // 擋路的格，扣掉散件自己（路障可能後來才放在旁邊）
+      const props = new Set(lv.props.map((p) => `${p.x},${p.y}`));
+      const wall = new Set(lv.blocked.map(([x, y]) => `${x},${y}`).filter((k) => !props.has(k)));
+      for (const p of lv.props.filter((q) => q.kind === 'lamp'))
+        for (let y = p.y - 2; y <= p.y + 2; y++) for (let x = p.x - 2; x <= p.x + 2; x++) expect(wall.has(`${x},${y}`)).toBe(false);
+    }
+  });
 });
 
 describe('轉成戰鬥地圖（fbbLevel）', () => {
