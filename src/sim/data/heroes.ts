@@ -86,7 +86,7 @@ function evolved(): Record<string, UnitDef> {
   const list: UnitDef[] = [
     { ...W, id: 'guardian', name: '守護者', letter: 'G', color: 0x2f5fb0, maxHp: 160, armor: 7 },
     { ...W, id: 'gladiator', name: '角鬥士', letter: 'L', color: 0x5aa0e6, accuracy: 36, damage: [11, 17], skillMods: { shieldBash: { charges: 2 } } },
-    { ...R, id: 'cutthroat', name: '刺客', letter: 'K', color: 0x2c9c8a, maxHp: 85, accuracy: 44, defense: 36, damage: [8, 13], range: 0.3, windup: 0.4, recovery: 0.8, moveSpeed: 3.8, projectileSpeed: undefined, projectileKind: undefined, personality: undefined, backstabMult: 1.5, skills: ['backstab'] },
+    { ...R, id: 'cutthroat', name: '刺客', letter: 'K', color: 0x2c9c8a, maxHp: 85, accuracy: 44, defense: 36, damage: [8, 13], range: 0.3, windup: 0.4, recovery: 0.8, moveSpeed: 3.8, projectileSpeed: undefined, projectileKind: undefined, personality: undefined, backstabMult: 1.5, skills: ['stealth'] },
     { ...R, id: 'sniper', name: '狙擊手', letter: 'S', color: 0x2e8b3a, accuracy: 45, damage: [9, 15], skills: ['focus', 'aimedShot'] },
     // 連弩手：攻擊間距極短、單發較輕
     { ...R, id: 'arbalest', name: '連弩手', letter: 'A', color: 0x7cc576, damage: [5, 8], attackSpeed: 2.2 },

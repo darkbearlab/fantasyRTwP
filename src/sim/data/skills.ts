@@ -133,6 +133,11 @@ export const SKILLS: Record<string, SkillDef> = {
     target: 'self', range: 0, windup: 0.5, recovery: 0.8, cooldown: 8, requiresLos: false,
     effect: { kind: 'whirlwind', radius: 1.8, mult: 0.9, shatters: true },
   },
+  stealth: {
+    id: 'stealth', name: '潛行', description: '最多 8 秒完全隱匿，直到出手為止；隱匿中打出的第一擊命中 +50（附近 4 m 有敵人時不能用）',
+    target: 'self', range: 0, windup: 0.3, recovery: 0.3, cooldown: 15, requiresLos: false,
+    effect: { kind: 'stealth', duration: 8, minEnemyDist: 4, ambushAccuracy: 50 },
+  },
   backstab: {
     id: 'backstab', name: '背刺', description: '近戰：從背後攻擊傷害 ×2.5（正面 ×1）；暈眩中的目標必定爆擊；可碎冰',
     target: 'enemy', range: 0.3, windup: 0.3, recovery: 0.7, cooldown: 8, requiresLos: false,

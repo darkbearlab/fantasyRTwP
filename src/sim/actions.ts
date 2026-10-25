@@ -136,8 +136,11 @@ export function enterRecovery(world: World, u: Unit, seconds: number): void {
 export function finishWindup(world: World, u: Unit): void {
   const a = u.action!;
   // 攻擊或施法會暴露草叢中的位置，並解除煙霧彈的隱匿
+  // 從潛行（完全隱匿）出手：這一下命中加成（偷襲）；其他動作出手就沒有
+  u.ambushAccuracy = u.stealthFull && u.stealthTime > 0 ? u.stealthAmbush : 0;
   u.revealTime = TERRAIN.revealAfterAttack;
   u.stealthTime = 0;
+  u.stealthFull = false;
   if (a.kind === 'attack') {
     const t = world.getUnit(a.targetId!);
     if (!t || t.dead) {
@@ -562,6 +565,21 @@ function applySkillEffect(world: World, u: Unit, def: SkillDef, t: Unit | undefi
       if (!t || t.dead) return false;
       world.spawnProjectile(u, eff.projectileKind ?? 'curse', eff.projectileSpeed ?? 20, { type: 'curse', duration: eff.duration, actionSlow: eff.actionSlow, damageTakenPct: eff.damageTakenPct, skillId: def.id }, { unit: t });
       return false;
+    case 'stealth': {
+      u.stealthTime = eff.duration;
+      u.stealthFull = true;
+      u.stealthAmbush = eff.ambushAccuracy;
+      u.revealTime = 0;
+      // 正在瞄準他的敵人失去目標
+      for (const e of world.units) {
+        if (e.dead || e.team === u.team) continue;
+        if (e.action?.targetId === u.id && e.action.phase === 'windup') e.action = null;
+        const o = e.order;
+        if (o && 'targetId' in o && o.targetId === u.id) world.setOrder(e, null);
+      }
+      world.emit({ type: 'status', unitId: u.id, text: tr("潛行") });
+      return false;
+    }
     case 'smoke':
       u.stealthTime = eff.duration;
       u.revealTime = 0;
@@ -899,6 +917,12 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): Uni
   const mu = info ? matchup(target, info) : { w: 0, r: 0 };
   let defense = info ? defenseOf(target, info.cat) * DAMAGE_FORMULA.weakDefense ** mu.w * DAMAGE_FORMULA.resistDefense ** mu.r : target.defense;
   let accuracy = src.accuracy + (p.accBonus ?? 0);
+  // 偷襲（潛行中出手的第一擊）
+  if (src.ambushAccuracy > 0) {
+    accuracy += src.ambushAccuracy;
+    src.ambushAccuracy = 0;
+    world.emit({ type: 'status', unitId: src.id, text: tr("偷襲！") });
+  }
   let terrainMult = 1;
   if (!p.melee && !p.arc) {
     // 掩體：矮籬與「射入混戰」（路徑上有其他單位）取較高者

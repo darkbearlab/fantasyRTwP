@@ -45,7 +45,7 @@ export const CLASSES: Record<string, ClassDef> = {
   // ── 昇變後的進階職業（SPEC_CLASSES §3）：evolvedFrom 是基本職業；狂戰士回收舊的變體 ──
   guardian: { id: 'guardian', line: 'warrior', role: '守護：替光環內的隊友分擔傷害', signature: 'guard', defaultPool: ['shieldBash', 'charge'], variant: true, evolvedFrom: 'warrior' },
   gladiator: { id: 'gladiator', line: 'warrior', role: '決鬥：盾擊打斷後必定爆擊', signature: 'shieldBash', defaultPool: ['charge', 'guard'], variant: true, evolvedFrom: 'warrior' },
-  cutthroat: { id: 'cutthroat', line: 'ranger', role: '近戰刺殺：背刺加命中、高等級爆擊', signature: 'backstab', defaultPool: ['smokeBomb', 'tumble'], variant: true, evolvedFrom: 'ranger' },
+  cutthroat: { id: 'cutthroat', line: 'ranger', role: '近戰刺殺：潛行接近，偷襲必中、高等級爆擊', signature: 'stealth', defaultPool: ['smokeBomb', 'tumble'], variant: true, evolvedFrom: 'ranger' },
   sniper: { id: 'sniper', line: 'ranger', role: '集中後一擊必殺', signature: 'aimedShot', defaultPool: ['stunArrow', 'tumble'], variant: true, evolvedFrom: 'ranger' },
   arbalest: { id: 'arbalest', line: 'ranger', role: '極短間隔的連射', signature: 'sureShot', defaultPool: ['stunArrow', 'tumble'], variant: true, evolvedFrom: 'ranger' },
   elementalist: { id: 'elementalist', line: 'mage', role: '火＋寒雙屬性，附魔讓隊友也帶上', signature: 'enchant', defaultPool: ['iceBind', 'arcaneMissile'], variant: true, evolvedFrom: 'mage' },

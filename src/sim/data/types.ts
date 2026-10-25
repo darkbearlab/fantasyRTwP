@@ -182,6 +182,11 @@ export type SkillEffect =
   | { kind: 'curse'; duration: number; actionSlow: number; damageTakenPct: number; projectileSpeed?: number; projectileKind?: ProjectileKind }
   /** 煙霧彈：一段時間內無視控制區、敵人看不到（貼近除外） */
   | { kind: 'smoke'; duration: number }
+  /**
+   * 潛行（刺客，Alan 2026-10-25）：最多 duration 秒完全偵測不到（貼身也看不到），打出第一擊為止；
+   * 從潛行打出的第一擊命中 +ambushAccuracy。minEnemyDist 公尺內有敵人時不能用。
+   */
+  | { kind: 'stealth'; duration: number; minEnemyDist: number; ambushAccuracy: number }
   /** 地面區域：敵人在範圍內移動變慢（沼澤） */
   /** 在地上留下持續區域（沼澤等；通用的持續效果，src/sim/zones.ts） */
   /** extra：同一個位置再放一個區域（例：聖騎士的聖域同時讓敵人變慢） */
