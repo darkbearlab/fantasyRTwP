@@ -3,7 +3,7 @@
  * 不修改 HEROES 資料表。
  */
 import { tr } from '../i18n/lang';
-import { CLASS_PASSIVES, CLASS_PASSIVE_RANKS, CLASS_PASSIVE_RULES } from '../sim/data/passives';
+import { CLASS_PASSIVES, CLASS_PASSIVE_RANKS, passiveStartRank } from '../sim/data/passives';
 import { HEROES } from '../sim/data/heroes';
 import { CLASSES } from '../sim/data/classes';
 import type { UnitDef } from '../sim/data/types';
@@ -177,13 +177,13 @@ export function grantUpgrade(run: RunState, upgradeId: string, slot?: number, sk
 /** 職業升級最多拿幾次（通用升級不限）；職業被動升級＝最高等級 − 起始等級 */
 export function maxRankOf(upgradeId: string): number {
   const u = UPGRADES[upgradeId];
-  if (u?.innate) return Math.max(0, (CLASS_PASSIVE_RANKS[u.innate.passive]?.max ?? 1) - CLASS_PASSIVE_RULES.startRank);
+  if (u?.innate) return Math.max(0, (CLASS_PASSIVE_RANKS[u.innate.passive]?.max ?? 1) - passiveStartRank(u.innate.passive));
   return u?.branch ? (UPGRADE_MAX_RANK[upgradeId] ?? 1) : Infinity;
 }
 
 /** 職業被動目前的等級（起始等級＋升了幾次） */
 export function classPassiveRank(h: HeroRecord, passive: string): number {
-  return CLASS_PASSIVE_RULES.startRank + rankOf(h, `cp_${passive}`);
+  return passiveStartRank(passive) + rankOf(h, `cp_${passive}`);
 }
 
 /** 戰鬥時帶的職業被動與等級（一路向前；等級 0 的不帶） */

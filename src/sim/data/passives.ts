@@ -264,21 +264,28 @@ export const ACTIVE_SKILL_OVERRIDE: Record<string, string> = {
 /**
  * 職業被動的等級（Alan 2026-10-25）：英雄本來就有的被動改成可以升級（不算昇變配方），一級一級變強。
  * grow：每升一級，這些數值各加多少（路徑 → 每級增加量）；growText：給升級卡看的說明。全部是佔位。
+ * start：這個被動自己的起始等級（省略＝CLASS_PASSIVE_RULES.startRank）；0＝一開始沒有，要從升級拿到第 1 級。
  * 牧師的戰地救護沒有可以變強的數字，維持天生、不分等級。
  */
-export const CLASS_PASSIVE_RANKS: Record<string, { max: number; grow: Record<string, number>; growText: string }> = {
+export const CLASS_PASSIVE_RANKS: Record<string, { max: number; grow: Record<string, number>; growText: string; start?: number }> = {
   cleave: { max: 3, grow: { 'attack.angle': 20, 'attack.heavyMult': 0.2 }, growText: '扇形 +20°、重擊傷害 +0.2 倍' },
   tauntAura: { max: 3, grow: { taunt: 1.5, 'mods.defense': 4 }, growText: '嘲諷範圍 +1.5 m、防禦 +4' },
-  pierce: { max: 3, grow: { 'attack.maxTargets': 1, 'attack.falloff': 0.05 }, growText: '多穿透 1 名、每穿一名的傷害少掉得少一點' },
+  // Alan 2026-10-25：遊俠的穿透、牧師的聖鎚（擊退）從等級 0 開始
+  pierce: { start: 0, max: 3, grow: { 'attack.maxTargets': 1, 'attack.falloff': 0.05 }, growText: '多穿透 1 名、每穿一名的傷害少掉得少一點' },
   eagleEye: { max: 3, grow: { seesBrush: 3 }, growText: '看穿草叢的距離 +3 m' },
   emberBolt: { max: 3, grow: { 'attack.radius': 0.3, 'attack.splashMult': 0.1 }, growText: '爆炸範圍 +0.3 m、濺射傷害 +0.1 倍' },
   chillAura: { max: 3, grow: { 'aura.radius': 0.5, 'aura.enemies.slow': 0.05 }, growText: '光環範圍 +0.5 m、減速再 5%' },
-  smite: { max: 3, grow: { 'attack.heal': 3, 'attack.knockback': 0.2 }, growText: '回復 +3、擊退 +0.2 m' },
+  smite: { start: 0, max: 3, grow: { 'attack.heal': 3, 'attack.knockback': 0.2 }, growText: '回復 +3、擊退 +0.2 m' },
   blessAura: { max: 3, grow: { 'aura.radius': 1, 'aura.allies.accuracy': 3, 'aura.allies.defense': 2 }, growText: '光環範圍 +1 m、命中 +3、防禦 +2' },
 };
 
-/** startRank：英雄一開始的等級（1＝天生就有、升級讓它變強；0＝一開始沒有，要從升級拿） */
+/** startRank：英雄一開始的等級（1＝天生就有、升級讓它變強；0＝一開始沒有，要從升級拿）；個別被動可以用 start 另外指定 */
 export const CLASS_PASSIVE_RULES = { startRank: 1 };
+
+/** 這個職業被動的起始等級 */
+export function passiveStartRank(id: string): number {
+  return CLASS_PASSIVE_RANKS[id]?.start ?? CLASS_PASSIVE_RULES.startRank;
+}
 
 const ranked = new Map<string, PassiveDef>();
 
