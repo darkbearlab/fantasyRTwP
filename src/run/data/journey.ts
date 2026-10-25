@@ -29,10 +29,10 @@ export const JOURNEY = {
    * 敵人強度的級距（Alan 2026-10-24，數字佔位，之後調手感）：
    * - hpBaseline：前期的一般敵人（就算是盾兵）生命向下對齊到 hp（原始數值，和劍兵一樣），
    *   全程深度越深越接近自己原本的生命，到 fullAtDepth 層完全回到原本的。精英隊長、頭目不受影響。
-   * - countMult：一般敵人的數量倍率（多出來的站在同一小隊旁邊；1.5＝每一名有一半機率多一名）。頭目圖不加。
+   * - countMult：一般敵人的數量倍率（多出來的站在同一小隊旁邊；1.5＝每一名有一半機率多一名，2＝每一名都多一名；Alan 2026-10-25 先試兩倍）。頭目圖不加。
    */
   hpBaseline: { hp: 34, fullAtDepth: 12 },
-  countMult: 1.5,
+  countMult: 2,
   /** 陣亡就是沒了（SPEC_SLICE7 §5）：拿掉會復活的消耗品（商人不賣、不會掉） */
   removedConsumables: ['phoenix'],
 };
