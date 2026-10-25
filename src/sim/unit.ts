@@ -108,6 +108,12 @@ export class Unit {
   curseVuln = 0;
   /** 煙霧彈：隱匿、無視控制區（秒） */
   stealthTime = 0;
+  /** 潛行（刺客）：完全偵測不到，貼身也看不到（煙霧彈是 false：貼近會被看到） */
+  stealthFull = false;
+  /** 從潛行出手的這一下：命中加成（strike 用掉後歸零） */
+  ambushAccuracy = 0;
+  /** 這次潛行的偷襲命中加成 */
+  stealthAmbush = 0;
   /** 寒氣（法師的光環）：移動與行動速度降低 chillSlow 比例 */
   chillTime = 0;
   chillSlow = 0;

@@ -555,8 +555,8 @@ export class World implements ZocContext {
     if (target.captive) return false;
     // 戰爭迷霧：英雄看不到視野外的敵人（SPEC_SLICE4 §6）
     if (viewer.team === 'hero' && this.fogActive && !this.vision!.isVisible(target.pos)) return false;
-    // 煙霧彈：貼近才看得到
-    if (target.stealthTime > 0) return dist(viewer.pos, target.pos) <= TERRAIN.brushRevealDistance;
+    // 煙霧彈：貼近才看得到；潛行（刺客）：完全看不到
+    if (target.stealthTime > 0) return !target.stealthFull && dist(viewer.pos, target.pos) <= TERRAIN.brushRevealDistance;
     if (!this.terrain.any) return true;
     const patch = this.terrain.patchAt(target.pos);
     if (patch < 0 || target.revealTime > 0) return true;
@@ -1153,6 +1153,7 @@ export class World implements ZocContext {
     }
     tickFocus(this, u);
     if (u.stealthTime > 0) u.stealthTime = Math.max(0, u.stealthTime - DT);
+    if (u.stealthTime <= 0) u.stealthFull = false;
     if (u.burnTime > 0) {
       u.burnTime = Math.max(0, u.burnTime - DT);
       u.burnTick -= DT;
@@ -1443,6 +1444,15 @@ export class World implements ZocContext {
       this.emit({ type: 'notice', unitId: u.id, text: tr("被定身") });
       this.setOrder(u, u.resumeOrder ?? null);
       return;
+    }
+    // 潛行：附近有敵人時不能用（Alan 2026-10-25：被鎖定時仍可用，但要離敵人一段距離）
+    if (def.effect.kind === 'stealth') {
+      const r = def.effect.minEnemyDist;
+      if (this.units.some((e) => !e.dead && e.team !== u.team && !e.captive && dist(e.pos, u.pos) <= r)) {
+        this.emit({ type: 'notice', unitId: u.id, text: tr("敵人太近") });
+        this.setOrder(u, u.resumeOrder ?? null);
+        return;
+      }
     }
     if (def.target === 'self') {
       startAction(this, u, { kind: 'skill', skillId: def.id });
