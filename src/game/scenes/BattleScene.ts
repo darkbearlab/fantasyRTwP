@@ -192,6 +192,8 @@ export class BattleScene extends Phaser.Scene {
   private exitG!: Phaser.GameObjects.Graphics;
   private exitTexts: Phaser.GameObjects.Text[] = [];
   private exitInfo: ExitInfo[] = [];
+  /** 每個單位最後一次被打的攻擊類別與方向（陣亡的血跡用） */
+  private lastHit = new Map<number, { type: string; from: Vec }>();
   /** 已經標示出必須打倒的敵人（隊長、頭目）的方向（Alan 2026-10-22） */
   private targetHint = false;
   /** 互動物件（門、拉桿）的外觀與滑鼠提示 */
@@ -756,6 +758,9 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
           const t = w.getUnit(ev.targetId)!;
           const src = w.getUnit(ev.sourceId)!;
           this.views.get(t.id)?.onHit?.(w.time, src.pos);
+          // 血跡（Alan 2026-10-25）：記住最後一下的攻擊類別，倒下時用；還活著就噴小血滴
+          this.lastHit.set(t.id, { type: ev.damageType, from: { ...src.pos } });
+          if (!t.dead && ev.damage > 0 && t.id !== src.id) this.fx.blood(t.pos, 'hit', src.pos);
           this.fx.text(t.pos, ev.crit ? `${ev.damage}!` : `${ev.damage}`, ev.crit ? '#ffd23f' : '#ffffff', ev.crit ? 24 : 16, 34, 900, this.headZ(t));
           s.addLog(
             tr("{0} → {1}：{2}{3}{4}{5}", { 0: L(src.id), 1: L(t.id), 2: ev.damage, 3: ev.crit ? tr("（爆擊）") : '', 4: ev.skillId ? tr("〔{0}〕", { 0: skillName(ev.skillId) }) : '', 5: ev.freeAttack ? tr("〔脫離攻擊〕") : '' }),
@@ -815,7 +820,9 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
         case 'death': {
           const u = w.getUnit(ev.unitId)!;
           if (enemyRank(u.def) === 'boss') this.bossShow.defeat(u);
-          this.fx.text(u.pos, tr("陣亡"), '#c0c4cc', 16, 20, 1400, this.headZ(u));
+          // 陣亡（Alan 2026-10-25）：不顯示字樣，依最後一下的攻擊類別噴血
+          const last = this.lastHit.get(u.id);
+          this.fx.blood(u.pos, last?.type === 'projectile' ? 'projectile' : last?.type === 'spell' ? 'spell' : last?.type === 'area' ? 'area' : 'melee', last?.from);
           s.addLog(tr("{0} 被 {1} 擊倒", { 0: L(u.id), 1: ev.killerId !== undefined ? L(ev.killerId) : '?' }), 'death');
           s.selection = s.selection.filter((id) => id !== u.id);
           break;
