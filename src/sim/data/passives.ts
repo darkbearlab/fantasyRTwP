@@ -25,10 +25,13 @@ export interface PassiveMods {
 /**
  * 普攻命中時的效果；every：每第 N 次普攻命中才觸發；chance：觸發機率。
  * stun／root：暈眩、定身 duration 秒；burn：點燃目標；zone：在目標腳下留下持續區域（radius、lingering）
+ * stagger：累積目標的失衡 stagger 點（SPEC_STAGGER）。沉穩節奏裡 stun 也改成累積失衡：
+ * 有 stagger 就用它，沒有就用 duration × STAGGER.perStunSec。
  */
 export interface OnHitEffect {
   /** sunder：破甲，目標的物理與特殊護甲每層降低 armor、最多 maxStacks 層，持續 duration 秒（再打中會刷新） */
-  kind: 'stun' | 'root' | 'burn' | 'zone' | 'sunder';
+  kind: 'stun' | 'root' | 'burn' | 'zone' | 'sunder' | 'stagger';
+  stagger?: number;
   armor?: number;
   maxStacks?: number;
   duration?: number;

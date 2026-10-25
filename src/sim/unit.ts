@@ -7,6 +7,7 @@ import type { Attribute } from './data/damageTypes';
 import type { PassiveDef, PassiveMods } from './data/passives';
 import type { ActiveCycle } from './data/cycles';
 import { ITEMS } from './data/items';
+import { poiseOf } from './data/stagger';
 
 export enum UnitState {
   Idle = 'Idle',
@@ -67,6 +68,14 @@ export class Unit {
   action: Action | null = null;
 
   stunTime = 0;
+  /** 失衡值（SPEC_STAGGER）：累積到 poise 就暈眩、歸零 */
+  stagger = 0;
+  /** 暈眩恢復後還剩幾秒「累積減半」（暈眩中不倒數） */
+  staggerHalf = 0;
+  /** 失衡上限 */
+  get poise(): number {
+    return poiseOf(this.def, this.maxHp);
+  }
   /** 被丟出去的飛行中（戰爭領主的擲人）：起點、落點、已飛時間、總時間、丟的人、技能 */
   thrown: { from: { x: number; y: number }; to: { x: number; y: number }; t: number; dur: number; srcId: number; skillId: string } | null = null;
   /** 畫面用：被丟出去時離地的高度（公尺） */

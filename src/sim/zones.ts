@@ -81,7 +81,7 @@ export function updateZones(world: World): void {
           u.burnSourceId = z.sourceId;
         } else if (e.kind === 'damage' && secondTick && src) {
           // 英雄技能留下的地面效果也套技能效果倍率（沉穩節奏）
-          applyDamage(world, u, Math.round(e.perSecond * skillPower(world, src)), 'area', src, { skillId: z.skillId });
+          applyDamage(world, u, Math.round(e.perSecond * skillPower(world, src)), 'area', src, { skillId: z.skillId, dot: true });
         } else if (e.kind === 'heal' && secondTick && !u.dead) {
           const healed = Math.min(src ? Math.round(e.perSecond * skillPower(world, src)) : e.perSecond, u.maxHp - u.hp);
           if (healed <= 0) continue;

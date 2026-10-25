@@ -182,18 +182,19 @@ export const SPEC_DEFENSE: Record<string, { defense: number; armor: number }> = 
 
 /**
  * 爆擊分級（SPEC_CLASSES §2，Alan 2026-10-21；只用在沉穩節奏）：打進去的判定結果（1d100 ＋ 命中 − 防禦…）
- * 越高，爆擊越重。由高到低排列，取第一個達到門檻的。interrupts：打斷準備中的動作；stun：暈眩秒數。
+ * 越高，爆擊越重。由高到低排列，取第一個達到門檻的。interrupts：打斷準備中的動作；
+ * stagger：額外的失衡定額（SPEC_STAGGER：「致命」原本暈眩 0.5 秒，改成失衡）。
  */
 export interface CritTier {
   min: number;
   name: string;
   mult: number;
   interrupts?: boolean;
-  stun?: number;
+  stagger?: number;
 }
 export const CRIT_TIERS: CritTier[] = [
-  { min: 150, name: '致命', mult: 2.5, stun: 0.5 },
-  { min: 120, name: '重擊', mult: 2, interrupts: true },
+  { min: 150, name: '致命', mult: 2.5, stagger: 15 },
+  { min: 120, name: '重擊', mult: 2, interrupts: true, stagger: 8 },
   { min: 100, name: '爆擊', mult: 1.5 },
 ];
 
