@@ -114,10 +114,10 @@ export const PASSIVES: Record<string, PassiveDef> = {
     description: '5 m 內的隊友（含自己）命中 +10、防禦 +5',
     aura: { radius: 5, allies: { accuracy: 10, defense: 5 } },
   },
-  /** 戰地救護（Alan 2026-10-21）：只是說明；效果在遠征層（打贏時有牧師活著才有戰後整補，ECONOMY.fieldCareClasses） */
+  /** 戰地救護（Alan 2026-10-21）：只是說明；效果在遠征層（打贏時有牧師活著，戰後整補從 1/4 提高到一半；ECONOMY.fieldCareClasses） */
   fieldCare: {
     id: 'fieldCare', name: '戰地救護', source: 'class',
-    description: '打贏戰鬥時只要牧師還活著，全隊回復本場損失生命的一半（牧師陣亡就沒有）',
+    description: '打贏戰鬥時只要牧師還活著，全隊回復本場損失生命的一半（沒有牧師時只回 1/4）',
   },
   emberBolt: {
     id: 'emberBolt', name: '火彈', source: 'class',

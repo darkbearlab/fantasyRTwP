@@ -90,13 +90,16 @@ describe('牧師的戰地救護', () => {
     out.won = true;
     return applyBattleResult(r, out);
   };
-  it('牧師活著：打贏後回復一部分損失的生命；牧師陣亡：沒有', () => {
+  it('牧師活著：打贏後回復一部分損失的生命；牧師陣亡：回得比較少（Alan 2026-10-25）', () => {
     const party = ['warrior', 'ranger', 'mage', 'cleric'];
     const a = won(createRun(3, { style: 'deliberate', party }), false);
     const b = won(createRun(3, { style: 'deliberate', party }), true);
     const hpA = a.party[0]!.hp;
     const hpB = b.party[0]!.hp;
     expect(hpA).toBeGreaterThan(hpB);
+    // 沒有牧師也會回：比戰鬥結束時的一半生命多
+    const start = Math.round(maxHpOf(b.party[0]!) / 2);
+    expect(hpB).toBeGreaterThan(start);
   });
 });
 
