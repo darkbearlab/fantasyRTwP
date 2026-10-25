@@ -255,10 +255,18 @@ function currentTargetId(u: Unit): number {
   return -1;
 }
 
-/** 選目標：嘲諷最優先；近戰被擋路就打擋路的；否則評分最高者 */
+/**
+ * 選目標：評分最高者；近戰被擋路就打擋路的。
+ * 嘲諷（Alan 2026-10-25）：差不多一樣近時（tauntTie 公尺內）優先打嘲諷範圍內的嘲諷英雄，不是範圍內就一定來打它。
+ */
 export function pickTarget(world: World, u: Unit, heroes: Unit[]): Unit {
+  const best = pickByScore(world, u, heroes);
   const taunter = tauntingHero(u, heroes);
-  if (taunter && u.def.ai !== 'boss') return taunter;
+  if (taunter && taunter !== best && u.def.ai !== 'boss' && edgeDistance(u, taunter) <= edgeDistance(u, best) + ENEMY_ALERT.tauntTie) return taunter;
+  return best;
+}
+
+function pickByScore(world: World, u: Unit, heroes: Unit[]): Unit {
   const cur = currentTargetId(u);
   let best = heroes[0];
   let bestS = -Infinity;

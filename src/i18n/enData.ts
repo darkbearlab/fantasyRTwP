@@ -80,7 +80,7 @@ export const EN_ENEMIES: Record<string, string> = {
 
 export const EN_PASSIVES: NameDesc = {
   cleave: ['Cleave', 'Basic attacks hit every enemy in a frontal cone; every 3rd hit is heavy (×1.4 damage, knockback)'],
-  tauntAura: ['Taunt Aura', 'Enemies within 5 m prefer to attack the warrior; defense +10'],
+  tauntAura: ['Taunt Aura', 'Enemies within 5 m prefer the warrior when the warrior is about as close as anyone else; defense +10'],
   eagleEye: ['Eagle Eye', 'Sees enemies hiding in brush within 10 m and shares them with the party'],
   blessAura: ['Blessing Aura', 'Allies within 5 m (including self) gain +10 accuracy and +5 defense'],
   fieldCare: ['Field Care', 'If the cleric survives a won battle, the party recovers half the HP lost in that battle'],
@@ -92,7 +92,7 @@ export const EN_PASSIVES: NameDesc = {
   shock: ['Shock', 'Basic attacks splash a small area (no friendly fire)'],
   hexBolt: ['Hex Bolt', 'Basic attacks apply a minor curse (+10% damage taken, slower actions); spreads to a nearby enemy on death'],
   smite: ['Smite', 'Basic attacks interrupt and knock back, and heal the most injured nearby ally'],
-  tauntWide: ['Provoke', 'Enemies within 7 m prefer to attack this hero'],
+  tauntWide: ['Provoke', 'Enemies within 7 m prefer this hero when this hero is about as close as anyone else'],
   guardAura: ['Iron Guard', 'Allies within 4 m gain +8 defense'],
   bloodthirst: ['Bloodthirst', '12% of damage dealt to enemies heals you'],
   chillWide: ['Frost Field', 'Enemies within 4.5 m move and act 25% slower'],

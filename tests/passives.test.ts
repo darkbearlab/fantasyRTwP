@@ -39,10 +39,10 @@ describe('被動框架（SPEC_SLICE5 §14）', () => {
     expect(hitTargets.has(2) && hitTargets.has(3)).toBe(true);
   });
 
-  it('嘲諷光環：光環內的敵人改打戰士，不打旁邊的牧師', () => {
-    // 蠻兵站在牧師旁邊（更近），但也在戰士 3 m 嘲諷光環內
+  it('嘲諷光環：戰士和牧師一樣近時，光環內的敵人打戰士（Alan 2026-10-25：嘲諷是同距離時的優先，明顯比較近的照打，見 taunt.test.ts）', () => {
+    // 蠻兵在戰士與牧師正中間，也在戰士的嘲諷光環內
     const w = makeWorld(
-      [{ defId: 'warrior', pos: { x: 8, y: 6 } }, { defId: 'cleric', pos: { x: 11.5, y: 6 } }, { defId: 'brute', pos: { x: 10.6, y: 6 } }],
+      [{ defId: 'warrior', pos: { x: 8.8, y: 6 } }, { defId: 'cleric', pos: { x: 11.2, y: 6 } }, { defId: 'brute', pos: { x: 10, y: 6 } }],
       { ...D, enemyAggroRange: 30, enemyAggroTime: 0 },
       undefined,
       1,
