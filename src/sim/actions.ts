@@ -17,6 +17,7 @@ import { edgeDistance } from './zoc';
 import { T_SHALLOW } from './terrain';
 import { TERRAIN } from './data/terrain';
 import { COMBOS } from './data/combos';
+import { STAGGER, staggerStunOf } from './data/stagger';
 import type { BasicAttackStyle } from './data/horde';
 import { HORDE_ATTACKS, HORDE_CHAIN } from './data/horde';
 import { addZone, wardReduction } from './zones';
@@ -65,7 +66,11 @@ export function hordeStyle(world: World, u: Unit): BasicAttackStyle | undefined 
  * 由通用觸發框架（triggers.ts）呼叫：舊的 onHit 與新的觸發共用。
  */
 export function applyOnHitEffect(world: World, src: Unit, t: Unit, e: OnHitEffect, passiveId: string): void {
-  if (e.kind === 'stun') applyStun(world, t, e.duration ?? 0.5);
+  if (e.kind === 'stun') {
+    // 沉穩節奏（SPEC_STAGGER）：暈眩改成累積失衡
+    if (world.config.battleStyle === 'deliberate') addStagger(world, t, e.stagger ?? (e.duration ?? 0.5) * STAGGER.perStunSec);
+    else applyStun(world, t, e.duration ?? 0.5);
+  } else if (e.kind === 'stagger') addStagger(world, t, e.stagger ?? 0);
   else if (e.kind === 'root') {
     t.rootTime = Math.max(t.rootTime, e.duration ?? 1);
     t.path = null;
@@ -275,10 +280,14 @@ export function landHurl(world: World, src: Unit, thrown: Unit, point: { x: numb
   const eff = def.effect;
   if (eff.kind !== 'hurl') return;
   world.emit({ type: 'aoe', sourceId: src.id, point: { ...point }, radius: eff.radius, skillId: def.id });
+  // 沉穩節奏：飛行結束就能動；被丟的人落地時額外累積失衡（原本落地暈眩 eff.stun 秒）
+  const typed = world.config.battleStyle === 'deliberate';
+  if (typed) thrown.stunTime = 0;
   for (const o of [...world.units]) {
     if (o.dead || o.team !== thrown.team || dist(o.pos, point) > eff.radius + o.radius * 0.5) continue;
     const dmg = rollDamage(world.rng, eff.damage, damageMultOf(world, src));
-    applyDamage(world, o, mitigate(world, src, o, dmg, def.id, 'area'), 'area', src, { skillId: def.id });
+    const stagger = typed && o === thrown ? { flat: eff.stun * STAGGER.perStunSec } : undefined;
+    applyDamage(world, o, mitigate(world, src, o, dmg, def.id, 'area'), 'area', src, { skillId: def.id, stagger });
   }
 }
 
@@ -457,8 +466,8 @@ function applySkillEffect(world: World, u: Unit, def: SkillDef, t: Unit | undefi
         if (n) to = grid.cellCenter(n.cx, n.cy);
       }
       t.thrown = { from: { ...t.pos }, to, t: 0, dur: eff.flight, srcId: u.id, skillId: def.id };
-      // 飛行中與落地後都不能行動
-      t.stunTime = Math.max(t.stunTime, eff.flight + eff.stun);
+      // 飛行中與落地後都不能行動；沉穩節奏（SPEC_STAGGER）只有飛行中不能動，落地改成累積失衡
+      t.stunTime = Math.max(t.stunTime, eff.flight + (world.config.battleStyle === 'deliberate' ? 0 : eff.stun));
       world.emit({ type: 'status', unitId: t.id, text: tr("被抓起來！") });
       return false;
     }
@@ -945,7 +954,14 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): Uni
   const base = rollDamage(world.rng, p.flatDamage ?? src.def.damage, p.mult * damageMultOf(world, src) * terrainMult * comboMult * power);
   const final = info ? typedDamage(base * critMult, target, info, mu) : applyArmor(base * critMult, target.armor);
   if (info && (mu.w > 0 || mu.r > 0)) world.emit({ type: 'status', unitId: target.id, text: mu.w > 0 ? tr("有效！") : tr("抵抗") });
-  applyDamage(world, target, final, p.damageType, src, { crit, skillId: p.skillId, freeAttack: p.freeAttack });
+  // 失衡（SPEC_STAGGER）：衝擊屬性倍率較高；爆擊等級另有定額；舊資料的暈眩秒數換算成定額（技能有自己的失衡設定時不換算）
+  const stagger = typed
+    ? {
+        mult: info && info.attrs.includes('blunt') ? STAGGER.bluntMult : 1,
+        flat: (tier?.stagger ?? 0) + (p.stun && !(p.skillId && SKILLS[p.skillId]?.stagger) ? p.stun * STAGGER.perStunSec : 0),
+      }
+    : undefined;
+  applyDamage(world, target, final, p.damageType, src, { crit, skillId: p.skillId, freeAttack: p.freeAttack, stagger });
   // 通用觸發（Alan 2026-10-24）：打倒目標只觸發「擊殺」；沒倒就觸發「命中」與「爆擊」
   const trig = { target, basic: !!p.basic, skillId: p.skillId };
   if (target.dead) {
@@ -960,13 +976,17 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): Uni
   if (p.basic && src.cycle && chargeCycleOnHit(src)) world.emit({ type: 'notice', unitId: src.id, text: tr("{0}準備好了", { 0: SKILLS[src.cycle.steps[1]].name }) });
   if (target.dead) return target;
   if (tier && tier !== critTierOf(critAt, critAt)) world.emit({ type: 'status', unitId: target.id, text: tier.name });
-  if (p.interrupts || tier?.interrupts) interrupt(world, src, target, p.interrupts ? p.skillId : undefined);
-  if (p.stun || tier?.stun) applyStun(world, target, Math.max(p.stun ?? 0, tier?.stun ?? 0));
+  // 打斷與失衡是兩條路（SPEC_STAGGER §7）：沉穩節奏的打斷不附帶暈眩，可以另外帶失衡定額
+  if (p.interrupts || tier?.interrupts) {
+    if (interrupt(world, src, target, p.interrupts ? p.skillId : undefined) && typed) addStagger(world, target, STAGGER.interruptFlat);
+  }
+  if (p.stun && !typed) applyStun(world, target, p.stun);
   if (p.knockback) {
     const hitWall = knockback(world, src, target, p.knockback);
     if (hitWall && p.wallStun && !target.dead) {
       world.emit({ type: 'status', unitId: target.id, text: tr("撞牆") });
-      applyStun(world, target, COMBOS.wallStunSeconds);
+      if (typed) addStagger(world, target, STAGGER.wallFlat);
+      else applyStun(world, target, COMBOS.wallStunSeconds);
     }
   }
   return target;
@@ -982,7 +1002,8 @@ export function applyDamage(
   amount: number,
   damageType: DamageType,
   src: Unit,
-  opts: { crit?: boolean; skillId?: string; freeAttack?: boolean } = {},
+  /** stagger：這一下額外的失衡倍率與定額（strike 用）；dot：持續傷害（燃燒、地面效果），不累積失衡 */
+  opts: { crit?: boolean; skillId?: string; freeAttack?: boolean; stagger?: { mult?: number; flat?: number }; dot?: boolean } = {},
 ): void {
   const { crit = false, skillId, freeAttack } = opts;
   const foe = src.team !== target.team;
@@ -1039,6 +1060,11 @@ export function applyDamage(
     target.shieldBroken = true;
     world.emit({ type: 'status', unitId: target.id, text: tr("破盾") });
   }
+  // 失衡（SPEC_STAGGER）：敵方的每一下命中都累積「傷害 × 倍率 ＋ 定額」（技能的設定 × 這一下的額外設定）
+  if (world.config.battleStyle === 'deliberate' && foe && !opts.dot && amount > 0 && target.hp > 0) {
+    const sk = skillId ? SKILLS[skillId]?.stagger : undefined;
+    addStagger(world, target, amount * (sk?.mult ?? 1) * (opts.stagger?.mult ?? 1) + (sk?.flat ?? 0) + (opts.stagger?.flat ?? 0));
+  }
   if (target.hp <= 0) kill(world, target, src);
 }
 
@@ -1051,6 +1077,7 @@ export function kill(world: World, u: Unit, killer?: Unit): void {
   u.resumeOrder = null;
   u.path = null;
   u.stunTime = 0;
+  u.stagger = 0;
   u.rootTime = 0;
   world.slots.release(u.id);
   world.slots.releaseTarget(u.id);
@@ -1071,7 +1098,8 @@ export function interrupt(world: World, src: Unit, t: Unit, bySkill?: string): b
   const { skillId, point } = t.action;
   t.action = null;
   if (skillId && SKILLS[skillId].lostOnInterrupt && !t.spentSkills.includes(skillId)) t.spentSkills.push(skillId);
-  if (!t.def.interruptStunImmune) t.stunTime = Math.max(t.stunTime, INTERRUPT_STUN);
+  // 沉穩節奏（SPEC_STAGGER §7）：打斷不再附帶暈眩
+  if (!t.def.interruptStunImmune && world.config.battleStyle !== 'deliberate') t.stunTime = Math.max(t.stunTime, INTERRUPT_STUN);
   world.emit({ type: 'interrupt', sourceId: src.id, targetId: t.id, skillId, point });
   if (src.team !== t.team && src.passives.some((p) => p.critAfterInterrupt)) {
     src.critPending = true;
@@ -1080,10 +1108,12 @@ export function interrupt(world: World, src: Unit, t: Unit, bySkill?: string): b
   return true;
 }
 
-export function applyStun(world: World, t: Unit, seconds: number, force = false): void {
-  // 只有指定技能打得斷的單位（魔王的冠軍）也不吃一般的暈眩；撞牆暈眩用 force
+export function applyStun(world: World, t: Unit, seconds: number, force = false, label = true): void {
+  // 只有指定技能打得斷的單位（魔王的冠軍）也不吃一般的暈眩；撞牆暈眩、失衡打破用 force
   if (t.def.interruptibleBy && !force) return;
   t.stunTime = Math.max(t.stunTime, seconds);
+  // 暈眩恢復後，和暈眩一樣長的時間內失衡累積減半（SPEC_STAGGER §4）
+  t.staggerHalf = Math.max(t.staggerHalf, seconds);
   if (t.action) {
     t.action = null;
     if (t.nextOrder !== undefined) {
@@ -1091,7 +1121,22 @@ export function applyStun(world: World, t: Unit, seconds: number, force = false)
       t.nextOrder = undefined;
     }
   }
-  world.emit({ type: 'status', unitId: t.id, text: tr("暈眩") });
+  if (label) world.emit({ type: 'status', unitId: t.id, text: tr("暈眩") });
+}
+
+/**
+ * 累積失衡（SPEC_STAGGER，只用在沉穩節奏）：到上限就暈眩這個單位固定的秒數、歸零。
+ * 暈眩中、被丟出去的飛行中不累積；暈眩恢復後的一段時間減半；「堅定」減少。
+ */
+export function addStagger(world: World, t: Unit, amount: number): void {
+  if (world.config.battleStyle !== 'deliberate' || t.dead || t.captive || t.stunTime > 0 || t.thrown || !(amount > 0)) return;
+  if (t.staggerHalf > 0) amount *= STAGGER.afterStunMult;
+  if (t.def.interruptStunImmune) amount *= STAGGER.steadfastMult;
+  t.stagger += amount;
+  if (t.stagger < t.poise) return;
+  t.stagger = 0;
+  world.emit({ type: 'status', unitId: t.id, text: tr("失衡！") });
+  applyStun(world, t, staggerStunOf(t.def), true, false);
 }
 
 /** 擊退；回傳 true 表示途中撞到障礙物 */

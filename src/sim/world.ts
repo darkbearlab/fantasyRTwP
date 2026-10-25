@@ -41,6 +41,7 @@ import { SlotManager } from './nav/slots';
 import { Rng } from './rng';
 import { T_BRUSH, T_HEDGE, T_HIGH, T_SHALLOW, TerrainGrid } from './terrain';
 import { TERRAIN } from './data/terrain';
+import { STAGGER } from './data/stagger';
 import { traceSupercover } from './nav/raycast';
 import type { SimConfig } from './simConfig';
 import { DEFAULT_SIM_CONFIG, scaleRange } from './simConfig';
@@ -345,6 +346,7 @@ export class World implements ZocContext {
     u.action = null;
     u.order = null;
     u.stunTime = 0;
+    u.stagger = 0;
     u.prevPos = { ...u.pos };
     this.emit({ type: 'revive', unitId: u.id });
   }
@@ -678,6 +680,11 @@ export class World implements ZocContext {
 
   /** 戰鬥中／非戰鬥中（SPEC_SLICE7 §2）：非戰鬥中才能換裝備 */
   inCombat = false;
+
+  /** 這個單位在交戰中嗎（失衡值不消退）：我方看戰鬥狀態；敵人要已經警覺而且戰鬥中 */
+  engaged(u: Unit): boolean {
+    return this.inCombat && (u.team !== 'enemy' || u.alerted);
+  }
   private lastClash = -Infinity;
 
   private updateCombatState(): void {
@@ -1152,7 +1159,7 @@ export class World implements ZocContext {
       if (u.burnTick <= 0) {
         u.burnTick = 1;
         const src = this.getUnit(u.burnSourceId) ?? u;
-        applyDamage(this, u, TERRAIN.burnDamagePerSecond, 'area', src, { skillId: 'burn' });
+        applyDamage(this, u, TERRAIN.burnDamagePerSecond, 'area', src, { skillId: 'burn', dot: true });
         if (u.dead) return;
       }
     }
@@ -1194,10 +1201,13 @@ export class World implements ZocContext {
 
   private updateUnit(u: Unit): void {
     if (u.dead) return;
+    // 失衡（SPEC_STAGGER §3）：交戰中不消退；脫離交戰後 decaySec 秒從滿退到 0
+    if (u.stagger > 0 && !this.engaged(u)) u.stagger = Math.max(0, u.stagger - (u.poise * DT) / STAGGER.decaySec);
     if (u.stunTime > 0) {
       u.stunTime = Math.max(0, u.stunTime - DT);
       return;
     }
+    if (u.staggerHalf > 0) u.staggerHalf = Math.max(0, u.staggerHalf - DT);
     if (u.action) {
       const a = u.action;
       if (a.phase === 'windup') {
@@ -1887,7 +1897,7 @@ export class World implements ZocContext {
     return JSON.stringify({
       tick: this.tick,
       rng: this.rng.state,
-      units: this.units.map((u) => [u.id, u.pos.x, u.pos.y, u.hp, u.state, u.order, u.action, u.stunTime, u.cooldowns, u.charges]),
+      units: this.units.map((u) => [u.id, u.pos.x, u.pos.y, u.hp, u.state, u.order, u.action, u.stunTime, u.stagger, u.cooldowns, u.charges]),
       projectiles: this.projectiles.map((p) => [p.id, p.pos.x, p.pos.y]),
       doors: this.interactables.list.map((d) => [d.def.id, d.open, d.uses]),
       result: this.result,

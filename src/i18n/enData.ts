@@ -5,7 +5,7 @@
 type NameDesc = Record<string, [string, string?]>;
 
 export const EN_SKILLS: NameDesc = {
-  shieldBash: ['Shield Bash', 'Melee: damage ×0.8, interrupts, stuns 1 s; shatters frozen targets'],
+  shieldBash: ['Shield Bash', 'Melee: damage ×0.8, interrupts, heavy stagger; shatters frozen targets'],
   guard: ['Guard', 'For 6 s, 50% of melee attacks on allies are redirected to the warrior'],
   charge: ['Charge', 'Dash to an enemy at triple speed (ignores zones of control) and strike on arrival'],
   aimedShot: ['Aimed Shot', 'Damage ×2.0, accuracy +30'],
@@ -144,7 +144,7 @@ export const EN_UPGRADES: NameDesc = {
   fleet: ['Fleet', 'Movement speed +12%'],
   fieldMedic: ['Field Medic', 'The whole party recovers 20% HP'],
   unity: ['Unity', 'Party accuracy +4, defense +4'],
-  steadfast: ['Steadfast', 'Not stunned when interrupted'],
+  steadfast: ['Steadfast', 'Takes 30% less stagger'],
   doubleCast: ['Double Cast', 'One skill can hold 2 charges'],
   titan: ['Titan', 'Max HP +30%, and heal the same amount'],
   mindWard: ['Mind Ward', 'Special defense +10 (spells land less often)'],
@@ -188,7 +188,7 @@ export const EN_UPGRADES: NameDesc = {
 };
 
 export const EN_ITEMS: NameDesc = {
-  ironShield: ['Iron Shield', 'Carries a shield: defense +25 (shields do not stack); every 3rd basic hit stuns the target for 0.5 s'],
+  ironShield: ['Iron Shield', 'Carries a shield: defense +25 (shields do not stack); every 3rd basic hit adds stagger to the target'],
   swiftBoots: ['Swift Boots', 'Movement speed +15%'],
   hawkEye: ['Hawk Eye', 'Basic attack range +1 m; +25% damage to targets below 30% HP'],
   frostRing: ['Frost Ring', 'Basic attacks have a 20% chance to root the target for 1 s'],
@@ -198,7 +198,7 @@ export const EN_ITEMS: NameDesc = {
   leatherArmor: ['Leather Armor', 'Armor +2, defense +5'],
   swiftGloves: ['Swift Gloves', 'Basic attack speed +15%'],
   flameBlade: ['Flame Blade', 'Basic attacks have a 30% chance to ignite the target; damage dealt +5%'],
-  towerShield: ['Tower Shield', 'Carries a shield: defense +25 (shields do not stack); armor +3; every 3rd basic hit stuns the target for 0.8 s'],
+  towerShield: ['Tower Shield', 'Carries a shield: defense +25 (shields do not stack); armor +3; every 3rd basic hit adds heavy stagger to the target'],
   stormBoots: ['Storm Boots', 'Movement speed +20%, basic attack speed +10%'],
   glacierHeart: ['Glacier Heart', 'Basic attacks have a 30% chance to root the target for 1.5 s; defense +5'],
   huntersMark: ["Hunter's Mark", 'Basic hits mark the target for 4 s: it takes +15% damage (at most once every 3 s)'],

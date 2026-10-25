@@ -4,8 +4,9 @@ import type { SkillDef } from './types';
 export const SKILLS: Record<string, SkillDef> = {
   // ── 戰士 ──
   shieldBash: {
-    id: 'shieldBash', name: '盾擊', description: '近戰：傷害 ×0.8，打斷，暈眩 1 秒；可碎冰',
+    id: 'shieldBash', name: '盾擊', description: '近戰：傷害 ×0.8，打斷，大量失衡；可碎冰',
     target: 'enemy', range: 0.3, windup: 0.3, recovery: 0.8, cooldown: 8, requiresLos: false,
+    stagger: { mult: 2, flat: 15 },
     effect: { kind: 'strike', melee: true, mult: 0.8, interrupts: true, stun: 1.0, shatters: true },
   },
   guard: {
@@ -16,6 +17,7 @@ export const SKILLS: Record<string, SkillDef> = {
   charge: {
     id: 'charge', name: '衝鋒', description: '以 3 倍速衝到敵人身邊（無視控制區），抵達時攻擊一次',
     target: 'enemy', range: 12, windup: 0.2, recovery: 0.6, cooldown: 12, requiresLos: true, ignoresZoc: true,
+    stagger: { mult: 1.5, flat: 8 },
     effect: { kind: 'charge', speedMult: 3, maxDuration: 2.5 },
   },
   // ── 遊俠 ──
@@ -95,6 +97,7 @@ export const SKILLS: Record<string, SkillDef> = {
   holySmite: {
     id: 'holySmite', name: '聖光震擊', description: '近戰：傷害 ×1.2，擊退 2 m；撞牆暈眩、可碎冰',
     target: 'enemy', range: 0.3, windup: 0.4, recovery: 0.8, cooldown: 10, requiresLos: false,
+    stagger: { mult: 1.5, flat: 10 },
     effect: { kind: 'strike', melee: true, mult: 1.2, knockback: 2, shatters: true, wallStun: true },
   },
   // ── 共用池（切片 3 新增） ──
@@ -184,6 +187,7 @@ export const SKILLS: Record<string, SkillDef> = {
   ram: {
     id: 'ram', name: '撞擊', description: '衝向英雄（無視控制區），抵達時攻擊並擊退 2 m',
     target: 'enemy', range: 9, windup: 0.6, recovery: 1.0, cooldown: 10, requiresLos: true, ignoresZoc: true,
+    stagger: { mult: 1.5, flat: 10 },
     effect: { kind: 'charge', speedMult: 2.5, maxDuration: 2.5, knockback: 2 },
   },
   bomb: {
@@ -195,6 +199,7 @@ export const SKILLS: Record<string, SkillDef> = {
   sweep: {
     id: 'sweep', name: '橫掃', description: '前方扇形範圍攻擊，準備 1.5 秒，可打斷',
     target: 'ground', range: 3, windup: 1.5, recovery: 1.0, cooldown: 7, requiresLos: false, telegraph: true,
+    stagger: { mult: 1.5, flat: 10 },
     effect: { kind: 'cone', radius: 3.6, angle: 110, damage: [14, 20], friendlyFire: false },
   },
   hurl: {
@@ -212,11 +217,13 @@ export const SKILLS: Record<string, SkillDef> = {
   rush: {
     id: 'rush', name: '直線衝鋒', description: '地面預兆線約 1.5 秒後直線衝鋒 8 m，撞到的英雄受傷（不擊倒）',
     target: 'ground', range: 8, windup: 0.85, recovery: 1.2, cooldown: 5, requiresLos: true, telegraph: true,
+    stagger: { mult: 1.5, flat: 12 },
     effect: { kind: 'rush', distance: 8, speed: 11, width: 1.2, damage: [10, 15] },
   },
   leap: {
     id: 'leap', name: '跳躍突進', description: '落點預兆圈約 0.8 秒後跳到目標點，落地時攻擊周圍',
     target: 'ground', range: 9, windup: 0.45, recovery: 0.8, cooldown: 5, requiresLos: true, telegraph: true,
+    stagger: { mult: 1.5, flat: 12 },
     effect: { kind: 'leap', speed: 12, radius: 1.3, mult: 1.3 },
   },
   hook: {
@@ -233,16 +240,19 @@ export const SKILLS: Record<string, SkillDef> = {
   sentinelRush: {
     id: 'sentinelRush', name: '直線衝鋒', description: '直線衝鋒 9 m，撞到的英雄受傷；撞牆會自己暈眩',
     target: 'ground', range: 9, windup: 0.9, recovery: 0.8, cooldown: 4, requiresLos: true, telegraph: true,
+    stagger: { mult: 1.5, flat: 12 },
     effect: { kind: 'rush', distance: 9, speed: 12, width: 1.4, damage: [14, 20], wallStun: 2 },
   },
   sentinelStomp: {
     id: 'sentinelStomp', name: '馬匹震地', description: '以自己為中心的範圍攻擊並擊退',
     target: 'self', range: 0, windup: 0.8, recovery: 0.6, cooldown: 4, requiresLos: false, telegraph: true,
+    stagger: { mult: 1.5, flat: 10 },
     effect: { kind: 'quake', radius: 2.6, damage: [10, 15], knockback: 2.2 },
   },
   sentinelSweepRush: {
     id: 'sentinelSweepRush', name: '橫掃衝鋒', description: '直線衝鋒，武器橫在右側一起帶過去：衝鋒路徑和旁邊的一條帶狀區域都有傷害；撞牆會自己暈眩',
     target: 'ground', range: 9, windup: 1.1, recovery: 0.9, cooldown: 6, requiresLos: true, telegraph: true,
+    stagger: { mult: 1.5, flat: 12 },
     effect: { kind: 'rush', distance: 9, speed: 12, width: 1.4, damage: [12, 18], wallStun: 2, side: { offset: 2, width: 1.6, damage: [14, 20] } },
   },
   sentinelBreath: {
@@ -259,6 +269,7 @@ export const SKILLS: Record<string, SkillDef> = {
   clubSweep: {
     id: 'clubSweep', name: '巨棒橫掃', description: '前方扇形範圍攻擊並擊退，準備 1.2 秒，可打斷',
     target: 'ground', range: 2.5, windup: 1.2, recovery: 1.0, cooldown: 7, requiresLos: false, telegraph: true,
+    stagger: { mult: 1.5, flat: 10 },
     effect: { kind: 'cone', radius: 2.8, angle: 100, damage: [12, 17], friendlyFire: false },
   },
   orcWarcry: {
@@ -270,11 +281,13 @@ export const SKILLS: Record<string, SkillDef> = {
   chiefLeap: {
     id: 'chiefLeap', name: '跳斬', description: '落點預兆圈後跳到後排，落地時攻擊周圍',
     target: 'ground', range: 11, windup: 0.9, recovery: 1.2, cooldown: 10, requiresLos: true, telegraph: true,
+    stagger: { mult: 1.5, flat: 12 },
     effect: { kind: 'leap', speed: 11, radius: 2, mult: 1.5 },
   },
   boulder: {
     id: 'boulder', name: '投擲巨石', description: '拋物線投擲（不需視線）：落點預兆圈，半徑 2.2 m 傷害 14–20',
     target: 'ground', range: 13, windup: 1.6, recovery: 1.2, cooldown: 9, requiresLos: false, telegraph: true,
+    stagger: { mult: 1.5, flat: 10 },
     effect: { kind: 'aoe', radius: 2.2, damage: [14, 20], friendlyFire: false, projectileSpeed: 10, projectileKind: 'flask' },
   },
   hatch: {

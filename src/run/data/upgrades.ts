@@ -62,7 +62,7 @@ export const UPGRADES: Record<string, UpgradeDef> = {
   fieldMedic: { id: 'fieldMedic', name: '戰地醫療', description: '全隊回復 20% 生命', scope: 'party', healPct: 0.2 },
   // Alan 2026-10-21：沉穩節奏拿掉同袍（舊模式照舊）
   unity: { id: 'unity', name: '同袍', description: '全隊命中 +4、防禦 +4', scope: 'party', partyMods: { accuracy: 4, defense: 4 }, style: 'tactical' },
-  steadfast: { id: 'steadfast', name: '堅定', description: '被打斷時不會暈眩', rare: true, scope: 'hero', mods: { interruptStunImmune: true } },
+  steadfast: { id: 'steadfast', name: '堅定', description: '受到的失衡 −30%', rare: true, scope: 'hero', mods: { interruptStunImmune: true } },
   doubleCast: { id: 'doubleCast', name: '二連', description: '一個技能可以儲存 2 次', rare: true, scope: 'hero', needsSkill: true, mods: { skillCharges: 2 } },
   titan: { id: 'titan', name: '不屈', description: '最大生命 +30%，並立刻回復同等數值', rare: true, scope: 'hero', mods: { maxHpPct: 0.3 }, healPct: 0.3 },
   // ── 沉穩節奏的通用池補充：特殊防禦（SPEC_CLASSES §1） ──

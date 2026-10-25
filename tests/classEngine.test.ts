@@ -40,7 +40,7 @@ describe('昇變的通用機制（SPEC_CLASSES §2）', () => {
     expect(critTierOf(99)).toBeNull();
     expect(critTierOf(100)?.mult).toBe(1.5);
     expect(critTierOf(120)).toMatchObject({ mult: 2, interrupts: true });
-    expect(critTierOf(150)).toMatchObject({ mult: 2.5, stun: 0.5 });
+    expect(critTierOf(150)).toMatchObject({ mult: 2.5, stagger: 15 });
   });
 
   it('致命一擊：傷害 ×2.5 並暈眩', () => {

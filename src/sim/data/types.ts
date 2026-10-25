@@ -88,6 +88,10 @@ export interface UnitDef {
   knockbackImmune?: boolean;
   /** 只有這些技能打得斷（例：冠軍只能被盾擊、瞄準射擊打斷；普攻、爆擊的打斷都無效） */
   interruptibleBy?: string[];
+  /** 失衡上限（SPEC_STAGGER；省略時依最大生命換算，見 data/stagger.ts） */
+  poise?: number;
+  /** 失衡打破時暈眩幾秒（省略時依階級，見 data/stagger.ts） */
+  staggerStun?: number;
   /** 帶著的被動（PASSIVES 的 id；沉穩節奏，敵我都適用；例：戰鬥圖騰的光環） */
   passives?: string[];
   /** 升級給的特殊防禦、特殊護甲加成（沉穩節奏的物理／特殊公式） */
@@ -239,6 +243,8 @@ export interface SkillDef {
   oncePerBattle?: boolean;
   /** 被打斷就不能再用 */
   lostOnInterrupt?: boolean;
+  /** 失衡（SPEC_STAGGER，沉穩節奏）：這招的命中累積「傷害 × mult ＋ flat」；省略為 ×1、＋0 */
+  stagger?: { mult?: number; flat?: number };
   effect: SkillEffect;
 }
 

@@ -188,7 +188,7 @@ describe('同隊間隔（Alan 2026-10-21：不要擠成一坨）', () => {
 });
 
 describe('戰爭領主的擲人（Alan 2026-10-21）', () => {
-  it('抓起身邊的英雄丟向遠處的英雄；落點範圍內的英雄受傷，被丟的人暈眩', () => {
+  it('抓起身邊的英雄丟向遠處的英雄；落點範圍內的英雄受傷，被丟的人落地累積失衡（SPEC_STAGGER）', () => {
     const w = new World({
       seed: 2,
       map: { ...MAP, width: 30, height: 20 },
@@ -215,6 +215,6 @@ describe('戰爭領主的擲人（Alan 2026-10-21）', () => {
     // 落點在法師附近：戰士被丟過去
     expect(Math.hypot(war.pos.x - 14, war.pos.y - 10)).toBeLessThan(3);
     expect(mage.hp).toBeLessThan(mageHp0);
-    expect(war.stunTime).toBeGreaterThan(0);
+    expect(war.stagger > 0 || war.stunTime > 0).toBe(true);
   });
 });

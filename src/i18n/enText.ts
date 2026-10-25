@@ -212,6 +212,7 @@ export const EN_TEXT: Record<string, string> = {
   "昇變！→ {0}": "Evolves! → {0}",
   "時間倍率": "Time scale",
   "暈眩": "Stunned",
+  "失衡！": "Staggered!",
   "暫停中": "Paused",
   "暫停代表狀況發生了，英雄要重新選": "A pause means something happened — reselect your heroes",
   "暫停時取消選取所有英雄": "Deselect all heroes when pausing",
