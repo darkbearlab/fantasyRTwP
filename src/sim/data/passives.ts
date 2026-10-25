@@ -90,7 +90,7 @@ export const PASSIVES: Record<string, PassiveDef> = {
   tauntAura: {
     id: 'tauntAura', name: '嘲諷光環', source: 'class',
     // Alan 2026-10-20：主動換成盾擊後，嘲諷光環加大、防禦提高，彌補保護能力
-    description: '5 m 內的敵人優先攻擊戰士；防禦 +10',
+    description: '5 m 內的敵人，在戰士和其他英雄差不多近時優先攻擊戰士；防禦 +10',
     taunt: 5,
     mods: { defense: 10 },
   },
@@ -153,7 +153,7 @@ export const PASSIVES: Record<string, PassiveDef> = {
     attack: { kind: 'smite', knockback: 0.8, heal: 4, healRadius: 6, interrupts: true },
   },
   // ── 專屬升級給的被動（SPEC_CLASSES §3，數值佔位）──
-  tauntWide: { id: 'tauntWide', name: '挑釁', source: 'class', description: '7 m 內的敵人優先攻擊這名英雄', taunt: 7 },
+  tauntWide: { id: 'tauntWide', name: '挑釁', source: 'class', description: '7 m 內的敵人，在這名英雄和其他英雄差不多近時優先攻擊這名英雄', taunt: 7 },
   guardAura: { id: 'guardAura', name: '鐵衛', source: 'class', description: '4 m 內的隊友防禦 +8', aura: { radius: 4, allies: { accuracy: 0, defense: 8 } } },
   bloodthirst: { id: 'bloodthirst', name: '嗜血', source: 'class', description: '對敵人造成的傷害 12% 轉成自己的生命', lifesteal: 0.12 },
   chillWide: { id: 'chillWide', name: '寒域', source: 'class', description: '4.5 m 內的敵人移動與行動速度 -25%', aura: { radius: 4.5, enemies: { slow: 0.25 } } },

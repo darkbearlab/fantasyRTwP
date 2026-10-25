@@ -331,6 +331,11 @@ export const ENEMY_TARGETING: TargetingWeights = {
 
 /** 敵人選目標的換算基準（沉穩節奏）；警覺距離沿用 SimConfig.enemyAggroRange（英雄進入且看得到就警覺，同小隊一起） */
 export const ENEMY_ALERT = {
+  /**
+   * 嘲諷（Alan 2026-10-25）：嘲諷不再是「範圍內就一定來打嘲諷的」，而是同樣距離時優先打嘲諷的。
+   * 敵人照平常的評分選出目標後，嘲諷範圍內的嘲諷英雄如果沒有比那個目標遠超過 tauntTie 公尺（邊緣距離），就改打嘲諷英雄。
+   */
+  tauntTie: 1,
   /** 距離因子：這個距離以外為 0 */
   distanceFull: 20,
   /** 仇恨：計算最近幾秒的傷害、滿分是多少傷害 */
