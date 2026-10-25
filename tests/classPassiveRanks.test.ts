@@ -42,7 +42,17 @@ describe('職業被動的等級', () => {
     const w = createBattleFromRun(r);
     const ranger = w.heroes().find((u) => u.def.id === 'ranger')!;
     const p = ranger.passives.find((x) => x.id === 'pierce')!;
-    expect((p.attack as { maxTargets: number }).maxTargets).toBe(4);
+    // 穿透從等級 0 開始（Alan 2026-10-25）：升一次是第 1 級＝原本的穿透
+    expect((p.attack as { maxTargets: number }).maxTargets).toBe(3);
+  });
+
+  it('遊俠的穿透、牧師的聖鎚從等級 0 開始：一開始沒有，升級才拿到', () => {
+    const r = createRun(5, { style: 'deliberate', party: ['ranger', 'cleric'] });
+    expect(classPassivesOf(r.party[0]!).map((p) => p.id)).not.toContain('pierce');
+    expect(classPassivesOf(r.party[1]!).map((p) => p.id)).not.toContain('smite');
+    expect(classPassivesOf(r.party[0]!).map((p) => p.id)).toContain('eagleEye');
+    expect(maxRankOf('cp_pierce')).toBe(3);
+    expect(maxRankOf('cp_eagleEye')).toBe(2);
   });
 
   it('起始等級 0：一開始沒有那個被動，要從升級拿', () => {

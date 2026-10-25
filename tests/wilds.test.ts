@@ -77,15 +77,22 @@ describe('第 2 章「荒野」：獸人部落（SPEC_CAMPAIGN）', () => {
     // 英雄散開站在酋長前方，酋長警覺
     heroes.forEach((h, i) => (h.pos = { x: chief.pos.x - 3 - i * 2.5, y: chief.pos.y + (i % 2 ? 2 : -2) }));
     for (const e of w.units) if (e.team === 'enemy') e.alerted = true;
+    // 這裡只看酋長自己的招式：不讓英雄打斷（普攻爆擊、瞄準射擊都可能打斷戰吼，那是另外的規則）
+    Object.assign(chief.def, { interruptibleBy: ['__none__'] });
     const used = new Set<string>();
+    // 戰吼叫來的哥布林可能在結束前就被打倒了：記住有沒有出現過
+    let goblins = 0;
     for (let t = 0; t < 40 / DT && !w.result; t++) {
-      for (const ev of w.step()) if (ev.type === 'actionStart' && ev.unitId === chief.id && ev.skillId) used.add(ev.skillId);
+      for (const ev of w.step()) {
+        if (ev.type === 'actionStart' && ev.unitId === chief.id && ev.skillId) used.add(ev.skillId);
+        if (ev.type === 'spawn' && w.getUnit(ev.unitId)?.def.id === 'goblin') goblins++;
+      }
       if (t === Math.round(20 / DT)) chief.hp = Math.min(chief.hp, chief.maxHp * 0.4);
       for (const h of heroes) h.hp = h.maxHp;
     }
     expect(used.has('chiefLeap') || used.has('boulder')).toBe(true);
     expect(used.has('orcWarcry')).toBe(true);
-    expect(w.units.some((u) => u.def.id === 'goblin' && u.team === 'enemy')).toBe(true);
+    expect(goblins).toBeGreaterThan(0);
   });
 
   it('第 1 章維持帝國叛軍與戰爭領主', () => {

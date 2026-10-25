@@ -113,7 +113,7 @@
   - **職業被動的等級**（Alan 2026-10-25）：
     - 四個基本職業可以變強的被動（橫掃、嘲諷光環、穿透箭、鷹眼、火彈、寒氣、聖鎚、祝福光環）分等級，最高 3 級。
     - 每級加多少在 `CLASS_PASSIVE_RANKS`（`src/sim/data/passives.ts`，`passiveAtRank` 產生各級的樣子，id 不變）。
-    - 起始等級 `CLASS_PASSIVE_RULES.startRank`：1＝天生就有，0＝要從升級拿。
+    - 起始等級 `CLASS_PASSIVE_RULES.startRank`：1＝天生就有，0＝要從升級拿。個別被動可以用 `start` 指定（遊俠的穿透箭、牧師的聖鎚是 0，Alan 2026-10-25）。
     - 升級是 `cp_<被動>`（`UpgradeDef.innate`），出現在每人三選一的職業格。不算昇變配方；昇變後只要新職業還有這個被動，就能繼續升。
     - 戰鬥時由 `classPassivesOf` 透過 `UnitSpawn.classPassives` 帶進 sim；舊模式照舊用 `CLASS_PASSIVES`。
     - 戰地救護沒有可以變強的數字，維持天生。
