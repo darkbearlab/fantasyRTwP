@@ -1,5 +1,5 @@
 /**
- * 營火對話（Alan 2026-10-20）：休息節點先顯示英雄圍著火堆的畫面，上下兩個對話框輪流說話；
+ * 營火對話（Alan 2026-10-20）：休息節點先顯示英雄圍著火堆的畫面，上方的對話框輪流說話（Alan 2026-10-25：只留上面一個框，手機上下兩個框會擠在一起）；
  * 點一下推進，說完（或按略過）才回到休息選單。
  * 英雄用戰鬥中的 sprite（heroes3d 預渲染或 Flare 分層），頭像也直接用 sprite（面向鏡頭、只露上半身）。
  */
@@ -167,7 +167,7 @@ export class CampfireScene extends Phaser.Scene {
   private lightMap: { dark: Phaser.Textures.CanvasTexture; warm: Phaser.Textures.CanvasTexture; cell: number; gw: number; gh: number; radius: number; next: number } | null = null;
   private glowG!: Phaser.GameObjects.Graphics;
   private seated: { slot: number; classId: string; x: number; y: number; top: boolean; sprite: HeroSprite | null; ring: Phaser.GameObjects.Graphics }[] = [];
-  private boxes!: { top: DialogBox; bottom: DialogBox };
+  private box!: DialogBox;
   private lineIndex = -1;
   private typed = 0;
   private fullText = '';
@@ -205,10 +205,10 @@ export class CampfireScene extends Phaser.Scene {
     const measured = barTop !== undefined && canvas.height > 0 ? ((barTop - canvas.top) * H) / canvas.height : NaN;
     const areaBottom = Number.isFinite(measured) && measured > H * 0.4 ? Math.min(H - reserve, measured) : H - reserve;
     const topBoxY = 12;
-    const bottomBoxY = areaBottom - 12 - CAMP.boxHeight;
-    // 兩個對話框之間放火堆與英雄：上排英雄的頭不碰到上框，下排英雄的腳不碰到提示列
+    // 對話框下面放火堆與英雄：上排英雄的頭不碰到對話框，下排英雄的腳不碰到最下面的提示列
+    const hintY = areaBottom - 12;
     const m0 = topBoxY + CAMP.boxHeight + 8;
-    const m1 = bottomBoxY - 56;
+    const m1 = hintY - 48;
     // 營火的倍率（整數）：一般畫面 3 倍、窄畫面 2 倍；英雄圍在營火旁邊（Alan 2026-10-22：再靠近一點）
     const k = W >= 700 ? 3 : 2;
     const fireHalf = 24 * k;
@@ -255,8 +255,8 @@ export class CampfireScene extends Phaser.Scene {
     this.fireG.setDepth(this.lightMap ? 34 : 10);
     this.glowG.setDepth(11);
 
-    this.boxes = { top: this.makeBox(topBoxY), bottom: this.makeBox(bottomBoxY) };
-    const by = bottomBoxY - 8;
+    this.box = this.makeBox(topBoxY);
+    const by = hintY;
     this.add.text(14, by, tr("點一下繼續"), { fontFamily: FONT, fontSize: '13px', color: '#b8b8b8' }).setOrigin(0, 1).setDepth(40);
     this.skipBtn = this.add
       .text(W - 14, by, tr("略過 ▶▶"), { fontFamily: FONT, fontSize: '15px', color: '#ffffff', backgroundColor: '#000000', padding: { x: 10, y: 5 } })
@@ -333,10 +333,8 @@ export class CampfireScene extends Phaser.Scene {
       return;
     }
     const who = this.seated.find((s) => s.slot === line.slot);
-    const box = who && !who.top ? this.boxes.bottom : this.boxes.top;
-    // 另一個框保留上一句，變暗
-    for (const b of [this.boxes.top, this.boxes.bottom]) b.root.setAlpha(b === box ? 1 : b.root.alpha > 0 ? 0.45 : 0);
-    for (const b of [this.boxes.top, this.boxes.bottom]) for (const o of b.portraitObjs) (o as Phaser.GameObjects.Sprite).setAlpha(b === box ? 1 : 0.45);
+    const box = this.box;
+    box.root.setAlpha(1);
     const classId = who?.classId ?? HEROES.warrior.id;
     box.name.setText(HEROES[classId].name).setColor(hex(HEROES[classId].color));
     this.setPortrait(box, classId);
