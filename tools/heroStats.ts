@@ -16,6 +16,7 @@ import { deliberateConfig } from '../src/sim/data/deliberate';
 import type { MapDef, UnitDef } from '../src/sim/data/types';
 import { DEFAULT_SIM_CONFIG } from '../src/sim/simConfig';
 import { World } from '../src/sim/world';
+import { setHitBase } from '../src/sim/data/hit';
 import type { UnitSpawn } from '../src/sim/world';
 
 function arg(name: string): string | undefined {
@@ -23,6 +24,9 @@ function arg(name: string): string | undefined {
   return i >= 0 ? process.argv[i + 1] : undefined;
 }
 const SECONDS = Number(arg('seconds') ?? 120);
+// 試算命中公式（Alan 2026-10-25）：--hitBase 95＝基礎命中 95%（現行相當於 51）
+const HIT_BASE = arg('hitBase') ? Number(arg('hitBase')) : null;
+if (HIT_BASE !== null) setHitBase(HIT_BASE);
 
 const HERO_CLASSES = ['warrior', 'ranger', 'mage', 'cleric'];
 const NAME: Record<string, string> = { warrior: '戰士', ranger: '遊俠', mage: '法師', cleric: '牧師' };
@@ -103,7 +107,7 @@ const log = (s = '') => {
   console.log(s);
 };
 
-log(`# 英雄的預期命中率與傷害（npm run herostats，每組站樁 ${SECONDS} 秒）`);
+log(`# 英雄的預期命中率與傷害（npm run herostats，每組站樁 ${SECONDS} 秒${HIT_BASE !== null ? `，基礎命中 ${HIT_BASE}%` : ''}）`);
 log('');
 log('- 只算普攻，不放技能；英雄只算等級成長，不算升級、裝備；職業被動照起始等級（遊俠沒有穿透、牧師沒有聖鎚）。');
 log('- 敵人數值取自真的遠征戰鬥（全程深度強度、前期生命對齊、一般敵人生命減半都算進去）。');
@@ -115,6 +119,7 @@ for (const P of POINTS) {
   log('');
   log('| 英雄 | 敵人（生命） | 英雄命中 | 爆擊 | 每下傷害 | 每秒傷害 | 擊倒 | 敵人命中 | 敵人每秒傷害 | 撐 |');
   log('|---|---|---|---|---|---|---|---|---|---|');
+  const agg = { hit: 0, dps: 0, kill: 0, ehit: 0, edps: 0, hold: 0, n: 0 };
   for (const cls of HERO_CLASSES) {
     const hs = heroSpawn(cls, P.level, { x: 10, y: 6 });
     for (const e of enemies) {
@@ -124,11 +129,22 @@ for (const P of POINTS) {
       const dps = h.damage / SECONDS;
       const edps = back.damage / SECONDS;
       const heroHp = hs.def!.maxHp;
+      agg.n++;
+      agg.hit += h.hits / Math.max(1, h.attacks);
+      agg.dps += dps;
+      agg.kill += dps > 0 ? e.maxHp / dps : 0;
+      agg.ehit += back.hits / Math.max(1, back.attacks);
+      agg.edps += edps;
+      agg.hold += edps > 0 ? Math.min(600, heroHp / edps) : 600;
       log(
         `| ${NAME[cls]} | ${e.name}（${e.maxHp}） | ${pct(h.hits / Math.max(1, h.attacks))} | ${pct(h.crits / Math.max(1, h.hits))} | ${(h.damage / Math.max(1, h.hits)).toFixed(1)} | ${dps.toFixed(1)} | ${dps > 0 ? (e.maxHp / dps).toFixed(1) + ' 秒' : '—'} | ${pct(back.hits / Math.max(1, back.attacks))} | ${edps.toFixed(1)} | ${edps > 0 ? (heroHp / edps).toFixed(0) + ' 秒' : '—'} |`,
       );
     }
   }
+  const n = Math.max(1, agg.n);
+  log('');
+  log(`平均：英雄命中 ${pct(agg.hit / n)}、英雄每秒傷害 ${(agg.dps / n).toFixed(1)}、擊倒 ${(agg.kill / n).toFixed(1)} 秒；敵人命中 ${pct(agg.ehit / n)}、敵人每秒傷害 ${(agg.edps / n).toFixed(1)}、英雄撐 ${(agg.hold / n).toFixed(0)} 秒（最多算 600）`);
+  console.error(`SUMMARY ch${P.chapter + 1} hit ${pct(agg.hit / n)} dps ${(agg.dps / n).toFixed(2)} kill ${(agg.kill / n).toFixed(1)} | ehit ${pct(agg.ehit / n)} edps ${(agg.edps / n).toFixed(2)} hold ${(agg.hold / n).toFixed(0)}`);
 }
 if (arg('out')) {
   const { writeFileSync } = await import('node:fs');
