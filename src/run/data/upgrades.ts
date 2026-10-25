@@ -1,4 +1,5 @@
 import { HEROES } from '../../sim/data/heroes';
+import { CLASS_PASSIVES, CLASS_PASSIVE_RANKS, PASSIVES } from '../../sim/data/passives';
 import { RECIPES, evolveUpgradeId } from './recipes';
 /** 強化池（SPEC_SLICE2 §9）。強化以修飾器套在基礎數值上，RunState 只記錄擁有哪些強化。 */
 export interface UpgradeMods {
@@ -45,6 +46,8 @@ export interface UpgradeDef {
   style?: 'deliberate' | 'tactical';
   /** 配方昇變（SPEC_SLICE7 §3.2）：選了就照這份配方昇變（data/recipes.ts） */
   evolve?: string;
+  /** 職業被動升一級（Alan 2026-10-25）：哪個基本職業的哪個被動；不算昇變配方，昇變後只要新職業還有這個被動就能繼續升 */
+  innate?: { classId: string; passive: string };
 }
 
 export const UPGRADES: Record<string, UpgradeDef> = {
@@ -143,4 +146,15 @@ for (const rc of RECIPES) {
   const name = HEROES[rc.evolvesTo]?.name ?? rc.evolvesTo;
   const id = evolveUpgradeId(rc.id);
   UPGRADES[id] = { id, name: `昇變：${name}`, description: `配方湊齊了：昇變成${name}`, scope: 'hero', evolve: rc.id };
+}
+
+// 職業被動升級（Alan 2026-10-25）：英雄本來就有的被動，升級三選一裡可以一級一級強化
+for (const [classId, ids] of Object.entries(CLASS_PASSIVES)) {
+  if (!['warrior', 'ranger', 'mage', 'cleric'].includes(classId)) continue;
+  for (const pid of ids) {
+    const R = CLASS_PASSIVE_RANKS[pid];
+    if (!R) continue;
+    const id = `cp_${pid}`;
+    UPGRADES[id] = { id, name: `${PASSIVES[pid].name}・升級`, description: `每升一級：${R.growText}`, scope: 'hero', innate: { classId, passive: pid } };
+  }
 }

@@ -55,7 +55,8 @@ describe('每名英雄各自升級', () => {
   it('三選一裡有職業升級；升滿的不再出現；昇變後只剩通用升級', () => {
     const r = createRun(4, { style: 'deliberate', party: ['warrior'] });
     const offer = heroLevelUpOffer(r, 0, rngFor(1, 't'), 3);
-    expect(offer.filter((id) => UPGRADES[id].branch).length).toBe(RECIPE_RULES.classSlots);
+    // 職業升級＝昇變配方的升級＋職業被動升級
+    expect(offer.filter((id) => UPGRADES[id].branch || UPGRADES[id].innate).length).toBe(RECIPE_RULES.classSlots);
     grantUpgrade(r, 'bkFury', 0);
     grantUpgrade(r, 'bkFury', 0);
     expect(rankOf(r.party[0]!, 'bkFury')).toBe(2);

@@ -5,7 +5,8 @@ import { PERSONALITY_LABEL } from '../../sim/ai/idleBehavior';
 import type { Personality } from '../../sim/data/types';
 import { UPGRADES } from '../../run/data/upgrades';
 import type { RunState } from '../../run/runState';
-import { branchProgress, canEvolve, maxHpOf, maxRankOf, rankOf, recipeDone, recipesOf } from '../../run/upgrades';
+import { branchProgress, canEvolve, classPassivesOf, maxHpOf, maxRankOf, rankOf, recipeDone, recipesOf } from '../../run/upgrades';
+import { CLASS_PASSIVE_RANKS, PASSIVES } from '../../sim/data/passives';
 import { BRANCH_RULES, BRANCHES } from '../../run/data/branches';
 import { battleSkillsOf } from '../../run/loadout';
 import { hex } from '../render/palette';
@@ -64,6 +65,9 @@ export function partyPanel(run: RunState, opts: PartyPanelOptions = {}): HTMLEle
     // 昇變分支的進度（SPEC_CLASSES §5）；昇變後標出原本的職業
     const base = h.baseClass;
     if (run.forward) {
+      // 職業被動的等級（Alan 2026-10-25）
+      const ranks = classPassivesOf(h).filter((p) => CLASS_PASSIVE_RANKS[p.id]);
+      if (ranks.length) info.appendChild(el('div', 'party-branches', ranks.map((p) => `${PASSIVES[p.id].name} Lv${p.rank}`).join('・')));
       // 配方昇變（SPEC_SLICE7 §3.2）：每份配方一行，拿到的升級亮起來，要升滿的那個標出等級
       const recipes = recipesOf(h);
       if (recipes.length) {

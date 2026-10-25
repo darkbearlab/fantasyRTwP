@@ -500,6 +500,7 @@ export const EN_TEXT: Record<string, string> = {
   "途中：🔥 營火": "On the way: 🔥 Campfire",
   "途中：✨ 有敵人以外的氣息": "On the way: ✨ You sense someone who is not an enemy",
   "操作：點英雄卡名字或按 1–4 選人（在卡片上左右拖曳可以一次選多名）→ 點地圖移動、按住（或右鍵）攻擊移動；點卡片下半或按 Q 放技能；空白鍵暫停；拖曳或 WASD 移動鏡頭": "Controls: tap a hero card name or press 1–4 to select (drag across cards to select several) → click the map to move, hold (or right-click) to attack-move; click the lower card or press Q for the skill; Space pauses; drag or WASD moves the camera",
+  "職業被動": "Class passive",
   // 標點、排版用的鍵
   "，": ", ",
   "MVP　{0}{1}": "MVP  {0}{1}",
