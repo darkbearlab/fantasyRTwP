@@ -3,6 +3,7 @@
  * 不修改 HEROES 資料表。
  */
 import { tr } from '../i18n/lang';
+import { CLASS_PASSIVES, CLASS_PASSIVE_RANKS, CLASS_PASSIVE_RULES } from '../sim/data/passives';
 import { HEROES } from '../sim/data/heroes';
 import { CLASSES } from '../sim/data/classes';
 import type { UnitDef } from '../sim/data/types';
@@ -106,7 +107,7 @@ export function generalUpgradeIds(style?: RunStyle): string[] {
   const deliberate = style === 'deliberate';
   return Object.keys(UPGRADES).filter((id) => {
     const u = UPGRADES[id];
-    return !u.branch && !u.evolve && (!u.style || u.style === (deliberate ? 'deliberate' : 'tactical'));
+    return !u.branch && !u.evolve && !u.innate && (!u.style || u.style === (deliberate ? 'deliberate' : 'tactical'));
   });
 }
 
@@ -140,7 +141,8 @@ export function grantUpgrade(run: RunState, upgradeId: string, slot?: number, sk
     if (!recipeDone(h, rc)) throw new Error(`「${def.name}」的配方還沒湊齊`);
     return evolveHero(run, slot!, rc);
   }
-  if (run.forward && def.branch && rankOf(h, def.id) >= maxRankOf(def.id)) throw new Error(`「${def.name}」已經升滿了`);
+  if (run.forward && (def.branch || def.innate) && rankOf(h, def.id) >= maxRankOf(def.id)) throw new Error(`「${def.name}」已經升滿了`);
+  if (def.innate && (def.innate.classId !== (h.baseClass ?? h.classId) || !(CLASS_PASSIVES[h.classId] ?? []).includes(def.innate.passive))) throw new Error(`「${def.name}」不是這名英雄的被動`);
   if (def.needsSkill && (!skillId || !battleSkillsOf(run, h).includes(skillId))) throw new Error(`「${def.name}」需要指定該英雄的技能`);
   if (run.forward && def.branch && (h.baseClass || def.branch.classId !== h.classId)) throw new Error(`「${def.name}」不是這名英雄的職業升級`);
   if (def.branch && !run.forward && !canTakeExclusive(h, def.id)) throw new Error(`「${def.name}」不是這名英雄能選的專屬升級`);
@@ -172,9 +174,23 @@ export function grantUpgrade(run: RunState, upgradeId: string, slot?: number, sk
 
 // ───────────── 配方昇變（SPEC_SLICE7 §3.2） ─────────────
 
-/** 職業升級最多拿幾次（通用升級不限） */
+/** 職業升級最多拿幾次（通用升級不限）；職業被動升級＝最高等級 − 起始等級 */
 export function maxRankOf(upgradeId: string): number {
-  return UPGRADES[upgradeId]?.branch ? (UPGRADE_MAX_RANK[upgradeId] ?? 1) : Infinity;
+  const u = UPGRADES[upgradeId];
+  if (u?.innate) return Math.max(0, (CLASS_PASSIVE_RANKS[u.innate.passive]?.max ?? 1) - CLASS_PASSIVE_RULES.startRank);
+  return u?.branch ? (UPGRADE_MAX_RANK[upgradeId] ?? 1) : Infinity;
+}
+
+/** 職業被動目前的等級（起始等級＋升了幾次） */
+export function classPassiveRank(h: HeroRecord, passive: string): number {
+  return CLASS_PASSIVE_RULES.startRank + rankOf(h, `cp_${passive}`);
+}
+
+/** 戰鬥時帶的職業被動與等級（一路向前；等級 0 的不帶） */
+export function classPassivesOf(h: HeroRecord): { id: string; rank: number }[] {
+  return (CLASS_PASSIVES[h.classId] ?? [])
+    .map((id) => ({ id, rank: CLASS_PASSIVE_RANKS[id] ? classPassiveRank(h, id) : 1 }))
+    .filter((p) => p.rank > 0);
 }
 
 /** 這名英雄拿了幾次這個升級 */
@@ -214,10 +230,15 @@ export function evolveHero(run: RunState, slot: number, rc: RecipeDef): string {
   return tr("{0}昇變成{1}！", { 0: HEROES[h.baseClass].name, 1: HEROES[h.classId].name });
 }
 
-/** 還能拿的職業升級（沒升滿；昇變後就沒有了） */
+/** 還能拿的職業升級（沒升滿）：昇變配方的升級（昇變後就沒有了）＋職業被動升級（新職業還有那個被動就能繼續升） */
 export function classUpgradesFor(h: HeroRecord): string[] {
-  if (h.baseClass) return [];
-  return Object.keys(UPGRADES).filter((id) => UPGRADES[id].branch?.classId === h.classId && rankOf(h, id) < maxRankOf(id));
+  const base = h.baseClass ?? h.classId;
+  return Object.keys(UPGRADES).filter((id) => {
+    const u = UPGRADES[id];
+    if (rankOf(h, id) >= maxRankOf(id)) return false;
+    if (u.innate) return u.innate.classId === base && (CLASS_PASSIVES[h.classId] ?? []).includes(u.innate.passive);
+    return !h.baseClass && u.branch?.classId === h.classId;
+  });
 }
 
 /**

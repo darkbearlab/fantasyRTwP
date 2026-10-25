@@ -113,6 +113,14 @@ export const EN_PASSIVES: NameDesc = {
 };
 
 export const EN_UPGRADES: NameDesc = {
+  cp_cleave: ['Cleave · Rank Up', 'Each rank: arc +20°, heavy hit +0.2×'],
+  cp_tauntAura: ['Taunt Aura · Rank Up', 'Each rank: taunt range +1.5 m, defense +4'],
+  cp_pierce: ['Piercing Arrow · Rank Up', 'Each rank: pierces 1 more enemy, less damage lost per pierce'],
+  cp_eagleEye: ['Eagle Eye · Rank Up', 'Each rank: sees into brush 3 m farther'],
+  cp_emberBolt: ['Ember Bolt · Rank Up', 'Each rank: blast radius +0.3 m, splash damage +0.1×'],
+  cp_chillAura: ['Chill · Rank Up', 'Each rank: aura radius +0.5 m, 5% more slow'],
+  cp_smite: ['Smite · Rank Up', 'Each rank: heal +3, knockback +0.2 m'],
+  cp_blessAura: ['Blessing Aura · Rank Up', 'Each rank: aura radius +1 m, accuracy +3, defense +2'],
   evolve_guardian: ['Evolve: Guardian', 'Recipe complete: evolve into a Guardian'],
   evolve_gladiator: ['Evolve: Gladiator', 'Recipe complete: evolve into a Gladiator'],
   evolve_berserker: ['Evolve: Berserker', 'Recipe complete: evolve into a Berserker'],

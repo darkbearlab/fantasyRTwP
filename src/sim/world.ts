@@ -14,7 +14,7 @@ import { SKILLS } from './data/skills';
 import type { DamageType, HordeSetup, InteractAction, LootDef, MapDef, ShrineKind, Personality, ProjectileKind, Rect, SkillDef, SpawnerDef, Team, UnitDef, WaveDef, WaveTrigger } from './data/types';
 import { INTERACT } from './data/interact';
 import { COMBAT_STATE } from './data/deliberate';
-import { CLASS_PASSIVES, PASSIVES } from './data/passives';
+import { CLASS_PASSIVES, PASSIVES, passiveAtRank } from './data/passives';
 import type { GroundZone } from './zones';
 import { updateZones, zoneMoveMult } from './zones';
 import type { InteractableState } from './interact';
@@ -74,6 +74,8 @@ export interface UnitSpawn {
   followerOf?: number;
   /** 被困的英雄（SPEC_SLICE7 §4）：看守的小隊 id */
   captive?: string;
+  /** 職業被動與等級（Alan 2026-10-25）；省略時照職業的預設（CLASS_PASSIVES，第 1 級） */
+  classPassives?: { id: string; rank: number }[];
 }
 
 export interface WorldOptions {
@@ -252,7 +254,8 @@ export class World implements ZocContext {
       if (s.facing !== undefined) u.facing = s.facing;
       // 沉穩節奏（SPEC_SLICE5 §14）：英雄帶職業被動
       if (def.team === 'hero' && (!follower || u.rescue) && this.config.battleStyle === 'deliberate') {
-        for (const id of CLASS_PASSIVES[def.id] ?? []) u.addPassive(PASSIVES[id]);
+        if (s.classPassives) for (const p of s.classPassives) u.addPassive(passiveAtRank(p.id, p.rank));
+        else for (const id of CLASS_PASSIVES[def.id] ?? []) u.addPassive(PASSIVES[id]);
         u.setItems(s.items ?? []);
         for (const id of s.passives ?? []) if (PASSIVES[id]) u.addPassive(PASSIVES[id]);
         // 技能循環（SPEC_SLICE5 §16）：英雄帶齊循環的每一招才啟用
