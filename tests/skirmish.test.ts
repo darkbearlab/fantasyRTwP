@@ -8,7 +8,7 @@ import type { World } from '../src/sim/world';
 
 /** 沉穩節奏遠征的第 layer 層戰鬥（finalbossblues 程序生成地圖） */
 function battleAt(seed: number, layer: number): World {
-  const r: RunState = createRun(seed, { style: 'deliberate' });
+  const r: RunState = createRun(seed, { forward: false, style: 'deliberate' });
   const node = r.map.nodes.find((n) => n.layer === layer)!;
   r.currentNodeId = node.id;
   r.phase = { kind: 'battle', nodeId: node.id, encounterId: deliberateLevelId('battle'), fromEvent: false };
