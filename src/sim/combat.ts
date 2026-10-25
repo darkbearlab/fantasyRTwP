@@ -1,4 +1,5 @@
 import type { Rng } from './rng';
+import { HIT_RULE } from './data/hit';
 
 export type HitResult = 'miss' | 'hit' | 'crit';
 
@@ -11,8 +12,8 @@ export function rollHit(rng: Rng, accuracy: number, defense: number): { roll: nu
 }
 
 export function hitFromRoll(roll: number): HitResult {
-  if (roll < 50) return 'miss';
-  if (roll < 100) return 'hit';
+  if (roll < HIT_RULE.missBelow) return 'miss';
+  if (roll < HIT_RULE.critAt) return 'hit';
   return 'crit';
 }
 
