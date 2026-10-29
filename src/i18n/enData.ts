@@ -214,6 +214,17 @@ export const EN_ITEMS: NameDesc = {
   stormRing: ['Storm Ring', 'Critical hits arc to 2 more enemies within 3 m for 0.5× damage each'],
   prayerBeads: ['Prayer Beads', 'Casting a skill heals heroes within 6 m (including yourself) for 6% max HP'],
   lastStand: ['Last Stand', 'Below 40% HP, basic hits grant +12% damage (up to 3 stacks, 4 s)'],
+  steelSword: ['Steel Longsword', 'Damage dealt +6%, accuracy +4'],
+  quickBlade: ['Quick Blade', 'Basic attack speed +8%, damage dealt +4%'],
+  greatBlade: ['Greatsword', 'Damage dealt +18%, basic attack speed −5%'],
+  cleaveManual: ['Cleave Manual', 'Cleave +1 rank for warriors (can exceed the cap; no effect on heroes without it)'],
+  tauntBanner: ['Taunting Banner', 'Taunt Aura +1 rank for warriors (can exceed the cap; no effect on heroes without it)'],
+  piercingQuiver: ['Piercing Quiver', 'Piercing Shot +1 rank for rangers (can exceed the cap; no effect on heroes without it)'],
+  falconFeather: ['Falcon Feather', 'Eagle Eye +1 rank for rangers (can exceed the cap; no effect on heroes without it)'],
+  emberCore: ['Ember Core', 'Ember Bolt +1 rank for mages (can exceed the cap; no effect on heroes without it)'],
+  frostShard: ['Frost Shard', 'Chill +1 rank for mages (can exceed the cap; no effect on heroes without it)'],
+  smiteRelic: ['Smiting Relic', 'Smite +1 rank for clerics (can exceed the cap; no effect on heroes without it)'],
+  blessedCenser: ['Blessed Censer', 'Blessing Aura +1 rank for clerics (can exceed the cap; no effect on heroes without it)'],
 };
 
 export const EN_CONSUMABLES: NameDesc = {

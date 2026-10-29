@@ -1,3 +1,4 @@
+import { passiveAtRank } from './data/passives';
 import type { Order } from './commands';
 import type { Personality, ShrineKind, Team, UnitDef, ProjectileKind } from './data/types';
 import type { ShrineDef } from './data/shrines';
@@ -253,10 +254,19 @@ export class Unit {
   /** 身上的裝備道具（id）；換裝備時拿掉舊道具的被動、加上新的 */
   items: string[] = [];
 
+  /** 職業被動的基本等級（一路向前；不含道具，等級 0 也記著，道具可以把它拉到 1） */
+  classRanks: { id: string; rank: number }[] = [];
+
   setItems(ids: string[]): void {
     for (const id of this.items) if (ITEMS[id] && !ids.includes(id)) this.removePassive(ITEMS[id].passive.id);
     this.items = ids.filter((id) => ITEMS[id]);
     for (const id of this.items) this.addPassive(ITEMS[id].passive);
+    // 職業被動：基本等級＋道具加的等級（Alan 2026-10-29）
+    for (const c of this.classRanks) {
+      const plus = this.items.reduce((s, id) => s + (ITEMS[id].passiveRank?.passive === c.id ? ITEMS[id].passiveRank!.plus : 0), 0);
+      this.removePassive(c.id);
+      if (c.rank + plus > 0) this.addPassive(passiveAtRank(c.id, c.rank + plus));
+    }
   }
 
   constructor(id: number, def: UnitDef, pos: Vec, heroSlot: number) {

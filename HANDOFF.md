@@ -77,6 +77,8 @@
   - **S7-1 戰鬥狀態機**（已做）：
     - `World.inCombat`：已警覺的敵人離我方 `COMBAT_STATE.engageRange` 以內，或敵我有人打中對方，就是戰鬥中；停止 `exitDelay` 秒後才脫離（`src/sim/data/deliberate.ts`）。進出時發 `combatState` 事件。
     - 換裝備：指令 `setItems`（戰鬥中忽略），`Unit.setItems` 拿掉舊道具的被動、加上新的。
+    - 道具欄（Alan 2026-10-29）：武器、防具、飾品各一格（`ItemDef.slot`）；裝到已經有東西的部位，舊的換回背包。舊存檔同部位多的放回背包（`deserializeRun`）。
+    - 職業被動 +1 級的飾品（`ItemDef.passiveRank`）：`Unit.classRanks` 記基本等級（含等級 0），`setItems` 時加上道具的等級重新掛被動，可以超過上限。
     - 畫面：頂列的「戰鬥中／非戰鬥中」標示與 🎒 整備鈕（沉穩節奏的遠征才有）。整備面板用 `equipmentPanel`（`bagPanel.ts`），打開時暫停、戰鬥中按鈕全部鎖住；改了就 `setRun` 並送 `setItems`。
   - **S7-2 一路向前**（已做）：
     - `RunState.forward`（`JOURNEY.forward`，`src/run/data/journey.ts`）：沉穩節奏的遠征預設開啟，不建立 `overworld`（沒有主力與冠軍），只走 `MapNode.next`。舊的 FTL 路線圖測試用 `createRun(seed, { forward: false })`。

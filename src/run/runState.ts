@@ -5,6 +5,7 @@
 import { BAG } from '../sim/data/consumables';
 import { defaultLoadout } from '../sim/data/classes';
 import { HERO_ORDER, HEROES } from '../sim/data/heroes';
+import { ITEMS } from '../sim/data/items';
 import type { Personality } from '../sim/data/types';
 import { ECONOMY } from './data/economy';
 import type { NodeType, RunMap } from './mapGen';
@@ -243,6 +244,22 @@ export function deserializeRun(s: string): RunState {
   if (r.version !== 1) throw new Error(`不支援的存檔版本：${r.version}`);
   // 切片 2 的紀錄沒有技能欄
   for (const h of r.party) if (h && !h.skills) h.skills = defaultLoadout(h.classId);
+  // 道具欄分部位以前的存檔（Alan 2026-10-29）：同一部位只留第一件，其他放回背包；已經不存在的道具丟掉
+  for (const h of r.party) {
+    if (!h?.items) continue;
+    const seen = new Set<string>();
+    const keep: string[] = [];
+    for (const id of h.items) {
+      const slot = ITEMS[id]?.slot;
+      if (!slot) continue;
+      if (seen.has(slot)) (r.inventory ??= []).push(id);
+      else {
+        seen.add(slot);
+        keep.push(id);
+      }
+    }
+    h.items = keep;
+  }
   return r;
 }
 

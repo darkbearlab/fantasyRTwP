@@ -4,11 +4,11 @@
  */
 import { tr } from '../i18n/lang';
 import { HEROES } from '../sim/data/heroes';
-import type { ItemRarity } from '../sim/data/items';
+import type { ItemRarity, ItemSlot } from '../sim/data/items';
 import { ITEMS } from '../sim/data/items';
 import type { Rng } from '../sim/rng';
 import { ECONOMY } from './data/economy';
-import type { RunState } from './runState';
+import type { HeroRecord, RunState } from './runState';
 import { cloneRun } from './runState';
 
 export const itemsOf = (r: RunState, slot: number): string[] => r.party[slot]?.items ?? [];
@@ -64,19 +64,32 @@ export function buyItem(run: RunState, itemId: string): RunState {
   return r;
 }
 
-export function canEquip(run: RunState, slot: number, itemId: string): boolean {
-  const h = run.party[slot];
-  return !!h && !h.dead && (run.inventory ?? []).includes(itemId) && itemsOf(run, slot).length < ECONOMY.itemSlots;
+/** 這名英雄這個部位裝著的道具 */
+export function itemInSlot(h: HeroRecord, slot: ItemSlot): string | undefined {
+  return (h.items ?? []).find((id) => ITEMS[id]?.slot === slot);
 }
 
-/** 從背包裝備到一名英雄身上 */
+export function canEquip(run: RunState, slot: number, itemId: string): boolean {
+  const h = run.party[slot];
+  return !!h && !h.dead && !!ITEMS[itemId] && (run.inventory ?? []).includes(itemId);
+}
+
+/** 從背包裝備到一名英雄身上；那個部位已經有道具時，換下來放回背包（Alan 2026-10-29：武器、防具、飾品各一格） */
 export function equipItem(run: RunState, slot: number, itemId: string): RunState {
-  if (!canEquip(run, slot, itemId)) throw new Error('不能裝備（沒有這件道具、英雄陣亡或道具欄已滿）');
+  if (!canEquip(run, slot, itemId)) throw new Error('不能裝備（沒有這件道具或英雄陣亡）');
   const r = cloneRun(run);
   const inv = r.inventory!;
   inv.splice(inv.indexOf(itemId), 1);
-  (r.party[slot]!.items ??= []).push(itemId);
+  const h = r.party[slot]!;
+  const old = itemInSlot(h, ITEMS[itemId].slot);
+  h.items = [...(h.items ?? []).filter((id) => id !== old), itemId];
+  if (old) inv.push(old);
   return r;
+}
+
+/** 道具讓這名英雄的職業被動多幾級 */
+export function itemRankBonus(h: HeroRecord, passive: string): number {
+  return (h.items ?? []).reduce((s, id) => s + (ITEMS[id]?.passiveRank?.passive === passive ? ITEMS[id].passiveRank!.plus : 0), 0);
 }
 
 /** 卸下放回背包 */
@@ -94,6 +107,16 @@ export function unequipItem(run: RunState, slot: number, itemId: string): RunSta
 export function itemLabel(itemId: string): string {
   const d = ITEMS[itemId];
   return tr("{0}{1}：{2}", { 0: d.rarity === 'rare' ? '★' : '', 1: d.name, 2: d.passive.description });
+}
+
+/** 部位的名稱 */
+export function slotName(s: ItemSlot): string {
+  return s === 'weapon' ? tr("武器") : s === 'armor' ? tr("防具") : tr("飾品");
+}
+
+/** 部位＋道具說明（背包用） */
+export function itemLabelWithSlot(itemId: string): string {
+  return tr("〔{0}〕{1}", { 0: slotName(ITEMS[itemId].slot), 1: itemLabel(itemId) });
 }
 
 /** 陣亡英雄的道具不會消失：留在身上，復活後照樣生效（給畫面顯示用） */

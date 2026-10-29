@@ -5,6 +5,7 @@ import { PERSONALITY_LABEL } from '../../sim/ai/idleBehavior';
 import type { Personality } from '../../sim/data/types';
 import { UPGRADES } from '../../run/data/upgrades';
 import type { RunState } from '../../run/runState';
+import { itemRankBonus } from '../../run/items';
 import { branchProgress, canEvolve, classPassivesOf, maxHpOf, maxRankOf, rankOf, recipeDone, recipesOf } from '../../run/upgrades';
 import { CLASS_PASSIVE_RANKS, PASSIVES } from '../../sim/data/passives';
 import { BRANCH_RULES, BRANCHES } from '../../run/data/branches';
@@ -66,8 +67,12 @@ export function partyPanel(run: RunState, opts: PartyPanelOptions = {}): HTMLEle
     const base = h.baseClass;
     if (run.forward) {
       // 職業被動的等級（Alan 2026-10-25）
-      const ranks = classPassivesOf(h).filter((p) => CLASS_PASSIVE_RANKS[p.id]);
-      if (ranks.length) info.appendChild(el('div', 'party-branches', ranks.map((p) => `${PASSIVES[p.id].name} Lv${p.rank}`).join('・')));
+      // 道具加的等級另外標出來（Alan 2026-10-29）
+      const ranks = classPassivesOf(h, true)
+        .filter((p) => CLASS_PASSIVE_RANKS[p.id])
+        .map((p) => ({ ...p, plus: itemRankBonus(h, p.id) }))
+        .filter((p) => p.rank + p.plus > 0);
+      if (ranks.length) info.appendChild(el('div', 'party-branches', ranks.map((p) => `${PASSIVES[p.id].name} Lv${p.rank + p.plus}${p.plus ? tr("（道具 +{0}）", { 0: p.plus }) : ''}`).join('・')));
       // 配方昇變（SPEC_SLICE7 §3.2）：每份配方一行，拿到的升級亮起來，要升滿的那個標出等級
       const recipes = recipesOf(h);
       if (recipes.length) {
