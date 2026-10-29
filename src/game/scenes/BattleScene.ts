@@ -28,6 +28,7 @@ import { Hero3DView } from '../render/hero3dView';
 import { PixelView } from '../render/pixelView';
 import { m72Key, pixelArtFor, pixelFloorReady } from '../render/pixelArt';
 import { floorTileFor } from '../render/pixelArtData';
+import { updatePixelSnap } from '../render/pixelSnap';
 import { InteractablesView, drawBox } from '../render/interactView';
 import { p3dKey, props3dLoaded } from '../render/props3d';
 import { PROP_META, PROPS3D, obstacleUsesProp, planProps } from '../render/props3dPlan';
@@ -747,6 +748,8 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
     this.checkProjection();
     this.render();
     const cam = this.cameras.main;
+    // 像素對齊（試看）：除錯面板開關
+    updatePixelSnap(cam);
     this.lastCenterGround = screenToGround(cam.midPoint.x, cam.midPoint.y - this.hudBottom() / 2 / cam.zoom);
   }
 

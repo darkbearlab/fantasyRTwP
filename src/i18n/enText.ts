@@ -411,6 +411,7 @@ export const EN_TEXT: Record<string, string> = {
   "🎒 背包與裝備{0}": "🎒 Backpack & gear{0}",
   "🎒 裝備（每名英雄武器、防具、飾品各 1 格）": "🎒 Gear (one weapon, armor and trinket slot per hero)",
   "武器": "Weapon",
+  "像素對齊（試看）": "Pixel snap (preview)",
   "防具": "Armor",
   "飾品": "Trinket",
   "〔{0}〕{1}": "[{0}] {1}",
