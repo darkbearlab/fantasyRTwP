@@ -1,4 +1,5 @@
 import { tr } from '../../i18n';
+import { getPixelSnap, setPixelSnap } from '../render/pixelSnap';
 import { languageRow } from '../ui/language';
 import Phaser from 'phaser';
 import { GAME_CONFIG } from '../../config';
@@ -471,6 +472,8 @@ export class UIScene extends Phaser.Scene {
     for (const [k, label] of flags) {
       p.appendChild(this.checkbox(label, () => this.cur().debug[k], (v) => (this.cur().debug[k] = v)));
     }
+    // 像素對齊（試看，Alan 2026-10-29）：記在瀏覽器裡
+    p.appendChild(this.checkbox(tr("像素對齊（試看）"), getPixelSnap, setPixelSnap));
 
     const projRow = el('div', 'row');
     projRow.appendChild(el('span', 'lbl', tr("投影")));
