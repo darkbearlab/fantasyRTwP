@@ -14,7 +14,7 @@ import { SKILLS } from './data/skills';
 import type { DamageType, HordeSetup, InteractAction, LootDef, MapDef, ShrineKind, Personality, ProjectileKind, Rect, SkillDef, SpawnerDef, Team, UnitDef, WaveDef, WaveTrigger } from './data/types';
 import { INTERACT } from './data/interact';
 import { COMBAT_STATE } from './data/deliberate';
-import { CLASS_PASSIVES, PASSIVES, passiveAtRank } from './data/passives';
+import { CLASS_PASSIVES, PASSIVES } from './data/passives';
 import type { GroundZone } from './zones';
 import { updateZones, zoneMoveMult } from './zones';
 import type { InteractableState } from './interact';
@@ -255,7 +255,8 @@ export class World implements ZocContext {
       if (s.facing !== undefined) u.facing = s.facing;
       // 沉穩節奏（SPEC_SLICE5 §14）：英雄帶職業被動
       if (def.team === 'hero' && (!follower || u.rescue) && this.config.battleStyle === 'deliberate') {
-        if (s.classPassives) for (const p of s.classPassives) u.addPassive(passiveAtRank(p.id, p.rank));
+        // 職業被動的等級：setItems 會加上道具給的等級再掛上去
+        if (s.classPassives) u.classRanks = s.classPassives.map((p) => ({ ...p }));
         else for (const id of CLASS_PASSIVES[def.id] ?? []) u.addPassive(PASSIVES[id]);
         u.setItems(s.items ?? []);
         for (const id of s.passives ?? []) if (PASSIVES[id]) u.addPassive(PASSIVES[id]);

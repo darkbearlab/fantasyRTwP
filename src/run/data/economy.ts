@@ -72,8 +72,6 @@ export const ECONOMY = {
   trainChoices: 3,
   /** 敵人數值隨層數成長：1 + layerScaling × (layer − 1) */
   layerScaling: 0.05,
-  /** 裝備道具（SPEC_SLICE5 §17）：每名英雄的道具欄數 */
-  itemSlots: 2,
   /** 打贏節點時掉落道具的機率（依節點類型；事件戰鬥算 battle）、精英掉落稀有道具的機率 */
   itemDropChance: { battle: 0.3, elite: 1, event: 0.3 } as Record<string, number>,
   eliteRareChance: 0.5,

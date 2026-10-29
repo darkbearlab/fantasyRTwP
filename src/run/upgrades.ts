@@ -186,11 +186,11 @@ export function classPassiveRank(h: HeroRecord, passive: string): number {
   return passiveStartRank(passive) + rankOf(h, `cp_${passive}`);
 }
 
-/** 戰鬥時帶的職業被動與等級（一路向前；等級 0 的不帶） */
-export function classPassivesOf(h: HeroRecord): { id: string; rank: number }[] {
+/** 戰鬥時帶的職業被動與等級（一路向前；等級 0 的不帶，withZero＝也帶，道具可以把它拉到 1） */
+export function classPassivesOf(h: HeroRecord, withZero = false): { id: string; rank: number }[] {
   return (CLASS_PASSIVES[h.classId] ?? [])
     .map((id) => ({ id, rank: CLASS_PASSIVE_RANKS[id] ? classPassiveRank(h, id) : 1 }))
-    .filter((p) => p.rank > 0);
+    .filter((p) => withZero || p.rank > 0);
 }
 
 /** 這名英雄拿了幾次這個升級 */

@@ -1,17 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { createBattleFromRun } from '../src/run/battle';
 import { ECONOMY } from '../src/run/data/economy';
-import { buyItem, canBuy, canEquip, equipItem, rollItemDrop, unequipItem } from '../src/run/items';
+import { buyItem, canBuy, canEquip, equipItem, itemRankBonus, rollItemDrop, unequipItem } from '../src/run/items';
+import { classPassivesOf } from '../src/run/upgrades';
 import { validateMap } from '../src/run/mapGen';
 import { validateRouteMap } from '../src/run/routeMap';
 import { ROUTE_MAP } from '../src/run/data/routeMap';
 import { applyBattleResult, chooseNode, leaveNode } from '../src/run/progression';
 import type { RunState } from '../src/run/runState';
-import { createRun } from '../src/run/runState';
+import { createRun, deserializeRun, serializeRun } from '../src/run/runState';
 import { rngFor } from '../src/run/seed';
 import { deliberateConfig } from '../src/sim/data/deliberate';
 import { ENEMIES } from '../src/sim/data/enemies';
-import { ITEMS } from '../src/sim/data/items';
+import { ITEM_SLOTS, ITEMS } from '../src/sim/data/items';
+import { passiveAtRank } from '../src/sim/data/passives';
 import { HOLD, makeWorld, run } from './helpers';
 
 const D = deliberateConfig();
@@ -67,25 +69,69 @@ describe('裝備道具（SPEC_SLICE5 §17）', () => {
     expect(leaveNode(after).phase.kind).toBe('map');
   });
 
-  it('裝備與卸下：每名英雄最多 2 格', () => {
-    let r: RunState = { ...createRun(3), inventory: ['ironShield', 'swiftBoots', 'hawkEye'] };
+  it('裝備與卸下：武器、防具、飾品各一格；同部位換下來放回背包（Alan 2026-10-29）', () => {
+    let r: RunState = { ...createRun(3), inventory: ['ironShield', 'warHammer', 'hawkEye', 'leatherArmor'] };
     r = equipItem(r, 0, 'ironShield');
-    r = equipItem(r, 0, 'swiftBoots');
-    expect(r.party[0]!.items).toEqual(['ironShield', 'swiftBoots']);
-    expect(canEquip(r, 0, 'hawkEye')).toBe(false);
-    expect(() => equipItem(r, 0, 'hawkEye')).toThrow();
-    r = unequipItem(r, 0, 'ironShield');
-    expect(r.inventory).toEqual(['hawkEye', 'ironShield']);
-    expect(canEquip(r, 0, 'hawkEye')).toBe(true);
+    r = equipItem(r, 0, 'warHammer');
+    r = equipItem(r, 0, 'hawkEye');
+    expect(r.party[0]!.items).toEqual(['ironShield', 'warHammer', 'hawkEye']);
+    // 防具已經有鐵盾：皮甲換上去，鐵盾回背包
+    expect(canEquip(r, 0, 'leatherArmor')).toBe(true);
+    r = equipItem(r, 0, 'leatherArmor');
+    expect(r.party[0]!.items).toEqual(['warHammer', 'hawkEye', 'leatherArmor']);
+    expect(r.inventory).toEqual(['ironShield']);
+    r = unequipItem(r, 0, 'warHammer');
+    expect(r.inventory).toEqual(['ironShield', 'warHammer']);
+    expect(() => equipItem(r, 0, 'stormRing')).toThrow();
+  });
+
+  it('每件道具都有部位，三個部位都有道具', () => {
+    for (const d of Object.values(ITEMS)) expect(ITEM_SLOTS).toContain(d.slot);
+    for (const s of ITEM_SLOTS) expect(Object.values(ITEMS).filter((d) => d.slot === s).length).toBeGreaterThan(3);
+  });
+
+  it('舊存檔：同一部位兩件時，多的放回背包', () => {
+    const r: RunState = { ...createRun(3), inventory: [] };
+    r.party[0]!.items = ['ironShield', 'leatherArmor', 'ghostItem'];
+    const back = deserializeRun(serializeRun(r));
+    expect(back.party[0]!.items).toEqual(['ironShield']);
+    expect(back.inventory).toEqual(['leatherArmor']);
+  });
+
+  it('職業被動 +1 級的飾品：戰士帶橫掃戰典＝橫掃升一級；換下來就回去；沒有這個被動的英雄沒效果', () => {
+    let r: RunState = { ...createRun(3, { party: ['warrior', 'cleric', 'mage', 'ranger'] }), inventory: ['cleaveManual', 'piercingQuiver'] };
+    r = equipItem(equipItem(r, 0, 'cleaveManual'), 1, 'piercingQuiver');
+    const base = classPassivesOf(r.party[0]!).find((p) => p.id === 'cleave')!.rank;
+    expect(itemRankBonus(r.party[0]!, 'cleave')).toBe(1);
+    const w = createBattleFromRun(chooseNode(r, r.map.layers[0][0]));
+    const war = w.units.find((u) => u.heroSlot === 0)!;
+    const angle = (rank: number) => (passiveAtRank('cleave', rank).attack as { angle: number }).angle;
+    const cleaveOf = () => war.passives.find((p) => p.id === 'cleave')!;
+    expect((cleaveOf().attack as { angle: number }).angle).toBe(angle(base + 1));
+    expect(war.passives.filter((p) => p.id === 'cleave').length).toBe(1);
+    war.setItems([]);
+    expect((cleaveOf().attack as { angle: number }).angle).toBe(angle(base));
+    // 牧師沒有穿透箭
+    const cl = w.units.find((u) => u.heroSlot === 1)!;
+    expect(cl.passives.some((p) => p.id === 'pierce')).toBe(false);
+  });
+
+  it('等級 0 的職業被動（遊俠的穿透箭）：道具把它拉到第 1 級', () => {
+    let r: RunState = { ...createRun(3, { party: ['ranger', 'cleric', 'mage', 'warrior'] }), inventory: ['piercingQuiver'] };
+    const w0 = createBattleFromRun(chooseNode(r, r.map.layers[0][0]));
+    expect(w0.units.find((u) => u.heroSlot === 0)!.passives.some((p) => p.id === 'pierce')).toBe(false);
+    r = equipItem(r, 0, 'piercingQuiver');
+    const w = createBattleFromRun(chooseNode(r, r.map.layers[0][0]));
+    expect(w.units.find((u) => u.heroSlot === 0)!.passives.some((p) => p.id === 'pierce')).toBe(true);
   });
 
   it('戰鬥：裝備的道具變成英雄的被動（數值修正）', () => {
-    let r: RunState = { ...createRun(3, { party: ['warrior', 'cleric', 'mage', 'ranger'] }), inventory: ['swiftBoots', 'leatherArmor'] };
-    r = equipItem(equipItem(r, 0, 'swiftBoots'), 0, 'leatherArmor');
+    let r: RunState = { ...createRun(3, { party: ['warrior', 'cleric', 'mage', 'ranger'] }), inventory: ['swiftBoots', 'holySigil'] };
+    r = equipItem(equipItem(r, 0, 'swiftBoots'), 0, 'holySigil');
     const w = createBattleFromRun(chooseNode(r, r.map.layers[0][0]));
     const war = w.units.find((u) => u.heroSlot === 0)!;
-    expect(war.passives.map((p) => p.id)).toEqual(expect.arrayContaining(['item:swiftBoots', 'item:leatherArmor']));
-    expect(war.armor).toBe(war.def.armor + 2);
+    expect(war.passives.map((p) => p.id)).toEqual(expect.arrayContaining(['item:swiftBoots', 'item:holySigil']));
+    expect(war.mods.accuracy).toBeCloseTo(8);
     expect(war.mods.moveSpeedPct).toBeCloseTo(0.15);
   });
 

@@ -2255,6 +2255,11 @@ body {
 .bag-desc {
   flex: 1 1 180px;
 }
+/* 道具欄的部位（武器／防具／飾品） */
+.bag-slot {
+  flex: 0 0 auto;
+  color: #b8b8b8;
+}
 .bag-btns {
   display: flex;
   gap: 4px;

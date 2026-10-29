@@ -26,7 +26,7 @@ import { createRun, livingHeroes } from '../src/run/runState';
 import { rollParty } from '../src/run/classes';
 import { maxHpOf } from '../src/run/upgrades';
 import { HeroScript } from './heroScript';
-import { buyItem, canBuy, canEquip, equipItem } from '../src/run/items';
+import { buyItem, canBuy, canEquip, equipItem, itemInSlot } from '../src/run/items';
 import { ITEMS } from '../src/sim/data/items';
 import { DeliberateScript } from './deliberateScript';
 import type { RunStyle } from '../src/run/data/levels';
@@ -120,11 +120,11 @@ export function stepRun(r: RunState, scripted = true): RunState {
   }
 }
 
-/** 背包裡的道具裝給道具最少的存活英雄（裝不下就留在背包） */
+/** 背包裡的道具裝給那個部位還空著、道具最少的存活英雄（都滿了就留在背包） */
 function autoEquip(r: RunState): RunState {
   for (const id of [...(r.inventory ?? [])]) {
     const t = livingHeroes(r)
-      .filter(({ slot }) => canEquip(r, slot, id))
+      .filter(({ slot, hero }) => canEquip(r, slot, id) && !itemInSlot(hero, ITEMS[id].slot))
       .sort((a, b) => (a.hero.items?.length ?? 0) - (b.hero.items?.length ?? 0))[0];
     if (t) r = equipItem(r, t.slot, id);
   }
