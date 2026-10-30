@@ -53,7 +53,7 @@ describe('每名英雄各自升級', () => {
   });
 
   it('三選一裡有職業升級；升滿的不再出現；昇變後只剩通用升級', () => {
-    const r = createRun(4, { style: 'deliberate', party: ['warrior'] });
+    const r = createRun(4, { style: 'deliberate', party: ['fencer'] });
     const offer = heroLevelUpOffer(r, 0, rngFor(1, 't'), 3);
     // 職業升級＝昇變配方的升級＋職業被動升級
     expect(offer.filter((id) => UPGRADES[id].branch || UPGRADES[id].innate).length).toBe(RECIPE_RULES.classSlots);
@@ -67,18 +67,18 @@ describe('每名英雄各自升級', () => {
 
 describe('配方昇變', () => {
   it('湊齊配方：升級時第一張是昇變卡，選了才昇變', () => {
-    const r = createRun(5, { style: 'deliberate', party: ['warrior'] });
+    const r = createRun(5, { style: 'deliberate', party: ['fencer'] });
     complete(r, 0);
     const h = r.party[0]!;
     expect(recipeDone(h, berserker)).toBe(true);
-    expect(h.classId).toBe('warrior');
+    expect(h.classId).toBe('fencer');
     const offer = heroLevelUpOffer(r, 0, rngFor(2, 't'), 3);
     expect(offer[0]).toBe(evolveUpgradeId('berserker'));
     // 昇變卡是額外的一張
     expect(offer.length).toBe(4);
     grantUpgrade(r, offer[0], 0);
     expect(r.party[0]!.classId).toBe('berserker');
-    expect(r.party[0]!.baseClass).toBe('warrior');
+    expect(r.party[0]!.baseClass).toBe('fencer');
     expect(r.evolutionShow?.length).toBe(1);
     // 昇變後：沒有配方、沒有職業升級
     expect(readyRecipes(r.party[0]!)).toEqual([]);
@@ -86,14 +86,14 @@ describe('配方昇變', () => {
   });
 
   it('還沒湊齊不能選昇變卡', () => {
-    const r = createRun(6, { style: 'deliberate', party: ['warrior'] });
+    const r = createRun(6, { style: 'deliberate', party: ['fencer'] });
     grantUpgrade(r, 'bkFury', 0);
     expect(() => grantUpgrade(r, evolveUpgradeId('berserker'), 0)).toThrow();
   });
 
   it('自動模式：湊齊就昇變', () => {
     RECIPE_RULES.mode = 'auto';
-    const r = createRun(7, { style: 'deliberate', party: ['warrior'] });
+    const r = createRun(7, { style: 'deliberate', party: ['fencer'] });
     complete(r, 0);
     expect(r.party[0]!.classId).toBe('berserker');
   });

@@ -103,6 +103,13 @@ export const SKILLS: Record<string, SkillDef> = {
     target: 'self', range: 0, windup: 0.2, recovery: 0.2, cooldown: 14, requiresLos: false,
     effect: { kind: 'haste', duration: 4, attackSpeedPct: 2 },
   },
+  // 阿許卡（SPEC_CHARACTERS §4.1）：帶位移的單體打斷；失衡比盾擊少。數值佔位
+  thrust: {
+    id: 'thrust', name: '突刺', description: '衝向 4 m 內的敵人刺擊：傷害 ×1.2、命中 +30、打斷、中等失衡',
+    target: 'enemy', range: 4, windup: 0.15, recovery: 0.6, cooldown: 7, requiresLos: true, ignoresZoc: true,
+    stagger: { mult: 1.2, flat: 6 },
+    effect: { kind: 'charge', speedMult: 4, maxDuration: 1.2, strike: { mult: 1.2, accBonus: 30, interrupts: true } },
+  },
   // 大法師（SPEC_CHARACTERS §4.1）：全隊不限距離的附魔，攻擊多帶火＋寒；數值佔位
   grandEnchant: {
     id: 'grandEnchant', name: '大附魔', description: '全隊（不限距離）10 秒內造成的傷害 +30%，攻擊多帶火＋寒屬性（相剋取最有利的）',
@@ -161,9 +168,9 @@ export const SKILLS: Record<string, SkillDef> = {
   },
   // ── 變體專用（切片 3） ──
   whirlwind: {
-    id: 'whirlwind', name: '旋風斬', description: '打周圍 1.8 m 內所有敵人，傷害 ×0.9；可碎冰',
+    id: 'whirlwind', name: '旋風斬', description: '打周圍 1.8 m 內所有敵人，傷害 ×0.9；打中失衡中的敵人必定算重擊以上；可碎冰',
     target: 'self', range: 0, windup: 0.5, recovery: 0.8, cooldown: 8, requiresLos: false,
-    effect: { kind: 'whirlwind', radius: 1.8, mult: 0.9, shatters: true },
+    effect: { kind: 'whirlwind', heavyVsStunned: true, radius: 1.8, mult: 0.9, shatters: true },
   },
   stealth: {
     id: 'stealth', name: '潛行', description: '最多 8 秒完全隱匿，直到出手為止；隱匿中打出的第一擊命中 +50（附近 4 m 有敵人時不能用）',

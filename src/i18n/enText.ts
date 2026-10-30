@@ -412,6 +412,7 @@ export const EN_TEXT: Record<string, string> = {
   "🎒 裝備（每名英雄武器、防具、飾品各 1 格）": "🎒 Gear (one weapon, armor and trinket slot per hero)",
   "武器": "Weapon",
   "反制": "Counter",
+  "解放": "Freed",
   "亡者": "Risen dead",
   "亡者甦醒": "Rises!",
   "血印": "Blood mark",

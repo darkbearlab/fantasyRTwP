@@ -63,6 +63,8 @@ export const PIXEL_UNITS: Record<string, PixelUnitArt> = {
   deathMage: hero('deathMage', 'mw/sheets/Wizard/Wizard_Blue3.png'),
   battlemage: hero('battlemage', 'mw/sheets/AxeKnight/AxeKnight_Blue.png'),
   paladin: hero('paladin', 'mw/sheets/SwordCavalier/SwordCavalier_ShortHair_Blue1.png'),
+  fencer: hero('fencer', 'mw/sheets/SwordFighter/SwordFighter_LongHair_Blue1.png'),
+  liberator: hero('liberator', 'mw/sheets/SwordFighter/SwordFighter_LongHair_Blue1.png'),
   adept: hero('adept', 'mw/sheets/Wizard/Wizard_Blue1.png'),
   archmage: hero('archmage', 'mw/sheets/Wizard/Wizard_Blue2.png'),
   necromancer: hero('necromancer', 'mw/sheets/Wizard/Wizard_Blue3.png'),

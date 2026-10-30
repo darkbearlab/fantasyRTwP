@@ -6,7 +6,10 @@ import { fireTriggers } from './triggers';
 import type { OnHitEffect } from './data/passives';
 import { tr } from '../i18n/lang';
 import { applyArmor, CRIT_MULT, rollDamage, rollHit } from './combat';
-import { AFFINITY, BACKSTAB_ACCURACY, BASIC_ATTACK, critTierOf, DAMAGE_FORMULA, SKILL_ATTACK, SPEC_DEFENSE } from './data/damageTypes';
+import { AFFINITY, BACKSTAB_ACCURACY, BASIC_ATTACK, CRIT_TIERS, critTierOf, DAMAGE_FORMULA, SKILL_ATTACK, SPEC_DEFENSE } from './data/damageTypes';
+
+/** 重擊（爆擊的第二級）：狂戰士打失衡中的敵人時的下限 */
+const HEAVY_TIER = CRIT_TIERS.find((t) => t.interrupts)!;
 import type { AttackInfo, CritTier, DamageCategory } from './data/damageTypes';
 import { DT, RANGE_TOLERANCE, secondsToTicks } from './constants';
 import { SKILLS } from './data/skills';
@@ -584,7 +587,7 @@ function applySkillEffect(world: World, u: Unit, def: SkillDef, t: Unit | undefi
       world.emit({ type: 'aoe', sourceId: u.id, point: { ...u.pos }, radius: eff.radius, skillId: def.id });
       for (const t of [...world.units]) {
         if (t.dead || t.team === u.team || dist(t.pos, u.pos) > eff.radius + t.radius) continue;
-        strike(world, u, t, { melee: true, damageType: 'melee', mult: eff.mult, shatters: eff.shatters, skillId: def.id });
+        strike(world, u, t, { melee: true, damageType: 'melee', mult: eff.mult, shatters: eff.shatters, skillId: def.id, heavyVsStunned: eff.heavyVsStunned });
         if (u.dead) break;
       }
       return false;
@@ -775,7 +778,7 @@ export function tickDash(world: World, u: Unit): void {
       }
     }
     if (inRange()) {
-      strike(world, u, t, { melee: true, mult: 1, damageType: basicDamageType(u.def), skillId: def.id, knockback: eff.knockback });
+      strike(world, u, t, { melee: true, mult: eff.strike?.mult ?? 1, accBonus: eff.strike?.accBonus, interrupts: eff.strike?.interrupts, damageType: basicDamageType(u.def), skillId: def.id, knockback: eff.knockback });
       if (u.dead || !u.action) return;
       enterRecovery(world, u, def.recovery);
       afterSkill(world, u, def, t);
@@ -938,6 +941,8 @@ export interface StrikeParams {
   freeAttack?: boolean;
   /** 反制（守護者）：打斷成功時給附近隊友減傷 */
   counterWard?: { radius: number; duration: number; reduction: number };
+  /** 打中暈眩（失衡）中的敵人時，必定算重擊以上（狂戰士） */
+  heavyVsStunned?: boolean;
 }
 
 /** 單體攻擊結算：命中判定 → 傷害 → 打斷／暈眩／擊退。回傳實際受到攻擊的單位（未命中為 null） */
@@ -988,7 +993,9 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): Uni
   // 角鬥士：打斷敵人後的下一擊必定爆擊
   const pendingCrit = src.critPending;
   src.critPending = false;
-  const forcedCrit = (!!p.critVsStunned && target.stunTime > 0) || pendingCrit;
+  // 狂戰士：打中暈眩（失衡）中的敵人，必定算重擊以上
+  const heavyFloor = typed && !!p.heavyVsStunned && target.stunTime > 0;
+  const forcedCrit = (!!p.critVsStunned && target.stunTime > 0) || pendingCrit || heavyFloor;
   const rolled = forcedCrit ? null : rollHit(world.rng, accuracy, defense, world.config.hitRule);
   const result = rolled ? rolled.result : 'crit';
   if (result === 'miss') {
@@ -1001,7 +1008,8 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): Uni
   const crit = result === 'crit';
   // 爆擊分級（沉穩節奏）：判定結果越高越重；必定爆擊算最低一級
   const critAt = world.config.hitRule.critAt;
-  const tier: CritTier | null = typed && crit ? critTierOf(rolled ? rolled.roll : critAt, critAt) : null;
+  let tier: CritTier | null = typed && crit ? critTierOf(rolled ? rolled.roll : critAt, critAt) : null;
+  if (heavyFloor && (!tier || tier.mult < HEAVY_TIER.mult)) tier = HEAVY_TIER;
   const critMult = tier ? tier.mult : crit ? CRIT_MULT : 1;
   let comboMult = 1;
   // 舊模式：背刺乘傷害倍率
@@ -1204,6 +1212,20 @@ export function interrupt(world: World, src: Unit, t: Unit, bySkill?: string): b
   if (src.team !== t.team && src.passives.some((p) => p.critAfterInterrupt)) {
     src.critPending = true;
     world.emit({ type: 'notice', unitId: src.id, text: tr("下一擊必定爆擊") });
+  }
+  // 解放者：打斷時附近的隊友解除負面狀態
+  const cleanse = src.team !== t.team ? Math.max(0, ...src.passives.map((p) => p.cleanseOnInterrupt ?? 0)) : 0;
+  if (cleanse > 0) {
+    for (const a of world.units) {
+      if (a.dead || a.team !== src.team || dist(a.pos, src.pos) > cleanse) continue;
+      if (a.stunTime <= 0 && a.rootTime <= 0 && a.curseTime <= 0 && a.burnTime <= 0 && a.markTime <= 0) continue;
+      a.stunTime = 0;
+      a.rootTime = 0;
+      a.curseTime = 0;
+      a.burnTime = 0;
+      a.markTime = 0;
+      world.emit({ type: 'status', unitId: a.id, text: tr("解放") });
+    }
   }
   return true;
 }

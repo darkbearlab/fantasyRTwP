@@ -56,6 +56,8 @@ export const BASIC_ATTACK: Record<string, AttackInfo> = {
   // 進階職業（SPEC_CLASSES §3）
   guardian: A('phys', 'pierce'),
   gladiator: A('phys', 'cut'),
+  fencer: A('phys', 'pierce'),
+  liberator: A('phys', 'pierce'),
   cutthroat: A('phys', 'cut'),
   sniper: A('phys', 'pierce'),
   arbalest: A('phys', 'pierce'),
@@ -170,6 +172,8 @@ export const SPEC_DEFENSE: Record<string, { defense: number; armor: number }> = 
   alchemist: { defense: 28, armor: 2 },
   guardian: { defense: 22, armor: 3 },
   gladiator: { defense: 22, armor: 2 },
+  fencer: { defense: 24, armor: 2 },
+  liberator: { defense: 26, armor: 3 },
   cutthroat: { defense: 25, armor: 2 },
   sniper: { defense: 25, armor: 2 },
   arbalest: { defense: 25, armor: 2 },

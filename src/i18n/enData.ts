@@ -21,6 +21,7 @@ export const EN_SKILLS: NameDesc = {
   drainLife: ['Drain Life', 'Drain life from an enemy or ally to heal yourself; draining allies yields more, but never 1:1'],
   bloodDrain: ['Blood Pact', 'Drain life from an enemy or ally to heal yourself. Draining an enemy leaves a blood mark (6 s; allies hitting it heal you); draining an ally gives that ally +20% damage for 6 s'],
   shieldCounter: ['Shield Bash: Counter', 'Melee: damage ×0.8, interrupts, heavy stagger; interrupting an enemy mid-telegraph makes allies within 4 m take 40% less damage for 3 s'],
+  thrust: ['Thrust', 'Lunge at an enemy within 4 m: damage ×1.2, accuracy +30, interrupts, moderate stagger'],
   grandEnchant: ['Grand Enchant', 'The whole party (any distance) deals +30% damage for 10 s, and their attacks gain fire and cold (best matchup applies)'],
   volley: ['Volley', 'For 4 s, basic attacks come extremely fast (attack speed +200%); piercing still applies'],
   grandSanctuary: ['Grand Sanctuary', 'A wide circle of holy light: for 7 s, allies inside take 40% less damage'],
@@ -32,7 +33,7 @@ export const EN_SKILLS: NameDesc = {
   swamp: ['Swamp', 'A 2.5 m area slows enemies to ×0.5 movement for 8 s (not a root)'],
   sanctuary: ['Sanctuary', 'A circle of holy light: for 5 s, allies inside take 30% less damage'],
   healFlask: ['Healing Flask', 'Lobbed (no line of sight needed): heals allies within 2 m for 20 HP'],
-  whirlwind: ['Whirlwind', 'Hits all enemies within 1.8 m for ×0.9 damage; shatters frozen targets'],
+  whirlwind: ['Whirlwind', 'Hits every enemy within 1.8 m for ×0.9 damage; hits on staggered enemies are at least heavy crits; shatters frozen targets'],
   stealth: ['Stealth', 'Fully hidden for up to 8 s until you strike; the first strike from stealth gets +50 accuracy (cannot be used with an enemy within 4 m)'],
   backstab: ['Backstab', 'Melee: ×2.5 damage from behind (×1 from the front); stunned targets are always crit; shatters frozen targets'],
   curse: ['Curse of Weakness', 'For 8 s the target acts 40% slower and takes +15% damage'],
@@ -71,7 +72,7 @@ export const EN_SKILLS: NameDesc = {
 export const EN_HEROES: Record<string, string> = {
   warrior: 'Warrior', ranger: 'Ranger', mage: 'Mage', cleric: 'Cleric', berserker: 'Berserker', rogue: 'Rogue', hexer: 'Hexer', alchemist: 'Alchemist',
   guardian: 'Guardian', gladiator: 'Gladiator', cutthroat: 'Assassin', sniper: 'Sniper', arbalest: 'Grand Ranger', elementalist: 'Elementalist',
-  deathMage: 'Death Mage', battlemage: 'Battlemage', paladin: 'Paladin', zealot: 'Zealot', heretic: 'Cultist', highPriest: 'High Priest', adept: 'Adept', archmage: 'Archmage', necromancer: 'Necromancer',
+  deathMage: 'Death Mage', battlemage: 'Battlemage', paladin: 'Paladin', zealot: 'Zealot', heretic: 'Cultist', highPriest: 'High Priest', adept: 'Adept', archmage: 'Archmage', necromancer: 'Necromancer', fencer: 'Duelist', liberator: 'Liberator',
 };
 
 export const EN_ENEMIES: Record<string, string> = {
@@ -114,6 +115,7 @@ export const EN_PASSIVES: NameDesc = {
   deathAura: ['Aura of Death', 'Enemies within 3 m take +15% damage'],
   sunderStrike: ['Sunder', 'Basic hits reduce the target’s physical and special armor by 2 (up to 3 stacks, 4 s)'],
   zealAura: ['Zealot Aura', 'Allies within 5 m (including self) gain +12 accuracy, +6 defense and +15% damage'],
+  liberation: ['Liberation', 'Interrupting an enemy frees allies within 4 m (including you) from stun, root, curse, burning and marks'],
   necroMastery: ['Restless Dead', 'Enemies you cursed rise as your followers when they die (up to 3 at once; they vanish after the battle); followers prefer cursed targets'],
   bloodAura: ['Blood Aura', 'Allies within 5 m deal +15% damage and lifesteal 20% when hitting enemies; the heretic loses HP equal to 8% of that damage'],
   warTotemAura: ['War Totem', 'Allies within 7 m deal +15% damage (stacks per totem)'],
@@ -163,6 +165,10 @@ export const EN_UPGRADES: NameDesc = {
   glFocus: ['Pit Fighting', 'Accuracy +10'],
   glEdge: ['Arena Edge', 'Damage +10%, attack speed +8%'],
   bkFury: ['Fury', 'Damage +12%'],
+  lbEdge: ['Sword Point', 'Accuracy +10'],
+  lbStep: ['Footwork', 'Defense +8'],
+  lbBlade: ['Court Fencing', 'Damage +10%'],
+  evolve_liberator: ['Evolve: Liberator', 'Recipe complete: evolve into a Liberator'],
   bkFrenzy: ['Frenzy', 'Attack speed +12%'],
   bkThirst: ['Bloodthirst', '12% of damage dealt to enemies heals you'],
   ctClose1: ['Close In I', 'Accuracy +12, but range −2.5 m'],
@@ -264,6 +270,8 @@ export const EN_CLASS_ROLES: Record<string, string> = {
   arbalest: 'Volley: a short burst of very fast shots',
   elementalist: 'Fire + cold basic attacks; builds stacks into a Great Fireball',
   adept: 'Basic attacks build stacks; release a Great Fireball when full',
+  fencer: 'A mobile single-target interrupt: high accuracy, high evasion',
+  liberator: 'Guaranteed crit after an interrupt, and frees nearby allies',
   archmage: 'Enchants the whole party at any distance',
   necromancer: 'Curses enemies; the dead rise to fight for you',
   deathMage: 'Chill aura weakens enemies; Curse Burst',
@@ -277,7 +285,7 @@ export const EN_CLASS_ROLES: Record<string, string> = {
 /** 分支名稱（昇變） */
 export const EN_BRANCHES: Record<string, string> = {
   guardian: 'Guardian', gladiator: 'Paladin', berserker: 'Berserker', cutthroat: 'Assassin', sniper: 'Sniper', arbalest: 'Grand Ranger',
-  elementalist: 'Archmage', deathMage: 'Necromancer', battlemage: 'Battlemage', adeptElement: 'Elementalist', paladin: 'High Priest', zealot: 'Zealot', heretic: 'Cultist',
+  elementalist: 'Archmage', deathMage: 'Necromancer', battlemage: 'Battlemage', adeptElement: 'Elementalist', liberator: 'Liberator', paladin: 'High Priest', zealot: 'Zealot', heretic: 'Cultist',
 };
 
 /** 章節名稱（過場文字維持中文） */

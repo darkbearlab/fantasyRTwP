@@ -85,7 +85,13 @@ function exclusiveUpgrades(): Record<string, UpgradeDef> {
       { id: 'glFocus', name: '鬥技', description: '命中 +10', mods: { accuracy: 10 } },
       { id: 'glEdge', name: '角鬥', description: '傷害 +10%、攻擊速度 +8%', mods: { damagePct: 0.1, attackSpeedPct: 0.08 } },
     ]],
-    ['warrior', 'berserker', [
+    // 決鬥者（阿許卡，SPEC_CHARACTERS §4）：解放者這條線的佔位升級；C 階段重寫
+    ['fencer', 'liberator', [
+      { id: 'lbEdge', name: '劍尖', description: '命中 +10', mods: { accuracy: 10 } },
+      { id: 'lbStep', name: '步法', description: '防禦 +8', mods: { defense: 8 } },
+      { id: 'lbBlade', name: '宮廷劍術', description: '傷害 +10%', mods: { damagePct: 0.1 } },
+    ]],
+    ['fencer', 'berserker', [
       { id: 'bkFury', name: '怒火', description: '傷害 +12%', mods: { damagePct: 0.12 } },
       { id: 'bkFrenzy', name: '狂熱', description: '攻擊速度 +12%', mods: { attackSpeedPct: 0.12 } },
       { id: 'bkThirst', name: '嗜血', description: '對敵人造成的傷害 12% 轉成自己的生命', passive: 'bloodthirst' },
@@ -156,7 +162,7 @@ for (const rc of RECIPES) {
 
 // 職業被動升級（Alan 2026-10-25）：英雄本來就有的被動，升級三選一裡可以一級一級強化
 for (const [classId, ids] of Object.entries(CLASS_PASSIVES)) {
-  if (!['warrior', 'ranger', 'mage', 'cleric', 'adept'].includes(classId)) continue;
+  if (!['warrior', 'ranger', 'mage', 'cleric', 'adept', 'fencer'].includes(classId)) continue;
   for (const pid of ids) {
     const R = CLASS_PASSIVE_RANKS[pid];
     if (!R) continue;

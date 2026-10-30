@@ -82,6 +82,8 @@ export interface PassiveDef {
    * 隨從優先打被詛咒的目標
    */
   raiseDead?: { max: number; hpMult: number; damageMult: number };
+  /** 解放者（SPEC_CHARACTERS §4.1）：打斷敵人時，這個半徑內的隊友（含自己）解除負面狀態（暈眩、定身、詛咒、燃燒、標記） */
+  cleanseOnInterrupt?: number;
   /** 看穿草叢：這個距離內、看得到的草叢裡的敵人對全隊現形（視野分享） */
   seesBrush?: number;
   /** 普攻的投射物外觀（例：法師的小火球） */
@@ -197,6 +199,11 @@ export const PASSIVES: Record<string, PassiveDef> = {
     critAfterInterrupt: true,
   },
   // ── 昇變被動（SPEC_CLASSES §3：法師、牧師）──
+  liberation: {
+    id: 'liberation', name: '解放', source: 'class',
+    description: '打斷敵人時，4 m 內的隊友（含自己）解除暈眩、定身、詛咒、燃燒、標記',
+    cleanseOnInterrupt: 4,
+  },
   necroMastery: {
     id: 'necroMastery', name: '亡者不息', source: 'class',
     description: '被自己詛咒的敵人死亡時站起來成為隨從（同時最多 3 個，戰鬥結束就消失）；隨從優先攻擊被詛咒的目標',
@@ -254,6 +261,9 @@ export const CLASS_PASSIVES: Record<string, string[]> = {
   elementalist: ['emberBolt', 'chillAura'],
   deathMage: ['hexBolt', 'chillAura', 'deathAura'],
   battlemage: ['chillAura', 'sunderStrike'],
+  // 阿許卡（SPEC_CHARACTERS §4.1）：決鬥者沒有職業被動（高命中、高迴避寫在英雄數值）
+  fencer: [],
+  liberator: ['duelist', 'liberation'],
   // 奧爾德斯與芬恩（SPEC_CHARACTERS §4.1）
   adept: ['emberBolt'],
   archmage: ['emberBolt', 'chillAura'],
@@ -287,6 +297,8 @@ export const ACTIVE_SKILL_OVERRIDE: Record<string, string> = {
   elementalist: 'elementalEnchant',
   battlemage: 'selfEnchant',
   paladin: 'holyGround',
+  fencer: 'thrust',
+  liberator: 'thrust',
   highPriest: 'grandSanctuary',
   archmage: 'grandEnchant',
   heretic: 'bloodDrain',
