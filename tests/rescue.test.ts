@@ -1,6 +1,7 @@
 /** 開局兩人、路上解救英雄、陣亡就是沒了（SPEC_SLICE7 §4、§5） */
 import { describe, expect, it } from 'vitest';
 import type { BattleOutcome } from '../src/run/battle';
+import { HORDE_VISION } from '../src/sim/data/horde';
 import { battleOutcomeFromWorld, createBattleFromRun } from '../src/run/battle';
 import { shopConsumables } from '../src/run/consumables';
 import { BRANCHES } from '../src/run/data/branches';
@@ -84,6 +85,22 @@ describe('被困的英雄', () => {
     expect(c.captive).toBe(false);
     expect(c.masterId).toBe(h.id);
     expect(guards.every((g) => g.alerted)).toBe(true);
+  });
+
+  it('被抓的英雄救出來之前沒有視野（Alan 2026-10-30）', () => {
+    const { r, node } = besideRescue();
+    const w = createBattleFromRun(enter(r, node));
+    const c = w.units.find((u) => u.rescue)!;
+    expect(w.vision).not.toBeNull();
+    for (let i = 0; i < 0.5 / DT; i++) w.step();
+    // 英雄都離得遠：被抓的英雄所在的地方還在迷霧裡
+    expect(w.heroes().every((h) => dist(h.pos, c.pos) > HORDE_VISION.heroSightRange + 1)).toBe(true);
+    expect(w.vision!.isVisible(c.pos)).toBe(false);
+    // 救出來之後就有視野
+    w.heroes()[0].pos = { x: c.pos.x + CAPTIVE.wakeRange - 1, y: c.pos.y };
+    for (let i = 0; i < 3; i++) w.step();
+    expect(c.captive).toBe(false);
+    expect(w.vision!.isVisible(c.pos)).toBe(true);
   });
 
   it('救出來跟著離開：戰後決定要不要讓他加入，加入就填進空欄位，接著照常進下一張圖', () => {

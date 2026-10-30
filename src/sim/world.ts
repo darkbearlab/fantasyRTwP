@@ -366,7 +366,8 @@ export class World implements ZocContext {
     if (!this.vision) return;
     this.reveals = this.reveals.filter((r) => r.until > this.time && !this.getUnit(r.unitId)?.dead);
     const extra = this.reveals.map((r) => ({ pos: this.getUnit(r.unitId)!.pos, range: r.range }));
-    this.vision.update([...this.units.filter((u) => u.team === 'hero' && !u.dead).map((u) => ({ pos: u.pos, range: HORDE_VISION.heroSightRange })), ...extra]);
+    // 被抓的英雄（待解救）沒有視野：救出來之前看不到他周圍（Alan 2026-10-30）
+    this.vision.update([...this.units.filter((u) => u.team === 'hero' && !u.dead && !u.captive).map((u) => ({ pos: u.pos, range: HORDE_VISION.heroSightRange })), ...extra]);
   }
 
   // ───────────── 公開查詢 ─────────────
@@ -676,6 +677,8 @@ export class World implements ZocContext {
       c.masterId = master ? master.id : -1;
       if (guards[0]) this.alertUnit(guards[0]);
       this.emit({ type: 'captiveFreed', unitId: c.id });
+      // 救出來就有視野了（被抓時不算）
+      this.updateVision();
     }
   }
 
