@@ -115,6 +115,16 @@ export class Unit {
   ambushAccuracy = 0;
   /** 這次潛行的偷襲命中加成 */
   stealthAmbush = 0;
+  /** 反制（守護者）：剩餘秒數與減傷比例 */
+  counterWardTime = 0;
+  counterWardPct = 0;
+  /** 齊射（大遊俠）：剩餘秒數與普攻速度加成 */
+  hasteTime = 0;
+  hastePct = 0;
+  /** 血印（邪教徒）：剩餘秒數、留下的人、回復比例 */
+  bloodMarkTime = 0;
+  bloodMarkBy = -1;
+  bloodMarkHeal = 0;
   /** 寒氣（法師的光環）：移動與行動速度降低 chillSlow 比例 */
   chillTime = 0;
   chillSlow = 0;

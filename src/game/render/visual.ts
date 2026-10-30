@@ -24,6 +24,7 @@ const UNIT_HEIGHT: Record<string, number> = {
   battlemage: 1.9,
   paladin: 2.2,
   zealot: 1.8,
+  highPriest: 1.8,
   heretic: 1.8,
   // 敵人
   skirmisher: 1.7,

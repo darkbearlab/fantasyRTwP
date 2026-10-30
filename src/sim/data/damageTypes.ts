@@ -65,6 +65,7 @@ export const BASIC_ATTACK: Record<string, AttackInfo> = {
   battlemage: A('phys', 'cleave'),
   paladin: A('phys', 'blunt'),
   zealot: A('phys', 'pierce'),
+  highPriest: A('phys', 'blunt'),
   heretic: A('spec', 'dark'),
   // 敵人
   shieldbearer: A('phys', 'pierce'),
@@ -174,6 +175,7 @@ export const SPEC_DEFENSE: Record<string, { defense: number; armor: number }> = 
   battlemage: { defense: 35, armor: 4 },
   paladin: { defense: 38, armor: 5 },
   zealot: { defense: 36, armor: 4 },
+  highPriest: { defense: 38, armor: 5 },
   heretic: { defense: 38, armor: 4 },
   priest: { defense: 35, armor: 3 },
   summoner: { defense: 35, armor: 3 },

@@ -146,6 +146,8 @@ export type SkillEffect =
       critVsStunned?: boolean;
       /** 擊退撞到障礙物時額外暈眩（聖光震擊） */
       wallStun?: boolean;
+      /** 反制（守護者，SPEC_CHARACTERS §4.1）：打斷成功時，radius 內的隊友（含自己）duration 秒受到的傷害 −reduction */
+      counterWard?: { radius: number; duration: number; reduction: number };
       projectileSpeed?: number;
       projectileKind?: ProjectileKind;
     }
@@ -190,7 +192,10 @@ export type SkillEffect =
   /** 地面區域：敵人在範圍內移動變慢（沼澤） */
   /** 在地上留下持續區域（沼澤等；通用的持續效果，src/sim/zones.ts） */
   /** extra：同一個位置再放一個區域（例：聖騎士的聖域同時讓敵人變慢） */
-  | { kind: 'zone'; radius: number; lingering: LingeringDef; extra?: LingeringDef }
+  /** burst：放下的瞬間打斷範圍內的敵人、加失衡定額（聖騎士的聖域・審判，SPEC_CHARACTERS §4.1） */
+  | { kind: 'zone'; radius: number; lingering: LingeringDef; extra?: LingeringDef; burst?: { interrupts: boolean; stagger: number } }
+  /** 齊射（大遊俠）：duration 秒內普攻速度 +attackSpeedPct */
+  | { kind: 'haste'; duration: number; attackSpeedPct: number }
   /** 範圍治療（治療藥瓶） */
   | { kind: 'aoeHeal'; radius: number; amount: number; projectileSpeed?: number; projectileKind?: ProjectileKind }
   /** 衝鋒（knockback：抵達時的攻擊附帶擊退，攻城兵的撞擊） */
@@ -227,7 +232,15 @@ export type SkillEffect =
    * 吸血：從目標（敵人或我方）身上吸生命補給自己。damage：吸走的量（敵人走減傷公式、我方直接扣）；
    * convert：吸到的量有幾成變成自己的生命（都不是 1:1，吸我方的比較多）
    */
-  | { kind: 'drain'; enemy: { damage: [number, number]; convert: number }; ally: { damage: [number, number]; convert: number } };
+  | {
+      kind: 'drain';
+      enemy: { damage: [number, number]; convert: number };
+      ally: { damage: [number, number]; convert: number };
+      /** 血印（邪教徒）：吸敵人時留下，duration 秒內隊友打中它，施放者回復那一下傷害的 healPct */
+      bloodMark?: { duration: number; healPct: number };
+      /** 吸隊友時，那名隊友 duration 秒造成傷害 +damagePct（你的血，換你的力量） */
+      allyEmpower?: { duration: number; damagePct: number };
+    };
 
 export interface SkillDef {
   id: string;

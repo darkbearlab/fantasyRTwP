@@ -244,7 +244,9 @@ export const CLASS_PASSIVES: Record<string, string[]> = {
   elementalist: ['emberBolt', 'chillAura'],
   deathMage: ['hexBolt', 'chillAura', 'deathAura'],
   battlemage: ['chillAura', 'sunderStrike'],
-  paladin: ['smite', 'blessAura', 'fieldCare'],
+  // 聖騎士改成戰士底（SPEC_CHARACTERS §2-3）：帶戰士的全部職業被動
+  paladin: ['cleave', 'tauntAura', 'shieldBearer'],
+  highPriest: ['smite', 'blessAura', 'fieldCare'],
   zealot: ['smite', 'zealAura', 'fieldCare'],
   heretic: ['bloodAura', 'fieldCare'],
 };
@@ -265,12 +267,14 @@ export const ACTIVE_SKILL_OVERRIDE: Record<string, string> = {
   // Alan 2026-10-20：戰士的主動換成盾擊（打斷＋暈眩）；遊俠的瞄準射擊加上打斷、命中大幅提高
   warrior: 'shieldBash',
   // 進階職業（SPEC_CLASSES §3）
-  guardian: 'shieldBash',
+  guardian: 'shieldCounter',
   gladiator: 'shieldBash',
-  arbalest: 'sureShot',
+  arbalest: 'volley',
   elementalist: 'elementalEnchant',
   battlemage: 'selfEnchant',
   paladin: 'holyGround',
+  highPriest: 'grandSanctuary',
+  heretic: 'bloodDrain',
   zealot: 'sanctuary',
 };
 

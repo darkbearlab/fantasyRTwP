@@ -39,7 +39,7 @@ export interface ActionRequest {
 /** 行動條速度：攻擊速度 × 全域倍率 × 詛咒減速（怪群模式的英雄普攻另外加速） */
 export function actionRate(world: World, u: Unit, kind?: 'attack' | 'skill'): number {
   let r = u.def.attackSpeed * world.config.actionSpeedMult * (u.curseTime > 0 ? 1 - u.curseSlow : 1) * (u.chillTime > 0 ? 1 - u.chillSlow : 1);
-  if (kind === 'attack') r *= 1 + u.mods.attackSpeedPct;
+  if (kind === 'attack') r *= (1 + u.mods.attackSpeedPct) * (u.hasteTime > 0 ? 1 + u.hastePct : 1);
   // 隨從（比照敵人小兵）吃敵人的攻速倍率，不吃英雄的
   if (kind === 'attack' && (u.team === 'enemy' || u.follower)) r *= world.config.enemyAttackSpeedMult;
   if (kind === 'attack' && u.isHero) {
@@ -262,6 +262,32 @@ function drain(world: World, u: Unit, t: Unit, def: SkillDef): void {
   const before = t.hp;
   applyDamage(world, t, amount, 'spell', u, { skillId: def.id });
   restoreHp(world, u, u, (before - Math.max(0, t.hp)) * d.convert);
+  if (t.dead) return;
+  // 血印（邪教徒）：隊友打中它時，施放者回血
+  if (!ally && eff.bloodMark) {
+    t.bloodMarkTime = eff.bloodMark.duration;
+    t.bloodMarkBy = u.id;
+    t.bloodMarkHeal = eff.bloodMark.healPct;
+    world.emit({ type: 'status', unitId: t.id, text: tr("血印") });
+  }
+  // 吸隊友：那名隊友短暫加傷（和附魔共用暫時傷害增益）
+  if (ally && eff.allyEmpower) {
+    const active = t.damageBuffTime > 0;
+    t.damageBuffMult = Math.max(active ? t.damageBuffMult : 1, 1 + eff.allyEmpower.damagePct);
+    t.damageBuffTime = Math.max(t.damageBuffTime, eff.allyEmpower.duration);
+    world.emit({ type: 'status', unitId: t.id, text: tr("血之力") });
+  }
+}
+
+/** 反制（守護者）：radius 內的隊友（含自己）一段時間減傷，重疊時取較強、時間取較長 */
+function counterWard(world: World, src: Unit, w: { radius: number; duration: number; reduction: number }): void {
+  for (const a of world.units) {
+    if (a.dead || a.team !== src.team || dist(a.pos, src.pos) > w.radius) continue;
+    const active = a.counterWardTime > 0;
+    a.counterWardPct = Math.max(active ? a.counterWardPct : 0, w.reduction);
+    a.counterWardTime = Math.max(a.counterWardTime, w.duration);
+    world.emit({ type: 'status', unitId: a.id, text: tr("反制") });
+  }
 }
 
 /** 聖鎚：為附近生命比例最低的隊友（含自己）回復 */
@@ -419,7 +445,7 @@ function applySkillEffect(world: World, u: Unit, def: SkillDef, t: Unit | undefi
         strike(world, u, t, {
           melee: true, damageType: eff.damageType ?? 'melee', mult: eff.mult * power, accBonus: eff.accBonus, flatDamage: eff.flatDamage,
           interrupts: eff.interrupts, stun: eff.stun, knockback: eff.knockback, skillId: def.id,
-          shatters: eff.shatters, behindMult: eff.behindMult, critVsStunned: eff.critVsStunned, wallStun: eff.wallStun,
+          shatters: eff.shatters, behindMult: eff.behindMult, critVsStunned: eff.critVsStunned, wallStun: eff.wallStun, counterWard: eff.counterWard,
         });
       } else {
         world.spawnProjectile(
@@ -580,6 +606,11 @@ function applySkillEffect(world: World, u: Unit, def: SkillDef, t: Unit | undefi
       world.emit({ type: 'status', unitId: u.id, text: tr("潛行") });
       return false;
     }
+    case 'haste':
+      u.hasteTime = eff.duration;
+      u.hastePct = eff.attackSpeedPct;
+      world.emit({ type: 'status', unitId: u.id, text: def.name });
+      return false;
     case 'smoke':
       u.stealthTime = eff.duration;
       u.revealTime = 0;
@@ -588,6 +619,14 @@ function applySkillEffect(world: World, u: Unit, def: SkillDef, t: Unit | undefi
       return false;
     case 'zone':
       if (!point) return false;
+      // 聖域・審判（聖騎士）：放下的瞬間打斷範圍內的敵人、加失衡
+      if (eff.burst) {
+        for (const e of world.units) {
+          if (e.dead || e.team === u.team || dist(e.pos, point) > eff.radius + e.radius * 0.5) continue;
+          if (eff.burst.interrupts) interrupt(world, u, e, def.id);
+          if (world.config.battleStyle === 'deliberate') addStagger(world, e, eff.burst.stagger);
+        }
+      }
       addZone(world, u, point, eff.radius, eff.lingering, def.id);
       if (eff.extra) addZone(world, u, point, eff.radius, eff.extra, def.id);
       world.emit({ type: 'aoe', sourceId: u.id, point: { ...point }, radius: eff.radius, skillId: def.id });
@@ -896,6 +935,8 @@ export interface StrikeParams {
   basic?: boolean;
   skillId?: string;
   freeAttack?: boolean;
+  /** 反制（守護者）：打斷成功時給附近隊友減傷 */
+  counterWard?: { radius: number; duration: number; reduction: number };
 }
 
 /** 單體攻擊結算：命中判定 → 傷害 → 打斷／暈眩／擊退。回傳實際受到攻擊的單位（未命中為 null） */
@@ -1002,7 +1043,10 @@ export function strike(world: World, src: Unit, tgt: Unit, p: StrikeParams): Uni
   if (tier && tier !== critTierOf(critAt, critAt)) world.emit({ type: 'status', unitId: target.id, text: tier.name });
   // 打斷與失衡是兩條路（SPEC_STAGGER §7）：沉穩節奏的打斷不附帶暈眩，可以另外帶失衡定額
   if (p.interrupts || tier?.interrupts) {
-    if (interrupt(world, src, target, p.interrupts ? p.skillId : undefined) && typed) addStagger(world, target, STAGGER.interruptFlat);
+    const done = interrupt(world, src, target, p.interrupts ? p.skillId : undefined);
+    if (done && typed) addStagger(world, target, STAGGER.interruptFlat);
+    // 反制（守護者）：打斷正在預兆中的敵人（interrupt 只在對方讀條時成立）→ 附近隊友減傷
+    if (done && p.counterWard) counterWard(world, src, p.counterWard);
   }
   if (p.stun && !typed) applyStun(world, target, p.stun);
   if (p.knockback) {
@@ -1042,6 +1086,11 @@ export function applyDamage(
   // 聖域：範圍內的友軍減傷（取最強的一個）
   const ward = wardReduction(world, target);
   if (ward > 0) amount = Math.max(1, Math.round(amount * (1 - ward)));
+  // 血印（邪教徒）：留下血印的人的隊友打中它，留下的人回血（他自己吸的不算）
+  if (foe && target.bloodMarkTime > 0 && src.id !== target.bloodMarkBy && !opts.dot) {
+    const by = world.getUnit(target.bloodMarkBy);
+    if (by && !by.dead && by.team === src.team) restoreHp(world, by, by, amount * target.bloodMarkHeal);
+  }
   // 分擔（守護者）：一部分傷害改由光環主人承受
   if (foe && target.coverTime > 0 && amount > 1) {
     const guard = world.getUnit(target.coverBy);
