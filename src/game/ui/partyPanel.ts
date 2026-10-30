@@ -1,4 +1,5 @@
 import { tr } from '../../i18n';
+import { heroName } from '../../run/characters';
 import { HEROES } from '../../sim/data/heroes';
 import { SKILLS } from '../../sim/data/skills';
 import { PERSONALITY_LABEL } from '../../sim/ai/idleBehavior';
@@ -45,7 +46,7 @@ export function partyPanel(run: RunState, opts: PartyPanelOptions = {}): HTMLEle
     portrait.style.background = hex(def.color);
     const info = el('div', 'party-info');
     const name = el('div', 'party-name');
-    name.append(el('span', '', `${slot + 1}. ${className(h.classId)}`));
+    name.append(el('span', '', `${slot + 1}. ${h.characterId ? heroName(h) : className(h.classId)}`));
     const tag = el('span', `personality ${h.personality}`, PERSONALITY_LABEL[h.personality]);
     if (opts.onPersonality && !h.dead) {
       noFocus(tag);

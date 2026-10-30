@@ -2,6 +2,7 @@
  * 強化修飾器（SPEC_SLICE2 §9）：把英雄擁有的強化套在基礎數值上，產生戰鬥用的 UnitDef。
  * 不修改 HEROES 資料表。
  */
+import { heroName, heroShortName } from './characters';
 import { tr } from '../i18n/lang';
 import { CLASS_PASSIVES, CLASS_PASSIVE_RANKS, passiveStartRank } from '../sim/data/passives';
 import { HEROES } from '../sim/data/heroes';
@@ -147,7 +148,7 @@ export function grantUpgrade(run: RunState, upgradeId: string, slot?: number, sk
   if (run.forward && def.branch && (h.baseClass || def.branch.classId !== h.classId)) throw new Error(`「${def.name}」不是這名英雄的職業升級`);
   if (def.branch && !run.forward && !canTakeExclusive(h, def.id)) throw new Error(`「${def.name}」不是這名英雄能選的專屬升級`);
   const before = maxHpOf(h);
-  const name = HEROES[h.classId].name;
+  const name = heroName(h);
   h.upgrades.push(def.needsSkill ? { id: def.id, skillId } : { id: def.id });
   if (def.healPct) h.hp = Math.min(maxHpOf(h), h.hp + Math.round(maxHpOf(h) - before));
   let text = tr("{0}獲得「{1}」", { 0: name, 1: def.name });
@@ -227,7 +228,7 @@ export function evolveHero(run: RunState, slot: number, rc: RecipeDef): string {
   h.hp = Math.max(1, Math.round(maxHpOf(h) * ratio));
   const line = BRANCHES[rc.base]?.find((b) => b.evolvesTo === rc.evolvesTo)?.line ?? '';
   (run.evolutionShow ??= []).push({ slot, from: h.baseClass, to: h.classId, line });
-  return tr("{0}昇變成{1}！", { 0: HEROES[h.baseClass].name, 1: HEROES[h.classId].name });
+  return tr("{0}昇變成{1}！", { 0: h.characterId ? heroShortName(h) : HEROES[h.baseClass].name, 1: HEROES[h.classId].name });
 }
 
 /** 還能拿的職業升級（沒升滿）：昇變配方的升級（昇變後就沒有了）＋職業被動升級（新職業還有那個被動就能繼續升） */

@@ -1,6 +1,7 @@
 /**
  * 事件解析與結果套用（SPEC_SLICE2 §6）。事件內容在 data/events.ts。
  */
+import { heroName } from './characters';
 import { listSep, tr } from '../i18n/lang';
 import { HEROES } from '../sim/data/heroes';
 import type { Rng } from '../sim/rng';
@@ -96,7 +97,7 @@ export function applyEffect(r: RunState, e: EventEffect, rng: Rng): string {
           const max = maxHpOf(hero);
           const amt = Math.min(max - hero.hp, Math.round(max * e.pct));
           hero.hp += amt;
-          return tr("{0}回復 {1} 生命", { 0: HEROES[hero.classId].name, 1: amt });
+          return tr("{0}回復 {1} 生命", { 0: heroName(hero), 1: amt });
         })
         .join(tr("、"));
     case 'damage':
@@ -104,7 +105,7 @@ export function applyEffect(r: RunState, e: EventEffect, rng: Rng): string {
         .map(({ hero }) => {
           const amt = Math.min(hero.hp - 1, Math.round(maxHpOf(hero) * e.pct));
           hero.hp -= amt;
-          return tr("{0}失去 {1} 生命", { 0: HEROES[hero.classId].name, 1: amt });
+          return tr("{0}失去 {1} 生命", { 0: heroName(hero), 1: amt });
         })
         .join(tr("、"));
     case 'upgrade': {

@@ -2,6 +2,7 @@
  * 遠征流程（SPEC_SLICE2 §3–§5、§8、§9）：選節點、戰鬥結算、獎勵、休息、復活、招募。
  * 每個函式都回傳新的 RunState，不修改傳入的物件。
  */
+import { heroName } from './characters';
 import { listSep, tr } from '../i18n/lang';
 import { CONSUMABLES } from '../sim/data/consumables';
 import { addToBag, rollConsumableDrop } from './consumables';
@@ -432,11 +433,13 @@ export function resolveRescue(run: RunState, accept: boolean): RunState {
   const r = cloneRun(run);
   const hero = r.pendingRescue!;
   r.pendingRescue = undefined;
+  // 加入或離開都算登場過，之後不會再遇到
+  if (hero.characterId) (r.metCharacters ??= []).push(hero.characterId);
   if (accept) {
     const slot = firstEmptySlot(r);
     r.party[slot] = hero;
-    r.journal.push(tr("{0}加入了隊伍。", { 0: HEROES[hero.classId].name }));
-  } else r.journal.push(tr("{0}道謝後離開了。", { 0: HEROES[hero.classId].name }));
+    r.journal.push(tr("{0}加入了隊伍。", { 0: heroName(hero) }));
+  } else r.journal.push(tr("{0}道謝後離開了。", { 0: heroName(hero) }));
   return toMap(r);
 }
 
@@ -508,8 +511,8 @@ export function restRevive(run: RunState, slot: number): RunState {
   r.gold -= ECONOMY.reviveCost;
   const p = restPhase(r);
   p.used = true;
-  p.resultText = tr("{0}被救了回來。", { 0: HEROES[h.classId].name });
-  r.journal.push(tr("復活了{0}。", { 0: HEROES[h.classId].name }));
+  p.resultText = tr("{0}被救了回來。", { 0: heroName(h) });
+  r.journal.push(tr("復活了{0}。", { 0: heroName(h) }));
   smokeDrawsChampion(r);
   return r;
 }

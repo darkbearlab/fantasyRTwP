@@ -294,6 +294,7 @@
 |---|---|
 | `src/run/deliberateLevelGen.ts` ＋ `data/deliberateLevels.ts` | 48×48 生成關卡（遭遇編號 `dlevel:<tier>`） |
 | `src/run/items.ts` | 背包、裝備、商人、掉落的純函式 |
+| `src/run/data/characters.ts`、`src/run/characters.ts` | 具名角色（SPEC_CHARACTERS）：角色資料、可登場的角色、英雄顯示名稱 `heroName`／`heroShortName`、還沒登場的角色 |
 | `src/run/battle.ts` | `createBattleFromRun`：沉穩節奏時套設定、單一主動（或循環的所有招）、道具、迷霧、小隊 |
 | `src/run/mapGen.ts` | 新節點類型 `shop`（只在 `createRun` 的 style 為 deliberate 時放） |
 

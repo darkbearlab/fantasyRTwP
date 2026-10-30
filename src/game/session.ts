@@ -7,7 +7,7 @@ import type { World } from '../sim/world';
 import { BattleHooks } from './hooks';
 
 /** 英雄欄位資訊（遠征模式：陣亡或空欄位也要在英雄列上佔位） */
-export type PartySlotInfo = { classId: string; dead: boolean } | null;
+export type PartySlotInfo = { classId: string; dead: boolean; name?: string } | null;
 
 export interface SessionOptions {
   /** 由遠征建立的戰鬥；省略時建立切片 1 的單場隘口戰 */

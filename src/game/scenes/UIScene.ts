@@ -707,7 +707,7 @@ export class UIScene extends Phaser.Scene {
         const def = info ? HEROES[info.classId] : null;
         const portrait = el('div', 'portrait', def ? def.letter : '');
         portrait.appendChild(el('span', 'slot-key', String(slot + 1)));
-        card.append(portrait, el('div', 'info', def ? tr("{0}　陣亡", { 0: def.name }) : tr("（空欄位）")));
+        card.append(portrait, el('div', 'info', def ? tr("{0}　陣亡", { 0: info?.name ?? def.name }) : tr("（空欄位）")));
         this.heroBar.appendChild(card);
       });
     }

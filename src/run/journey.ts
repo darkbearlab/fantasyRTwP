@@ -1,6 +1,8 @@
 /**
  * 一路向前（SPEC_SLICE7 §1）：出口預告前方的地圖、地圖上的商人。純函式。
  */
+import { CHARACTERS } from './data/characters';
+import { unmetCharacters } from './characters';
 import { tr } from '../i18n/lang';
 import type { InteractableDef, MapDef, Rect } from '../sim/data/types';
 import { currentChapter } from './campaign';
@@ -47,9 +49,12 @@ export function rescueAt(run: RunState, nodeId: number): boolean {
  */
 export function rescueHero(run: RunState, nodeId: number): HeroRecord {
   const rng = rngFor(run.seed, 'rescueHero', run.chapter ?? 0, nodeId);
-  const classes = classChoices(run.style);
   const scratch = cloneRun(run);
-  const h = newHero(classes[rng.int(0, classes.length - 1)]);
+  // 具名角色（SPEC_CHARACTERS §3.2）：從還沒登場的角色裡抽；都登場過了就照舊抽職業
+  const chars = unmetCharacters(run);
+  const classes = classChoices(run.style);
+  const pick = chars.length ? chars[rng.int(0, chars.length - 1)] : null;
+  const h = pick ? newHero(CHARACTERS[pick].baseClass, undefined, pick) : newHero(classes[rng.int(0, classes.length - 1)]);
   h.level = run.level ?? 1;
   scratch.party[0] = h;
   // 朝一份配方前進（SPEC_SLICE7 §4）：先拿配方要的、再把要升滿的升滿，湊齊就昇變，之後拿通用升級

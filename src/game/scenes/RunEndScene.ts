@@ -1,5 +1,5 @@
 import { tr } from '../../i18n';
-import { HEROES } from '../../sim/data/heroes';
+import { heroName } from '../../run/characters';
 import { NODE_ICON } from '../../run/mapGen';
 import { button, el } from '../ui/dom';
 import { getRun, randomRunSeed, startNewRun } from '../runFlow';
@@ -35,7 +35,7 @@ export class RunEndScene extends DomScene {
     run.party.forEach((h) => {
       if (!h) return;
       const row = el('tr', h.dead ? 'dead' : '');
-      row.innerHTML = tr("<td>{0}</td><td>{1}</td><td>{2}</td><td>{3}</td><td>{4}</td><td>{5}</td><td>{6}</td>", { 0: HEROES[h.classId].name, 1: h.battles, 2: h.kills, 3: h.damageDealt, 4: h.damageTaken, 5: h.upgrades.length, 6: h.dead ? tr('陣亡') : tr('存活') });
+      row.innerHTML = tr("<td>{0}</td><td>{1}</td><td>{2}</td><td>{3}</td><td>{4}</td><td>{5}</td><td>{6}</td>", { 0: heroName(h), 1: h.battles, 2: h.kills, 3: h.damageDealt, 4: h.damageTaken, 5: h.upgrades.length, 6: h.dead ? tr('陣亡') : tr('存活') });
       tbody.appendChild(row);
     });
     table.appendChild(tbody);

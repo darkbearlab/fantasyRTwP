@@ -2,6 +2,7 @@
  * 遠征狀態 RunState（SPEC_SLICE2 §3.1）：純資料、可序列化成 JSON（之後做存檔用）。
  * 所有規則函式都是「舊狀態 → 新狀態」，不修改傳入的物件。
  */
+import { CHARACTERS } from './data/characters';
 import { BAG } from '../sim/data/consumables';
 import { defaultLoadout } from '../sim/data/classes';
 import { HERO_ORDER, HEROES } from '../sim/data/heroes';
@@ -26,6 +27,8 @@ export interface OwnedUpgrade {
 }
 
 export interface HeroRecord {
+  /** 具名角色（SPEC_CHARACTERS §3；舊存檔、舊模式沒有） */
+  characterId?: string;
   /** 目前的職業（昇變後是進階職業） */
   classId: string;
   /** 昇變前的基本職業（SPEC_CLASSES；還沒昇變時沒有） */
@@ -128,6 +131,8 @@ export interface RunStats {
 export interface RunState {
   version: 1;
   seed: number;
+  /** 這趟已經在解救時遇過的角色（加入或離開都算；SPEC_CHARACTERS §3.2） */
+  metCharacters?: string[];
   map: RunMap;
   /** 目前所在節點（尚未出發為 null） */
   currentNodeId: number | null;
@@ -172,9 +177,10 @@ export interface RunState {
   bag?: string[];
 }
 
-export function newHero(classId: string, personality?: Personality): HeroRecord {
+export function newHero(classId: string, personality?: Personality, characterId?: string): HeroRecord {
   const def = HEROES[classId];
   return {
+    ...(characterId ? { characterId } : {}),
     classId,
     skills: defaultLoadout(classId),
     hp: def.maxHp,
@@ -193,7 +199,8 @@ export function newHero(classId: string, personality?: Personality): HeroRecord 
  * 建立遠征。opts.party：隊伍職業（組隊畫面用 rollParty 產生）；省略時為四個 Archetype。
  */
 export function createRun(seed: number, opts: { layers?: number; party?: string[]; style?: RunStyle; intro?: boolean; forward?: boolean } = {}): RunState {
-  const party: (HeroRecord | null)[] = (opts.party ?? HERO_ORDER).slice(0, ECONOMY.partySize).map((id) => newHero(id));
+  // party 可以是職業 id，也可以是角色 id（SPEC_CHARACTERS §3.2：組隊畫面選角色）
+  const party: (HeroRecord | null)[] = (opts.party ?? HERO_ORDER).slice(0, ECONOMY.partySize).map((id) => (CHARACTERS[id] ? newHero(CHARACTERS[id].baseClass, undefined, id) : newHero(id)));
   while (party.length < ECONOMY.partySize) party.push(null);
   const style = opts.style ?? LEVELS.expeditionStyle;
   const run: RunState = {

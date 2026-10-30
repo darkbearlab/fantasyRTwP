@@ -1,4 +1,4 @@
-import { HEROES } from '../../sim/data/heroes';
+import { heroName } from '../../run/characters';
 import { tr } from '../../i18n';
 import { CONSUMABLES } from '../../sim/data/consumables';
 import { ECONOMY } from '../../run/data/economy';
@@ -47,7 +47,7 @@ export class RewardScene extends DomScene {
     const hero = p.pickSlot !== undefined ? run.party[p.pickSlot] : null;
     // 一路向前（SPEC_SLICE7 §3.1）：每名英雄各自三選一
     const title = hero
-      ? tr("升到第 {0} 級：{1}選擇一個強化{2}", { 0: p.levelUpTo, 1: HEROES[hero.classId].name, 2: (run.heroPicks?.length ?? 0) > 1 ? tr("（還有 {0} 次）", { 0: run.heroPicks!.length - 1 }) : '' })
+      ? tr("升到第 {0} 級：{1}選擇一個強化{2}", { 0: p.levelUpTo, 1: heroName(hero), 2: (run.heroPicks?.length ?? 0) > 1 ? tr("（還有 {0} 次）", { 0: run.heroPicks!.length - 1 }) : '' })
       : levelUp
         ? tr("升到第 {0} 級：選擇一個強化{1}", { 0: p.levelUpTo, 1: remain > 1 ? tr("（還有 {0} 次升級）", { 0: remain - 1 }) : '' })
         : tr("選擇一個強化{0}", { 0: p.elite ? tr("（精英：四選一，至少一個稀有）") : '' });
