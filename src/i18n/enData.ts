@@ -21,6 +21,7 @@ export const EN_SKILLS: NameDesc = {
   drainLife: ['Drain Life', 'Drain life from an enemy or ally to heal yourself; draining allies yields more, but never 1:1'],
   bloodDrain: ['Blood Pact', 'Drain life from an enemy or ally to heal yourself. Draining an enemy leaves a blood mark (6 s; allies hitting it heal you); draining an ally gives that ally +20% damage for 6 s'],
   shieldCounter: ['Shield Bash: Counter', 'Melee: damage ×0.8, interrupts, heavy stagger; interrupting an enemy mid-telegraph makes allies within 4 m take 40% less damage for 3 s'],
+  grandEnchant: ['Grand Enchant', 'The whole party (any distance) deals +30% damage for 10 s, and their attacks gain fire and cold (best matchup applies)'],
   volley: ['Volley', 'For 4 s, basic attacks come extremely fast (attack speed +200%); piercing still applies'],
   grandSanctuary: ['Grand Sanctuary', 'A wide circle of holy light: for 7 s, allies inside take 40% less damage'],
   heal: ['Heal', 'Restores 35 HP'],
@@ -40,7 +41,7 @@ export const EN_SKILLS: NameDesc = {
   flashFireball: ['Fireball', 'Hurls a fireball that explodes at the target: 18–26 damage in 2.5 m; hurts allies too'],
   sureShot: ['Aimed Shot', 'Damage ×2.0, accuracy +60 (almost never misses), interrupts the target'],
   enchant: ['Enchant', 'Allies within 6 m (including self) deal +30% damage for 10 s'],
-  greatFireball: ['Great Fireball', '(After 5 charges) explodes as soon as it is ready: 30–40 damage in 3.5 m; hurts allies too'],
+  greatFireball: ['Great Fireball', '(After basic attacks build up enough stacks) explodes right after the wind-up: 30–40 damage and stagger in a 3.5 m radius; hurts allies too'],
   curseBurst: ['Curse Burst', 'Detonates the curse on the target: 20–28 damage and removes the curse; only 6–9 if not cursed'],
   ram: ['Ram', 'Charge a hero (ignores zones of control), strike and knock back 2 m'],
   bomb: ['Bomb', 'Lobbed (no line of sight needed): 6–9 damage in 1.5 m'],
@@ -70,7 +71,7 @@ export const EN_SKILLS: NameDesc = {
 export const EN_HEROES: Record<string, string> = {
   warrior: 'Warrior', ranger: 'Ranger', mage: 'Mage', cleric: 'Cleric', berserker: 'Berserker', rogue: 'Rogue', hexer: 'Hexer', alchemist: 'Alchemist',
   guardian: 'Guardian', gladiator: 'Gladiator', cutthroat: 'Assassin', sniper: 'Sniper', arbalest: 'Grand Ranger', elementalist: 'Elementalist',
-  deathMage: 'Death Mage', battlemage: 'Battlemage', paladin: 'Paladin', zealot: 'Zealot', heretic: 'Cultist', highPriest: 'High Priest',
+  deathMage: 'Death Mage', battlemage: 'Battlemage', paladin: 'Paladin', zealot: 'Zealot', heretic: 'Cultist', highPriest: 'High Priest', adept: 'Adept', archmage: 'Archmage', necromancer: 'Necromancer',
 };
 
 export const EN_ENEMIES: Record<string, string> = {
@@ -113,6 +114,7 @@ export const EN_PASSIVES: NameDesc = {
   deathAura: ['Aura of Death', 'Enemies within 3 m take +15% damage'],
   sunderStrike: ['Sunder', 'Basic hits reduce the target’s physical and special armor by 2 (up to 3 stacks, 4 s)'],
   zealAura: ['Zealot Aura', 'Allies within 5 m (including self) gain +12 accuracy, +6 defense and +15% damage'],
+  necroMastery: ['Restless Dead', 'Enemies you cursed rise as your followers when they die (up to 3 at once; they vanish after the battle); followers prefer cursed targets'],
   bloodAura: ['Blood Aura', 'Allies within 5 m deal +15% damage and lifesteal 20% when hitting enemies; the heretic loses HP equal to 8% of that damage'],
   warTotemAura: ['War Totem', 'Allies within 7 m deal +15% damage (stacks per totem)'],
   grenade: ['Grenade', 'Lobbed basic attacks that burst on impact (no friendly fire, ignores cover)'],
@@ -133,8 +135,8 @@ export const EN_UPGRADES: NameDesc = {
   evolve_cutthroat: ['Evolve: Assassin', 'Recipe complete: evolve into an Assassin'],
   evolve_sniper: ['Evolve: Sniper', 'Recipe complete: evolve into a Sniper'],
   evolve_arbalest: ['Evolve: Grand Ranger', 'Recipe complete: evolve into a Grand Ranger'],
-  evolve_elementalist: ['Evolve: Elementalist', 'Recipe complete: evolve into an Elementalist'],
-  evolve_deathMage: ['Evolve: Death Mage', 'Recipe complete: evolve into a Death Mage'],
+  evolve_elementalist: ['Evolve: Archmage', 'Recipe complete: evolve into an Archmage'],
+  evolve_deathMage: ['Evolve: Necromancer', 'Recipe complete: evolve into a Necromancer'],
   evolve_battlemage: ['Evolve: Battlemage', 'Recipe complete: evolve into a Battlemage'],
   evolve_paladin: ['Evolve: High Priest', 'Recipe complete: evolve into a High Priest'],
   evolve_zealot: ['Evolve: Zealot', 'Recipe complete: evolve into a Zealot'],
@@ -175,6 +177,10 @@ export const EN_UPGRADES: NameDesc = {
   elEnchant: ['Enchant Mastery', 'Enchant cooldown −20%'],
   elFlame: ['Blaze', 'Damage +12%'],
   elFrost: ['Rime', 'Accuracy +8'],
+  adFlame: ['Fundamentals', 'Damage +8%'],
+  adSpark: ['Quick Hands', 'Attack speed +12%'],
+  adFocus: ['Focus', 'Accuracy +8'],
+  evolve_adeptElement: ['Evolve: Elementalist', 'Recipe complete: evolve into an Elementalist'],
   dmWide: ['Frost Field', 'Chill aura grows to 4.5 m'],
   dmDeep: ['Bitter Cold', 'Enemies within 3 m are slowed by 40%'],
   dmFrail: ['Wither', 'Enemies within 3 m take +10% damage'],
@@ -256,7 +262,10 @@ export const EN_CLASS_ROLES: Record<string, string> = {
   cutthroat: 'Melee assassin: sneaks in unseen; the ambush always hits for high-tier crits',
   sniper: 'Focus, then one decisive shot',
   arbalest: 'Volley: a short burst of very fast shots',
-  elementalist: 'Fire + cold; Enchant gives allies both',
+  elementalist: 'Fire + cold basic attacks; builds stacks into a Great Fireball',
+  adept: 'Basic attacks build stacks; release a Great Fireball when full',
+  archmage: 'Enchants the whole party at any distance',
+  necromancer: 'Curses enemies; the dead rise to fight for you',
   deathMage: 'Chill aura weakens enemies; Curse Burst',
   battlemage: 'Melee: enchants only itself; basic attacks sunder armor',
   paladin: 'Sanctuary: Judgment interrupts and staggers an area while protecting allies',
@@ -268,7 +277,7 @@ export const EN_CLASS_ROLES: Record<string, string> = {
 /** 分支名稱（昇變） */
 export const EN_BRANCHES: Record<string, string> = {
   guardian: 'Guardian', gladiator: 'Paladin', berserker: 'Berserker', cutthroat: 'Assassin', sniper: 'Sniper', arbalest: 'Grand Ranger',
-  elementalist: 'Elementalist', deathMage: 'Death Mage', battlemage: 'Battlemage', paladin: 'High Priest', zealot: 'Zealot', heretic: 'Cultist',
+  elementalist: 'Archmage', deathMage: 'Necromancer', battlemage: 'Battlemage', adeptElement: 'Elementalist', paladin: 'High Priest', zealot: 'Zealot', heretic: 'Cultist',
 };
 
 /** 章節名稱（過場文字維持中文） */

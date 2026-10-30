@@ -25,10 +25,10 @@ function besideRescue(party = ['corin', 'sylwen']): { r: RunState; node: number 
 }
 
 describe('具名角色（SPEC_CHARACTERS §3）', () => {
-  it('7 名角色；骨架職業做好的才能登場（B 階段之前：柯林、希爾雯、奧爾德斯、班尼迪克）', () => {
+  it('7 名角色；骨架職業做好的才能登場（B2 之後多了芬恩）', () => {
     expect(CHARACTER_ORDER.length).toBe(7);
     for (const id of CHARACTER_ORDER) expect(CHARACTERS[id].id).toBe(id);
-    expect(availableCharacters()).toEqual(['corin', 'sylwen', 'aldous', 'benedict']);
+    expect(availableCharacters()).toEqual(['corin', 'sylwen', 'aldous', 'benedict', 'fenn']);
   });
 
   it('用角色組隊：英雄帶著角色、職業是骨架職業；名稱是「角色名・職業名」', () => {
@@ -80,7 +80,7 @@ describe('具名角色（SPEC_CHARACTERS §3）', () => {
 
   it('所有角色都登場過：照舊抽職業（沒有角色）', () => {
     const { r, node } = besideRescue();
-    r.metCharacters = ['aldous', 'benedict'];
+    r.metCharacters = ['aldous', 'benedict', 'fenn'];
     const h = rescueHero(r, node);
     expect(h.characterId).toBeUndefined();
     expect(HEROES[h.classId]).toBeDefined();

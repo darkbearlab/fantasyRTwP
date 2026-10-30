@@ -103,6 +103,12 @@ export const SKILLS: Record<string, SkillDef> = {
     target: 'self', range: 0, windup: 0.2, recovery: 0.2, cooldown: 14, requiresLos: false,
     effect: { kind: 'haste', duration: 4, attackSpeedPct: 2 },
   },
+  // 大法師（SPEC_CHARACTERS §4.1）：全隊不限距離的附魔，攻擊多帶火＋寒；數值佔位
+  grandEnchant: {
+    id: 'grandEnchant', name: '大附魔', description: '全隊（不限距離）10 秒內造成的傷害 +30%，攻擊多帶火＋寒屬性（相剋取最有利的）',
+    target: 'self', range: 0, windup: 0.5, recovery: 0.8, cooldown: 20, requiresLos: false,
+    effect: { kind: 'enchant', radius: 999, duration: 10, damagePct: 0.3, attrs: ['fire', 'cold'] },
+  },
   // 大祭司（SPEC_CHARACTERS §4.1）：數值放大的聖域；數值佔位
   grandSanctuary: {
     id: 'grandSanctuary', name: '大聖域', description: '地上一大圈聖光：7 秒內，範圍內的友軍受到的傷害 −40%',
@@ -204,9 +210,11 @@ export const SKILLS: Record<string, SkillDef> = {
     effect: { kind: 'enchant', radius: 6, duration: 10, damagePct: 0.3 },
   },
   // ── 技能循環的第二招（SPEC_SLICE5 §16） ──
+  // 芬恩（SPEC_CHARACTERS §4.1）：普攻累積層數，滿了換成大火球；範圍失衡。數值佔位
   greatFireball: {
-    id: 'greatFireball', name: '大火球', description: '（充能 5 層後）準備完成後立即爆炸：半徑 3.5 m 範圍傷害 30–40，會傷到友軍',
+    id: 'greatFireball', name: '大火球', description: '（普攻累積滿層後）準備完成後立即爆炸：半徑 3.5 m 範圍傷害 30–40、失衡，會傷到友軍',
     target: 'ground', range: 12, windup: 2.0, recovery: 1.2, cooldown: 4, requiresLos: true,
+    stagger: { mult: 1.5, flat: 10 },
     effect: { kind: 'aoe', radius: 3.5, damage: [30, 40], friendlyFire: true, ignites: true },
   },
   curseBurst: {

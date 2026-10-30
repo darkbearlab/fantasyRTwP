@@ -77,6 +77,11 @@ export interface PassiveDef {
   lifesteal?: number;
   /** 打斷敵人後，下一次攻擊必定爆擊（角鬥士） */
   critAfterInterrupt?: boolean;
+  /**
+   * 死靈法師（SPEC_CHARACTERS §4.1）：被自己詛咒的敵人死亡時站起來成為隨從（同時最多 max 個，生命、傷害照比例）；
+   * 隨從優先打被詛咒的目標
+   */
+  raiseDead?: { max: number; hpMult: number; damageMult: number };
   /** 看穿草叢：這個距離內、看得到的草叢裡的敵人對全隊現形（視野分享） */
   seesBrush?: number;
   /** 普攻的投射物外觀（例：法師的小火球） */
@@ -192,6 +197,11 @@ export const PASSIVES: Record<string, PassiveDef> = {
     critAfterInterrupt: true,
   },
   // ── 昇變被動（SPEC_CLASSES §3：法師、牧師）──
+  necroMastery: {
+    id: 'necroMastery', name: '亡者不息', source: 'class',
+    description: '被自己詛咒的敵人死亡時站起來成為隨從（同時最多 3 個，戰鬥結束就消失）；隨從優先攻擊被詛咒的目標',
+    raiseDead: { max: 3, hpMult: 0.6, damageMult: 1.2 },
+  },
   deathAura: {
     id: 'deathAura', name: '死亡氣息', source: 'class',
     description: '3 m 內的敵人受到的傷害 +15%',
@@ -244,6 +254,10 @@ export const CLASS_PASSIVES: Record<string, string[]> = {
   elementalist: ['emberBolt', 'chillAura'],
   deathMage: ['hexBolt', 'chillAura', 'deathAura'],
   battlemage: ['chillAura', 'sunderStrike'],
+  // 奧爾德斯與芬恩（SPEC_CHARACTERS §4.1）
+  adept: ['emberBolt'],
+  archmage: ['emberBolt', 'chillAura'],
+  necromancer: ['emberBolt', 'chillAura', 'necroMastery'],
   // 聖騎士改成戰士底（SPEC_CHARACTERS §2-3）：帶戰士的全部職業被動
   paladin: ['cleave', 'tauntAura', 'shieldBearer'],
   highPriest: ['smite', 'blessAura', 'fieldCare'],
@@ -274,6 +288,7 @@ export const ACTIVE_SKILL_OVERRIDE: Record<string, string> = {
   battlemage: 'selfEnchant',
   paladin: 'holyGround',
   highPriest: 'grandSanctuary',
+  archmage: 'grandEnchant',
   heretic: 'bloodDrain',
   zealot: 'sanctuary',
 };

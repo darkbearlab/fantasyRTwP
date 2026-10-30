@@ -90,7 +90,12 @@ function evolved(): Record<string, UnitDef> {
     { ...R, id: 'sniper', name: '狙擊手', letter: 'S', color: 0x2e8b3a, accuracy: 45, damage: [9, 15], skills: ['focus', 'aimedShot'] },
     // 大遊俠（原連弩手，SPEC_CHARACTERS §4.1）：平常和遊俠差不多，主動齊射時連射；數值佔位
     { ...R, id: 'arbalest', name: '大遊俠', letter: 'A', color: 0x7cc576, maxHp: 90, accuracy: 44, damage: [9, 15], skills: ['volley'] },
-    { ...M, id: 'elementalist', name: '元素法師', letter: 'E', color: 0xc062e0, skills: ['elementalEnchant'] },
+    // 元素師（芬恩的救贖線，SPEC_CHARACTERS §4.1）：主動改成累積層數的大火球
+    { ...M, id: 'elementalist', name: '元素師', letter: 'E', color: 0xc062e0, skills: ['flashFireball', 'greatFireball'] },
+    // 下位元素師（芬恩的骨架職業）、大法師、死靈法師（奧爾德斯的兩條線）；數值佔位
+    { ...M, id: 'adept', name: '下位元素師', letter: 'F', color: 0xe07a3a, skills: ['flashFireball', 'greatFireball'] },
+    { ...M, id: 'archmage', name: '大法師', letter: 'A', color: 0x9a7be8, maxHp: 75, accuracy: 34, defense: 24, skills: ['grandEnchant'] },
+    { ...M, id: 'necromancer', name: '死靈法師', letter: 'N', color: 0x4f2a6e, maxHp: 70, accuracy: 32, defense: 22, skills: ['curse', 'curseBurst'] },
     { ...M, id: 'deathMage', name: '死亡法師', letter: 'D', color: 0x6b2f8a, maxHp: 65, accuracy: 32, defense: 22, damage: [5, 9], projectileKind: 'curse', skills: ['curse', 'curseBurst'] },
     { ...M, id: 'battlemage', name: '戰法師', letter: 'B', color: 0x8e5fc0, maxHp: 110, armor: 4, defense: 32, damage: [9, 14], range: 0.3, windup: 0.5, recovery: 0.9, projectileSpeed: undefined, projectileKind: undefined, attackDamageType: undefined, personality: undefined, projectsZoc: true, skills: ['selfEnchant'] },
     // 聖騎士改成戰士底（SPEC_CHARACTERS §4.1）；數值佔位

@@ -322,7 +322,7 @@ export function battleOutcomeFromWorld(world: World): BattleOutcome {
       return u && world.result === 'hero' ? { hp: u.hp } : undefined;
     })(),
     followers: world.units
-      .filter((u) => u.follower && !u.rescue && !u.dead && u.masterId >= 0)
+      .filter((u) => u.follower && !u.rescue && !u.undead && !u.dead && u.masterId >= 0)
       .map((u) => ({ slot: world.getUnit(u.masterId)?.heroSlot ?? -1, kind: u.def.id, hp: u.hp }))
       .filter((f) => f.slot >= 0),
     heroes: world.units
