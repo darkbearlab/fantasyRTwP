@@ -7,7 +7,7 @@
 import type Phaser from 'phaser';
 import type { PixelUnitArt } from './pixelArtData';
 import { VFX_SHEETS, VFX_USE, vfxFrame, vfxKey } from './vfxData';
-import { FLOOR_TILES, MW_TEAM_DARK, MW_TEAM_LIGHT, PIXEL, PIXEL_UNITS, m72Frames, mwPaths } from './pixelArtData';
+import { CHARACTER_UNITS, FLOOR_TILES, MW_TEAM_DARK, MW_TEAM_LIGHT, PIXEL, PIXEL_UNITS, m72Frames, mwPaths } from './pixelArtData';
 
 export const mwKey = (path: string): string => `px_mw_${path}`;
 export const m72Key = (frame: string): string => `px_72_${frame}`;
@@ -79,8 +79,10 @@ function ensureRecolored(scene: Phaser.Scene, a: PixelUnitArt & { kind: 'mw' }):
   return true;
 }
 
-/** 這個單位的像素素材（沒有對照或圖沒載入時回傳 undefined → 用色塊） */
-export function pixelArtFor(scene: Phaser.Scene, defId: string): PixelUnitArt | undefined {
+/** 這個單位的像素素材（沒有對照或圖沒載入時回傳 undefined → 用色塊）；具名角色的專屬 sheet 優先，沒載入時退回職業的 */
+export function pixelArtFor(scene: Phaser.Scene, defId: string, characterId?: string): PixelUnitArt | undefined {
+  const own = characterId ? CHARACTER_UNITS[characterId] : undefined;
+  if (own?.kind === 'mw' && scene.textures.exists(mwKey(own.path))) return own;
   const a = PIXEL_UNITS[defId];
   if (!a) return undefined;
   if (a.kind === 'mw') {

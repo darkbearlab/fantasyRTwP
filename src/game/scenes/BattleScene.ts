@@ -360,7 +360,7 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
 
   private makeView(u: Unit): UnitVisual {
     if (this.builtArt === 'pixel') {
-      const art = pixelArtFor(this, u.def.id);
+      const art = pixelArtFor(this, u.def.id, u.def.portrait);
       return art ? new PixelView(this, u, art) : new UnitView(this, u);
     }
     if (this.builtH3d && u.team === 'hero' && h3dCharFor(u.def.id)) return new Hero3DView(this, u);

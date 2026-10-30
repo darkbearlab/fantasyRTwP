@@ -2,7 +2,7 @@
  * 營火對話（Alan 2026-10-20）：休息節點先顯示英雄圍著火堆的畫面，上方的對話框輪流說話（Alan 2026-10-25：只留上面一個框，手機上下兩個框會擠在一起）；
  * 點一下推進，說完（或按略過）才回到休息選單。
  * 英雄用戰鬥中的 sprite（heroes3d 預渲染或 Flare 分層），頭像也直接用 sprite（面向鏡頭、只露上半身）。
- * 具名角色有 96×80 對話頭像（public/assets/portraits/dialog）時改用它，放在對話框的頭像框裡、原尺寸不放大（Alan 2026-10-30）。
+ * 具名角色有 96×80 對話頭像（public/assets/portraits/dialog）時改用它，放在對話框的頭像框裡，放大到框寬、下緣貼齊白框（Alan 2026-10-30）。
  */
 import { pixelGlow } from '../render/pixelGlow';
 import { tr } from '../../i18n';
@@ -11,7 +11,7 @@ import type { CampfireLine } from '../../run/campfire';
 import { HEROES } from '../../sim/data/heroes';
 import { FLARE, flareKey, getArt } from '../render/art';
 import { artKey, pixelArtFor, portraitSheetUrl } from '../render/pixelArt';
-import { MW_IDLE, PIXEL, facingBlock, mwFrame } from '../render/pixelArtData';
+import { MW_IDLE, PIXEL, facingBlock, mwFrame, sideBlock } from '../render/pixelArtData';
 import type { FlareAnimMeta } from '../render/art';
 import { H3D_SHEETS, h3dCharFor, h3dKey, h3dResolve } from '../render/heroes3d';
 import { FONT, hex } from '../render/palette';
@@ -26,8 +26,8 @@ import { CHARACTER_ORDER } from '../../run/data/characters';
 const dialogPortraitKey = (id: string): string => `portrait-dialog:${id}`;
 
 export interface CampfireData {
-  /** 圍在火堆旁的英雄（欄位與職業） */
-  heroes: { slot: number; classId: string }[];
+  /** 圍在火堆旁的英雄（欄位、職業；具名角色另有 characterId，有專屬 sheet 時用它） */
+  heroes: { slot: number; classId: string; characterId?: string }[];
   lines: CampfireLine[];
   /** 底部英雄面板（和戰鬥中一樣的外觀，蓋一層半透明黑色、按不到） */
   cards: StaticHeroCard[];
@@ -96,13 +96,14 @@ interface HeroSprite {
 }
 
 /** 建立英雄 sprite：dir 是 8 方向（0=西、2=北、4=東、6=南／面向鏡頭） */
-function makeHeroSprite(scene: Phaser.Scene, classId: string, x: number, y: number, dir: number, scale: number): HeroSprite | null {
+function makeHeroSprite(scene: Phaser.Scene, classId: string, x: number, y: number, dir: number, scale: number, characterId?: string): HeroSprite | null {
   // 2D 像素：mw sheet 的待機動作（8 方向換成畫面方向後取側面／正面／背面）
   if (getArt() === 'pixel') {
-    const art = pixelArtFor(scene, classId);
+    const art = pixelArtFor(scene, classId, characterId);
     if (art?.kind === 'mw') {
       const k = ((dir + 4) % 8) * (Math.PI / 4);
-      const { block, flip } = facingBlock(Math.cos(k), Math.sin(k));
+      // 只有側面的 sheet（希爾雯）固定用側面
+      const { block, flip } = art.sideOnly ? sideBlock(Math.cos(k), Math.sin(k), false) : facingBlock(Math.cos(k), Math.sin(k));
       const s = scene.add.sprite(x, y, artKey(art), mwFrame(block, MW_IDLE, 0)).setOrigin(0.5, PIXEL.mwFootY).setFlipX(flip);
       // 像素要整數倍：依原本的倍率換算成最接近的整數
       s.setScale(Math.max(1, Math.round(scale * CAMP.pixelPerScale)));
@@ -252,7 +253,7 @@ export class CampfireScene extends Phaser.Scene {
     data.heroes.slice(0, 4).forEach((h, i) => {
       const seat = seats[i];
       const ring = this.add.graphics();
-      const sprite = makeHeroSprite(this, h.classId, seat.x, seat.y, dirToward(seat, c), CAMP.heroScale);
+      const sprite = makeHeroSprite(this, h.classId, seat.x, seat.y, dirToward(seat, c), CAMP.heroScale, h.characterId);
       if (!sprite) {
         // 素材沒載入：色塊
         const g = this.add.graphics();
@@ -310,13 +311,15 @@ export class CampfireScene extends Phaser.Scene {
     return { root, name, body, portraitObjs: [], maskShape, px: x + py, py: y + py };
   }
 
-  /** 對話框的頭像：具名角色用對話頭像（原尺寸、置中）；否則英雄 sprite 面向鏡頭，只露出框內的上半身 */
+  /** 對話框的頭像：具名角色用對話頭像（放大到框寬、貼齊框的下緣）；否則英雄 sprite 面向鏡頭，只露出框內的上半身 */
   private setPortrait(box: DialogBox, classId: string, portraitId?: string): void {
     for (const o of box.portraitObjs) o.destroy();
     box.portraitObjs = [];
     const P = CAMP.portrait;
     if (portraitId && this.textures.exists(dialogPortraitKey(portraitId))) {
-      const img = this.add.image(Math.round(box.px + P / 2), Math.round(box.py + P / 2), dialogPortraitKey(portraitId)).setDepth(51);
+      // 放大到和框內同寬、下緣貼著白框（Alan 2026-10-30：原尺寸置中時下面空一截）
+      const img = this.add.image(Math.round(box.px + P / 2), box.py + P - 1, dialogPortraitKey(portraitId)).setOrigin(0.5, 1).setDepth(51);
+      img.setScale((P - 2) / img.width);
       box.portraitObjs.push(img);
       return;
     }
@@ -327,7 +330,7 @@ export class CampfireScene extends Phaser.Scene {
     // 腳底放在框下方，放大讓頭和胸口落在框裡
     // 預渲染（heroes3d）的頭部比 Flare 高一點：腳底放低一些
     const footY = getArt() === 'pixel' ? P * 1.4 : h3dCharFor(classId) ? P * 2.0 : P * 1.75;
-    const sp = makeHeroSprite(this, classId, box.px + P / 2, box.py + footY, 6, CAMP.portraitScale);
+    const sp = makeHeroSprite(this, classId, box.px + P / 2, box.py + footY, 6, CAMP.portraitScale, portraitId);
     if (!sp) return;
     for (const o of sp.objs) {
       o.setMask(mask).setDepth(51);

@@ -12,7 +12,7 @@ import { displayFacing } from './art';
 import { COLORS } from './palette';
 import { artKey, m72Key, outlineKey, outlineOrigin } from './pixelArt';
 import type { PixelUnitArt } from './pixelArtData';
-import { PIXEL, facingBlock, m72Lunge, mwAnim, mwFrame, sideBlock, sideOnlyHeroes } from './pixelArtData';
+import { MW_FRONT, MW_SIDE, PIXEL, facingBlock, m72Lunge, mwAnim, mwFrame, sideBlock, sideOnlyHeroes } from './pixelArtData';
 import { depthOf, groundAxes, groundCirclePoints, heightPx, worldToScreen } from './projection';
 import type { Concealment, UnitVisual } from './unitView';
 import { DEAD_DEPTH, OBJECT_DEPTH_BASE } from './unitView';
@@ -30,7 +30,7 @@ export class PixelView implements UnitVisual {
   readonly height: number;
   private readonly bodyW: number;
   private readonly bodyH: number;
-  private block = 1;
+  private block: number = MW_FRONT;
   private flip = false;
   private deathStart = -1;
   private hitUntil = -1;
@@ -45,9 +45,11 @@ export class PixelView implements UnitVisual {
     private readonly art: PixelUnitArt,
   ) {
     const s = PIXEL.unitScale * (art.scale ?? 1);
+    // 只有側面的 sheet（希爾雯）：沒有正面、背面的格，一開始就用側面
+    if (art.kind === 'mw' && art.sideOnly) this.block = MW_SIDE;
     this.ring = scene.add.graphics();
     if (art.kind === 'mw') {
-      this.sprite = scene.add.sprite(0, 0, artKey(art), mwFrame(1, 0, 0)).setOrigin(0.5, art.footY ?? PIXEL.mwFootY);
+      this.sprite = scene.add.sprite(0, 0, artKey(art), mwFrame(this.block, 0, 0)).setOrigin(0.5, art.footY ?? PIXEL.mwFootY);
       this.bodyH = (art.bodyPx ?? PIXEL.mwBodyPx) * s;
     } else {
       this.sprite = scene.add.sprite(0, 0, m72Key(`${art.idle}_f0`)).setOrigin(0.5, 1);
@@ -62,7 +64,7 @@ export class PixelView implements UnitVisual {
       const color = unit.team === 'hero' ? VISUAL.teamOutline.hero : VISUAL.teamOutline.enemy;
       // mw 的外框格比身體大一圈（外框貼圖的說明），原點要對齊
       const origin = art.kind === 'mw' ? outlineOrigin(this.sprite.originX, this.sprite.originY) : { x: this.sprite.originX, y: this.sprite.originY };
-      const make = () => scene.add.sprite(0, 0, ol, art.kind === 'mw' ? mwFrame(1, 0, 0) : undefined).setOrigin(origin.x, origin.y).setScale(s).setTint(color);
+      const make = () => scene.add.sprite(0, 0, ol, art.kind === 'mw' ? mwFrame(this.block, 0, 0) : undefined).setOrigin(origin.x, origin.y).setScale(s).setTint(color);
       this.outline = make();
       this.overlay = make().setDepth(VISUAL.teamOutline.overlayDepth).setAlpha(VISUAL.teamOutline.overlayAlpha);
       parts.push(this.outline);
@@ -123,7 +125,8 @@ export class PixelView implements UnitVisual {
       const q = worldToScreen(Math.cos(f), Math.sin(f));
       fsx = q.x - o.x;
       fsy = q.y - o.y;
-      const fb = u.isHero && sideOnlyHeroes() ? sideBlock(fsx, fsy, this.flip) : facingBlock(fsx, fsy);
+      const sideOnly = (this.art.kind === 'mw' && this.art.sideOnly) || (u.isHero && sideOnlyHeroes());
+      const fb = sideOnly ? sideBlock(fsx, fsy, this.flip) : facingBlock(fsx, fsy);
       this.block = fb.block;
       this.flip = fb.flip;
     }
