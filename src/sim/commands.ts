@@ -21,6 +21,8 @@ export type Command =
   | { type: 'interact'; unitId: number; objectId: string }
   /** 換裝備（SPEC_SLICE7 §2）：非戰鬥中才有效，戰鬥中直接忽略 */
   | { type: 'setItems'; heroSlot: number; items: string[] }
+  /** 換主動技能（圖騰的種類，SPEC_CHARACTERS §4.3）：非戰鬥中才有效 */
+  | { type: 'setSkills'; heroSlot: number; skills: string[] }
   /** 向地圖上的商人買的消耗品放進包包（SPEC_SLICE7 §2）：非戰鬥中、包包還有空位才有效 */
   | { type: 'stockBag'; itemId: string };
 

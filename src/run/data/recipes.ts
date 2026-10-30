@@ -19,7 +19,7 @@ export const RECIPE_RULES = {
 export const UPGRADE_MAX_RANK: Record<string, number> = {
   gdShell: 2, glBash: 2, glFocus: 2, glEdge: 2, bkFury: 2, bkFrenzy: 2,
   ctClose1: 2, ctClose2: 2, ctClose3: 2, snPower: 2, snReach: 2, snSteady: 2, abRapid1: 2, abRapid2: 2, abReload: 2,
-  elEnchant: 2, elFlame: 2, elFrost: 2, adFlame: 2, lbBlade: 2, bmVigor: 2, bmPlate: 2, bmGrit: 2,
+  elEnchant: 2, elFlame: 2, elFrost: 2, adFlame: 2, lbBlade: 2, teRoot: 2, tbRuin: 2, bmVigor: 2, bmPlate: 2, bmGrit: 2,
   plVigor: 2, plHammer: 2, plWard: 2, zeZeal: 2, htBlood: 2,
 };
 
@@ -38,6 +38,8 @@ export interface RecipeDef {
 export const RECIPES: RecipeDef[] = [
   { id: 'guardian', base: 'warrior', evolvesTo: 'guardian', requires: ['gdTaunt', 'gdAura', 'gdShell'], maxed: 'gdShell' },
   { id: 'gladiator', base: 'warrior', evolvesTo: 'paladin', requires: ['glBash', 'glFocus', 'glEdge'], maxed: 'glEdge' },
+  { id: 'totemElder', base: 'totemist', evolvesTo: 'totemElder', requires: ['teWood', 'teRoot', 'teCarve'], maxed: 'teRoot' },
+  { id: 'totemBearer', base: 'totemist', evolvesTo: 'totemBearer', requires: ['tbRuin', 'tbHaste', 'tbBack'], maxed: 'tbRuin' },
   { id: 'liberator', base: 'fencer', evolvesTo: 'liberator', requires: ['lbEdge', 'lbStep', 'lbBlade'], maxed: 'lbBlade' },
   { id: 'berserker', base: 'fencer', evolvesTo: 'berserker', requires: ['bkFury', 'bkFrenzy', 'bkThirst'], maxed: 'bkFury' },
   { id: 'cutthroat', base: 'ranger', evolvesTo: 'cutthroat', requires: ['ctClose1', 'ctClose2', 'ctClose3'], maxed: 'ctClose1' },

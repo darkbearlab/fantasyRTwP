@@ -103,6 +103,52 @@ export const SKILLS: Record<string, SkillDef> = {
     target: 'self', range: 0, windup: 0.2, recovery: 0.2, cooldown: 14, requiresLos: false,
     effect: { kind: 'haste', duration: 4, attackSpeedPct: 2 },
   },
+  // 杜爾根（SPEC_CHARACTERS §4.1）：圖騰；數值見 totems.ts
+  totemDecoy: {
+    id: 'totemDecoy', name: '誘餌圖騰', description: '放下一個誘餌圖騰（有生命、會被打爛、同時最多 1 個）：嘲諷周圍的敵人，生命較高',
+    target: 'ground', range: 6, windup: 0.5, recovery: 0.6, cooldown: 12, requiresLos: false,
+    effect: { kind: 'totem', variant: 'decoy', tier: 'small' },
+  },
+  grandDecoy: {
+    id: 'grandDecoy', name: '大誘餌圖騰', description: '從地面拉出大誘餌圖騰：拉出時一記重擊（擊退、失衡），之後自己會揮砍；嘲諷周圍的敵人，生命較高（更強）；同時最多 2 個',
+    target: 'ground', range: 6, windup: 0.6, recovery: 0.6, cooldown: 12, requiresLos: false,
+    effect: { kind: 'totem', variant: 'decoy', tier: 'grand' },
+  },
+  bearDecoy: {
+    id: 'bearDecoy', name: '背負・誘餌', description: '把誘餌圖騰背在身上 8 秒：嘲諷周圍的敵人，生命較高（套在自己身上）；周圍的敵人持續受傷並累積失衡',
+    target: 'self', range: 0, windup: 0.4, recovery: 0.4, cooldown: 14, requiresLos: false,
+    effect: { kind: 'bear', variant: 'decoy' },
+  },
+  totemDrum: {
+    id: 'totemDrum', name: '戰鼓圖騰', description: '放下一個戰鼓圖騰（有生命、會被打爛、同時最多 1 個）：周圍的隊友普攻速度提高',
+    target: 'ground', range: 6, windup: 0.5, recovery: 0.6, cooldown: 12, requiresLos: false,
+    effect: { kind: 'totem', variant: 'drum', tier: 'small' },
+  },
+  grandDrum: {
+    id: 'grandDrum', name: '大戰鼓圖騰', description: '從地面拉出大戰鼓圖騰：拉出時一記重擊（擊退、失衡），之後自己會揮砍；周圍的隊友普攻速度提高（更強）；同時最多 2 個',
+    target: 'ground', range: 6, windup: 0.6, recovery: 0.6, cooldown: 12, requiresLos: false,
+    effect: { kind: 'totem', variant: 'drum', tier: 'grand' },
+  },
+  bearDrum: {
+    id: 'bearDrum', name: '背負・戰鼓', description: '把戰鼓圖騰背在身上 8 秒：周圍的隊友普攻速度提高（套在自己身上）；周圍的敵人持續受傷並累積失衡',
+    target: 'self', range: 0, windup: 0.4, recovery: 0.4, cooldown: 14, requiresLos: false,
+    effect: { kind: 'bear', variant: 'drum' },
+  },
+  totemBind: {
+    id: 'totemBind', name: '縛地圖騰', description: '放下一個縛地圖騰（有生命、會被打爛、同時最多 1 個）：範圍內的敵人變慢、受到的失衡增加',
+    target: 'ground', range: 6, windup: 0.5, recovery: 0.6, cooldown: 12, requiresLos: false,
+    effect: { kind: 'totem', variant: 'bind', tier: 'small' },
+  },
+  grandBind: {
+    id: 'grandBind', name: '大縛地圖騰', description: '從地面拉出大縛地圖騰：拉出時一記重擊（擊退、失衡），之後自己會揮砍；範圍內的敵人變慢、受到的失衡增加（更強）；同時最多 2 個',
+    target: 'ground', range: 6, windup: 0.6, recovery: 0.6, cooldown: 12, requiresLos: false,
+    effect: { kind: 'totem', variant: 'bind', tier: 'grand' },
+  },
+  bearBind: {
+    id: 'bearBind', name: '背負・縛地', description: '把縛地圖騰背在身上 8 秒：範圍內的敵人變慢、受到的失衡增加（套在自己身上）；周圍的敵人持續受傷並累積失衡',
+    target: 'self', range: 0, windup: 0.4, recovery: 0.4, cooldown: 14, requiresLos: false,
+    effect: { kind: 'bear', variant: 'bind' },
+  },
   // 阿許卡（SPEC_CHARACTERS §4.1）：帶位移的單體打斷；失衡比盾擊少。數值佔位
   thrust: {
     id: 'thrust', name: '突刺', description: '衝向 4 m 內的敵人刺擊：傷害 ×1.2、命中 +30、打斷、中等失衡',

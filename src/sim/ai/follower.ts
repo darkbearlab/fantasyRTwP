@@ -46,7 +46,7 @@ export function followerOrder(world: World, u: Unit): Order | null | undefined {
     return e ? { type: 'attack', targetId: e.id } : null;
   }
   const dm = dist(u.pos, master.pos);
-  const mates = world.units.filter((o) => o.follower && !o.dead && o.masterId === master.id);
+  const mates = world.units.filter((o) => o.follower && !o.totem && !o.dead && o.masterId === master.id);
   const k = mates.indexOf(u);
   // 牽繩：太遠就回去（不管正在做什麼）
   if (dm > F.leash) return { type: 'move', point: slotAround(master, k, mates.length) };

@@ -29,6 +29,8 @@ export interface OwnedUpgrade {
 export interface HeroRecord {
   /** 具名角色（SPEC_CHARACTERS §3；舊存檔、舊模式沒有） */
   characterId?: string;
+  /** 圖騰的種類（杜爾根，SPEC_CHARACTERS §4.3）：整備時選；省略＝誘餌 */
+  totemVariant?: 'decoy' | 'drum' | 'bind';
   /** 目前的職業（昇變後是進階職業） */
   classId: string;
   /** 昇變前的基本職業（SPEC_CLASSES；還沒昇變時沒有） */

@@ -1,4 +1,5 @@
 import { tr } from '../i18n/lang';
+import { tickBear } from './actions';
 import type { Command, Order } from './commands';
 import { sameOrder } from './commands';
 import { DT, NAV_CELL, RANGE_TOLERANCE } from './constants';
@@ -823,6 +824,13 @@ export class World implements ZocContext {
         u.setItems(cmd.items);
         break;
       }
+      case 'setSkills': {
+        const u = this.units.find((o) => o.isHero && o.heroSlot === cmd.heroSlot);
+        if (!u || u.dead || this.inCombat || !cmd.skills.every((id) => SKILLS[id])) break;
+        // def 是每名單位自己的一份（battle.ts 生成時複製），換技能時整份換掉，不改到共用的資料
+        (u as unknown as { def: UnitDef }).def = { ...u.def, skills: [...cmd.skills] };
+        break;
+      }
       case 'interact': {
         const u = this.getUnit(cmd.unitId);
         const s = this.interactables.get(cmd.objectId);
@@ -1063,6 +1071,7 @@ export class World implements ZocContext {
             t.blessAccuracy = Math.max(active ? t.blessAccuracy : 0, a.allies.accuracy);
             t.blessDefense = Math.max(active ? t.blessDefense : 0, a.allies.defense);
             t.blessDamage = Math.max(active ? t.blessDamage : 0, a.allies.damagePct ?? 0);
+            t.blessHaste = Math.max(active ? t.blessHaste : 0, a.allies.attackSpeedPct ?? 0);
           }
           // 疊加型光環：每個來源都加一次
           if (t.team === src.team && a.stackDamagePct && t !== src) t.stackDamage += a.stackDamagePct;
@@ -1084,6 +1093,7 @@ export class World implements ZocContext {
             t.chillTime = Math.max(t.chillTime, linger);
             t.chillSlow = Math.max(active ? t.chillSlow : 0, a.enemies.slow ?? 0);
             t.chillVuln = Math.max(active ? t.chillVuln : 0, a.enemies.vuln ?? 0);
+            t.chillStagger = Math.max(active ? t.chillStagger : 0, a.enemies.staggerVuln ?? 0);
           }
         }
       }
@@ -1193,6 +1203,7 @@ export class World implements ZocContext {
     if (u.retreatCooldown > 0) u.retreatCooldown = Math.max(0, u.retreatCooldown - DT);
     if (u.damageBuffTime > 0) u.damageBuffTime = Math.max(0, u.damageBuffTime - DT);
     if (u.counterWardTime > 0) u.counterWardTime = Math.max(0, u.counterWardTime - DT);
+    if (u.bearTime > 0) tickBear(this, u);
     if (u.hasteTime > 0) u.hasteTime = Math.max(0, u.hasteTime - DT);
     if (u.bloodMarkTime > 0) u.bloodMarkTime = Math.max(0, u.bloodMarkTime - DT);
     for (const k in u.cooldowns) {
@@ -1245,6 +1256,15 @@ export class World implements ZocContext {
     if (u.team === 'enemy') {
       if (u.def.ai === 'horde') hordeThink(this, u);
       else if (u.def.ai !== 'nest') enemyThink(this, u);
+    } else if (u.totem) {
+      // 圖騰（杜爾根）：不移動；會揮砍的（大圖騰）打射程內最近的敵人
+      if (u.aiTimer <= 0) {
+        u.aiTimer = FOLLOWER_RULES.thinkInterval;
+        const reach = u.def.range + 0.5;
+        const t = u.def.damage[1] > 0 ? this.units.filter((e) => !e.dead && e.team !== u.team && this.canTarget(u, e) && dist(e.pos, u.pos) <= reach + e.radius).sort((a, b) => dist(a.pos, u.pos) - dist(b.pos, u.pos))[0] : undefined;
+        if (t && !(u.order?.type === 'attack' && u.order.targetId === t.id)) this.setOrder(u, { type: 'attack', targetId: t.id });
+        else if (!t && u.order) this.setOrder(u, null);
+      }
     } else if (u.follower) {
       // 隨從（Alan 2026-10-23）：跟著主人、自己打；被困的英雄還沒被找到前不動
       if (u.captive) return;

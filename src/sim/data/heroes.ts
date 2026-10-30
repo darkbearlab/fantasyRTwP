@@ -92,6 +92,10 @@ function evolved(): Record<string, UnitDef> {
     { ...R, id: 'arbalest', name: '大遊俠', letter: 'A', color: 0x7cc576, maxHp: 90, accuracy: 44, damage: [9, 15], skills: ['volley'] },
     // 元素師（芬恩的救贖線，SPEC_CHARACTERS §4.1）：主動改成累積層數的大火球
     { ...M, id: 'elementalist', name: '元素師', letter: 'E', color: 0xc062e0, skills: ['flashFireball', 'greatFireball'] },
+    // 圖騰師（杜爾根的骨架職業）、大圖騰師、背負者：矮人雕刻師，近戰、耐打。數值佔位
+    { ...W, id: 'totemist', name: '圖騰師', letter: 'T', color: 0x9a7a4a, maxHp: 130, armor: 6, accuracy: 30, defense: 36, damage: [9, 15], moveSpeed: 2.8, skills: ['totemDecoy'] },
+    { ...W, id: 'totemElder', name: '大圖騰師', letter: 'T', color: 0xc09a5a, maxHp: 150, armor: 7, accuracy: 32, defense: 38, damage: [10, 16], moveSpeed: 2.8, skills: ['grandDecoy'] },
+    { ...W, id: 'totemBearer', name: '背負者', letter: 'B', color: 0x6a4a2a, maxHp: 160, armor: 7, accuracy: 32, defense: 36, damage: [11, 17], moveSpeed: 2.8, skills: ['bearDecoy'] },
     // 決鬥者（阿許卡的骨架職業）：高命中、高迴避（防禦）；解放者是她的救贖線。數值佔位
     { ...W, id: 'fencer', name: '決鬥者', letter: 'D', color: 0xc84a6a, maxHp: 110, armor: 3, accuracy: 42, defense: 50, damage: [9, 14], attackSpeed: 1.1, moveSpeed: 3.4, skills: ['thrust'] },
     { ...W, id: 'liberator', name: '解放者', letter: 'L', color: 0xe8607a, maxHp: 125, armor: 4, accuracy: 46, defense: 54, damage: [10, 15], attackSpeed: 1.1, moveSpeed: 3.4, skills: ['thrust'], skillMods: { thrust: { charges: 2 } } },

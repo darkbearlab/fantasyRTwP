@@ -1,6 +1,8 @@
 /**
  * 動作狀態機（準備 → 生效 → 恢復）與效果結算（SPEC §5、§6、§10.2）。
  */
+import { TOTEM_RULES, totemAura, totemVariantDesc, totemVariantName } from './data/totems';
+import type { TotemVariant } from './data/totems';
 import { enemyRank } from './data/enemies';
 import { fireTriggers } from './triggers';
 import type { OnHitEffect } from './data/passives';
@@ -43,7 +45,7 @@ export interface ActionRequest {
 /** 行動條速度：攻擊速度 × 全域倍率 × 詛咒減速（怪群模式的英雄普攻另外加速） */
 export function actionRate(world: World, u: Unit, kind?: 'attack' | 'skill'): number {
   let r = u.def.attackSpeed * world.config.actionSpeedMult * (u.curseTime > 0 ? 1 - u.curseSlow : 1) * (u.chillTime > 0 ? 1 - u.chillSlow : 1);
-  if (kind === 'attack') r *= (1 + u.mods.attackSpeedPct) * (u.hasteTime > 0 ? 1 + u.hastePct : 1);
+  if (kind === 'attack') r *= (1 + u.mods.attackSpeedPct) * (u.hasteTime > 0 ? 1 + u.hastePct : 1) * (u.blessTime > 0 ? 1 + u.blessHaste : 1);
   // 隨從（比照敵人小兵）吃敵人的攻速倍率，不吃英雄的
   if (kind === 'attack' && (u.team === 'enemy' || u.follower)) r *= world.config.enemyAttackSpeedMult;
   if (kind === 'attack' && u.isHero) {
@@ -610,6 +612,19 @@ function applySkillEffect(world: World, u: Unit, def: SkillDef, t: Unit | undefi
       world.emit({ type: 'status', unitId: u.id, text: tr("潛行") });
       return false;
     }
+    case 'totem':
+      if (!point) return false;
+      placeTotem(world, u, point, eff.variant, eff.tier);
+      return false;
+    case 'bear': {
+      u.bearTime = TOTEM_RULES.bear.duration;
+      u.bearTick = 0;
+      if (u.bearVariant) u.removePassive(`bear:${u.bearVariant}`);
+      u.bearVariant = eff.variant;
+      u.addPassive({ id: `bear:${eff.variant}`, name: def.name, description: def.description, source: 'status', ...totemAura(eff.variant, 'grand') });
+      world.emit({ type: 'status', unitId: u.id, text: def.name });
+      return false;
+    }
     case 'haste':
       u.hasteTime = eff.duration;
       u.hastePct = eff.attackSpeedPct;
@@ -1173,6 +1188,57 @@ export function kill(world: World, u: Unit, killer?: Unit): void {
   raiseDead(world, u);
 }
 
+/** 圖騰（杜爾根，SPEC_CHARACTERS §4.1）：在地點放一個不會移動的隨從，帶著那種圖騰的光環；超過上限就拆掉最舊的 */
+export function placeTotem(world: World, owner: Unit, point: { x: number; y: number }, variant: TotemVariant, tier: 'small' | 'grand'): Unit {
+  const R = TOTEM_RULES;
+  const mine = world.units.filter((o) => o.totem && !o.dead && o.masterId === owner.id);
+  while (mine.length >= R.max[tier]) kill(world, mine.shift()!);
+  const grand = tier === 'grand';
+  const hp = Math.round(R.hp[tier] * (variant === 'decoy' ? R.decoyHpMult : 1));
+  const def: UnitDef = {
+    id: 'totem', name: tr("{0}圖騰", { 0: totemVariantName(variant) }), letter: 'T', color: owner.def.color, team: 'hero',
+    maxHp: hp, armor: R.armor, accuracy: owner.def.accuracy, defense: R.defense,
+    damage: grand ? R.grandAttack.damage : [0, 0], range: grand ? R.grandAttack.range : 0,
+    windup: 0.5, recovery: 0.9, attackSpeed: 1, moveSpeed: 0, radius: 0.45, projectsZoc: false, skills: [],
+  };
+  const t = world.spawnUnit(def, { ...point });
+  t.follower = true;
+  t.totem = true;
+  t.masterId = owner.id;
+  t.addPassive({ id: `totem:${variant}`, name: def.name, description: totemVariantDesc(variant), source: 'status', ...totemAura(variant, tier) });
+  world.emit({ type: 'status', unitId: t.id, text: def.name });
+  // 大圖騰：拉出來時一記重擊（擊退、失衡）
+  if (grand) {
+    world.emit({ type: 'aoe', sourceId: owner.id, point: { ...point }, radius: R.grandSlam.radius, skillId: 'grandSlam' });
+    for (const e of [...world.units]) {
+      if (e.dead || e.team === owner.team || dist(e.pos, point) > R.grandSlam.radius + e.radius) continue;
+      knockbackFrom(world, owner, point, e, R.grandSlam.knockback);
+      addStagger(world, e, R.grandSlam.stagger);
+    }
+  }
+  return t;
+}
+
+/** 背負（背負者）：每秒對周圍的敵人造成傷害、累積失衡；時間到拿掉光環 */
+export function tickBear(world: World, u: Unit): void {
+  const B = TOTEM_RULES.bear;
+  u.bearTime = Math.max(0, u.bearTime - DT);
+  u.bearTick += DT;
+  if (u.bearTick >= 1) {
+    u.bearTick -= 1;
+    for (const e of [...world.units]) {
+      if (e.dead || e.team === u.team || dist(e.pos, u.pos) > B.radius + e.radius) continue;
+      applyDamage(world, e, B.dps, 'area', u, { skillId: 'bear', dot: true });
+      if (!e.dead) addStagger(world, e, B.staggerPerSec);
+    }
+  }
+  if (u.bearTime <= 0 || u.dead) {
+    u.removePassive(`bear:${u.bearVariant}`);
+    u.bearVariant = '';
+    u.bearTime = 0;
+  }
+}
+
 /** 死靈法師（SPEC_CHARACTERS §4.1）：被他詛咒的敵人死亡時站起來成為他的隨從 */
 function raiseDead(world: World, u: Unit): void {
   if (u.team !== 'enemy' || u.curseTime <= 0 || u.curseBy < 0 || enemyRank(u.def) === 'boss' || u.follower) return;
@@ -1253,6 +1319,8 @@ export function applyStun(world: World, t: Unit, seconds: number, force = false,
 export function addStagger(world: World, t: Unit, amount: number): void {
   if (world.config.battleStyle !== 'deliberate' || t.dead || t.captive || t.stunTime > 0 || t.thrown || !(amount > 0)) return;
   if (t.staggerHalf > 0) amount *= STAGGER.afterStunMult;
+  // 縛地圖騰：受到的失衡增加
+  if (t.chillTime > 0 && t.chillStagger > 0) amount *= 1 + t.chillStagger;
   if (t.def.interruptStunImmune) amount *= STAGGER.steadfastMult;
   t.stagger += amount;
   if (t.stagger < t.poise) return;

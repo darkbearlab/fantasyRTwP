@@ -1,6 +1,8 @@
 /**
  * 遠征 ↔ 戰鬥的介面（SPEC_SLICE2 §10.2）：由 RunState 建立 World、把戰鬥結果寫回。
  */
+import type { HeroRecord } from './runState';
+import { TOTEM_CLASSES, totemSkillFor } from '../sim/data/totems';
 import { heroShortName } from './characters';
 import { FOLLOWERS } from '../sim/data/followers';
 import { tr } from '../i18n/lang';
@@ -214,7 +216,7 @@ export function createBattleFromRun(run: RunState, config?: Partial<SimConfig>, 
     let def = heroDef(hero, run.nextBattleBuff);
     // 沉穩節奏（SPEC_SLICE5 §2）：每名英雄只有一招主動技能
     // 有技能循環的職業帶齊循環的每一招（技能鈕只顯示目前這一招，SPEC_SLICE5 §16）
-    if (deliberate) def = { ...def, skills: deliberateSkillsOf(hero.classId) };
+    if (deliberate) def = { ...def, skills: heroBattleSkills(hero) };
     if (hero.characterId) def = { ...def, name: heroShortName(hero) };
     spawns.push({ defId: hero.classId, def, pos: map.heroSpawns[i % map.heroSpawns.length], heroSlot: slot, hp: hero.hp, personality: hero.personality, items: hero.items, passives: deliberate ? heroPassives(hero) : undefined, classPassives: run.forward ? classPassivesOf(hero, true) : undefined });
   });
@@ -322,11 +324,16 @@ export function battleOutcomeFromWorld(world: World): BattleOutcome {
       return u && world.result === 'hero' ? { hp: u.hp } : undefined;
     })(),
     followers: world.units
-      .filter((u) => u.follower && !u.rescue && !u.undead && !u.dead && u.masterId >= 0)
+      .filter((u) => u.follower && !u.rescue && !u.undead && !u.totem && !u.dead && u.masterId >= 0)
       .map((u) => ({ slot: world.getUnit(u.masterId)?.heroSlot ?? -1, kind: u.def.id, hp: u.hp }))
       .filter((f) => f.slot >= 0),
     heroes: world.units
       .filter((u) => u.isHero)
       .map((u) => ({ slot: u.heroSlot, hp: u.hp, dead: u.dead, kills: u.stats.kills, damageDealt: u.stats.damageDealt, damageTaken: u.stats.damageTaken, personality: u.personality })),
   };
+}
+
+/** 沉穩節奏這名英雄實際帶的技能：圖騰職業依整備時選的種類（SPEC_CHARACTERS §4.3），其他照職業 */
+export function heroBattleSkills(hero: Pick<HeroRecord, 'classId' | 'totemVariant'>): string[] {
+  return TOTEM_CLASSES[hero.classId] ? [totemSkillFor(hero.classId, hero.totemVariant ?? 'decoy')] : deliberateSkillsOf(hero.classId);
 }
