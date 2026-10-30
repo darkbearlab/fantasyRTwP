@@ -2,6 +2,7 @@
  * 營火對話（Alan 2026-10-20）：休息節點先顯示英雄圍著火堆的畫面，上方的對話框輪流說話（Alan 2026-10-25：只留上面一個框，手機上下兩個框會擠在一起）；
  * 點一下推進，說完（或按略過）才回到休息選單。
  * 英雄用戰鬥中的 sprite（heroes3d 預渲染或 Flare 分層），頭像也直接用 sprite（面向鏡頭、只露上半身）。
+ * 具名角色有 96×80 對話頭像（public/assets/portraits/dialog）時改用它，放在對話框的頭像框裡、原尺寸不放大（Alan 2026-10-30）。
  */
 import { pixelGlow } from '../render/pixelGlow';
 import { tr } from '../../i18n';
@@ -19,6 +20,10 @@ import type { StaticHeroCard } from '../ui/mobileBar';
 import { el, uiRoot } from '../ui/dom';
 import { GAME_CONFIG } from '../../config';
 import { fbbKey } from '../render/fbbArt';
+import { CHARACTER_ORDER } from '../../run/data/characters';
+
+/** 對話頭像的貼圖 key */
+const dialogPortraitKey = (id: string): string => `portrait-dialog:${id}`;
 
 export interface CampfireData {
   /** 圍在火堆旁的英雄（欄位與職業） */
@@ -181,6 +186,13 @@ export class CampfireScene extends Phaser.Scene {
     super('Campfire');
   }
 
+  preload(): void {
+    for (const id of CHARACTER_ORDER) {
+      const key = dialogPortraitKey(id);
+      if (!this.textures.exists(key)) this.load.image(key, `${import.meta.env.BASE_URL}assets/portraits/dialog/${id}.png`);
+    }
+  }
+
   create(data: CampfireData): void {
     this.data0 = data;
     this.seated = [];
@@ -298,11 +310,16 @@ export class CampfireScene extends Phaser.Scene {
     return { root, name, body, portraitObjs: [], maskShape, px: x + py, py: y + py };
   }
 
-  /** 對話框的頭像：英雄 sprite 面向鏡頭，只露出框內的上半身 */
-  private setPortrait(box: DialogBox, classId: string): void {
+  /** 對話框的頭像：具名角色用對話頭像（原尺寸、置中）；否則英雄 sprite 面向鏡頭，只露出框內的上半身 */
+  private setPortrait(box: DialogBox, classId: string, portraitId?: string): void {
     for (const o of box.portraitObjs) o.destroy();
     box.portraitObjs = [];
     const P = CAMP.portrait;
+    if (portraitId && this.textures.exists(dialogPortraitKey(portraitId))) {
+      const img = this.add.image(Math.round(box.px + P / 2), Math.round(box.py + P / 2), dialogPortraitKey(portraitId)).setDepth(51);
+      box.portraitObjs.push(img);
+      return;
+    }
     box.maskShape.clear();
     box.maskShape.fillStyle(0xffffff, 1);
     box.maskShape.fillRect(box.px, box.py, P, P);
@@ -339,7 +356,7 @@ export class CampfireScene extends Phaser.Scene {
     // 具名角色：用卡片上的名字
     const card = this.data0.cards.find((c) => c.slot === line.slot);
     box.name.setText(card?.name ?? HEROES[classId].name).setColor(hex(HEROES[classId].color));
-    this.setPortrait(box, classId);
+    this.setPortrait(box, classId, card?.portrait);
     this.activeBox = box;
     this.fullText = line.text;
     this.typed = 0;

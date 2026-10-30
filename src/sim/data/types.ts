@@ -52,6 +52,8 @@ export interface UnitDef {
   letter: string;
   /** 占位色塊顏色（0xRRGGBB） */
   color: number;
+  /** 具名角色的頭像 id（角色 id，畫面層依此找頭像圖）；省略時頭像用 sprite 或色塊 */
+  portrait?: string;
   team: Team;
   maxHp: number;
   armor: number;
