@@ -53,6 +53,14 @@ function unitIcon(scene: Phaser.Scene, defId: string, cls: string): HTMLElement 
   return box;
 }
 
+/** 英雄的小圖：具名角色用 32×32 頭像（Alan 2026-10-31），其他照 unitIcon */
+function heroIcon(scene: Phaser.Scene, u: Unit): HTMLElement {
+  if (!u.def.portrait) return unitIcon(scene, u.def.id, 'hero');
+  const box = el('div', 'arc-icon hero face');
+  box.style.backgroundImage = `url("${import.meta.env.BASE_URL}assets/portraits/mini/${u.def.portrait}.png")`;
+  return box;
+}
+
 /** 某等級某經驗值的累計經驗 */
 function cumulative(level: number, xp: number): number {
   let t = xp;
@@ -77,7 +85,7 @@ export function showArcadeResult(scene: Phaser.Scene, world: World, before: RunS
   for (const u of heroes) {
     const row = el('div', 'arc-row');
     const who = el('div', 'arc-who');
-    who.append(unitIcon(scene, u.def.id, 'hero'), el('div', 'arc-name', u.def.name));
+    who.append(heroIcon(scene, u), el('div', 'arc-name', u.def.name));
     const kills = el('div', 'arc-kills');
     for (const id of u.killList) {
       const k = unitIcon(scene, id, 'kill');
