@@ -139,6 +139,18 @@ export const PIXEL_UNITS: Record<string, PixelUnitArt> = {
 export const CHARACTER_UNITS: Record<string, PixelUnitArt> = {
   // 希爾雯（2026-10-30）：Archer 改的，256×160，只有側面一個區塊
   sylwen: { kind: 'mw', path: 'mw/sheets/heroes/sylwen.png', sideOnly: true },
+  // 杜爾根（2026-10-30）：AxeFighter（短髮）改的，格式同希爾雯
+  durgan: { kind: 'mw', path: 'mw/sheets/heroes/durgan.png', sideOnly: true },
+  // 柯林（2026-10-30）：SwordFighter（短髮）改的，格式同希爾雯
+  corin: { kind: 'mw', path: 'mw/sheets/heroes/corin.png', sideOnly: true },
+  // 奧爾德斯（2026-10-30）：Wizard_Blue1 改的（拿掉尖兜帽，灰髮加鬍子、木杖），格式同希爾雯
+  aldous: { kind: 'mw', path: 'mw/sheets/heroes/aldous.png', sideOnly: true },
+  // 芬恩（2026-10-30）：Wizard_Blue1 改的（紅棕亂髮、灰藍斗篷、火色杖頭），格式同希爾雯
+  fenn: { kind: 'mw', path: 'mw/sheets/heroes/fenn.png', sideOnly: true },
+  // 阿許卡（2026-10-30）：SwordFighter（長髮）改的（拿掉盾、青綠長髮、皮革上衣），格式同希爾雯
+  ashka: { kind: 'mw', path: 'mw/sheets/heroes/ashka.png', sideOnly: true },
+  // 班尼迪克（2026-10-30）：SwordFighter（短髮）改的（釘頭錘、保留盾、米白長袍），格式同希爾雯
+  benedict: { kind: 'mw', path: 'mw/sheets/heroes/benedict.png', sideOnly: true },
 };
 
 /** 像素畫面的設定（只影響畫面） */

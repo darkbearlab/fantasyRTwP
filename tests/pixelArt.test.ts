@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync } from 'node:fs';
 import { ENEMIES } from '../src/sim/data/enemies';
 import { HEROES } from '../src/sim/data/heroes';
+import { CHARACTER_ORDER } from '../src/run/data/characters';
 import {
   MW_ATTACK,
   MW_BACK,
@@ -66,11 +67,14 @@ describe('2D 像素素材', () => {
     expect(brute.kind === 'mw' && brute.recolor).toBeFalsy();
   });
 
-  it('希爾雯用專屬 sheet：只有側面、不換色；任何方向都取側面區塊', () => {
+  it('七位隊員都用專屬 sheet：只有側面、不換色；任何方向都取側面區塊', () => {
     const a = CHARACTER_UNITS.sylwen;
     expect(a).toMatchObject({ kind: 'mw', path: 'mw/sheets/heroes/sylwen.png', sideOnly: true });
     expect(a.kind === 'mw' && a.recolor).toBeFalsy();
     expect(mwPaths()).toContain('mw/sheets/heroes/sylwen.png');
+    // 七位隊員都有專屬 sheet
+    expect(Object.keys(CHARACTER_UNITS).sort()).toEqual([...CHARACTER_ORDER].sort());
+    for (const [id, art] of Object.entries(CHARACTER_UNITS)) expect(art).toMatchObject({ kind: 'mw', path: `mw/sheets/heroes/${id}.png`, sideOnly: true });
     for (const [x, y] of [[1, 0], [-1, 0], [0, 1], [0, -1], [0.1, -1]]) expect(sideBlock(x, y, false).block).toBe(MW_SIDE);
     expect(sideBlock(-1, 0.2, false).flip).toBe(true);
     // 256×160 只有 4 列有東西：側面區塊的格號都在 0～31

@@ -2,7 +2,7 @@
  * 營火對話（Alan 2026-10-20）：休息節點先顯示英雄圍著火堆的畫面，上方的對話框輪流說話（Alan 2026-10-25：只留上面一個框，手機上下兩個框會擠在一起）；
  * 點一下推進，說完（或按略過）才回到休息選單。
  * 英雄用戰鬥中的 sprite（heroes3d 預渲染或 Flare 分層），頭像也直接用 sprite（面向鏡頭、只露上半身）。
- * 具名角色有 96×80 對話頭像（public/assets/portraits/dialog）時改用它，放在對話框的頭像框裡、原尺寸不放大（Alan 2026-10-30）。
+ * 具名角色有 96×80 對話頭像（public/assets/portraits/dialog）時改用它，放在對話框的頭像框裡，放大到框寬、下緣貼齊白框（Alan 2026-10-30）。
  */
 import { pixelGlow } from '../render/pixelGlow';
 import { tr } from '../../i18n';
@@ -311,13 +311,15 @@ export class CampfireScene extends Phaser.Scene {
     return { root, name, body, portraitObjs: [], maskShape, px: x + py, py: y + py };
   }
 
-  /** 對話框的頭像：具名角色用對話頭像（原尺寸、置中）；否則英雄 sprite 面向鏡頭，只露出框內的上半身 */
+  /** 對話框的頭像：具名角色用對話頭像（放大到框寬、貼齊框的下緣）；否則英雄 sprite 面向鏡頭，只露出框內的上半身 */
   private setPortrait(box: DialogBox, classId: string, portraitId?: string): void {
     for (const o of box.portraitObjs) o.destroy();
     box.portraitObjs = [];
     const P = CAMP.portrait;
     if (portraitId && this.textures.exists(dialogPortraitKey(portraitId))) {
-      const img = this.add.image(Math.round(box.px + P / 2), Math.round(box.py + P / 2), dialogPortraitKey(portraitId)).setDepth(51);
+      // 放大到和框內同寬、下緣貼著白框（Alan 2026-10-30：原尺寸置中時下面空一截）
+      const img = this.add.image(Math.round(box.px + P / 2), box.py + P - 1, dialogPortraitKey(portraitId)).setOrigin(0.5, 1).setDepth(51);
+      img.setScale((P - 2) / img.width);
       box.portraitObjs.push(img);
       return;
     }
