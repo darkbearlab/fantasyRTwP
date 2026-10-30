@@ -1326,6 +1326,10 @@ body {
 .panel-screen > .panel.wide {
   width: 820px;
 }
+/* 內容比面板高時整個面板捲動，裡面的區塊不要被壓扁（商人的背包在電腦版被壓成一條，Alan 2026-10-31） */
+.panel-screen > .panel > * {
+  flex-shrink: 0;
+}
 
 .panel h2 {
   margin: 0;
@@ -2226,6 +2230,15 @@ body {
   max-height: 60vh;
   overflow-y: auto;
 }
+.bag-panel > * {
+  flex-shrink: 0;
+}
+/* 包在背包面板裡的消耗品、裝備區，和放在面板畫面（商人等）裡的背包：不再各自捲動（外層捲就好） */
+.bag-panel .bag-panel,
+.panel-screen .bag-panel {
+  max-height: none;
+  overflow: visible;
+}
 .bag-title {
   font-weight: bold;
   color: #fff;
@@ -2857,6 +2870,13 @@ body {
   display: flex;
   align-items: flex-end;
   justify-content: center;
+}
+/* 具名角色的頭像（32×32 放大 1.5 倍）；陣亡時只變灰、不轉倒 */
+.arc-icon.face {
+  background-size: 48px 48px;
+}
+.arc-row.fallen .arc-who .arc-icon.face {
+  transform: none;
 }
 .arc-icon img {
   width: 32px;
