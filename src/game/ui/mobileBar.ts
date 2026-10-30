@@ -69,6 +69,7 @@ const STATUS_ICONS: [(u: Unit) => boolean, string][] = [
 function portrait(sheetUrl?: string, portraitId?: string): HTMLElement {
   const box = el('div', 'm-portrait');
   if (portraitId) {
+    box.classList.add('has-mini');
     const img = el('div', 'm-mini');
     img.style.backgroundImage = `url("${import.meta.env.BASE_URL}assets/portraits/mini/${portraitId}.png")`;
     box.appendChild(img);

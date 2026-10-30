@@ -2293,25 +2293,34 @@ body {
   background: #000;
   perspective: 200px;
 }
-/* 具名角色的 32×32 小頭像：放大 2 倍置中；沒選取時暗一點，選取時正常亮度（Alan） */
+/* 具名角色的 32×32 小頭像：放大 2 倍、整張露出，名字可以稍微蓋在頭像下緣（Alan）；
+   沒選取時暗一點，選取時正常亮度 */
+#stage .m-head > .m-portrait.has-mini {
+  height: 64px;
+  margin-bottom: -16px;
+}
+/* 桌面版卡片高度固定：名字多蓋一點，技能列才不會被擠掉 */
+#stage.desktop .m-head > .m-portrait.has-mini {
+  margin-bottom: -24px;
+}
+#stage .m-head > .m-portrait.has-mini + .m-name {
+  position: relative;
+  z-index: 1;
+  text-shadow: 1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000, -1px -1px 0 #000;
+}
 .m-mini {
   position: absolute;
   left: 50%;
-  top: 50%;
+  top: 0;
   width: 64px;
   height: 64px;
-  margin: -32px 0 0 -32px;
+  margin-left: -32px;
   background-size: 100% 100%;
   image-rendering: pixelated;
   filter: brightness(0.55);
 }
 .m-card.selected .m-mini {
   filter: none;
-}
-#stage.compact .m-mini {
-  width: 48px;
-  height: 48px;
-  margin: -24px 0 0 -24px;
 }
 /* 像素頭像：英雄 sprite sheet 放大 4 倍，裁出待機第一格的上半身。
    側面（區塊 0，原圖朝右）水平翻轉成朝左；選取時換成正面（區塊 1，第 5 列） */
