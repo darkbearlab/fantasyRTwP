@@ -11,7 +11,7 @@ import type { CampfireLine } from '../../run/campfire';
 import { HEROES } from '../../sim/data/heroes';
 import { FLARE, flareKey, getArt } from '../render/art';
 import { artKey, pixelArtFor, portraitSheetUrl } from '../render/pixelArt';
-import { MW_IDLE, PIXEL, facingBlock, mwFrame } from '../render/pixelArtData';
+import { MW_IDLE, PIXEL, facingBlock, mwFrame, sideBlock } from '../render/pixelArtData';
 import type { FlareAnimMeta } from '../render/art';
 import { H3D_SHEETS, h3dCharFor, h3dKey, h3dResolve } from '../render/heroes3d';
 import { FONT, hex } from '../render/palette';
@@ -26,8 +26,8 @@ import { CHARACTER_ORDER } from '../../run/data/characters';
 const dialogPortraitKey = (id: string): string => `portrait-dialog:${id}`;
 
 export interface CampfireData {
-  /** 圍在火堆旁的英雄（欄位與職業） */
-  heroes: { slot: number; classId: string }[];
+  /** 圍在火堆旁的英雄（欄位、職業；具名角色另有 characterId，有專屬 sheet 時用它） */
+  heroes: { slot: number; classId: string; characterId?: string }[];
   lines: CampfireLine[];
   /** 底部英雄面板（和戰鬥中一樣的外觀，蓋一層半透明黑色、按不到） */
   cards: StaticHeroCard[];
@@ -96,13 +96,14 @@ interface HeroSprite {
 }
 
 /** 建立英雄 sprite：dir 是 8 方向（0=西、2=北、4=東、6=南／面向鏡頭） */
-function makeHeroSprite(scene: Phaser.Scene, classId: string, x: number, y: number, dir: number, scale: number): HeroSprite | null {
+function makeHeroSprite(scene: Phaser.Scene, classId: string, x: number, y: number, dir: number, scale: number, characterId?: string): HeroSprite | null {
   // 2D 像素：mw sheet 的待機動作（8 方向換成畫面方向後取側面／正面／背面）
   if (getArt() === 'pixel') {
-    const art = pixelArtFor(scene, classId);
+    const art = pixelArtFor(scene, classId, characterId);
     if (art?.kind === 'mw') {
       const k = ((dir + 4) % 8) * (Math.PI / 4);
-      const { block, flip } = facingBlock(Math.cos(k), Math.sin(k));
+      // 只有側面的 sheet（希爾雯）固定用側面
+      const { block, flip } = art.sideOnly ? sideBlock(Math.cos(k), Math.sin(k), false) : facingBlock(Math.cos(k), Math.sin(k));
       const s = scene.add.sprite(x, y, artKey(art), mwFrame(block, MW_IDLE, 0)).setOrigin(0.5, PIXEL.mwFootY).setFlipX(flip);
       // 像素要整數倍：依原本的倍率換算成最接近的整數
       s.setScale(Math.max(1, Math.round(scale * CAMP.pixelPerScale)));
@@ -252,7 +253,7 @@ export class CampfireScene extends Phaser.Scene {
     data.heroes.slice(0, 4).forEach((h, i) => {
       const seat = seats[i];
       const ring = this.add.graphics();
-      const sprite = makeHeroSprite(this, h.classId, seat.x, seat.y, dirToward(seat, c), CAMP.heroScale);
+      const sprite = makeHeroSprite(this, h.classId, seat.x, seat.y, dirToward(seat, c), CAMP.heroScale, h.characterId);
       if (!sprite) {
         // 素材沒載入：色塊
         const g = this.add.graphics();
@@ -327,7 +328,7 @@ export class CampfireScene extends Phaser.Scene {
     // 腳底放在框下方，放大讓頭和胸口落在框裡
     // 預渲染（heroes3d）的頭部比 Flare 高一點：腳底放低一些
     const footY = getArt() === 'pixel' ? P * 1.4 : h3dCharFor(classId) ? P * 2.0 : P * 1.75;
-    const sp = makeHeroSprite(this, classId, box.px + P / 2, box.py + footY, 6, CAMP.portraitScale);
+    const sp = makeHeroSprite(this, classId, box.px + P / 2, box.py + footY, 6, CAMP.portraitScale, portraitId);
     if (!sp) return;
     for (const o of sp.objs) {
       o.setMask(mask).setDepth(51);

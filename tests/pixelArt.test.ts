@@ -10,6 +10,7 @@ import {
   MW_IDLE,
   MW_MOVE,
   MW_SIDE,
+  CHARACTER_UNITS,
   PIXEL_UNITS,
   facingBlock,
   heroTeamColors,
@@ -17,6 +18,8 @@ import {
   m72Lunge,
   mwAnim,
   mwFrame,
+  mwPaths,
+  sideBlock,
 } from '../src/game/render/pixelArtData';
 
 describe('2D 像素素材', () => {
@@ -61,5 +64,16 @@ describe('2D 像素素材', () => {
     }
     const brute = PIXEL_UNITS.brute;
     expect(brute.kind === 'mw' && brute.recolor).toBeFalsy();
+  });
+
+  it('希爾雯用專屬 sheet：只有側面、不換色；任何方向都取側面區塊', () => {
+    const a = CHARACTER_UNITS.sylwen;
+    expect(a).toMatchObject({ kind: 'mw', path: 'mw/sheets/heroes/sylwen.png', sideOnly: true });
+    expect(a.kind === 'mw' && a.recolor).toBeFalsy();
+    expect(mwPaths()).toContain('mw/sheets/heroes/sylwen.png');
+    for (const [x, y] of [[1, 0], [-1, 0], [0, 1], [0, -1], [0.1, -1]]) expect(sideBlock(x, y, false).block).toBe(MW_SIDE);
+    expect(sideBlock(-1, 0.2, false).flip).toBe(true);
+    // 256×160 只有 4 列有東西：側面區塊的格號都在 0～31
+    for (let act = 0; act < 4; act++) for (let i = 0; i < 4; i++) expect(mwFrame(MW_SIDE, act, i)).toBeLessThan(32);
   });
 });

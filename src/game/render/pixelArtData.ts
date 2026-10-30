@@ -16,7 +16,8 @@ export type PixelUnitArt =
   /** recolor：把藍隊的兩個隊伍色換成這兩個顏色（英雄用職業色，見 heroTeamColors） */
   /** scale：在 PIXEL.unitScale 之外再放大的倍率（大型單位；素材 session 的佔位對照表 2026-10-22） */
   /** footY／bodyPx：腳底在格子裡的位置（比例）、身體高幾個像素；省略用 Matt Walkden 的值（MiniFolks 的腳在格子最下面、身體比較矮） */
-  | { kind: 'mw'; path: string; recolor?: { dark: number; light: number }; scale?: number; footY?: number; bodyPx?: number }
+  /** sideOnly：sheet 只有側面區塊（block 0），一律用側面、往左鏡像（不看「英雄只用側面」的設定） */
+  | { kind: 'mw'; path: string; recolor?: { dark: number; light: number }; scale?: number; footY?: number; bodyPx?: number; sideOnly?: boolean }
   | { kind: 'm72'; idle: string; run: string; frames: number; scale?: number };
 
 const mw = (path: string, scale?: number): PixelUnitArt => (scale ? { kind: 'mw', path, scale } : { kind: 'mw', path });
@@ -129,6 +130,15 @@ export const PIXEL_UNITS: Record<string, PixelUnitArt> = {
   demonElite: mw('mw/recolor/Demon/AxeFighter/AxeFighter_ShortHair_Demon1.png'),
   demonGuard: mw('mw/recolor/Demon/LanceKnight/LanceKnight_Demon.png'),
   orcChief: mw('mw/recolor/Orc/AxeKnight/AxeKnight_Orc.png', 1.5),
+};
+
+/**
+ * 具名角色的專屬 sheet（角色 id → 素材）：有的話不管職業都用它，否則照 PIXEL_UNITS 的職業對照。
+ * 由原版改出來的衍生素材，一樣放在 licensed 底下；顏色畫好了，不換色。
+ */
+export const CHARACTER_UNITS: Record<string, PixelUnitArt> = {
+  // 希爾雯（2026-10-30）：Archer 改的，256×160，只有側面一個區塊
+  sylwen: { kind: 'mw', path: 'mw/sheets/heroes/sylwen.png', sideOnly: true },
 };
 
 /** 像素畫面的設定（只影響畫面） */
@@ -246,7 +256,7 @@ export function m72Lunge(action?: { phase: string; progress: number }): { push: 
 
 /** 用到的所有 mw sheet 路徑（不重複） */
 export function mwPaths(): string[] {
-  return [...new Set(Object.values(PIXEL_UNITS).flatMap((a) => (a.kind === 'mw' ? [a.path] : [])))];
+  return [...new Set([...Object.values(PIXEL_UNITS), ...Object.values(CHARACTER_UNITS)].flatMap((a) => (a.kind === 'mw' ? [a.path] : [])))];
 }
 
 /** 用到的所有 0x72 逐格檔名（不含副檔名，不重複） */

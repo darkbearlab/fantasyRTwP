@@ -50,7 +50,7 @@ export class RestScene extends DomScene {
       if (lines.length > 0) {
         this.root.style.display = 'none';
         this.campfireOpen = true;
-        const heroes = livingHeroes(run).map(({ slot, hero }) => ({ slot, classId: hero.classId }));
+        const heroes = livingHeroes(run).map(({ slot, hero }) => ({ slot, classId: hero.classId, characterId: hero.characterId }));
         const cards = run.party.flatMap((h, slot) =>
           h ? [{ slot, classId: h.classId, name: heroShortName(h), portrait: h.characterId, hp: h.hp, maxHp: maxHpOf(h), dead: h.dead, skillName: SKILLS[battleSkillsOf(run, h)[0]]?.name ?? '—' }] : [],
         );
