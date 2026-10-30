@@ -51,7 +51,7 @@ export const EN_SKILLS: NameDesc = {
   flashFireball: ['Fireball', 'Hurls a fireball that explodes at the target: 18–26 damage in 2.5 m; hurts allies too'],
   sureShot: ['Aimed Shot', 'Damage ×2.0, accuracy +60 (almost never misses), interrupts the target'],
   enchant: ['Enchant', 'Allies within 6 m (including self) deal +30% damage for 10 s'],
-  greatFireball: ['Great Fireball', '(After basic attacks build up enough stacks) explodes right after the wind-up: 30–40 damage and stagger in a 3.5 m radius; hurts allies too'],
+  greatFireball: ['Great Fireball', '(After basic attacks build up enough stacks) explodes right after the wind-up: 30–40 damage and stagger in a 3.5 m radius; does not hurt allies'],
   curseBurst: ['Curse Burst', 'Detonates the curse on the target: 20–28 damage and removes the curse; only 6–9 if not cursed'],
   ram: ['Ram', 'Charge a hero (ignores zones of control), strike and knock back 2 m'],
   bomb: ['Bomb', 'Lobbed (no line of sight needed): 6–9 damage in 1.5 m'],

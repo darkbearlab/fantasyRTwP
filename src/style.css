@@ -2020,11 +2020,28 @@ body {
 .m-skill.targeting {
 }
 /* 技能循環（SPEC_SLICE5 §16）：蓄力進度／下一招的小字；換招時閃一下 */
-.m-skill .m-hint {
-  position: relative;
+/* 右上角：狀態圖示，下面是技能循環的提示 */
+.m-tags {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  pointer-events: none;
+}
+.m-hint {
   font-size: 12px;
+  line-height: 1;
   color: #fff;
-  min-height: 14px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 3px;
+  padding: 1px 3px;
+}
+.m-hint:empty {
+  display: none;
 }
 .m-skill.flash {
   animation: m-skill-flash 0.6s ease-out;
@@ -2188,9 +2205,6 @@ body {
 }
 /* 英雄卡上的狀態圖示（SPEC_SLICE5 §14） */
 .m-status {
-  position: absolute;
-  top: 6px;
-  right: 8px;
   font-size: 13px;
   line-height: 1;
   letter-spacing: 1px;
@@ -2739,9 +2753,6 @@ body {
   white-space: nowrap;
 }
 /* 技能名改成 16px 的 Alagard 後放不下：沒有提示時不佔高度 */
-#stage.desktop .m-skill .m-hint:empty {
-  display: none;
-}
 #stage.desktop .m-skill .cd {
   font-size: 12px;
   min-height: 14px;

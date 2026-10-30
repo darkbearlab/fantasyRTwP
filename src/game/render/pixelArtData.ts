@@ -157,7 +157,8 @@ export const PIXEL = {
    * 攻擊動作（Alan 2026-10-25：不再把幾格攤平在整個準備時間裡）：準備時間的最後 windSec 秒播舉起的 3 格，
    * 生效後揮下那一格停 strikeSec 秒，其餘時間照常待機。準備時間比 windSec 短時就在整個準備時間播完。
    */
-  attackAnim: { windSec: 0.45, strikeSec: 0.3 },
+  /** dashWindSec：衝鋒（突刺）預計還有幾秒碰到目標時才開始舉起武器 */
+  attackAnim: { windSec: 0.45, strikeSec: 0.3, dashWindSec: 0.08 },
 };
 
 /** mw 的方向區塊 */

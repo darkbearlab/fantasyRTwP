@@ -4,12 +4,13 @@ import { battleOutcomeFromWorld, enemyDef } from '../src/run/battle';
 import { deliberateSkillsOf } from '../src/run/loadout';
 import { createRun } from '../src/run/runState';
 import { recipesOf } from '../src/run/upgrades';
-import { kill } from '../src/sim/actions';
+import { explode, kill } from '../src/sim/actions';
 import { followerOrder } from '../src/sim/ai/follower';
 import { DT } from '../src/sim/constants';
 import { CLASSES } from '../src/sim/data/classes';
 import { deliberateConfig } from '../src/sim/data/deliberate';
 import { HEROES } from '../src/sim/data/heroes';
+import { SKILLS } from '../src/sim/data/skills';
 import { DEFAULT_SIM_CONFIG } from '../src/sim/simConfig';
 import type { Unit } from '../src/sim/unit';
 import { World } from '../src/sim/world';
@@ -95,6 +96,16 @@ describe('芬恩：下位元素師、元素師、戰法師', () => {
     expect(a.cycle?.chargeMax).toBe(5);
     expect(el.cycle?.chargeMax).toBe(4);
     expect(w).toBeDefined();
+  });
+
+  it('大火球不會傷到隊友（Alan 2026-10-30）', () => {
+    const { w, heroes, foes } = setup(['adept', 'warrior'], [{ id: 'raider', x: 7 }]);
+    const ally = heroes[1];
+    const hp = ally.hp;
+    const foeHp = foes[0].hp;
+    explode(w, heroes[0], { x: 6.5, y: 6 }, SKILLS.greatFireball);
+    expect(ally.hp).toBe(hp);
+    expect(foes[0].hp).toBeLessThan(foeHp);
   });
 
   it('芬恩是下位元素師；兩條線是元素師、戰法師（都從下位元素師昇變）', () => {

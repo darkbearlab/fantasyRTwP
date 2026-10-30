@@ -6,6 +6,7 @@
  */
 import Phaser from 'phaser';
 import { DT } from '../../sim/constants';
+import { SKILLS } from '../../sim/data/skills';
 import type { Unit } from '../../sim/unit';
 import { displayFacing } from './art';
 import { COLORS } from './palette';
@@ -127,11 +128,23 @@ export class PixelView implements UnitVisual {
       this.flip = fb.flip;
     }
     const a = u.action;
-    const act = a ? { phase: a.phase, progress: u.actionProgress, left: a.ticksLeft * DT, elapsed: (a.ticksTotal - a.ticksLeft) * DT } : undefined;
+    let act: { phase: string; progress: number; left?: number; elapsed?: number } | undefined = a ? { phase: a.phase, progress: u.actionProgress, left: a.ticksLeft * DT, elapsed: (a.ticksTotal - a.ticksLeft) * DT } : undefined;
+    let moving = u.movedThisTick;
+    // 衝鋒（阿許卡的突刺等，Alan 2026-10-30）：準備與衝刺時跑步，預計快碰到目標時才舉起武器，命中時揮下
+    const eff = a?.skillId ? SKILLS[a.skillId]?.effect : undefined;
+    if (a && eff?.kind === 'charge' && (a.phase === 'windup' || a.phase === 'dash')) {
+      moving = true;
+      act = undefined;
+      if (a.phase === 'dash' && a.dashGap !== undefined) {
+        const A = PIXEL.attackAnim;
+        const eta = a.dashGap / Math.max(0.1, u.def.moveSpeed * eff.speedMult);
+        if (eta < A.dashWindSec) act = { phase: 'windup', progress: 1 - eta / A.dashWindSec, left: (eta / A.dashWindSec) * A.windSec };
+      }
+    }
     let flash = simTime < this.hitUntil;
     this.sprite.setPosition(0, -lift).setAngle(0);
     if (this.art.kind === 'mw') {
-      const { action, frame } = mwAnim({ time: simTime, dead: u.dead, deathStart: this.deathStart, moving: u.movedThisTick, action: act });
+      const { action, frame } = mwAnim({ time: simTime, dead: u.dead, deathStart: this.deathStart, moving, action: act });
       this.sprite.setFrame(mwFrame(this.block, action, frame));
       this.sprite.setFlipX(this.flip);
     } else {

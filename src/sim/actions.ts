@@ -792,6 +792,7 @@ export function tickDash(world: World, u: Unit): void {
         return;
       }
     }
+    a.dashGap = Math.max(0, edgeDistance(u, t) - u.def.range);
     if (inRange()) {
       strike(world, u, t, { melee: true, mult: eff.strike?.mult ?? 1, accBonus: eff.strike?.accBonus, interrupts: eff.strike?.interrupts, damageType: basicDamageType(u.def), skillId: def.id, knockback: eff.knockback });
       if (u.dead || !u.action) return;

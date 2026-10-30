@@ -35,6 +35,8 @@ export interface Action {
   /** 直線衝鋒：起點、已經撞過的單位 */
   dashFrom?: Vec;
   hitIds?: number[];
+  /** 衝鋒（charge）：離可以出手還差幾公尺（只給畫面層決定何時播攻擊動作，不影響結果） */
+  dashGap?: number;
 }
 
 export interface UnitStats {
