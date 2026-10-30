@@ -1192,6 +1192,9 @@ export class World implements ZocContext {
     if (u.aiTimer > 0) u.aiTimer -= DT;
     if (u.retreatCooldown > 0) u.retreatCooldown = Math.max(0, u.retreatCooldown - DT);
     if (u.damageBuffTime > 0) u.damageBuffTime = Math.max(0, u.damageBuffTime - DT);
+    if (u.counterWardTime > 0) u.counterWardTime = Math.max(0, u.counterWardTime - DT);
+    if (u.hasteTime > 0) u.hasteTime = Math.max(0, u.hasteTime - DT);
+    if (u.bloodMarkTime > 0) u.bloodMarkTime = Math.max(0, u.bloodMarkTime - DT);
     for (const k in u.cooldowns) {
       if (u.cooldowns[k] <= 0) continue;
       u.cooldowns[k] = Math.max(0, u.cooldowns[k] - DT);

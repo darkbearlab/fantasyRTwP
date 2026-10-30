@@ -2,6 +2,7 @@
  * 強化修飾器（SPEC_SLICE2 §9）：把英雄擁有的強化套在基礎數值上，產生戰鬥用的 UnitDef。
  * 不修改 HEROES 資料表。
  */
+import { CHARACTERS } from './data/characters';
 import { heroName, heroShortName } from './characters';
 import { tr } from '../i18n/lang';
 import { CLASS_PASSIVES, CLASS_PASSIVE_RANKS, passiveStartRank } from '../sim/data/passives';
@@ -201,7 +202,10 @@ export function rankOf(h: HeroRecord, upgradeId: string): number {
 
 /** 這名英雄的職業有哪些配方（還沒昇變時） */
 export function recipesOf(h: HeroRecord): RecipeDef[] {
-  return h.baseClass ? [] : RECIPES.filter((rc) => rc.base === h.classId);
+  if (h.baseClass) return [];
+  // 具名角色（SPEC_CHARACTERS）：只走自己的救贖、墮落兩條線
+  const c = h.characterId ? CHARACTERS[h.characterId] : undefined;
+  return RECIPES.filter((rc) => rc.base === h.classId && (!c || rc.evolvesTo === c.redeem || rc.evolvesTo === c.fall));
 }
 
 export function recipeDone(h: HeroRecord, rc: RecipeDef): boolean {
@@ -238,7 +242,9 @@ export function classUpgradesFor(h: HeroRecord): string[] {
     const u = UPGRADES[id];
     if (rankOf(h, id) >= maxRankOf(id)) return false;
     if (u.innate) return u.innate.classId === base && (CLASS_PASSIVES[h.classId] ?? []).includes(u.innate.passive);
-    return !h.baseClass && u.branch?.classId === h.classId;
+    if (h.baseClass || u.branch?.classId !== h.classId) return false;
+    // 具名角色：只出自己兩條線的配方用得到的升級
+    return !h.characterId || recipesOf(h).some((rc) => rc.requires.includes(id));
   });
 }
 

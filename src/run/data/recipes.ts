@@ -37,7 +37,7 @@ export interface RecipeDef {
 
 export const RECIPES: RecipeDef[] = [
   { id: 'guardian', base: 'warrior', evolvesTo: 'guardian', requires: ['gdTaunt', 'gdAura', 'gdShell'], maxed: 'gdShell' },
-  { id: 'gladiator', base: 'warrior', evolvesTo: 'gladiator', requires: ['glBash', 'glFocus', 'glEdge'], maxed: 'glEdge' },
+  { id: 'gladiator', base: 'warrior', evolvesTo: 'paladin', requires: ['glBash', 'glFocus', 'glEdge'], maxed: 'glEdge' },
   { id: 'berserker', base: 'warrior', evolvesTo: 'berserker', requires: ['bkFury', 'bkFrenzy', 'bkThirst'], maxed: 'bkFury' },
   { id: 'cutthroat', base: 'ranger', evolvesTo: 'cutthroat', requires: ['ctClose1', 'ctClose2', 'ctClose3'], maxed: 'ctClose1' },
   { id: 'sniper', base: 'ranger', evolvesTo: 'sniper', requires: ['snPower', 'snReach', 'snSteady'], maxed: 'snPower' },
@@ -45,7 +45,7 @@ export const RECIPES: RecipeDef[] = [
   { id: 'elementalist', base: 'mage', evolvesTo: 'elementalist', requires: ['elEnchant', 'elFlame', 'elFrost'], maxed: 'elFlame' },
   { id: 'deathMage', base: 'mage', evolvesTo: 'deathMage', requires: ['dmWide', 'dmDeep', 'dmFrail'], maxed: 'dmWide' },
   { id: 'battlemage', base: 'mage', evolvesTo: 'battlemage', requires: ['bmVigor', 'bmPlate', 'bmGrit'], maxed: 'bmVigor' },
-  { id: 'paladin', base: 'cleric', evolvesTo: 'paladin', requires: ['plVigor', 'plHammer', 'plWard'], maxed: 'plHammer' },
+  { id: 'paladin', base: 'cleric', evolvesTo: 'highPriest', requires: ['plVigor', 'plHammer', 'plWard'], maxed: 'plHammer' },
   { id: 'zealot', base: 'cleric', evolvesTo: 'zealot', requires: ['zeFervor', 'zeReach', 'zeZeal'], maxed: 'zeZeal' },
   { id: 'heretic', base: 'cleric', evolvesTo: 'heretic', requires: ['htDark', 'htBlood', 'htHunger'], maxed: 'htBlood' },
 ];

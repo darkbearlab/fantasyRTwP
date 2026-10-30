@@ -41,7 +41,8 @@ export function zoneAffects(z: GroundZone, u: Unit): boolean {
 
 /** 範圍內庇護效果的減傷比例（取最強的；施放者是英雄時套技能效果倍率，最多 80%） */
 export function wardReduction(world: World, u: Unit): number {
-  let r = 0;
+  // 反制（守護者）的減傷也算在這裡，取最強的
+  let r = u.counterWardTime > 0 ? u.counterWardPct : 0;
   for (const z of world.zones) {
     if (!zoneAffects(z, u)) continue;
     for (const e of z.effects) {

@@ -43,17 +43,18 @@ export const CLASSES: Record<string, ClassDef> = {
   hexer: { id: 'hexer', line: 'mage', role: '控場、削弱', signature: 'curse', defaultPool: ['iceBind', 'swamp'], variant: true },
   alchemist: { id: 'alchemist', line: 'cleric', role: '投擲道具：普攻拋物線（不需視線、無視掩體）', signature: 'firebomb', defaultPool: ['healFlask', 'bless'], variant: true },
   // ── 昇變後的進階職業（SPEC_CLASSES §3）：evolvedFrom 是基本職業；狂戰士回收舊的變體 ──
-  guardian: { id: 'guardian', line: 'warrior', role: '守護：替光環內的隊友分擔傷害', signature: 'guard', defaultPool: ['shieldBash', 'charge'], variant: true, evolvedFrom: 'warrior' },
+  guardian: { id: 'guardian', line: 'warrior', role: '守護：替光環內的隊友分擔傷害；反制敵人的大招', signature: 'shieldCounter', defaultPool: ['shieldBash', 'charge'], variant: true, evolvedFrom: 'warrior' },
   gladiator: { id: 'gladiator', line: 'warrior', role: '決鬥：盾擊打斷後必定爆擊', signature: 'shieldBash', defaultPool: ['charge', 'guard'], variant: true, evolvedFrom: 'warrior' },
   cutthroat: { id: 'cutthroat', line: 'ranger', role: '近戰刺殺：潛行接近，偷襲必中、高等級爆擊', signature: 'stealth', defaultPool: ['smokeBomb', 'tumble'], variant: true, evolvedFrom: 'ranger' },
   sniper: { id: 'sniper', line: 'ranger', role: '集中後一擊必殺', signature: 'aimedShot', defaultPool: ['stunArrow', 'tumble'], variant: true, evolvedFrom: 'ranger' },
-  arbalest: { id: 'arbalest', line: 'ranger', role: '極短間隔的連射', signature: 'sureShot', defaultPool: ['stunArrow', 'tumble'], variant: true, evolvedFrom: 'ranger' },
+  arbalest: { id: 'arbalest', line: 'ranger', role: '齊射：短時間內極快的連射', signature: 'sureShot', defaultPool: ['stunArrow', 'tumble'], variant: true, evolvedFrom: 'ranger' },
   elementalist: { id: 'elementalist', line: 'mage', role: '火＋寒雙屬性，附魔讓隊友也帶上', signature: 'enchant', defaultPool: ['iceBind', 'arcaneMissile'], variant: true, evolvedFrom: 'mage' },
   deathMage: { id: 'deathMage', line: 'mage', role: '寒氣光環削弱敵人、詛咒爆裂', signature: 'curse', defaultPool: ['iceBind', 'swamp'], variant: true, evolvedFrom: 'mage' },
   battlemage: { id: 'battlemage', line: 'mage', role: '近戰：只附魔自己，普攻破甲', signature: 'enchant', defaultPool: ['iceBind', 'arcaneMissile'], variant: true, evolvedFrom: 'mage' },
-  paladin: { id: 'paladin', line: 'cleric', role: '聖域同時讓敵人變慢', signature: 'sanctuary', defaultPool: ['bless', 'holySmite'], variant: true, evolvedFrom: 'cleric' },
+  paladin: { id: 'paladin', line: 'warrior', role: '聖域・審判：範圍打斷、失衡，同時護住隊友', signature: 'holyGround', defaultPool: ['shieldBash', 'charge'], variant: true, evolvedFrom: 'warrior' },
+  highPriest: { id: 'highPriest', line: 'cleric', role: '更大、更久的聖域', signature: 'grandSanctuary', defaultPool: ['bless', 'holySmite'], variant: true, evolvedFrom: 'cleric' },
   zealot: { id: 'zealot', line: 'cleric', role: '光環同時加攻擊、命中、防禦', signature: 'sanctuary', defaultPool: ['bless', 'holySmite'], variant: true, evolvedFrom: 'cleric' },
-  heretic: { id: 'heretic', line: 'cleric', role: '以戰養戰：吸血與吸血光環', signature: 'drainLife', defaultPool: ['bless', 'heal'], variant: true, evolvedFrom: 'cleric' },
+  heretic: { id: 'heretic', line: 'cleric', role: '以戰養戰：吸血、血印、吸血光環', signature: 'bloodDrain', defaultPool: ['bless', 'heal'], variant: true, evolvedFrom: 'cleric' },
 };
 
 /** 組隊與招募可選的職業（顯示順序） */

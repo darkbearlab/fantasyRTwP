@@ -17,8 +17,12 @@ export const EN_SKILLS: NameDesc = {
   focus: ['Focus', 'Enter focus: each second makes the next shot +25% stronger (up to 4 s); broken by moving or taking damage'],
   elementalEnchant: ['Elemental Enchant', 'Allies within 6 m (including self) deal +30% damage for 10 s, and their attacks gain fire and cold (best matchup applies)'],
   selfEnchant: ['Battle Enchant', 'Enchant only yourself: +60% damage for 10 s'],
-  holyGround: ['Sanctuary: Judgment', 'A circle of holy light: for 5 s, allies inside take 30% less damage and enemies move 40% slower'],
+  holyGround: ['Sanctuary: Judgment', 'A circle of holy light: on landing it interrupts enemies inside and heavily staggers them; for 5 s, allies inside take 30% less damage and enemies move 40% slower'],
   drainLife: ['Drain Life', 'Drain life from an enemy or ally to heal yourself; draining allies yields more, but never 1:1'],
+  bloodDrain: ['Blood Pact', 'Drain life from an enemy or ally to heal yourself. Draining an enemy leaves a blood mark (6 s; allies hitting it heal you); draining an ally gives that ally +20% damage for 6 s'],
+  shieldCounter: ['Shield Bash: Counter', 'Melee: damage ×0.8, interrupts, heavy stagger; interrupting an enemy mid-telegraph makes allies within 4 m take 40% less damage for 3 s'],
+  volley: ['Volley', 'For 4 s, basic attacks come extremely fast (attack speed +200%); piercing still applies'],
+  grandSanctuary: ['Grand Sanctuary', 'A wide circle of holy light: for 7 s, allies inside take 40% less damage'],
   heal: ['Heal', 'Restores 35 HP'],
   bless: ['Bless', 'Allies within 6 m gain +15 accuracy and +10 defense for 10 s'],
   holySmite: ['Holy Smite', 'Melee: damage ×1.2, knocks back 2 m; stuns on wall impact, shatters frozen targets'],
@@ -65,8 +69,8 @@ export const EN_SKILLS: NameDesc = {
 
 export const EN_HEROES: Record<string, string> = {
   warrior: 'Warrior', ranger: 'Ranger', mage: 'Mage', cleric: 'Cleric', berserker: 'Berserker', rogue: 'Rogue', hexer: 'Hexer', alchemist: 'Alchemist',
-  guardian: 'Guardian', gladiator: 'Gladiator', cutthroat: 'Assassin', sniper: 'Sniper', arbalest: 'Arbalest', elementalist: 'Elementalist',
-  deathMage: 'Death Mage', battlemage: 'Battlemage', paladin: 'Paladin', zealot: 'Zealot', heretic: 'Heretic',
+  guardian: 'Guardian', gladiator: 'Gladiator', cutthroat: 'Assassin', sniper: 'Sniper', arbalest: 'Grand Ranger', elementalist: 'Elementalist',
+  deathMage: 'Death Mage', battlemage: 'Battlemage', paladin: 'Paladin', zealot: 'Zealot', heretic: 'Cultist', highPriest: 'High Priest',
 };
 
 export const EN_ENEMIES: Record<string, string> = {
@@ -124,17 +128,17 @@ export const EN_UPGRADES: NameDesc = {
   cp_smite: ['Smite · Rank Up', 'Each rank: heal +3, knockback +0.2 m'],
   cp_blessAura: ['Blessing Aura · Rank Up', 'Each rank: aura radius +1 m, accuracy +3, defense +2'],
   evolve_guardian: ['Evolve: Guardian', 'Recipe complete: evolve into a Guardian'],
-  evolve_gladiator: ['Evolve: Gladiator', 'Recipe complete: evolve into a Gladiator'],
+  evolve_gladiator: ['Evolve: Paladin', 'Recipe complete: evolve into a Paladin'],
   evolve_berserker: ['Evolve: Berserker', 'Recipe complete: evolve into a Berserker'],
   evolve_cutthroat: ['Evolve: Assassin', 'Recipe complete: evolve into an Assassin'],
   evolve_sniper: ['Evolve: Sniper', 'Recipe complete: evolve into a Sniper'],
-  evolve_arbalest: ['Evolve: Arbalest', 'Recipe complete: evolve into an Arbalest'],
+  evolve_arbalest: ['Evolve: Grand Ranger', 'Recipe complete: evolve into a Grand Ranger'],
   evolve_elementalist: ['Evolve: Elementalist', 'Recipe complete: evolve into an Elementalist'],
   evolve_deathMage: ['Evolve: Death Mage', 'Recipe complete: evolve into a Death Mage'],
   evolve_battlemage: ['Evolve: Battlemage', 'Recipe complete: evolve into a Battlemage'],
-  evolve_paladin: ['Evolve: Paladin', 'Recipe complete: evolve into a Paladin'],
+  evolve_paladin: ['Evolve: High Priest', 'Recipe complete: evolve into a High Priest'],
   evolve_zealot: ['Evolve: Zealot', 'Recipe complete: evolve into a Zealot'],
-  evolve_heretic: ['Evolve: Heretic', 'Recipe complete: evolve into a Heretic'],
+  evolve_heretic: ['Evolve: Cultist', 'Recipe complete: evolve into a Cultist'],
   vigor: ['Vigor', 'Max HP +15%, and heal the same amount'],
   precise: ['Precise', 'Accuracy +8'],
   ironWall: ['Iron Wall', 'Armor +2'],
@@ -247,23 +251,24 @@ export const EN_CLASS_ROLES: Record<string, string> = {
   rogue: 'Flanking assassin (melee): no zone of control, ×1.5 basic attacks from behind',
   hexer: 'Control and debuffs',
   alchemist: 'Thrown items: lobbed basic attacks (no line of sight needed, ignores cover)',
-  guardian: 'Protector: shares damage with allies in the aura',
+  guardian: 'Protector: shares damage with allies in the aura; counters enemy big attacks',
   gladiator: 'Duelist: guaranteed crit after a Shield Bash interrupt',
   cutthroat: 'Melee assassin: sneaks in unseen; the ambush always hits for high-tier crits',
   sniper: 'Focus, then one decisive shot',
-  arbalest: 'Rapid-fire volleys',
+  arbalest: 'Volley: a short burst of very fast shots',
   elementalist: 'Fire + cold; Enchant gives allies both',
   deathMage: 'Chill aura weakens enemies; Curse Burst',
   battlemage: 'Melee: enchants only itself; basic attacks sunder armor',
-  paladin: 'Sanctuary also slows enemies',
+  paladin: 'Sanctuary: Judgment interrupts and staggers an area while protecting allies',
+  highPriest: 'A larger, longer Sanctuary',
   zealot: 'Aura grants damage, accuracy and defense',
-  heretic: 'Sustains through battle: lifesteal and blood aura',
+  heretic: 'Sustains through battle: lifesteal, blood marks and blood aura',
 };
 
 /** 分支名稱（昇變） */
 export const EN_BRANCHES: Record<string, string> = {
-  guardian: 'Guardian', gladiator: 'Gladiator', berserker: 'Berserker', cutthroat: 'Assassin', sniper: 'Sniper', arbalest: 'Arbalest',
-  elementalist: 'Elementalist', deathMage: 'Death Mage', battlemage: 'Battlemage', paladin: 'Paladin', zealot: 'Zealot', heretic: 'Heretic',
+  guardian: 'Guardian', gladiator: 'Paladin', berserker: 'Berserker', cutthroat: 'Assassin', sniper: 'Sniper', arbalest: 'Grand Ranger',
+  elementalist: 'Elementalist', deathMage: 'Death Mage', battlemage: 'Battlemage', paladin: 'High Priest', zealot: 'Zealot', heretic: 'Cultist',
 };
 
 /** 章節名稱（過場文字維持中文） */

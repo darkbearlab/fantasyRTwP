@@ -25,13 +25,14 @@ export interface BranchDef {
 export const BRANCHES: Record<string, BranchDef[]> = {
   warrior: [
     { id: 'guardian', name: '守護者', evolvesTo: 'guardian', line: '我的盾在，誰都別想過去。' },
-    { id: 'gladiator', name: '角鬥士', evolvesTo: 'gladiator', line: '來吧，讓我看看你的破綻。' },
+    // SPEC_CHARACTERS §4：角鬥士擱置，這個分支改成聖騎士（戰士底）；分支 id 不變，舊升級照用
+    { id: 'gladiator', name: '聖騎士', evolvesTo: 'paladin', line: '聖光在此，邪惡退散。' },
     { id: 'berserker', name: '狂戰士', evolvesTo: 'berserker', line: '血……還不夠！' },
   ],
   ranger: [
     { id: 'cutthroat', name: '刺客', evolvesTo: 'cutthroat', line: '近一點，再近一點。' },
     { id: 'sniper', name: '狙擊手', evolvesTo: 'sniper', line: '呼吸、瞄準……放。' },
-    { id: 'arbalest', name: '連弩手', evolvesTo: 'arbalest', line: '箭雨，來了。' },
+    { id: 'arbalest', name: '大遊俠', evolvesTo: 'arbalest', line: '箭雨，來了。' },
   ],
   mage: [
     { id: 'elementalist', name: '元素法師', evolvesTo: 'elementalist', line: '火與冰，都聽我的。' },
@@ -39,9 +40,10 @@ export const BRANCHES: Record<string, BranchDef[]> = {
     { id: 'battlemage', name: '戰法師', evolvesTo: 'battlemage', line: '咒語念完了，換斧頭說話。' },
   ],
   cleric: [
-    { id: 'paladin', name: '聖騎士', evolvesTo: 'paladin', line: '聖光在此，邪惡退散。' },
+    // SPEC_CHARACTERS §4：聖騎士搬到戰士，這個分支改成大祭司；分支 id 不變，舊升級照用
+    { id: 'paladin', name: '大祭司', evolvesTo: 'highPriest', line: '我不信神。但這句話，我得對得起。' },
     { id: 'zealot', name: '狂信者', evolvesTo: 'zealot', line: '信仰會讓你們更強！' },
-    { id: 'heretic', name: '異教徒', evolvesTo: 'heretic', line: '你們的血，借我用用。' },
+    { id: 'heretic', name: '邪教徒', evolvesTo: 'heretic', line: '你們的血，借我用用。' },
   ],
 };
 

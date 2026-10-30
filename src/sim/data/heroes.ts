@@ -84,18 +84,21 @@ function evolved(): Record<string, UnitDef> {
     range: 0.3, windup: 0.5, recovery: 0.9, attackSpeed: 1, moveSpeed: 3.0, radius: 0.4, projectsZoc: true, skills: ['sanctuary'],
   };
   const list: UnitDef[] = [
-    { ...W, id: 'guardian', name: '守護者', letter: 'G', color: 0x2f5fb0, maxHp: 160, armor: 7 },
+    { ...W, id: 'guardian', name: '守護者', letter: 'G', color: 0x2f5fb0, maxHp: 160, armor: 7, skills: ['shieldCounter'] },
     { ...W, id: 'gladiator', name: '角鬥士', letter: 'L', color: 0x5aa0e6, accuracy: 36, damage: [11, 17], skillMods: { shieldBash: { charges: 2 } } },
     { ...R, id: 'cutthroat', name: '刺客', letter: 'K', color: 0x2c9c8a, maxHp: 85, accuracy: 44, defense: 36, damage: [8, 13], range: 0.3, windup: 0.4, recovery: 0.8, moveSpeed: 3.8, projectileSpeed: undefined, projectileKind: undefined, personality: undefined, backstabMult: 1.5, skills: ['stealth'] },
     { ...R, id: 'sniper', name: '狙擊手', letter: 'S', color: 0x2e8b3a, accuracy: 45, damage: [9, 15], skills: ['focus', 'aimedShot'] },
-    // 連弩手：攻擊間距極短、單發較輕
-    { ...R, id: 'arbalest', name: '連弩手', letter: 'A', color: 0x7cc576, damage: [5, 8], attackSpeed: 2.2 },
+    // 大遊俠（原連弩手，SPEC_CHARACTERS §4.1）：平常和遊俠差不多，主動齊射時連射；數值佔位
+    { ...R, id: 'arbalest', name: '大遊俠', letter: 'A', color: 0x7cc576, maxHp: 90, accuracy: 44, damage: [9, 15], skills: ['volley'] },
     { ...M, id: 'elementalist', name: '元素法師', letter: 'E', color: 0xc062e0, skills: ['elementalEnchant'] },
     { ...M, id: 'deathMage', name: '死亡法師', letter: 'D', color: 0x6b2f8a, maxHp: 65, accuracy: 32, defense: 22, damage: [5, 9], projectileKind: 'curse', skills: ['curse', 'curseBurst'] },
     { ...M, id: 'battlemage', name: '戰法師', letter: 'B', color: 0x8e5fc0, maxHp: 110, armor: 4, defense: 32, damage: [9, 14], range: 0.3, windup: 0.5, recovery: 0.9, projectileSpeed: undefined, projectileKind: undefined, attackDamageType: undefined, personality: undefined, projectsZoc: true, skills: ['selfEnchant'] },
-    { ...C, id: 'paladin', name: '聖騎士', letter: 'P', color: 0xf0d060, maxHp: 115, armor: 5, skills: ['holyGround'] },
+    // 聖騎士改成戰士底（SPEC_CHARACTERS §4.1）；數值佔位
+    { ...W, id: 'paladin', name: '聖騎士', letter: 'P', color: 0xf0d060, maxHp: 150, armor: 6, skills: ['holyGround'] },
     { ...C, id: 'zealot', name: '狂信者', letter: 'Z', color: 0xd0902a, accuracy: 30 },
-    { ...C, id: 'heretic', name: '異教徒', letter: 'X', color: 0x8b1e3f, maxHp: 80, range: 8, windup: 0.6, recovery: 1.0, projectileSpeed: 18, projectileKind: 'curse', attackDamageType: 'spell', personality: 'guerrilla', projectsZoc: false, skills: ['drainLife'] },
+    // 大祭司（SPEC_CHARACTERS §4.1）：數值膨脹版的牧師；數值佔位
+    { ...C, id: 'highPriest', name: '大祭司', letter: 'H', color: 0xf5e6a0, maxHp: 110, armor: 4, defense: 34, skills: ['grandSanctuary'] },
+    { ...C, id: 'heretic', name: '邪教徒', letter: 'X', color: 0x8b1e3f, maxHp: 80, range: 8, windup: 0.6, recovery: 1.0, projectileSpeed: 18, projectileKind: 'curse', attackDamageType: 'spell', personality: 'guerrilla', projectsZoc: false, skills: ['drainLife'] },
   ];
   return Object.fromEntries(list.map((d) => [d.id, d]));
 }

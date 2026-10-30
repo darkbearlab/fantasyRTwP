@@ -63,6 +63,7 @@ export const PIXEL_UNITS: Record<string, PixelUnitArt> = {
   deathMage: hero('deathMage', 'mw/sheets/Wizard/Wizard_Blue3.png'),
   battlemage: hero('battlemage', 'mw/sheets/AxeKnight/AxeKnight_Blue.png'),
   paladin: hero('paladin', 'mw/sheets/SwordCavalier/SwordCavalier_ShortHair_Blue1.png'),
+  highPriest: hero('highPriest', 'mw/sheets/SpearFighter/SpearFighter_ShortHair_Blue1.png'),
   zealot: hero('zealot', 'mw/sheets/SpearFighter/SpearFighter_ShortHair_Blue1.png'),
   heretic: hero('heretic', 'mw/sheets/Wizard/Wizard_Blue1.png'),
   // Alan 2026-10-21：牧師改用戰士的 sprite（職業色換成黃色）

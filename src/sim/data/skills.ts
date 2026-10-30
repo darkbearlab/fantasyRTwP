@@ -69,11 +69,12 @@ export const SKILLS: Record<string, SkillDef> = {
     target: 'self', range: 0, windup: 0.4, recovery: 0.6, cooldown: 16, requiresLos: false,
     effect: { kind: 'enchant', radius: 0.5, duration: 10, damagePct: 0.6 },
   },
+  // 聖騎士改成戰士底（SPEC_CHARACTERS §4.1）：放下時打斷範圍內的敵人並加失衡；數值佔位
   holyGround: {
-    id: 'holyGround', name: '聖域・審判', description: '地上一圈聖光：5 秒內，範圍內的友軍受到的傷害 −30%、敵人移動變慢 40%',
-    target: 'ground', range: 6, windup: 0.6, recovery: 0.8, cooldown: 12, requiresLos: false,
+    id: 'holyGround', name: '聖域・審判', description: '地上一圈聖光：放下時打斷範圍內的敵人、大量失衡；5 秒內，範圍內的友軍受到的傷害 −30%、敵人移動變慢 40%',
+    target: 'ground', range: 6, windup: 0.6, recovery: 0.8, cooldown: 16, requiresLos: false,
     effect: {
-      kind: 'zone', radius: 2.5,
+      kind: 'zone', radius: 2.5, burst: { interrupts: true, stagger: 25 },
       lingering: { duration: 5, affects: 'ally', effects: [{ kind: 'ward', reduction: 0.3 }], style: 'holy' },
       extra: { duration: 5, affects: 'enemy', effects: [{ kind: 'slow', moveMult: 0.6 }] },
     },
@@ -82,6 +83,31 @@ export const SKILLS: Record<string, SkillDef> = {
     id: 'drainLife', name: '吸血', description: '從敵人或友軍身上吸取生命補給自己；吸友軍吸得比較多，但都不是 1:1',
     target: 'unit', range: 8, windup: 0.6, recovery: 0.8, cooldown: 10, requiresLos: true,
     effect: { kind: 'drain', enemy: { damage: [12, 16], convert: 0.5 }, ally: { damage: [16, 20], convert: 0.6 } },
+  },
+  // 邪教徒（SPEC_CHARACTERS §4.1）：吸血＋血印；數值佔位
+  bloodDrain: {
+    id: 'bloodDrain', name: '血契', description: '從敵人或友軍身上吸取生命補給自己。吸敵人留下血印（6 秒，隊友打中它時回復自己）；吸隊友時，那名隊友 6 秒造成傷害 +20%',
+    target: 'unit', range: 8, windup: 0.6, recovery: 0.8, cooldown: 10, requiresLos: true,
+    effect: { kind: 'drain', enemy: { damage: [12, 16], convert: 0.5 }, ally: { damage: [16, 20], convert: 0.6 }, bloodMark: { duration: 6, healPct: 0.15 }, allyEmpower: { duration: 6, damagePct: 0.2 } },
+  },
+  // 守護者（SPEC_CHARACTERS §4.1）：盾擊・反制；數值佔位
+  shieldCounter: {
+    id: 'shieldCounter', name: '盾擊・反制', description: '近戰：傷害 ×0.8，打斷，大量失衡；打斷正在預兆中的敵人時，4 m 內的隊友 3 秒受到的傷害 −40%',
+    target: 'enemy', range: 0.3, windup: 0.3, recovery: 0.8, cooldown: 8, requiresLos: false,
+    stagger: { mult: 2, flat: 15 },
+    effect: { kind: 'strike', melee: true, mult: 0.8, interrupts: true, stun: 1.0, shatters: true, counterWard: { radius: 4, duration: 3, reduction: 0.4 } },
+  },
+  // 大遊俠（SPEC_CHARACTERS §4.1）：齊射；數值佔位
+  volley: {
+    id: 'volley', name: '齊射', description: '4 秒內普攻間隔極短（攻速 +200%），穿透照算',
+    target: 'self', range: 0, windup: 0.2, recovery: 0.2, cooldown: 14, requiresLos: false,
+    effect: { kind: 'haste', duration: 4, attackSpeedPct: 2 },
+  },
+  // 大祭司（SPEC_CHARACTERS §4.1）：數值放大的聖域；數值佔位
+  grandSanctuary: {
+    id: 'grandSanctuary', name: '大聖域', description: '地上一大圈聖光：7 秒內，範圍內的友軍受到的傷害 −40%',
+    target: 'ground', range: 6, windup: 0.6, recovery: 0.8, cooldown: 12, requiresLos: false,
+    effect: { kind: 'zone', radius: 3.2, lingering: { duration: 7, affects: 'ally', effects: [{ kind: 'ward', reduction: 0.4 }], style: 'holy' } },
   },
   // ── 牧師 ──
   heal: {

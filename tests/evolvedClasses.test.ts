@@ -69,8 +69,8 @@ describe('進階職業：戰士、遊俠（SPEC_CLASSES §3）', () => {
     expect(s.cycle!.steps[s.cycleStep]).toBe('focus');
   });
 
-  it('連弩手：攻擊間距比遊俠短得多', () => {
-    expect(HEROES.arbalest.attackSpeed).toBeGreaterThan(HEROES.ranger.attackSpeed * 2);
+  it('大遊俠（原連弩手，SPEC_CHARACTERS）：主動是齊射', () => {
+    expect(deliberateSkillsOf('arbalest')).toEqual(['volley']);
   });
 });
 
@@ -119,8 +119,8 @@ describe('進階職業：法師、牧師（SPEC_CLASSES §3）', () => {
     expect(heroes[1].outgoingDamageMult).toBeCloseTo(before * 1.15, 5);
   });
 
-  it('異教徒：血之光環讓隊友吸血、自己扣血；主動是吸血', () => {
-    expect(deliberateSkillsOf('heretic')).toEqual(['drainLife']);
+  it('邪教徒：血之光環讓隊友吸血、自己扣血；主動是血契', () => {
+    expect(deliberateSkillsOf('heretic')).toEqual(['bloodDrain']);
     const { w, heroes, e } = setup(['heretic', 'warrior']);
     const [x, ally] = heroes;
     w.step();
