@@ -299,7 +299,11 @@ export class MobileHeroBar {
       staggerBox.appendChild(stagger);
       staggerBox.hidden = this.host.session().world.config.battleStyle !== 'deliberate';
       const status = el('span', 'm-status');
-      head.append(portrait(this.host.portraitUrl?.(u.def.id), u.def.portrait), name, status, hp, staggerBox);
+      // 技能循環的提示（⚡層數、下一招）放在右上角狀態圖示下面，不擠技能鈕（Alan 2026-10-30）
+      const hint = el('span', 'm-hint');
+      const tags = el('div', 'm-tags');
+      tags.append(status, hint);
+      head.append(portrait(this.host.portraitUrl?.(u.def.id), u.def.portrait), name, tags, hp, staggerBox);
       head.addEventListener('mousedown', (ev) => ev.preventDefault());
       // 拖曳選取：按住卡片往左右拖，經過的英雄都選起來
       head.addEventListener('pointerdown', (ev) => {
@@ -358,8 +362,7 @@ export class MobileHeroBar {
       const skillName = el('span', 'sname', def?.name ?? '—');
       const cdText = el('span', 'cd');
       const cdCover = el('div', 'cdcover');
-      const hint = el('span', 'm-hint');
-      skillBtn.append(cdCover, skillName, hint, cdText);
+      skillBtn.append(cdCover, skillName, cdText);
       if (def) skillBtn.title = `${def.name}\n${def.description}`;
       skillBtn.addEventListener('mousedown', (ev) => ev.preventDefault());
       // 點技能：發動唯一的主動技能（需要目標時進入瞄準，再點一次取消）
@@ -487,7 +490,7 @@ export function staticHeroBar(cards: StaticHeroCard[], slots: number, portraitUr
     const hpFill = el('div', 'fill');
     hpFill.style.width = `${Math.max(0, (c.hp / c.maxHp) * 100)}%`;
     hp.append(hpFill, el('span', 'hptext', `${c.hp} / ${c.maxHp}`));
-    head.append(portrait(portraitUrl?.(c.classId), c.portrait), el('span', 'm-name', c.name ?? HEROES[c.classId].name), el('span', 'm-status'), hp);
+    head.append(portrait(portraitUrl?.(c.classId), c.portrait), el('span', 'm-name', c.name ?? HEROES[c.classId].name), el('div', 'm-tags'), hp);
     const skill = el('div', 'm-skill');
     skill.appendChild(el('span', 'sname', c.skillName));
     card.append(el('div', 'm-fill'), head, skill);

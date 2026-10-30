@@ -265,10 +265,10 @@ export const SKILLS: Record<string, SkillDef> = {
   // ── 技能循環的第二招（SPEC_SLICE5 §16） ──
   // 芬恩（SPEC_CHARACTERS §4.1）：普攻累積層數，滿了換成大火球；範圍失衡。數值佔位
   greatFireball: {
-    id: 'greatFireball', name: '大火球', description: '（普攻累積滿層後）準備完成後立即爆炸：半徑 3.5 m 範圍傷害 30–40、失衡，會傷到友軍',
+    id: 'greatFireball', name: '大火球', description: '（普攻累積滿層後）準備完成後立即爆炸：半徑 3.5 m 範圍傷害 30–40、失衡，不會傷到友軍',
     target: 'ground', range: 12, windup: 2.0, recovery: 1.2, cooldown: 4, requiresLos: true,
     stagger: { mult: 1.5, flat: 10 },
-    effect: { kind: 'aoe', radius: 3.5, damage: [30, 40], friendlyFire: true, ignites: true },
+    effect: { kind: 'aoe', radius: 3.5, damage: [30, 40], friendlyFire: false, ignites: true },
   },
   curseBurst: {
     id: 'curseBurst', name: '詛咒爆裂', description: '引爆目標身上的詛咒：傷害 20–28 並解除詛咒；目標沒有詛咒時只有 6–9',
