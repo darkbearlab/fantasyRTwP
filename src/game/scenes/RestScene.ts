@@ -1,4 +1,5 @@
 import { tr } from '../../i18n';
+import { heroName, heroShortName } from '../../run/characters';
 import { HEROES } from '../../sim/data/heroes';
 import { CLASSES } from '../../sim/data/classes';
 import { SKILLS } from '../../sim/data/skills';
@@ -51,7 +52,7 @@ export class RestScene extends DomScene {
         this.campfireOpen = true;
         const heroes = livingHeroes(run).map(({ slot, hero }) => ({ slot, classId: hero.classId }));
         const cards = run.party.flatMap((h, slot) =>
-          h ? [{ slot, classId: h.classId, hp: h.hp, maxHp: maxHpOf(h), dead: h.dead, skillName: SKILLS[battleSkillsOf(run, h)[0]]?.name ?? '—' }] : [],
+          h ? [{ slot, classId: h.classId, name: heroShortName(h), hp: h.hp, maxHp: maxHpOf(h), dead: h.dead, skillName: SKILLS[battleSkillsOf(run, h)[0]]?.name ?? '—' }] : [],
         );
         this.scene.launch('Campfire', {
           heroes,
@@ -131,7 +132,7 @@ export class RestScene extends DomScene {
     rec.appendChild(el('div', 'step-title', tr("招募（{0} 金幣，填入第一個空欄位）：", { 0: ECONOMY.recruitCost })));
     const slot = firstEmptySlot(run);
     const replaced = slot >= 0 ? run.party[slot] : null;
-    if (replaced?.dead) rec.appendChild(el('div', 'meta warn-text', tr("新英雄會取代欄位 {0} 陣亡的{1}（之後就不能再救他）。", { 0: slot + 1, 1: HEROES[replaced.classId].name })));
+    if (replaced?.dead) rec.appendChild(el('div', 'meta warn-text', tr("新英雄會取代欄位 {0} 陣亡的{1}（之後就不能再救他）。", { 0: slot + 1, 1: heroName(replaced) })));
     const recRow = el('div', 'btn-row');
     if (p.recruited) recRow.appendChild(el('span', 'meta', tr("本次已招募。")));
     else

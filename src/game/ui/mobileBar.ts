@@ -437,6 +437,8 @@ export class MobileHeroBar {
 export interface StaticHeroCard {
   slot: number;
   classId: string;
+  /** 顯示名稱（具名角色）；沒有就用職業名 */
+  name?: string;
   hp: number;
   maxHp: number;
   dead: boolean;
@@ -464,7 +466,7 @@ export function staticHeroBar(cards: StaticHeroCard[], slots: number, portraitUr
     const c = cards.find((x) => x.slot === slot);
     if (!c || c.dead) {
       const card = el('div', 'm-card empty');
-      card.appendChild(el('div', 'm-head', c ? tr("{0}（陣亡）", { 0: HEROES[c.classId].name }) : tr("（空欄位）")));
+      card.appendChild(el('div', 'm-head', c ? tr("{0}（陣亡）", { 0: c.name ?? HEROES[c.classId].name }) : tr("（空欄位）")));
       row.appendChild(card);
       continue;
     }
@@ -475,7 +477,7 @@ export function staticHeroBar(cards: StaticHeroCard[], slots: number, portraitUr
     const hpFill = el('div', 'fill');
     hpFill.style.width = `${Math.max(0, (c.hp / c.maxHp) * 100)}%`;
     hp.append(hpFill, el('span', 'hptext', `${c.hp} / ${c.maxHp}`));
-    head.append(portrait(portraitUrl?.(c.classId)), el('span', 'm-name', HEROES[c.classId].name), el('span', 'm-status'), hp);
+    head.append(portrait(portraitUrl?.(c.classId)), el('span', 'm-name', c.name ?? HEROES[c.classId].name), el('span', 'm-status'), hp);
     const skill = el('div', 'm-skill');
     skill.appendChild(el('span', 'sname', c.skillName));
     card.append(el('div', 'm-fill'), head, skill);

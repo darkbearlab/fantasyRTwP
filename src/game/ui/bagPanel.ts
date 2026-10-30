@@ -2,6 +2,7 @@
  * 背包與裝備（SPEC_SLICE5 §17）：每名英雄武器、防具、飾品各一格（Alan 2026-10-29）；背包裡的道具點英雄名字裝備、身上的道具點「卸下」放回背包。
  * 路線圖與商人畫面共用。只透過 src/run/items 的純函式改變遠征狀態。
  */
+import { heroName } from '../../run/characters';
 import { tr } from '../../i18n';
 import { bagOf, canUseOnMap, useOnMap } from '../../run/consumables';
 import { BAG, CONSUMABLES } from '../../sim/data/consumables';
@@ -29,7 +30,7 @@ export function consumablePanel(run: RunState, onChange: (r: RunState) => void):
     else
       run.party.forEach((h, slot) => {
         if (!h || (def.target === 'fallen') !== h.dead) return;
-        btns.appendChild(button(tr("給{0}", { 0: HEROES[h.classId].name }), 'small', () => onChange(useOnMap(run, id, slot)), !canUseOnMap(run, id, slot)));
+        btns.appendChild(button(tr("給{0}", { 0: heroName(h) }), 'small', () => onChange(useOnMap(run, id, slot)), !canUseOnMap(run, id, slot)));
       });
     it.appendChild(btns);
     box.appendChild(it);
@@ -51,7 +52,7 @@ export function equipmentPanel(run: RunState, onChange: (r: RunState) => void, l
   run.party.forEach((h, slot) => {
     if (!h) return;
     const row = el('div', `bag-hero${h.dead ? ' dead' : ''}`);
-    const name = el('div', 'bag-name', tr("{0}{1}", { 0: HEROES[h.classId].name, 1: h.dead ? tr("（陣亡）") : '' }));
+    const name = el('div', 'bag-name', tr("{0}{1}", { 0: heroName(h), 1: h.dead ? tr("（陣亡）") : '' }));
     name.style.color = hex(HEROES[h.classId].color);
     row.appendChild(name);
     for (const part of ITEM_SLOTS) {
@@ -75,7 +76,7 @@ export function equipmentPanel(run: RunState, onChange: (r: RunState) => void, l
       if (!h || h.dead) return;
       // 那個部位已經有道具：換下來放回背包
       const old = itemInSlot(h, ITEMS[id].slot);
-      const label = old ? tr("給{0}（換下{1}）", { 0: HEROES[h.classId].name, 1: ITEMS[old].name }) : tr("給{0}", { 0: HEROES[h.classId].name });
+      const label = old ? tr("給{0}（換下{1}）", { 0: heroName(h), 1: ITEMS[old].name }) : tr("給{0}", { 0: heroName(h) });
       btns.appendChild(button(label, 'small', () => onChange(equipItem(run, slot, id)), locked || !canEquip(run, slot, id)));
     });
     it.appendChild(btns);

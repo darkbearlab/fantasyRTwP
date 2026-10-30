@@ -3,7 +3,6 @@
  * 道具的效果是被動（src/sim/data/items.ts），只在沉穩節奏的戰鬥生效。
  */
 import { tr } from '../i18n/lang';
-import { HEROES } from '../sim/data/heroes';
 import type { ItemRarity, ItemSlot } from '../sim/data/items';
 import { ITEMS } from '../sim/data/items';
 import type { Rng } from '../sim/rng';
@@ -119,8 +118,3 @@ export function itemLabelWithSlot(itemId: string): string {
   return tr("〔{0}〕{1}", { 0: slotName(ITEMS[itemId].slot), 1: itemLabel(itemId) });
 }
 
-/** 陣亡英雄的道具不會消失：留在身上，復活後照樣生效（給畫面顯示用） */
-export function heroName(run: RunState, slot: number): string {
-  const h = run.party[slot];
-  return h ? HEROES[h.classId].name : '';
-}

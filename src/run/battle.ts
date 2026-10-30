@@ -1,6 +1,7 @@
 /**
  * 遠征 ↔ 戰鬥的介面（SPEC_SLICE2 §10.2）：由 RunState 建立 World、把戰鬥結果寫回。
  */
+import { heroShortName } from './characters';
 import { FOLLOWERS } from '../sim/data/followers';
 import { tr } from '../i18n/lang';
 import { dist } from '../sim/math';
@@ -214,6 +215,7 @@ export function createBattleFromRun(run: RunState, config?: Partial<SimConfig>, 
     // 沉穩節奏（SPEC_SLICE5 §2）：每名英雄只有一招主動技能
     // 有技能循環的職業帶齊循環的每一招（技能鈕只顯示目前這一招，SPEC_SLICE5 §16）
     if (deliberate) def = { ...def, skills: deliberateSkillsOf(hero.classId) };
+    if (hero.characterId) def = { ...def, name: heroShortName(hero) };
     spawns.push({ defId: hero.classId, def, pos: map.heroSpawns[i % map.heroSpawns.length], heroSlot: slot, hp: hero.hp, personality: hero.personality, items: hero.items, passives: deliberate ? heroPassives(hero) : undefined, classPassives: run.forward ? classPassivesOf(hero, true) : undefined });
   });
   // 隨從（Alan 2026-10-23）：跟在主人身邊出場，生命延續上一場
@@ -239,7 +241,8 @@ export function createBattleFromRun(run: RunState, config?: Partial<SimConfig>, 
     const spot = guard && freeSpotNear(map, guard.c, JOURNEY.rescue.spotDistances, 0.6, guard.ps);
     if (guard && spot) {
       const def = { ...heroDef(captive), skills: deliberateSkillsOf(captive.classId) };
-      spawns.push({ defId: captive.classId, def, pos: { x: spot.x + 0.3, y: spot.y + 0.3 }, hp: captive.hp, personality: captive.personality, items: captive.items, passives: heroPassives(captive), captive: guard.id, classPassives: classPassivesOf(captive, true) });
+      const cdef = captive.characterId ? { ...def, name: heroShortName(captive) } : def;
+      spawns.push({ defId: captive.classId, def: cdef, pos: { x: spot.x + 0.3, y: spot.y + 0.3 }, hp: captive.hp, personality: captive.personality, items: captive.items, passives: heroPassives(captive), captive: guard.id, classPassives: classPassivesOf(captive, true) });
     }
   }
   // 怪群模式：地圖與遭遇的生成點合併，戰鬥模式自動設成 horde，精英與頭目生命下降

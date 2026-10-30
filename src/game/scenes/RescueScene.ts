@@ -1,6 +1,6 @@
 import { tr } from '../../i18n';
+import { heroName } from '../../run/characters';
 import { canAcceptRescue, resolveRescue } from '../../run/progression';
-import { HEROES } from '../../sim/data/heroes';
 import { button, el } from '../ui/dom';
 import { partyPanel } from '../ui/partyPanel';
 import { advance, getRun } from '../runFlow';
@@ -20,7 +20,7 @@ export class RescueScene extends DomScene {
     const hero = run.phase.hero;
     const box = el('div', 'panel');
     box.append(
-      el('h2', '', tr("救出了{0}", { 0: HEROES[hero.classId].name })),
+      el('h2', '', tr("救出了{0}", { 0: heroName(hero) })),
       el('div', 'meta', tr("他跟著你們離開了戰場。要讓他加入嗎？（他之前的成長已經定了，加入後的升級由你決定）")),
     );
     // 用隊伍面板的樣子顯示他（等級、生命、升級）

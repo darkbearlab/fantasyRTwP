@@ -1,7 +1,7 @@
 import { tr } from '../../i18n';
+import { heroName } from '../../run/characters';
 import { CHAPTERS, chapterAt } from '../../run/data/chapters';
 import { startChapter } from '../../run/campaign';
-import { HEROES } from '../../sim/data/heroes';
 import { maxHpOf } from '../../run/upgrades';
 import { button, el } from '../ui/dom';
 import { advance, getRun } from '../runFlow';
@@ -35,7 +35,7 @@ export class InterludeScene extends DomScene {
       const party = el('div', 'chapter-party');
       for (const h of run.party) {
         if (!h) continue;
-        party.appendChild(el('div', h.dead ? 'cp dead' : 'cp', h.dead ? tr("{0}：陣亡", { 0: HEROES[h.classId].name }) : tr("{0}：{1}／{2}", { 0: HEROES[h.classId].name, 1: h.hp, 2: maxHpOf(h) })));
+        party.appendChild(el('div', h.dead ? 'cp dead' : 'cp', h.dead ? tr("{0}：陣亡", { 0: heroName(h) }) : tr("{0}：{1}／{2}", { 0: heroName(h), 1: h.hp, 2: maxHpOf(h) })));
       }
       box.append(el('div', 'meta', tr("全隊回復了生命（陣亡的英雄不會回來）。")), party);
     }

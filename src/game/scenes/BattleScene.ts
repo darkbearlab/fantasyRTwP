@@ -1,4 +1,5 @@
 import { tr } from '../../i18n';
+import { heroShortName } from '../../run/characters';
 import Phaser from 'phaser';
 import { GAME_CONFIG } from '../../config';
 import type { Order } from '../../sim/commands';
@@ -224,7 +225,7 @@ export class BattleScene extends Phaser.Scene {
       this.session = new BattleSession(seed, {
         world: createBattleFromRun(run, currentSimConfig(), seed),
         mode: 'run',
-        partySlots: run.party.map((h) => (h ? { classId: h.classId, dead: h.dead } : null)),
+        partySlots: run.party.map((h) => (h ? { classId: h.classId, dead: h.dead, name: heroShortName(h) } : null)),
       });
     } else this.session = new BattleSession(data.seed ?? randomSeed());
     if (!data.encounterId) this.quickEncounter = null;

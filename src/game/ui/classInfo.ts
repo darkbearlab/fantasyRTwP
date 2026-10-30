@@ -13,7 +13,8 @@ export function className(classId: string): string {
 }
 
 /** 職業卡：名稱、系、定位、專用技能 */
-export function classCard(classId: string, opts: { selected?: boolean; dim?: boolean; onClick?: () => void; tag?: string } = {}): HTMLElement {
+/** name、subtitle：具名角色（SPEC_CHARACTERS §3.2）的名字與「稱號・職業」；省略就顯示職業 */
+export function classCard(classId: string, opts: { selected?: boolean; dim?: boolean; onClick?: () => void; tag?: string; name?: string; subtitle?: string; active?: string } = {}): HTMLElement {
   const c = CLASSES[classId];
   const d = HEROES[classId];
   const card = el('div', 'class-card');
@@ -24,11 +25,12 @@ export function classCard(classId: string, opts: { selected?: boolean; dim?: boo
   const portrait = el('div', 'portrait small', d.letter);
   portrait.style.background = hex(d.color);
   const title = el('div', 'class-title');
-  title.append(el('div', 'class-name', d.name), el('div', 'class-line', tr("{0}{1}", { 0: LINES[c.line].name, 1: c.variant ? tr("・變體") : '' })));
+  title.append(el('div', 'class-name', opts.name ?? d.name), el('div', 'class-line', opts.subtitle ?? tr("{0}{1}", { 0: LINES[c.line].name, 1: c.variant ? tr("・變體") : '' })));
   head.append(portrait, title);
   if (opts.tag) head.appendChild(el('span', 'class-tag', opts.tag));
-  const sig = SKILLS[c.signature];
-  card.append(head, el('div', 'class-role', c.role), el('div', 'class-sig', tr("專用：{0}", { 0: sig.name })), el('div', 'class-desc', sig.description));
+  // active：沉穩節奏實際用的主動技能（具名角色的卡片）；省略就是舊的專用技能
+  const sig = SKILLS[opts.active ?? c.signature];
+  card.append(head, el('div', 'class-role', c.role), el('div', 'class-sig', opts.active ? tr("主動：{0}", { 0: sig.name }) : tr("專用：{0}", { 0: sig.name })), el('div', 'class-desc', sig.description));
   if (opts.onClick) {
     noFocus(card);
     card.classList.add('clickable');
@@ -38,13 +40,13 @@ export function classCard(classId: string, opts: { selected?: boolean; dim?: boo
 }
 
 /** 精簡的職業標籤（組隊結果用） */
-export function classChip(classId: string, tag?: string): HTMLElement {
+export function classChip(classId: string, tag?: string, name?: string): HTMLElement {
   const d = HEROES[classId];
   const chip = el('div', 'class-chip');
   chip.style.borderColor = hex(d.color);
   const portrait = el('div', 'portrait small', d.letter);
   portrait.style.background = hex(d.color);
-  chip.append(portrait, el('span', 'class-name', d.name));
+  chip.append(portrait, el('span', 'class-name', name ?? d.name));
   if (tag) chip.appendChild(el('span', 'class-tag', tag));
   return chip;
 }

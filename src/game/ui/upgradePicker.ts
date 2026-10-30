@@ -1,4 +1,5 @@
 import { tr } from '../../i18n';
+import { heroName } from '../../run/characters';
 import { HEROES } from '../../sim/data/heroes';
 import { SKILLS } from '../../sim/data/skills';
 import { UPGRADES } from '../../run/data/upgrades';
@@ -37,7 +38,7 @@ export function upgradePicker(run: RunState, options: string[], onDone: (c: Upgr
       if (run.forward && own !== undefined && own !== null && (u.branch || u.evolve || u.innate)) {
         const h = run.party[own]!;
         const c = el('div', `upgrade-card exclusive${u.evolve ? ' evolve' : ''}`);
-        c.appendChild(el('div', 'up-hero', `${own + 1}. ${HEROES[h.classId].name}`));
+        c.appendChild(el('div', 'up-hero', `${own + 1}. ${heroName(h)}`));
         c.append(el('div', 'up-name', u.name), el('div', 'up-desc', u.description));
         if (u.branch) {
           const max = maxRankOf(id);
@@ -64,7 +65,7 @@ export function upgradePicker(run: RunState, options: string[], onDone: (c: Upgr
         const c = el('div', `upgrade-card exclusive${evolves ? ' evolve' : ''}`);
         const bar = '■'.repeat(n) + '□'.repeat(Math.max(0, BRANCH_RULES.threshold - n));
         c.append(
-          el('div', 'up-hero', `${own + 1}. ${HEROES[h.classId].name}`),
+          el('div', 'up-hero', `${own + 1}. ${heroName(h)}`),
           el('div', 'up-name', u.name),
           el('div', 'up-desc', u.description),
           el('div', 'up-branch', tr("{0} {1}（{2}／{3}）", { 0: b.name, 1: bar, 2: n, 3: BRANCH_RULES.threshold })),
@@ -109,7 +110,7 @@ export function upgradePicker(run: RunState, options: string[], onDone: (c: Upgr
     }
     if (u.needsSkill) {
       const h = run.party[slot]!;
-      box.appendChild(el('div', 'step-title', tr("{0}的哪個技能？", { 0: HEROES[h.classId].name })));
+      box.appendChild(el('div', 'step-title', tr("{0}的哪個技能？", { 0: heroName(h) })));
       const row = el('div', 'btn-row');
       for (const sk of battleSkillsOf(run, h)) row.appendChild(button(SKILLS[sk].name, '', () => onDone({ upgradeId: picked!, slot, skillId: sk })));
       box.appendChild(row);

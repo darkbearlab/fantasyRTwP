@@ -336,7 +336,9 @@ export class CampfireScene extends Phaser.Scene {
     const box = this.box;
     box.root.setAlpha(1);
     const classId = who?.classId ?? HEROES.warrior.id;
-    box.name.setText(HEROES[classId].name).setColor(hex(HEROES[classId].color));
+    // 具名角色：用卡片上的名字
+    const card = this.data0.cards.find((c) => c.slot === line.slot);
+    box.name.setText(card?.name ?? HEROES[classId].name).setColor(hex(HEROES[classId].color));
     this.setPortrait(box, classId);
     this.activeBox = box;
     this.fullText = line.text;
