@@ -1,6 +1,7 @@
 /**
  * 動作狀態機（準備 → 生效 → 恢復）與效果結算（SPEC §5、§6、§10.2）。
  */
+import { enemyRank } from './data/enemies';
 import { fireTriggers } from './triggers';
 import type { OnHitEffect } from './data/passives';
 import { tr } from '../i18n/lang';
@@ -1161,6 +1162,32 @@ export function kill(world: World, u: Unit, killer?: Unit): void {
   }
   world.emit({ type: 'death', unitId: u.id, killerId: killer?.id });
   deathChain(world, u);
+  raiseDead(world, u);
+}
+
+/** 死靈法師（SPEC_CHARACTERS §4.1）：被他詛咒的敵人死亡時站起來成為他的隨從 */
+function raiseDead(world: World, u: Unit): void {
+  if (u.team !== 'enemy' || u.curseTime <= 0 || u.curseBy < 0 || enemyRank(u.def) === 'boss' || u.follower) return;
+  const necro = world.getUnit(u.curseBy);
+  const rd = necro && !necro.dead ? necro.passives.find((p) => p.raiseDead)?.raiseDead : undefined;
+  if (!necro || !rd) return;
+  if (world.units.filter((o) => o.undead && !o.dead && o.masterId === necro.id).length >= rd.max) return;
+  const def = {
+    ...u.def,
+    id: 'undead',
+    name: tr("亡者"),
+    team: 'hero' as const,
+    ai: undefined,
+    targeting: undefined,
+    skills: [],
+    maxHp: Math.max(1, Math.round(u.maxHp * rd.hpMult)),
+    damageMult: (u.def.damageMult ?? 1) * rd.damageMult,
+  };
+  const r = world.spawnUnit(def, { ...u.pos });
+  r.follower = true;
+  r.undead = true;
+  r.masterId = necro.id;
+  world.emit({ type: 'status', unitId: r.id, text: tr("亡者甦醒") });
 }
 
 /** 打斷：準備中的動作取消、不進冷卻，並硬直 0.5 秒 */
@@ -1296,6 +1323,7 @@ export function resolveProjectilePayload(world: World, src: Unit, p: Projectile,
       break;
     case 'curse':
       if (target && !target.dead) {
+        target.curseBy = src.id;
         target.curseTime = pl.duration;
         target.curseSlow = pl.actionSlow;
         target.curseVuln = pl.damageTakenPct;

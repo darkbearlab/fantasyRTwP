@@ -24,6 +24,8 @@ function slotAround(master: Unit, k: number, n: number): Vec {
 export function followerOrder(world: World, u: Unit): Order | null | undefined {
   const F = FOLLOWER_RULES;
   const master = world.getUnit(u.masterId);
+  // 死靈法師的隨從：範圍內有被詛咒的敵人就先打它（SPEC_CHARACTERS §4.1）
+  const focusCursed = !!master?.passives.some((p) => p.raiseDead);
   const nearestEnemy = (from: Vec, range: number) => {
     let best: Unit | null = null;
     let bd = Infinity;
@@ -31,7 +33,7 @@ export function followerOrder(world: World, u: Unit): Order | null | undefined {
       if (e.dead || e.team === u.team || !world.canTarget(u, e)) continue;
       const d = dist(e.pos, from);
       if (d > range) continue;
-      const du = dist(e.pos, u.pos);
+      const du = dist(e.pos, u.pos) - (focusCursed && e.curseTime > 0 ? 1000 : 0);
       if (du < bd) {
         bd = du;
         best = e;
@@ -48,9 +50,11 @@ export function followerOrder(world: World, u: Unit): Order | null | undefined {
   const k = mates.indexOf(u);
   // 牽繩：太遠就回去（不管正在做什麼）
   if (dm > F.leash) return { type: 'move', point: slotAround(master, k, mates.length) };
-  // 正在打的目標還在主人附近：繼續打
+  // 正在打的目標還在主人附近：繼續打（死靈法師的隨從：附近出現被詛咒的敵人就換過去）
   if (u.order?.type === 'attack') {
     const t = world.getUnit(u.order.targetId);
+    const cursed = focusCursed && !(t && t.curseTime > 0) ? nearestEnemy(master.pos, F.aggro) : null;
+    if (cursed && cursed.curseTime > 0 && cursed !== t) return { type: 'attack', targetId: cursed.id };
     if (t && !t.dead && dist(t.pos, master.pos) <= F.leash) return undefined;
   }
   const e = nearestEnemy(master.pos, F.aggro);

@@ -144,7 +144,8 @@ export function grantUpgrade(run: RunState, upgradeId: string, slot?: number, sk
     return evolveHero(run, slot!, rc);
   }
   if (run.forward && (def.branch || def.innate) && rankOf(h, def.id) >= maxRankOf(def.id)) throw new Error(`「${def.name}」已經升滿了`);
-  if (def.innate && (def.innate.classId !== (h.baseClass ?? h.classId) || !(CLASS_PASSIVES[h.classId] ?? []).includes(def.innate.passive))) throw new Error(`「${def.name}」不是這名英雄的被動`);
+  // 職業被動升級：英雄身上有這個被動就能升（同一個被動可能好幾個職業都有，例如火彈：法師、下位元素師）
+  if (def.innate && !(CLASS_PASSIVES[h.classId] ?? []).includes(def.innate.passive)) throw new Error(`「${def.name}」不是這名英雄的被動`);
   if (def.needsSkill && (!skillId || !battleSkillsOf(run, h).includes(skillId))) throw new Error(`「${def.name}」需要指定該英雄的技能`);
   if (run.forward && def.branch && (h.baseClass || def.branch.classId !== h.classId)) throw new Error(`「${def.name}」不是這名英雄的職業升級`);
   if (def.branch && !run.forward && !canTakeExclusive(h, def.id)) throw new Error(`「${def.name}」不是這名英雄能選的專屬升級`);
@@ -237,11 +238,10 @@ export function evolveHero(run: RunState, slot: number, rc: RecipeDef): string {
 
 /** 還能拿的職業升級（沒升滿）：昇變配方的升級（昇變後就沒有了）＋職業被動升級（新職業還有那個被動就能繼續升） */
 export function classUpgradesFor(h: HeroRecord): string[] {
-  const base = h.baseClass ?? h.classId;
   return Object.keys(UPGRADES).filter((id) => {
     const u = UPGRADES[id];
     if (rankOf(h, id) >= maxRankOf(id)) return false;
-    if (u.innate) return u.innate.classId === base && (CLASS_PASSIVES[h.classId] ?? []).includes(u.innate.passive);
+    if (u.innate) return (CLASS_PASSIVES[h.classId] ?? []).includes(u.innate.passive);
     if (h.baseClass || u.branch?.classId !== h.classId) return false;
     // 具名角色：只出自己兩條線的配方用得到的升級
     return !h.characterId || recipesOf(h).some((rc) => rc.requires.includes(id));

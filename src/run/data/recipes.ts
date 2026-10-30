@@ -19,7 +19,7 @@ export const RECIPE_RULES = {
 export const UPGRADE_MAX_RANK: Record<string, number> = {
   gdShell: 2, glBash: 2, glFocus: 2, glEdge: 2, bkFury: 2, bkFrenzy: 2,
   ctClose1: 2, ctClose2: 2, ctClose3: 2, snPower: 2, snReach: 2, snSteady: 2, abRapid1: 2, abRapid2: 2, abReload: 2,
-  elEnchant: 2, elFlame: 2, elFrost: 2, bmVigor: 2, bmPlate: 2, bmGrit: 2,
+  elEnchant: 2, elFlame: 2, elFrost: 2, adFlame: 2, bmVigor: 2, bmPlate: 2, bmGrit: 2,
   plVigor: 2, plHammer: 2, plWard: 2, zeZeal: 2, htBlood: 2,
 };
 
@@ -42,9 +42,10 @@ export const RECIPES: RecipeDef[] = [
   { id: 'cutthroat', base: 'ranger', evolvesTo: 'cutthroat', requires: ['ctClose1', 'ctClose2', 'ctClose3'], maxed: 'ctClose1' },
   { id: 'sniper', base: 'ranger', evolvesTo: 'sniper', requires: ['snPower', 'snReach', 'snSteady'], maxed: 'snPower' },
   { id: 'arbalest', base: 'ranger', evolvesTo: 'arbalest', requires: ['abRapid1', 'abRapid2', 'abReload'], maxed: 'abReload' },
-  { id: 'elementalist', base: 'mage', evolvesTo: 'elementalist', requires: ['elEnchant', 'elFlame', 'elFrost'], maxed: 'elFlame' },
-  { id: 'deathMage', base: 'mage', evolvesTo: 'deathMage', requires: ['dmWide', 'dmDeep', 'dmFrail'], maxed: 'dmWide' },
-  { id: 'battlemage', base: 'mage', evolvesTo: 'battlemage', requires: ['bmVigor', 'bmPlate', 'bmGrit'], maxed: 'bmVigor' },
+  { id: 'elementalist', base: 'mage', evolvesTo: 'archmage', requires: ['elEnchant', 'elFlame', 'elFrost'], maxed: 'elFlame' },
+  { id: 'deathMage', base: 'mage', evolvesTo: 'necromancer', requires: ['dmWide', 'dmDeep', 'dmFrail'], maxed: 'dmWide' },
+  { id: 'adeptElement', base: 'adept', evolvesTo: 'elementalist', requires: ['adFlame', 'adSpark', 'adFocus'], maxed: 'adFlame' },
+  { id: 'battlemage', base: 'adept', evolvesTo: 'battlemage', requires: ['bmVigor', 'bmPlate', 'bmGrit'], maxed: 'bmVigor' },
   { id: 'paladin', base: 'cleric', evolvesTo: 'highPriest', requires: ['plVigor', 'plHammer', 'plWard'], maxed: 'plHammer' },
   { id: 'zealot', base: 'cleric', evolvesTo: 'zealot', requires: ['zeFervor', 'zeReach', 'zeZeal'], maxed: 'zeZeal' },
   { id: 'heretic', base: 'cleric', evolvesTo: 'heretic', requires: ['htDark', 'htBlood', 'htHunger'], maxed: 'htBlood' },

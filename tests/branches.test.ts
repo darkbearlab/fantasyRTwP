@@ -18,9 +18,9 @@ const run4 = (seed = 3): RunState => createRun(seed, { forward: false, style: 'd
 const branchUps = (branch: string) => Object.keys(UPGRADES).filter((id) => UPGRADES[id].branch?.id === branch);
 
 describe('昇變分支與兩個專屬＋一個通用（SPEC_CLASSES §1）', () => {
-  it('每個基本職業三個分支、每個分支 3 個專屬升級；進階職業的資料都齊', () => {
-    for (const base of STARTER_CLASSES) {
-      expect(BRANCHES[base]).toHaveLength(3);
+  it('每個基本職業的分支（SPEC_CHARACTERS 之後：戰士、遊俠、牧師 3 個，法師、下位元素師 2 個）、每個分支 3 個專屬升級；進階職業的資料都齊', () => {
+    for (const base of [...STARTER_CLASSES, 'adept']) {
+      expect(BRANCHES[base].length).toBe(base === 'mage' || base === 'adept' ? 2 : 3);
       for (const b of BRANCHES[base]) {
         expect(branchUps(b.id), b.id).toHaveLength(BRANCH_RULES.threshold);
         const to = b.evolvesTo;

@@ -125,6 +125,10 @@ export class Unit {
   bloodMarkTime = 0;
   bloodMarkBy = -1;
   bloodMarkHeal = 0;
+  /** 詛咒是誰下的（死靈法師：被自己詛咒的敵人死亡時站起來） */
+  curseBy = -1;
+  /** 死靈法師喚起的亡者：戰鬥結束就消失，不記回遠征 */
+  undead = false;
   /** 寒氣（法師的光環）：移動與行動速度降低 chillSlow 比例 */
   chillTime = 0;
   chillSlow = 0;

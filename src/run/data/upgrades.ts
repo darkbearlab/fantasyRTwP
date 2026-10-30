@@ -115,7 +115,13 @@ function exclusiveUpgrades(): Record<string, UpgradeDef> {
       { id: 'dmDeep', name: '刺骨', description: '3 m 內的敵人減速提高到 −40%', passive: 'chillDeep' },
       { id: 'dmFrail', name: '凋零', description: '3 m 內的敵人受到的傷害 +10%', passive: 'frailAura' },
     ]],
-    ['mage', 'battlemage', [
+    // 下位元素師（芬恩，SPEC_CHARACTERS §4）：元素師這條線的佔位升級；C 階段重寫
+    ['adept', 'adeptElement', [
+      { id: 'adFlame', name: '基本功', description: '傷害 +8%', mods: { damagePct: 0.08 } },
+      { id: 'adSpark', name: '快手', description: '攻擊速度 +12%', mods: { attackSpeedPct: 0.12 } },
+      { id: 'adFocus', name: '專注', description: '命中 +8', mods: { accuracy: 8 } },
+    ]],
+    ['adept', 'battlemage', [
       { id: 'bmVigor', name: '鍛體', description: '最大生命 +20%', mods: { maxHpPct: 0.2 }, healPct: 0.2 },
       { id: 'bmPlate', name: '披甲', description: '護甲 +3', mods: { armor: 3 } },
       { id: 'bmGrit', name: '近身', description: '防禦 +8', mods: { defense: 8 } },
@@ -150,11 +156,12 @@ for (const rc of RECIPES) {
 
 // 職業被動升級（Alan 2026-10-25）：英雄本來就有的被動，升級三選一裡可以一級一級強化
 for (const [classId, ids] of Object.entries(CLASS_PASSIVES)) {
-  if (!['warrior', 'ranger', 'mage', 'cleric'].includes(classId)) continue;
+  if (!['warrior', 'ranger', 'mage', 'cleric', 'adept'].includes(classId)) continue;
   for (const pid of ids) {
     const R = CLASS_PASSIVE_RANKS[pid];
     if (!R) continue;
     const id = `cp_${pid}`;
+    if (UPGRADES[id]) continue;
     UPGRADES[id] = { id, name: `${PASSIVES[pid].name}・升級`, description: `每升一級：${R.growText}`, scope: 'hero', innate: { classId, passive: pid } };
   }
 }

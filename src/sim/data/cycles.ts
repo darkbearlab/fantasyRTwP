@@ -18,6 +18,11 @@ export const ACTIVE_CYCLES: Record<string, ActiveCycle> = {
   hexer: { mode: 'sequence', steps: ['curse', 'curseBurst'] },
   // 死亡法師（SPEC_CLASSES §3）：回收咒術師的詛咒 → 詛咒爆裂
   deathMage: { mode: 'sequence', steps: ['curse', 'curseBurst'] },
+  // 芬恩（SPEC_CHARACTERS §4.1）：普攻累積層數，滿了第一招換成大火球；元素師累積得更快。數值佔位
+  adept: { mode: 'charge', steps: ['flashFireball', 'greatFireball'], chargeMax: 5 },
+  elementalist: { mode: 'charge', steps: ['flashFireball', 'greatFireball'], chargeMax: 4 },
+  // 死靈法師（SPEC_CHARACTERS §4.1）：回收死亡法師的詛咒 → 詛咒爆裂
+  necromancer: { mode: 'sequence', steps: ['curse', 'curseBurst'] },
   // 狙擊手（SPEC_CLASSES §3）：集中 → 瞄準射擊；集中越久這一發越痛，移動或被打就中斷（回到集中）
   sniper: { mode: 'sequence', steps: ['focus', 'aimedShot'] },
 };

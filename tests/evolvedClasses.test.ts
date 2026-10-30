@@ -75,14 +75,18 @@ describe('進階職業：戰士、遊俠（SPEC_CLASSES §3）', () => {
 });
 
 describe('進階職業：法師、牧師（SPEC_CLASSES §3）', () => {
-  it('元素法師：普攻是火＋寒；元素附魔讓隊友的攻擊也帶上火＋寒', async () => {
+  it('元素師：普攻是火＋寒，主動是累積層數的大火球；大法師的大附魔讓隊友（不限距離）的攻擊也帶上火＋寒（SPEC_CHARACTERS）', async () => {
     const { attackInfo, matchup } = await import('../src/sim/actions');
-    const { w, heroes, e } = setup(['elementalist', 'warrior'], 'caster');
-    const [m, ally] = heroes;
+    expect(deliberateSkillsOf('elementalist')).toEqual(['flashFireball', 'greatFireball']);
+    const { w: w0, heroes: h0, e: e0 } = setup(['elementalist'], 'caster');
     // 法師敵人抗火、怕寒：火＋寒取最有利的＝相剋
-    expect(matchup(e, attackInfo(m, undefined, 'spell'))).toEqual({ w: 1, r: 0 });
+    expect(matchup(e0, attackInfo(h0[0], undefined, 'spell'))).toEqual({ w: 1, r: 0 });
+    expect(w0).toBeDefined();
+    const { w, heroes, e } = setup(['archmage', 'warrior'], 'caster');
+    const [m, ally] = heroes;
+    ally.pos = { x: 25, y: 6 };
     expect(matchup(e, attackInfo(ally, undefined, 'melee'))).toEqual({ w: 0, r: 0 });
-    w.enqueue({ type: 'skill', unitId: m.id, skillId: 'elementalEnchant' });
+    w.enqueue({ type: 'skill', unitId: m.id, skillId: 'grandEnchant' });
     run(w, 2);
     expect(attackInfo(ally, undefined, 'melee').attrs).toEqual(['cut', 'fire', 'cold']);
     expect(matchup(e, attackInfo(ally, undefined, 'melee'))).toEqual({ w: 1, r: 0 });

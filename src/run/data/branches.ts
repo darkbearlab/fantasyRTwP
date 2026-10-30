@@ -34,9 +34,13 @@ export const BRANCHES: Record<string, BranchDef[]> = {
     { id: 'sniper', name: '狙擊手', evolvesTo: 'sniper', line: '呼吸、瞄準……放。' },
     { id: 'arbalest', name: '大遊俠', evolvesTo: 'arbalest', line: '箭雨，來了。' },
   ],
+  // SPEC_CHARACTERS §4：法師（奧爾德斯）的兩條線是大法師、死靈法師；元素師、戰法師搬給下位元素師（芬恩）。分支 id 不變，舊升級照用
   mage: [
-    { id: 'elementalist', name: '元素法師', evolvesTo: 'elementalist', line: '火與冰，都聽我的。' },
-    { id: 'deathMage', name: '死亡法師', evolvesTo: 'deathMage', line: '寒意會先帶走你的腳步。' },
+    { id: 'elementalist', name: '大法師', evolvesTo: 'archmage', line: '我教過的，都還在你們身上。' },
+    { id: 'deathMage', name: '死靈法師', evolvesTo: 'necromancer', line: '起來吧。還不是休息的時候。' },
+  ],
+  adept: [
+    { id: 'adeptElement', name: '元素師', evolvesTo: 'elementalist', line: '師父教的，我一次都沒忘。' },
     { id: 'battlemage', name: '戰法師', evolvesTo: 'battlemage', line: '咒語念完了，換斧頭說話。' },
   ],
   cleric: [
