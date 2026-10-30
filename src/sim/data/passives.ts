@@ -63,9 +63,9 @@ export interface PassiveDef {
   aura?: {
     radius: number;
     /** damagePct：造成傷害 +%（狂信者） */
-    allies?: { accuracy: number; defense: number; damagePct?: number };
-    /** slow：移動與行動速度降低比例；vuln：受到的傷害增加比例 */
-    enemies?: { slow?: number; vuln?: number };
+    allies?: { accuracy: number; defense: number; damagePct?: number; attackSpeedPct?: number };
+    /** slow：移動與行動速度降低比例；vuln：受到的傷害增加比例；staggerVuln：受到的失衡增加比例（縛地圖騰） */
+    enemies?: { slow?: number; vuln?: number; staggerVuln?: number };
     /** 吸血光環：範圍內的隊友打中敵人時傷害 +damagePct、依造成的傷害吸血 lifesteal 比例；光環主人扣傷害 × ownerCost 的血（不會扣到死） */
     drain?: { damagePct: number; lifesteal: number; ownerCost: number };
     /** 疊加：範圍內的同伴（不含自己）每一個來源都讓造成的傷害再 +stackDamagePct（戰鬥圖騰） */
@@ -199,6 +199,11 @@ export const PASSIVES: Record<string, PassiveDef> = {
     critAfterInterrupt: true,
   },
   // ── 昇變被動（SPEC_CLASSES §3：法師、牧師）──
+  stoneSkin: {
+    id: 'stoneSkin', name: '石膚', source: 'class',
+    description: '護甲 +2',
+    mods: { armor: 2 },
+  },
   liberation: {
     id: 'liberation', name: '解放', source: 'class',
     description: '打斷敵人時，4 m 內的隊友（含自己）解除暈眩、定身、詛咒、燃燒、標記',
@@ -261,6 +266,10 @@ export const CLASS_PASSIVES: Record<string, string[]> = {
   elementalist: ['emberBolt', 'chillAura'],
   deathMage: ['hexBolt', 'chillAura', 'deathAura'],
   battlemage: ['chillAura', 'sunderStrike'],
+  // 杜爾根（SPEC_CHARACTERS §4.1）：圖騰師的被動先放「石膚」
+  totemist: ['stoneSkin'],
+  totemElder: ['stoneSkin'],
+  totemBearer: ['stoneSkin'],
   // 阿許卡（SPEC_CHARACTERS §4.1）：決鬥者沒有職業被動（高命中、高迴避寫在英雄數值）
   fencer: [],
   liberator: ['duelist', 'liberation'],
@@ -298,6 +307,9 @@ export const ACTIVE_SKILL_OVERRIDE: Record<string, string> = {
   battlemage: 'selfEnchant',
   paladin: 'holyGround',
   fencer: 'thrust',
+  totemist: 'totemDecoy',
+  totemElder: 'grandDecoy',
+  totemBearer: 'bearDecoy',
   liberator: 'thrust',
   highPriest: 'grandSanctuary',
   archmage: 'grandEnchant',

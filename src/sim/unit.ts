@@ -129,6 +129,16 @@ export class Unit {
   curseBy = -1;
   /** 死靈法師喚起的亡者：戰鬥結束就消失，不記回遠征 */
   undead = false;
+  /** 圖騰（杜爾根）：不會移動的隨從；戰鬥結束就消失 */
+  totem = false;
+  /** 背負（背負者）：剩餘秒數、種類、毀滅光環的計時 */
+  bearTime = 0;
+  bearVariant = '';
+  bearTick = 0;
+  /** 戰鼓光環（隊友）：普攻速度加成，跟著祝福光環的時間 */
+  blessHaste = 0;
+  /** 縛地光環（敵人）：受到的失衡增加，跟著寒氣光環的時間 */
+  chillStagger = 0;
   /** 寒氣（法師的光環）：移動與行動速度降低 chillSlow 比例 */
   chillTime = 0;
   chillSlow = 0;

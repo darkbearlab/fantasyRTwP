@@ -1,4 +1,6 @@
 import { tr } from '../../i18n';
+import { TOTEM_CLASSES } from '../../sim/data/totems';
+import { heroBattleSkills } from '../../run/battle';
 import { getPixelSnap, setPixelSnap } from '../render/pixelSnap';
 import { languageRow } from '../ui/language';
 import Phaser from 'phaser';
@@ -230,7 +232,7 @@ export class UIScene extends Phaser.Scene {
     const run = this.registry.get('run') as RunState | undefined;
     if (!run || !this.prepEl.classList.contains('show')) return;
     const locked = s.world.inCombat;
-    const key = `${locked}|${this.shopMode}|${run.gold}|${this.bagCount(s)}|${shopOf(run)?.sold.join(',') ?? ''}|${run.party.map((h) => (h ? (h.items ?? []).join(',') : '-')).join('|')}|${(run.inventory ?? []).join(',')}`;
+    const key = `${locked}|${this.shopMode}|${run.gold}|${this.bagCount(s)}|${shopOf(run)?.sold.join(',') ?? ''}|${run.party.map((h) => (h ? `${(h.items ?? []).join(',')}:${h.totemVariant ?? ''}` : '-')).join('|')}|${(run.inventory ?? []).join(',')}`;
     if (key === this.prepKey) return;
     this.prepKey = key;
     this.prepEl.innerHTML = '';
@@ -251,6 +253,8 @@ export class UIScene extends Phaser.Scene {
           setRun(this, r);
           r.party.forEach((h, slot) => {
             if (h && !h.dead) this.cur().enqueue({ type: 'setItems', heroSlot: slot, items: [...(h.items ?? [])] });
+            // 圖騰的種類（杜爾根）：換了就換戰鬥中的主動技能
+            if (h && !h.dead && TOTEM_CLASSES[h.classId]) this.cur().enqueue({ type: 'setSkills', heroSlot: slot, skills: heroBattleSkills(h) });
           });
         },
         locked,

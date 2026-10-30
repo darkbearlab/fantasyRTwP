@@ -1,6 +1,9 @@
 /**
  * 具名角色的規則（SPEC_CHARACTERS §3）：可以登場的角色、英雄的顯示名稱。純函式。
  */
+import { TOTEM_CLASSES } from '../sim/data/totems';
+import type { TotemVariant } from '../sim/data/totems';
+import { cloneRun } from './runState';
 import { getLang } from '../i18n/lang';
 import { HEROES } from '../sim/data/heroes';
 import type { CharacterDef } from './data/characters';
@@ -31,4 +34,13 @@ export function heroName(h: Pick<HeroRecord, 'classId' | 'characterId'>): string
 export function unmetCharacters(run: RunState): string[] {
   const met = new Set([...run.party.flatMap((h) => (h?.characterId ? [h.characterId] : [])), ...(run.metCharacters ?? [])]);
   return availableCharacters().filter((id) => !met.has(id));
+}
+
+/** 圖騰的種類（杜爾根，SPEC_CHARACTERS §4.3）：整備時選，進戰鬥固定 */
+export function setTotemVariant(run: RunState, slot: number, variant: TotemVariant): RunState {
+  const h = run.party[slot];
+  if (!h || h.dead || !TOTEM_CLASSES[h.classId]) throw new Error('這名英雄不用圖騰');
+  const r = cloneRun(run);
+  r.party[slot]!.totemVariant = variant;
+  return r;
 }

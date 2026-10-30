@@ -195,6 +195,10 @@ export type SkillEffect =
   /** extra：同一個位置再放一個區域（例：聖騎士的聖域同時讓敵人變慢） */
   /** burst：放下的瞬間打斷範圍內的敵人、加失衡定額（聖騎士的聖域・審判，SPEC_CHARACTERS §4.1） */
   | { kind: 'zone'; radius: number; lingering: LingeringDef; extra?: LingeringDef; burst?: { interrupts: boolean; stagger: number } }
+  /** 圖騰（杜爾根）：在地點放一個圖騰（tier：small＝圖騰師、grand＝大圖騰師） */
+  | { kind: 'totem'; variant: 'decoy' | 'drum' | 'bind'; tier: 'small' | 'grand' }
+  /** 背負（背負者）：圖騰的光環改套在自己身上，並開啟毀滅光環 */
+  | { kind: 'bear'; variant: 'decoy' | 'drum' | 'bind' }
   /** 齊射（大遊俠）：duration 秒內普攻速度 +attackSpeedPct */
   | { kind: 'haste'; duration: number; attackSpeedPct: number }
   /** 範圍治療（治療藥瓶） */

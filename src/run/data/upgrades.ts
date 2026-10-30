@@ -85,6 +85,17 @@ function exclusiveUpgrades(): Record<string, UpgradeDef> {
       { id: 'glFocus', name: '鬥技', description: '命中 +10', mods: { accuracy: 10 } },
       { id: 'glEdge', name: '角鬥', description: '傷害 +10%、攻擊速度 +8%', mods: { damagePct: 0.1, attackSpeedPct: 0.08 } },
     ]],
+    // 圖騰師（杜爾根，SPEC_CHARACTERS §4）：兩條線的佔位升級；C 階段重寫
+    ['totemist', 'totemElder', [
+      { id: 'teWood', name: '堅木', description: '護甲 +2', mods: { armor: 2 } },
+      { id: 'teRoot', name: '深根', description: '最大生命 +10%', mods: { maxHpPct: 0.1 }, healPct: 0.1 },
+      { id: 'teCarve', name: '祖靈雕刻', description: '防禦 +6', mods: { defense: 6 } },
+    ]],
+    ['totemist', 'totemBearer', [
+      { id: 'tbRuin', name: '毀滅', description: '傷害 +10%', mods: { damagePct: 0.1 } },
+      { id: 'tbHaste', name: '毀滅之怒', description: '攻擊速度 +10%', mods: { attackSpeedPct: 0.1 } },
+      { id: 'tbBack', name: '厚背', description: '最大生命 +10%', mods: { maxHpPct: 0.1 }, healPct: 0.1 },
+    ]],
     // 決鬥者（阿許卡，SPEC_CHARACTERS §4）：解放者這條線的佔位升級；C 階段重寫
     ['fencer', 'liberator', [
       { id: 'lbEdge', name: '劍尖', description: '命中 +10', mods: { accuracy: 10 } },

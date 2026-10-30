@@ -28,6 +28,11 @@ export const BRANCHES: Record<string, BranchDef[]> = {
     // SPEC_CHARACTERS §4：角鬥士擱置，這個分支改成聖騎士（戰士底）；分支 id 不變，舊升級照用
     { id: 'gladiator', name: '聖騎士', evolvesTo: 'paladin', line: '聖光在此，邪惡退散。' },
   ],
+  // 圖騰師（杜爾根，SPEC_CHARACTERS §4）
+  totemist: [
+    { id: 'totemElder', name: '大圖騰師', evolvesTo: 'totemElder', line: '祖先的手，借我一用。' },
+    { id: 'totemBearer', name: '背負者', evolvesTo: 'totemBearer', line: '這個重量，我自己背。' },
+  ],
   // 決鬥者（阿許卡，SPEC_CHARACTERS §4）：狂戰士的分支從戰士搬過來；分支 id 不變，舊升級照用
   fencer: [
     { id: 'liberator', name: '解放者', evolvesTo: 'liberator', line: '打破過鎖鏈的人，就是自由的。' },

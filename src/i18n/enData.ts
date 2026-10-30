@@ -21,6 +21,15 @@ export const EN_SKILLS: NameDesc = {
   drainLife: ['Drain Life', 'Drain life from an enemy or ally to heal yourself; draining allies yields more, but never 1:1'],
   bloodDrain: ['Blood Pact', 'Drain life from an enemy or ally to heal yourself. Draining an enemy leaves a blood mark (6 s; allies hitting it heal you); draining an ally gives that ally +20% damage for 6 s'],
   shieldCounter: ['Shield Bash: Counter', 'Melee: damage ×0.8, interrupts, heavy stagger; interrupting an enemy mid-telegraph makes allies within 4 m take 40% less damage for 3 s'],
+  totemDecoy: ['Decoy Totem', 'Place a Decoy totem (has HP, can be destroyed, at most 1): taunts nearby enemies and has more HP'],
+  grandDecoy: ['Great Decoy Totem', 'Raise a great Decoy totem: a heavy slam on arrival (knockback, stagger), then it strikes on its own; taunts nearby enemies and has more HP (stronger); at most 2'],
+  bearDecoy: ['Bear: Decoy', 'Carry the Decoy totem for 8 s: taunts nearby enemies and has more HP (around you); nearby enemies take damage and stagger over time'],
+  totemDrum: ['War Drum Totem', 'Place a War Drum totem (has HP, can be destroyed, at most 1): nearby allies attack faster'],
+  grandDrum: ['Great War Drum Totem', 'Raise a great War Drum totem: a heavy slam on arrival (knockback, stagger), then it strikes on its own; nearby allies attack faster (stronger); at most 2'],
+  bearDrum: ['Bear: War Drum', 'Carry the War Drum totem for 8 s: nearby allies attack faster (around you); nearby enemies take damage and stagger over time'],
+  totemBind: ['Binding Totem', 'Place a Binding totem (has HP, can be destroyed, at most 1): enemies in range are slowed and take more stagger'],
+  grandBind: ['Great Binding Totem', 'Raise a great Binding totem: a heavy slam on arrival (knockback, stagger), then it strikes on its own; enemies in range are slowed and take more stagger (stronger); at most 2'],
+  bearBind: ['Bear: Binding', 'Carry the Binding totem for 8 s: enemies in range are slowed and take more stagger (around you); nearby enemies take damage and stagger over time'],
   thrust: ['Thrust', 'Lunge at an enemy within 4 m: damage ×1.2, accuracy +30, interrupts, moderate stagger'],
   grandEnchant: ['Grand Enchant', 'The whole party (any distance) deals +30% damage for 10 s, and their attacks gain fire and cold (best matchup applies)'],
   volley: ['Volley', 'For 4 s, basic attacks come extremely fast (attack speed +200%); piercing still applies'],
@@ -72,7 +81,7 @@ export const EN_SKILLS: NameDesc = {
 export const EN_HEROES: Record<string, string> = {
   warrior: 'Warrior', ranger: 'Ranger', mage: 'Mage', cleric: 'Cleric', berserker: 'Berserker', rogue: 'Rogue', hexer: 'Hexer', alchemist: 'Alchemist',
   guardian: 'Guardian', gladiator: 'Gladiator', cutthroat: 'Assassin', sniper: 'Sniper', arbalest: 'Grand Ranger', elementalist: 'Elementalist',
-  deathMage: 'Death Mage', battlemage: 'Battlemage', paladin: 'Paladin', zealot: 'Zealot', heretic: 'Cultist', highPriest: 'High Priest', adept: 'Adept', archmage: 'Archmage', necromancer: 'Necromancer', fencer: 'Duelist', liberator: 'Liberator',
+  deathMage: 'Death Mage', battlemage: 'Battlemage', paladin: 'Paladin', zealot: 'Zealot', heretic: 'Cultist', highPriest: 'High Priest', adept: 'Adept', archmage: 'Archmage', necromancer: 'Necromancer', fencer: 'Duelist', liberator: 'Liberator', totemist: 'Totemist', totemElder: 'Totem Elder', totemBearer: 'Totem Bearer',
 };
 
 export const EN_ENEMIES: Record<string, string> = {
@@ -115,6 +124,7 @@ export const EN_PASSIVES: NameDesc = {
   deathAura: ['Aura of Death', 'Enemies within 3 m take +15% damage'],
   sunderStrike: ['Sunder', 'Basic hits reduce the target’s physical and special armor by 2 (up to 3 stacks, 4 s)'],
   zealAura: ['Zealot Aura', 'Allies within 5 m (including self) gain +12 accuracy, +6 defense and +15% damage'],
+  stoneSkin: ['Stone Skin', 'Armor +2'],
   liberation: ['Liberation', 'Interrupting an enemy frees allies within 4 m (including you) from stun, root, curse, burning and marks'],
   necroMastery: ['Restless Dead', 'Enemies you cursed rise as your followers when they die (up to 3 at once; they vanish after the battle); followers prefer cursed targets'],
   bloodAura: ['Blood Aura', 'Allies within 5 m deal +15% damage and lifesteal 20% when hitting enemies; the heretic loses HP equal to 8% of that damage'],
@@ -166,6 +176,14 @@ export const EN_UPGRADES: NameDesc = {
   glEdge: ['Arena Edge', 'Damage +10%, attack speed +8%'],
   bkFury: ['Fury', 'Damage +12%'],
   lbEdge: ['Sword Point', 'Accuracy +10'],
+  teWood: ['Hardwood', 'Armor +2'],
+  teRoot: ['Deep Roots', 'Max HP +10%'],
+  teCarve: ['Ancestral Carving', 'Defense +6'],
+  tbRuin: ['Ruin', 'Damage +10%'],
+  tbHaste: ['Fury of Ruin', 'Attack speed +10%'],
+  tbBack: ['Strong Back', 'Max HP +10%'],
+  evolve_totemElder: ['Evolve: Totem Elder', 'Recipe complete: evolve into a Totem Elder'],
+  evolve_totemBearer: ['Evolve: Totem Bearer', 'Recipe complete: evolve into a Totem Bearer'],
   lbStep: ['Footwork', 'Defense +8'],
   lbBlade: ['Court Fencing', 'Damage +10%'],
   evolve_liberator: ['Evolve: Liberator', 'Recipe complete: evolve into a Liberator'],
@@ -271,6 +289,9 @@ export const EN_CLASS_ROLES: Record<string, string> = {
   elementalist: 'Fire + cold basic attacks; builds stacks into a Great Fireball',
   adept: 'Basic attacks build stacks; release a Great Fireball when full',
   fencer: 'A mobile single-target interrupt: high accuracy, high evasion',
+  totemist: 'Places totems: decoy, war drum or binding (chosen when preparing)',
+  totemElder: 'Great totems slam on arrival, then strike on their own with stronger auras',
+  totemBearer: 'Carries the totem: its aura surrounds you, and nearby enemies keep taking damage',
   liberator: 'Guaranteed crit after an interrupt, and frees nearby allies',
   archmage: 'Enchants the whole party at any distance',
   necromancer: 'Curses enemies; the dead rise to fight for you',
@@ -285,7 +306,7 @@ export const EN_CLASS_ROLES: Record<string, string> = {
 /** 分支名稱（昇變） */
 export const EN_BRANCHES: Record<string, string> = {
   guardian: 'Guardian', gladiator: 'Paladin', berserker: 'Berserker', cutthroat: 'Assassin', sniper: 'Sniper', arbalest: 'Grand Ranger',
-  elementalist: 'Archmage', deathMage: 'Necromancer', battlemage: 'Battlemage', adeptElement: 'Elementalist', liberator: 'Liberator', paladin: 'High Priest', zealot: 'Zealot', heretic: 'Cultist',
+  elementalist: 'Archmage', deathMage: 'Necromancer', battlemage: 'Battlemage', adeptElement: 'Elementalist', liberator: 'Liberator', totemElder: 'Totem Elder', totemBearer: 'Totem Bearer', paladin: 'High Priest', zealot: 'Zealot', heretic: 'Cultist',
 };
 
 /** 章節名稱（過場文字維持中文） */

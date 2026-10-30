@@ -2,6 +2,8 @@
  * 背包與裝備（SPEC_SLICE5 §17）：每名英雄武器、防具、飾品各一格（Alan 2026-10-29）；背包裡的道具點英雄名字裝備、身上的道具點「卸下」放回背包。
  * 路線圖與商人畫面共用。只透過 src/run/items 的純函式改變遠征狀態。
  */
+import { TOTEM_CLASSES, TOTEM_VARIANTS, totemVariantDesc, totemVariantName } from '../../sim/data/totems';
+import { setTotemVariant } from '../../run/characters';
 import { heroName } from '../../run/characters';
 import { tr } from '../../i18n';
 import { bagOf, canUseOnMap, useOnMap } from '../../run/consumables';
@@ -55,6 +57,21 @@ export function equipmentPanel(run: RunState, onChange: (r: RunState) => void, l
     const name = el('div', 'bag-name', tr("{0}{1}", { 0: heroName(h), 1: h.dead ? tr("（陣亡）") : '' }));
     name.style.color = hex(HEROES[h.classId].color);
     row.appendChild(name);
+    // 圖騰的種類（杜爾根，SPEC_CHARACTERS §4.3）：整備時選，戰鬥中不能換
+    if (TOTEM_CLASSES[h.classId] && !h.dead) {
+      const it = el('div', 'bag-item');
+      it.appendChild(el('span', 'bag-slot', tr("圖騰：")));
+      const cur = h.totemVariant ?? 'decoy';
+      const btns = el('div', 'bag-btns');
+      for (const v of TOTEM_VARIANTS) {
+        const b = button(totemVariantName(v), 'small', () => onChange(setTotemVariant(run, slot, v)), locked || v === cur);
+        if (v === cur) b.classList.add('on');
+        b.title = totemVariantDesc(v);
+        btns.appendChild(b);
+      }
+      it.append(el('span', 'bag-desc', totemVariantDesc(cur)), btns);
+      row.appendChild(it);
+    }
     for (const part of ITEM_SLOTS) {
       const id = itemInSlot(h, part);
       const it = el('div', `bag-item${!id ? ' empty' : ITEMS[id].rarity === 'rare' ? ' rare' : ''}`);
