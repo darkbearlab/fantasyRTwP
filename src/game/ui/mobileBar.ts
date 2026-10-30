@@ -64,9 +64,16 @@ const STATUS_ICONS: [(u: Unit) => boolean, string][] = [
  * 頭像（Alan：之後放真的頭像；平時是朝左的側臉，被選取時轉成正面，參考魔鬥士 Commandos）。
  * 有像素素材時：直接用英雄 sprite 的側面（朝左）與正面待機格（CSS 背景裁切，見 .m-sprite）。
  * 沒有素材時：色塊佔位——側臉只有一隻眼睛和朝左的鼻子，正面是兩隻眼睛。
+ * 具名角色有 32×32 小頭像（public/assets/portraits/mini）就用它：沒選取時暗一點，選取時正常亮度（Alan）。
  */
-function portrait(sheetUrl?: string): HTMLElement {
+function portrait(sheetUrl?: string, portraitId?: string): HTMLElement {
   const box = el('div', 'm-portrait');
+  if (portraitId) {
+    const img = el('div', 'm-mini');
+    img.style.backgroundImage = `url("${import.meta.env.BASE_URL}assets/portraits/mini/${portraitId}.png")`;
+    box.appendChild(img);
+    return box;
+  }
   if (sheetUrl) {
     for (const view of ['side', 'front']) {
       const s = el('div', `m-sprite ${view}`);
@@ -291,7 +298,7 @@ export class MobileHeroBar {
       staggerBox.appendChild(stagger);
       staggerBox.hidden = this.host.session().world.config.battleStyle !== 'deliberate';
       const status = el('span', 'm-status');
-      head.append(portrait(this.host.portraitUrl?.(u.def.id)), name, status, hp, staggerBox);
+      head.append(portrait(this.host.portraitUrl?.(u.def.id), u.def.portrait), name, status, hp, staggerBox);
       head.addEventListener('mousedown', (ev) => ev.preventDefault());
       // 拖曳選取：按住卡片往左右拖，經過的英雄都選起來
       head.addEventListener('pointerdown', (ev) => {
@@ -439,6 +446,8 @@ export interface StaticHeroCard {
   classId: string;
   /** 顯示名稱（具名角色）；沒有就用職業名 */
   name?: string;
+  /** 具名角色的頭像 id */
+  portrait?: string;
   hp: number;
   maxHp: number;
   dead: boolean;
@@ -477,7 +486,7 @@ export function staticHeroBar(cards: StaticHeroCard[], slots: number, portraitUr
     const hpFill = el('div', 'fill');
     hpFill.style.width = `${Math.max(0, (c.hp / c.maxHp) * 100)}%`;
     hp.append(hpFill, el('span', 'hptext', `${c.hp} / ${c.maxHp}`));
-    head.append(portrait(portraitUrl?.(c.classId)), el('span', 'm-name', c.name ?? HEROES[c.classId].name), el('span', 'm-status'), hp);
+    head.append(portrait(portraitUrl?.(c.classId), c.portrait), el('span', 'm-name', c.name ?? HEROES[c.classId].name), el('span', 'm-status'), hp);
     const skill = el('div', 'm-skill');
     skill.appendChild(el('span', 'sname', c.skillName));
     card.append(el('div', 'm-fill'), head, skill);

@@ -2293,6 +2293,26 @@ body {
   background: #000;
   perspective: 200px;
 }
+/* 具名角色的 32×32 小頭像：放大 2 倍置中；沒選取時暗一點，選取時正常亮度（Alan） */
+.m-mini {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 64px;
+  height: 64px;
+  margin: -32px 0 0 -32px;
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+  filter: brightness(0.55);
+}
+.m-card.selected .m-mini {
+  filter: none;
+}
+#stage.compact .m-mini {
+  width: 48px;
+  height: 48px;
+  margin: -24px 0 0 -24px;
+}
 /* 像素頭像：英雄 sprite sheet 放大 4 倍，裁出待機第一格的上半身。
    側面（區塊 0，原圖朝右）水平翻轉成朝左；選取時換成正面（區塊 1，第 5 列） */
 .m-sprite {
