@@ -92,6 +92,9 @@ function evolved(): Record<string, UnitDef> {
     { ...R, id: 'arbalest', name: '大遊俠', letter: 'A', color: 0x7cc576, maxHp: 90, accuracy: 44, damage: [9, 15], skills: ['volley'] },
     // 元素師（芬恩的救贖線，SPEC_CHARACTERS §4.1）：主動改成累積層數的大火球
     { ...M, id: 'elementalist', name: '元素師', letter: 'E', color: 0xc062e0, skills: ['flashFireball', 'greatFireball'] },
+    // 決鬥者（阿許卡的骨架職業）：高命中、高迴避（防禦）；解放者是她的救贖線。數值佔位
+    { ...W, id: 'fencer', name: '決鬥者', letter: 'D', color: 0xc84a6a, maxHp: 110, armor: 3, accuracy: 42, defense: 50, damage: [9, 14], attackSpeed: 1.1, moveSpeed: 3.4, skills: ['thrust'] },
+    { ...W, id: 'liberator', name: '解放者', letter: 'L', color: 0xe8607a, maxHp: 125, armor: 4, accuracy: 46, defense: 54, damage: [10, 15], attackSpeed: 1.1, moveSpeed: 3.4, skills: ['thrust'], skillMods: { thrust: { charges: 2 } } },
     // 下位元素師（芬恩的骨架職業）、大法師、死靈法師（奧爾德斯的兩條線）；數值佔位
     { ...M, id: 'adept', name: '下位元素師', letter: 'F', color: 0xe07a3a, skills: ['flashFireball', 'greatFireball'] },
     { ...M, id: 'archmage', name: '大法師', letter: 'A', color: 0x9a7be8, maxHp: 75, accuracy: 34, defense: 24, skills: ['grandEnchant'] },

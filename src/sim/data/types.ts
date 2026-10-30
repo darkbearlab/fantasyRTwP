@@ -179,7 +179,8 @@ export type SkillEffect =
   /** deliberateSummon：沉穩節奏改叫這些（Alan：沒有打斷手段時，戰吼叫來的是很弱的雜魚） */
   | { kind: 'warcry'; summon: { enemy: string; count: number }; deliberateSummon?: { enemy: string; count: number }; damageBuff: number; duration: number }
   /** 旋風斬：打周圍所有敵人（每個目標各自命中判定） */
-  | { kind: 'whirlwind'; radius: number; mult: number; shatters?: boolean }
+  /** heavyVsStunned：打中暈眩（失衡）中的敵人時，必定算重擊以上（狂戰士，SPEC_CHARACTERS §4.1） */
+  | { kind: 'whirlwind'; radius: number; mult: number; shatters?: boolean; heavyVsStunned?: boolean }
   /** 衰弱詛咒：目標行動條變慢、受到傷害增加 */
   | { kind: 'curse'; duration: number; actionSlow: number; damageTakenPct: number; projectileSpeed?: number; projectileKind?: ProjectileKind }
   /** 煙霧彈：一段時間內無視控制區、敵人看不到（貼近除外） */
@@ -199,7 +200,8 @@ export type SkillEffect =
   /** 範圍治療（治療藥瓶） */
   | { kind: 'aoeHeal'; radius: number; amount: number; projectileSpeed?: number; projectileKind?: ProjectileKind }
   /** 衝鋒（knockback：抵達時的攻擊附帶擊退，攻城兵的撞擊） */
-  | { kind: 'charge'; speedMult: number; maxDuration: number; knockback?: number }
+  /** strike：抵達時那一下的倍率、命中加成、打斷（突刺，SPEC_CHARACTERS §4.1）；省略＝普攻一下 */
+  | { kind: 'charge'; speedMult: number; maxDuration: number; knockback?: number; strike?: { mult: number; accBonus?: number; interrupts?: boolean } }
   | { kind: 'tumble'; speed: number }
   // ── 沉穩節奏的敵人技能（SPEC_SLICE5 §15.2；全部有預兆） ──
   /** 直線衝鋒：朝目標點方向衝 distance 公尺，途中撞到的英雄各受一次傷害（v0.4：不擊倒）；預兆線寬 width */

@@ -27,6 +27,10 @@ export const BRANCHES: Record<string, BranchDef[]> = {
     { id: 'guardian', name: '守護者', evolvesTo: 'guardian', line: '我的盾在，誰都別想過去。' },
     // SPEC_CHARACTERS §4：角鬥士擱置，這個分支改成聖騎士（戰士底）；分支 id 不變，舊升級照用
     { id: 'gladiator', name: '聖騎士', evolvesTo: 'paladin', line: '聖光在此，邪惡退散。' },
+  ],
+  // 決鬥者（阿許卡，SPEC_CHARACTERS §4）：狂戰士的分支從戰士搬過來；分支 id 不變，舊升級照用
+  fencer: [
+    { id: 'liberator', name: '解放者', evolvesTo: 'liberator', line: '打破過鎖鏈的人，就是自由的。' },
     { id: 'berserker', name: '狂戰士', evolvesTo: 'berserker', line: '血……還不夠！' },
   ],
   ranger: [

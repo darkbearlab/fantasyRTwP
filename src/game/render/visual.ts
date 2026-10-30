@@ -26,6 +26,8 @@ const UNIT_HEIGHT: Record<string, number> = {
   zealot: 1.8,
   highPriest: 1.8,
   adept: 1.8,
+  fencer: 1.8,
+  liberator: 1.8,
   archmage: 1.8,
   necromancer: 1.8,
   heretic: 1.8,
