@@ -16,6 +16,7 @@ import type { HeroRecord, RunState } from './runState';
 import { cloneRun, newHero } from './runState';
 import { rngFor } from './seed';
 import type { Vec } from '../sim/math';
+import { NavGrid } from '../sim/nav/grid';
 import { UPGRADES } from './data/upgrades';
 import { classChoices } from './classes';
 import { evolveHero, generalUpgradeIds, grantUpgrade, maxHpOf, maxRankOf, rankOf, recipeDone, recipesOf } from './upgrades';
@@ -172,6 +173,55 @@ export function freeSpotNear(map: MapDef, at: Vec, distances: number[], size: nu
       return r;
     }
   return null;
+}
+
+/**
+ * 被困英雄躲的地方（Alan 2026-10-31）：從出生點走得到、離所有敵人至少 hideFromEnemies 公尺，
+ * 走起來夠遠（找得到的路程裡前段以外的地方），越靠牆角越好。找不到就回傳 null（照舊站在小隊旁邊）。
+ */
+export function hideSpotFor(map: MapDef, from: Vec, enemies: Vec[], seed: number): Vec | null {
+  const R = JOURNEY.rescue;
+  const g = NavGrid.fromMap(map, 0.5, 0.45);
+  const blocked = [...(map.exits ?? []), ...(map.interactables ?? [])];
+  const start = g.nearestWalkableCell(g.cellOf(from).cx, g.cellOf(from).cy);
+  if (!start) return null;
+  // 從出生點往外擴散，記下每一格的路程
+  const steps = new Int32Array(g.cols * g.rows).fill(-1);
+  const queue = [start.cy * g.cols + start.cx];
+  steps[queue[0]] = 0;
+  for (let i = 0; i < queue.length; i++) {
+    const k = queue[i];
+    const cx = k % g.cols;
+    const cy = (k - cx) / g.cols;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = cx + dx;
+      const ny = cy + dy;
+      if (g.isBlockedCell(nx, ny) || steps[ny * g.cols + nx] >= 0) continue;
+      steps[ny * g.cols + nx] = steps[k] + 1;
+      queue.push(ny * g.cols + nx);
+    }
+  }
+  const far = steps[queue[queue.length - 1]];
+  const rng = rngFor(seed, 'hideSpot');
+  let best: Vec | null = null;
+  let bestScore = -Infinity;
+  for (const k of queue) {
+    if (steps[k] < far * R.minTravel) continue;
+    const cx = k % g.cols;
+    const cy = (k - cx) / g.cols;
+    const p = g.cellCenter(cx, cy);
+    if (enemies.some((e) => Math.hypot(e.x - p.x, e.y - p.y) < R.hideFromEnemies)) continue;
+    if (blocked.some((r) => p.x > r.x - 1.5 && p.x < r.x + r.w + 1.5 && p.y > r.y - 1.5 && p.y < r.y + r.h + 1.5)) continue;
+    // 牆角：周圍兩格內被擋住的格子越多越像躲起來
+    let walls = 0;
+    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (g.isBlockedCell(cx + dx, cy + dy)) walls++;
+    const score = walls + rng.next() * 0.5;
+    if (score > bestScore) {
+      bestScore = score;
+      best = p;
+    }
+  }
+  return best;
 }
 
 /** 地圖上的商人（SPEC_SLICE7 §2）：站在出生點附近的空地；回傳加上商人的新地圖 */

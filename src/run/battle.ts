@@ -41,7 +41,7 @@ import { DEFAULT_SIM_CONFIG } from '../sim/simConfig';
 import { classPassivesOf, heroDef, heroPassives } from './upgrades';
 import { currentChapter, depthOffset } from './campaign';
 import { factionOf } from './data/factions';
-import { freeSpotNear, journeyDepth, journeyStrength, withMerchant } from './journey';
+import { freeSpotNear, hideSpotFor, journeyDepth, journeyStrength, withMerchant } from './journey';
 import { JOURNEY } from './data/journey';
 
 /** 敵人數值隨層數成長；隊長另外強化。strength：直接指定強度倍率（一路向前，SPEC_SLICE7 §3.3） */
@@ -230,22 +230,45 @@ export function createBattleFromRun(run: RunState, config?: Partial<SimConfig>, 
       spawns.push({ defId: f.kind, def, pos: { x: at.x + Math.cos(a) * 0.9, y: at.y + Math.sin(a) * 0.9 }, hp: f.hp, followerOf: slot });
     });
   });
-  // 被困的英雄（SPEC_SLICE7 §4）：困在離出生點中等距離的一個小隊旁邊，玩家靠近前雙方都不動
+  // 被困的英雄（SPEC_SLICE7 §4）：躲在離敵人遠的牆角，身邊最多一兩名追兵（Alan 2026-10-31）；
+  // 找不到躲的地方才照舊困在離出生點中等距離的小隊旁邊。玩家靠近前雙方都不動
   const captive = run.phase.kind === 'battle' ? run.phase.rescue : undefined;
+  const pursuers: UnitSpawn[] = [];
   if (captive && deliberate) {
-    const squads = new Map<string, { x: number; y: number }[]>();
-    for (const e of enc.enemies) if (!e.captain) (squads.get(e.squad ?? 'main') ?? squads.set(e.squad ?? 'main', []).get(e.squad ?? 'main')!).push({ x: e.x, y: e.y });
     const spawn = map.heroSpawns[0] ?? { x: map.width / 2, y: map.height / 2 };
-    const centers = [...squads.entries()]
-      .map(([id, ps]) => ({ id, ps, c: { x: ps.reduce((a, p) => a + p.x, 0) / ps.length, y: ps.reduce((a, p) => a + p.y, 0) / ps.length } }))
-      .sort((a, b) => dist(a.c, spawn) - dist(b.c, spawn));
-    const guard = centers[Math.floor(centers.length / 2)];
-    const spot = guard && freeSpotNear(map, guard.c, JOURNEY.rescue.spotDistances, 0.6, guard.ps);
-    if (guard && spot) {
-      const def = { ...heroDef(captive), skills: deliberateSkillsOf(captive.classId) };
-      const cdef = captive.characterId ? { ...def, name: heroShortName(captive), portrait: captive.characterId } : def;
-      spawns.push({ defId: captive.classId, def: cdef, pos: { x: spot.x + 0.3, y: spot.y + 0.3 }, hp: captive.hp, personality: captive.personality, items: captive.items, passives: heroPassives(captive), captive: guard.id, classPassives: classPassivesOf(captive, true) });
+    const def = { ...heroDef(captive), skills: deliberateSkillsOf(captive.classId) };
+    const cdef = captive.characterId ? { ...def, name: heroShortName(captive), portrait: captive.characterId } : def;
+    const hide = hideSpotFor(map, spawn, enc.enemies.map((e) => ({ x: e.x, y: e.y })), seed);
+    let at: { x: number; y: number } | null = null;
+    let squad = 'pursuers';
+    if (hide) {
+      at = hide;
+      const rng = rngFor(seed, 'pursuers');
+      const R = JOURNEY.rescue;
+      const kinds = [...new Set(enc.enemies.filter((e) => !e.captain && enemyRank(ENEMIES[e.enemy]) === 'normal' && R.pursuerAi.includes(ENEMIES[e.enemy].ai ?? '')).map((e) => e.enemy))];
+      const n = kinds.length ? R.pursuers[rng.int(0, R.pursuers.length - 1)] : 0;
+      const taken = [hide];
+      for (let k = 0; k < n; k++) {
+        const spot = freeSpotNear(map, hide, [1.5, 2, 2.5], 0.6, taken);
+        if (!spot) break;
+        const pos = { x: spot.x + 0.3, y: spot.y + 0.3 };
+        taken.push(pos);
+        pursuers.push({ defId: kinds[rng.int(0, kinds.length - 1)], pos, squad, facing: Math.atan2(hide.y - pos.y, hide.x - pos.x) });
+      }
+    } else {
+      const squads = new Map<string, { x: number; y: number }[]>();
+      for (const e of enc.enemies) if (!e.captain) (squads.get(e.squad ?? 'main') ?? squads.set(e.squad ?? 'main', []).get(e.squad ?? 'main')!).push({ x: e.x, y: e.y });
+      const centers = [...squads.entries()]
+        .map(([id, ps]) => ({ id, ps, c: { x: ps.reduce((a, p) => a + p.x, 0) / ps.length, y: ps.reduce((a, p) => a + p.y, 0) / ps.length } }))
+        .sort((a, b) => dist(a.c, spawn) - dist(b.c, spawn));
+      const guard = centers[Math.floor(centers.length / 2)];
+      const spot = guard && freeSpotNear(map, guard.c, JOURNEY.rescue.spotDistances, 0.6, guard.ps);
+      if (guard && spot) {
+        at = { x: spot.x + 0.3, y: spot.y + 0.3 };
+        squad = guard.id;
+      }
     }
+    if (at) spawns.push({ defId: captive.classId, def: cdef, pos: at, hp: captive.hp, personality: captive.personality, items: captive.items, passives: heroPassives(captive), captive: squad, classPassives: classPassivesOf(captive, true) });
   }
   // 怪群模式：地圖與遭遇的生成點合併，戰鬥模式自動設成 horde，精英與頭目生命下降
   const horde = enc.horde ? { ...enc.horde, spawners: [...(map.spawners ?? []), ...enc.horde.spawners] } : undefined;
@@ -262,6 +285,7 @@ export function createBattleFromRun(run: RunState, config?: Partial<SimConfig>, 
   const scaled = (id: string, captain?: boolean) => (horde ? hordeEnemyDef(enemyDef(id, layer, captain)) : lighter(baseline(enemyDef(id, layer, captain, strength))));
   // 沉穩節奏：同小隊一起警覺；舊的手工遭遇沒有小隊，全部算同一隊（看到一名就全體進攻）
   for (const e of enc.enemies) spawns.push({ defId: e.enemy, def: scaled(e.enemy, e.captain), pos: { x: e.x, y: e.y }, squad: e.squad ?? 'main', facing: e.facing });
+  for (const p of pursuers) spawns.push({ ...p, def: scaled(p.defId, false) });
   // 敵人數量（Alan 2026-10-24）：一般敵人照 countMult 多出幾名，站在同一小隊旁邊；頭目圖不加
   if (run.forward && deliberate && enc.tier !== 'boss' && JOURNEY.countMult > 1) {
     const rng = rngFor(seed, 'extraEnemies');

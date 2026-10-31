@@ -16,7 +16,13 @@ export const JOURNEY = {
    * 解救英雄（SPEC_SLICE7 §4）：一般戰鬥節點有 chance 的機率有一名英雄被困（不保證湊得滿）。
    * 被救的英雄是隊伍等級，加入前已經配好 (等級 − 1) × upgradesPerLevel 個升級，朝一個昇變分支走。
    */
-  rescue: { chance: 0.35, minLayer: 1, upgradesPerLevel: 1, spotDistances: [1.5, 2, 2.5, 3, 1] },
+  /**
+   * 躲藏（Alan 2026-10-31：法師系被敵人小隊圍著，沒有嘲諷根本救不到）：被困的英雄躲在牆角，
+   * 離所有敵人至少 hideFromEnemies 公尺、離出生點的路程在找得到的最遠路程 minTravel 倍以上；
+   * pursuers：身邊的追兵人數，依序抽一個（0＝自己躲著）。追兵用這張圖的一般敵人裡 AI 在 pursuerAi 的（不要自爆、投彈、召喚這類），不套數量倍率；
+   * 這張圖沒有這類敵人就自己躲著。
+   */
+  rescue: { chance: 0.35, minLayer: 1, upgradesPerLevel: 1, spotDistances: [1.5, 2, 2.5, 3, 1], hideFromEnemies: 10, minTravel: 0.4, pursuers: [0, 0, 1, 2], pursuerAi: ['brute', 'skirmisher', 'charger', 'archer'] },
   /**
    * 強度曲線（SPEC_SLICE7 §3.3）：敵人照「全程第幾層」成長，不照隊伍等級。
    * 敵人生命與傷害 ×（1 ＋ perDepth ×（全程層數 − 1））× 這一章的 chapterMult；全程層數＝前面各章的層數加總（不打折）＋本章層數。
