@@ -167,6 +167,8 @@ export interface MoveOptions {
 const AVOID_ZOC_COST = 20;
 /** 攻擊移動（目標點模式）：目標離開目標點超過接戰距離再多這麼遠就放棄 */
 const ATTACK_MOVE_LEASH = 2;
+/** 攻擊移動（目標點模式）途中還手：這幾秒內打過自己、而且現在打得到的敵人（Alan 2026-10-31） */
+const RETALIATE_SEC = 2;
 /** 移動指令連續這麼多秒沒有進展就放棄 */
 const MOVE_STALL_TIME = 1.5;
 /** 雜兵直線移動受阻時嘗試的偏轉角 */
@@ -1341,7 +1343,8 @@ export class World implements ZocContext {
       case 'attack': {
         const t = this.getUnit(o.targetId);
         if (!t || t.dead || t.team === u.team || !this.canTarget(u, t)) {
-          // 目標死亡或躲進草叢：失去目標
+          // 目標死亡或躲進草叢：失去目標；沉穩節奏的英雄就地駐守（Alan 2026-10-31：點敵人＝鎖定它，打倒後不亂跑）
+          if (!u.guardPoint && u.team === 'hero' && this.config.battleStyle === 'deliberate') u.guardPoint = { x: u.pos.x, y: u.pos.y };
           this.setOrder(u, null);
           break;
         }
@@ -1396,11 +1399,19 @@ export class World implements ZocContext {
   private executeAttackMove(u: Unit, o: Extract<Order, { type: 'attackMove' }>): void {
     let t = o.targetId !== undefined ? this.getUnit(o.targetId) : undefined;
     const atPoint = this.config.attackMoveFocus === 'point';
-    // 目標點模式：目標離開目標點太遠就放棄（不會被拖著跑）
-    if (t && atPoint && dist(t.pos, o.point) - t.radius > this.config.attackMoveRange + ATTACK_MOVE_LEASH) t = undefined;
+    // 目標點模式：目標離開目標點太遠就放棄（不會被拖著跑）；但現在打得到的目標不放
+    if (t && atPoint && !this.canHitNow(u, t) && dist(t.pos, o.point) - t.radius > this.config.attackMoveRange + ATTACK_MOVE_LEASH) t = undefined;
     if (!t || t.dead || !this.canTarget(u, t)) {
       t = atPoint ? this.acquireNearPoint(u, o.point, this.config.attackMoveRange) : this.acquireTarget(u, this.attackRange(u) + this.config.attackMoveRange);
       o.targetId = t?.id;
+    }
+    // 目標點模式途中被打（Alan 2026-10-31）：打自己、而且現在打得到的敵人優先還手；沒被打就照舊不理路邊的敵人（才能脫離）
+    if (atPoint && (!t || !this.canHitNow(u, t))) {
+      const r = this.retaliationTarget(u);
+      if (r) {
+        t = r;
+        o.targetId = r.id;
+      }
     }
     // 沉穩節奏的英雄（Alan 2026-10-21）：攻擊移動一接戰就不再往目標點前進——
     // 目標被推開、跑掉或死掉時就地駐守（不會為了原本的目標點往前走而停止輸出、暴露後排）；遠程英雄也不追出射程
@@ -1411,8 +1422,7 @@ export class World implements ZocContext {
       return;
     }
     if (t) {
-      const inRange = edgeDistance(u, t) <= this.attackRange(u) + RANGE_TOLERANCE && (u.isMelee || u.def.arcAttack || this.canSee(u, t));
-      if (inRange) {
+      if (this.canHitNow(u, t)) {
         o.engaged = true;
         startAction(this, u, { kind: 'attack', targetId: t.id });
         return;
@@ -1426,6 +1436,31 @@ export class World implements ZocContext {
     if (r === 'arrived') u.guardPoint = { x: u.pos.x, y: u.pos.y };
     if (r === 'arrived' || r === 'nopath') this.setOrder(u, null);
     else if (r === 'pinned') this.stopPinned(u);
+  }
+
+  /** 不用移動就打得到 t（射程內；遠程要有視線） */
+  private canHitNow(u: Unit, t: Unit): boolean {
+    return edgeDistance(u, t) <= this.attackRange(u) + RANGE_TOLERANCE && (u.isMelee || !!u.def.arcAttack || this.canSee(u, t));
+  }
+
+  /** 還手的對象：正在對自己出手、或 RETALIATE_SEC 秒內打中過自己，而且現在打得到的敵人裡最近的 */
+  private retaliationTarget(u: Unit): Unit | undefined {
+    const since = this.time - RETALIATE_SEC;
+    const recent = new Set<number>();
+    for (let i = u.threatLog.length - 1; i >= 0 && u.threatLog[i].t >= since; i--) recent.add(u.threatLog[i].id);
+    let best: Unit | undefined;
+    let bestD = Infinity;
+    for (const e of this.units) {
+      if (e.dead || e.team === u.team || !this.canTarget(u, e)) continue;
+      if (!recent.has(e.id) && e.action?.targetId !== u.id) continue;
+      if (!this.canHitNow(u, e)) continue;
+      const d = edgeDistance(u, e);
+      if (d < bestD) {
+        bestD = d;
+        best = e;
+      }
+    }
+    return best;
   }
 
   /** 攻擊移動（目標點模式）：離目標點最近的敵人（距離 ≤ range），途中身邊的敵人不理會 */

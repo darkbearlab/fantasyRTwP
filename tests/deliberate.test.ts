@@ -81,6 +81,33 @@ describe('沉穩節奏的規則調整（Alan）', () => {
     expect(run(w2, 15 * 30).some((e) => e.type === 'hit' && e.sourceId === 1 && e.targetId === 2)).toBe(true);
   });
 
+  it('攻擊移動途中被打會還手；打完就地駐守（Alan 2026-10-31）', () => {
+    // 英雄往 (18,6) 攻擊移動；路邊 (6,7.5) 的敵人會警覺、追上來打英雄
+    const w = makeWorld([{ defId: 'warrior', pos: { x: 2, y: 6 } }, { defId: 'brute', pos: { x: 6, y: 7.5 } }], deliberateConfig());
+    w.enqueue({ type: 'attackMove', unitIds: [1], point: { x: 18, y: 6 } });
+    const evs = run(w, 12 * 30);
+    expect(evs.some((e) => e.type === 'hit' && e.sourceId === 2 && e.targetId === 1)).toBe(true);
+    expect(evs.some((e) => e.type === 'actionStart' && e.unitId === 1 && e.targetId === 2)).toBe(true);
+    expect(w.getUnit(1)!.pos.x).toBeLessThan(12);
+  });
+
+  it('攻擊單一敵人＝鎖定：敵人走動也一路追著打；打倒後就地駐守（Alan 2026-10-31）', () => {
+    const w = makeWorld([{ defId: 'warrior', pos: { x: 2, y: 6 } }, { defId: 'brute', pos: { x: 14, y: 6 } }, { defId: 'brute', pos: { x: 5, y: 9 } }], { ...deliberateConfig(), enemyAggroRange: 0 });
+    w.enqueue({ type: 'attack', unitIds: [1], targetId: 2 });
+    // 目標往旁邊走開：英雄照樣追
+    w.enqueue({ type: 'move', unitIds: [2], point: { x: 12, y: 2 } });
+    const evs = run(w, 15 * 30);
+    expect(evs.some((e) => e.type === 'hit' && e.sourceId === 1 && e.targetId === 2)).toBe(true);
+    expect(evs.some((e) => e.type === 'actionStart' && e.unitId === 1 && e.targetId === 3)).toBe(false);
+    const t = w.getUnit(2)!;
+    t.hp = 0;
+    t.dead = true;
+    run(w, 3 * 30);
+    const u = w.getUnit(1)!;
+    expect(u.order?.type === 'attack' && u.order.targetId === 2).toBe(false);
+    expect(u.guardPoint).not.toBeNull();
+  });
+
   it('沒有控制區；性格一律是堅守（游擊不會逃跑）', () => {
     const c = deliberateConfig();
     expect(c.zocMode).toBe('off');
