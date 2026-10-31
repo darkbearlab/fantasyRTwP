@@ -309,8 +309,8 @@ export class InputController {
       s.enqueue({ type: 'attack', unitIds: s.selectedUnits().map((u) => u.id), targetId: unit!.id });
     } else if (attack) this.attackMove(m);
     else s.enqueue({ type: 'move', unitIds: s.selectedUnits().map((u) => u.id), point: m });
-    // 下完指令是否取消選取（GAME_CONFIG.deselectAfterOrder，目前關閉）
-    if (GAME_CONFIG.deselectAfterOrder) s.selection = [];
+    // 單次（面板上的勾勾）：下完指令就取消選取
+    if (s.controls.deselectAfterOrder) s.selection = [];
   }
 
   /** 行動版：放開時沒有拖曳才算點擊 */

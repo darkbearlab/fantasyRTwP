@@ -48,7 +48,7 @@
 - **畫面改成正角俯視**（2026-10-20）：`projection.ts` 新增 `ortho` 模式並設為預設（地圖正方格、保留俯角、z 高度照樣畫，所以角色 sprite 與立體方塊沿用）。Flare 地板磚與 props3d 是等角素材，只在 `iso` 使用；`ortho` 的地面、牆、門用程式畫。舊的 `iso` 還在（除錯面板可切），`isIso()` 只用在等角專用素材，其他「有高度」的判斷用 `hasHeight()`。
 - **鏡頭遠近固定**：移除滾輪與雙指縮放；`GAME_CONFIG.battleZoom` 是唯一旋鈕（Alan：不要做成玩家設定）。
 - **畫面外敵人指示器**：`BattleScene.drawOffscreenEnemies`，紅色光暈，大小依最大生命；迷霧／草叢裡的敵人不顯示。
-- **全選／全不選**：兩顆按鈕（Alan：全選一定是全選）；`mobileControls.order` 裡是 `selectAll`、`deselectAll`。
+- **選取（2026-10-31 重設計）**：點英雄卡＝只選那名（和點地圖上的英雄一樣；Shift＋點加選）；在卡片上左右拖曳＝選那幾名（Shift 加選）；全選鈕一定是全選。全不選鈕拿掉，換成「單次」勾勾（`ControlPrefs.deselectAfterOrder`，存在瀏覽器）：勾起來時在地圖上下完一個指令就取消選取。`mobileControls.order` 裡是 `selectAll`、`oneShot`。
 - **柔和迷霧**（正角俯視）：`BattleScene.drawSoftFog`——一格一個像素的畫布貼圖，用平滑（雙線性）取樣放大成漸層，每格透明度淡入淡出（`VISUAL.fogFadeSec`）。像素模式下 `refresh()` 會把取樣改回最近鄰，所以每次更新後要重設 `LINEAR`。
 - **英雄技能重整**（2026-10-20，沉穩節奏）：
   - 戰士：主動＝盾擊（打斷＋暈眩 1 秒）；嘲諷光環 5 m、防禦 +10。
@@ -265,7 +265,7 @@
     - **頭目**：獸人酋長（戰吼叫哥布林、跳斬後排、投擲巨石、巨棒橫掃）。頭目房是林中空地（`BossArenaSpec.arena = 'clearing'`），四根圖騰，打掉圖騰酋長就變弱。
   - 敵人的 `def.passives` 在沉穩節奏會帶上（敵我都適用）。
   - 0x72 的單位可以指定整數放大倍率（`scale`）：酋長是獸人戰士放大；圖騰先用石柱的圖。
-- **下完指令不取消選取**：`GAME_CONFIG.deselectAfterOrder`（預設 false）。
+- **下完指令不取消選取**：預設值 `GAME_CONFIG.deselectAfterOrder`（false）；玩家用面板上的「單次」勾勾切換。
 - **角色縮放**：`VISUAL.unitScale`（0.8，只影響畫面；`unitHeight()` 已乘上這個值），碰撞半徑與腳下圈不變。
 - **交戰距離縮短**（2026-10-20）：沉穩節奏 `SimConfig.rangeMult` ＝ 0.6（`DELIBERATE_PACE.range`），套用在 1 m 以上的普攻射程與技能施放距離（換算一律經過 `scaleRange`）；敵人察覺距離、攻擊移動接戰距離也 ×0.6。近戰、範圍半徑、視野不變；舊模式 `rangeMult` ＝ 1。
 - **法師火球改回**（2026-10-20）：拿掉充能／大火球循環；法師主動＝`flashFireball`（準備時間 0、仍有 1.2 秒恢復、飛行速度 16 m/s、冷卻 12 秒 ×2）。飛行中落點畫出爆炸範圍（`BattleScene.drawLandingZones`）。charge 循環機制與 `greatFireball` 資料保留給之後用。
