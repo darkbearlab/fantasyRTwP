@@ -113,7 +113,8 @@ export class BattleSession {
   /** 滑鼠移上的互動物件（門、拉桿） */
   hoverObjectId: string | null = null;
   log: LogEntry[] = [];
-  toast: { text: string; until: number } | null = null;
+  /** caption：劇情類的字樣直接打在畫面中間（Alan 2026-10-31），不用訊息框 */
+  toast: { text: string; until: number; caption?: boolean } | null = null;
   /** 已觸發過低血自動暫停的英雄 */
   lowHpWarned = new Set<number>();
   /** 畫面層鉤子（自動暫停等掛在這裡，見 hooks.ts） */
@@ -235,5 +236,10 @@ export class BattleSession {
 
   showToast(text: string, now: number, ms = 1600): void {
     this.toast = { text, until: now + ms };
+  }
+
+  /** 劇情類的字樣：畫面中間的大字，沒有框 */
+  showCaption(text: string, now: number, ms = 2600): void {
+    this.toast = { text, until: now + ms, caption: true };
   }
 }

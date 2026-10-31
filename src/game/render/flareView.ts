@@ -111,7 +111,7 @@ export class FlareView implements UnitVisual {
     };
     const once = (start: number) => (n: number, meta: FlareAnimMeta) => Math.min(n - 1, Math.floor(((simTime - start) / Math.max(0.001, meta.duration / 1000)) * n));
     if (u.dead) {
-      if (this.deathAt < 0) this.deathAt = simTime;
+      if (this.deathAt < 0) this.deathAt = u.corpse ? simTime - 60 : simTime;
       return { anim: 'die', frame: once(this.deathAt) };
     }
     this.deathAt = -1;

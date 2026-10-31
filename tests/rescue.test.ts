@@ -97,7 +97,13 @@ describe('被困的英雄', () => {
         const prev = r.map.nodes.find((p) => p.next.includes(node.id))!;
         const w = createBattleFromRun(enter({ ...r, currentNodeId: prev.id, exitTo: node.id }, node.id));
         const c = w.units.find((u) => u.rescue)!;
-        const foes = w.units.filter((u) => u.team === 'enemy');
+        const foes = w.units.filter((u) => u.team === 'enemy' && !u.corpse);
+        // 身邊倒著幾具屍體，不算擊殺
+        const corpses = w.units.filter((u) => u.corpse);
+        expect(corpses.length).toBeGreaterThan(0);
+        for (const k of corpses) expect(k.dead && dist(k.pos, c.pos) < 4).toBe(true);
+        w.result = 'hero';
+        expect(battleOutcomeFromWorld(w).killed ?? []).toHaveLength(0);
         const guards = foes.filter((e) => e.squad === c.captiveSquad);
         counts.add(guards.length);
         expect(guards.length).toBeLessThanOrEqual(Math.max(...JOURNEY.rescue.pursuers));

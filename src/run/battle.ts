@@ -255,6 +255,15 @@ export function createBattleFromRun(run: RunState, config?: Partial<SimConfig>, 
         taken.push(pos);
         pursuers.push({ defId: kinds[rng.int(0, kinds.length - 1)], pos, squad, facing: Math.atan2(hide.y - pos.y, hide.x - pos.x) });
       }
+      // 身邊倒著幾具屍體：被困的英雄一路打倒的
+      const fallen = [...new Set(enc.enemies.filter((e) => !e.captain && enemyRank(ENEMIES[e.enemy]) === 'normal').map((e) => e.enemy))];
+      for (let k = fallen.length ? R.corpses[rng.int(0, R.corpses.length - 1)] : 0; k > 0; k--) {
+        const spot = freeSpotNear(map, hide, [1.2, 1.8, 2.4, 3], 0.6, taken);
+        if (!spot) break;
+        const pos = { x: spot.x + 0.3, y: spot.y + 0.3 };
+        taken.push(pos);
+        pursuers.push({ defId: fallen[rng.int(0, fallen.length - 1)], pos, squad: 'corpses', facing: rng.range(-Math.PI, Math.PI), corpse: true });
+      }
     } else {
       const squads = new Map<string, { x: number; y: number }[]>();
       for (const e of enc.enemies) if (!e.captain) (squads.get(e.squad ?? 'main') ?? squads.set(e.squad ?? 'main', []).get(e.squad ?? 'main')!).push({ x: e.x, y: e.y });
@@ -339,7 +348,7 @@ export function battleOutcomeFromWorld(world: World): BattleOutcome {
   return {
     won: world.result === 'hero',
     exitNodeId: m ? Number(m[1]) : undefined,
-    killed: world.units.filter((u) => u.team === 'enemy' && u.dead).map((u) => ({ enemy: u.def.id, captain: u.def.rank === 'elite' })),
+    killed: world.units.filter((u) => u.team === 'enemy' && u.dead && !u.corpse).map((u) => ({ enemy: u.def.id, captain: u.def.rank === 'elite' })),
     time: world.time,
     bag: [...world.bag],
     loot: [...world.loot],

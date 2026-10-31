@@ -844,6 +844,7 @@ export class UIScene extends Phaser.Scene {
     const now = this.time.now;
     if (s.toast && s.toast.until > now) {
       this.toastEl.textContent = s.toast.text;
+      this.toastEl.classList.toggle('caption', !!s.toast.caption);
       this.toastEl.classList.add('show');
     } else this.toastEl.classList.remove('show');
 

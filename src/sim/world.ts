@@ -76,6 +76,8 @@ export interface UnitSpawn {
   followerOf?: number;
   /** 被困的英雄（SPEC_SLICE7 §4）：看守的小隊 id */
   captive?: string;
+  /** 開場就倒在地上的屍體（被困英雄身邊的布景，Alan 2026-10-31）：不算擊殺、不給經驗 */
+  corpse?: boolean;
   /** 職業被動與等級（Alan 2026-10-25）；省略時照職業的預設（CLASS_PASSIVES，第 1 級） */
   classPassives?: { id: string; rank: number }[];
 }
@@ -251,6 +253,11 @@ export class World implements ZocContext {
         u.captiveSquad = s.captive;
       }
       if (s.hp !== undefined) u.hp = Math.max(1, Math.min(def.maxHp, Math.round(s.hp)));
+      if (s.corpse) {
+        u.corpse = true;
+        u.dead = true;
+        u.hp = 0;
+      }
       if (s.personality) u.personality = s.personality;
       if (s.squad) u.squad = s.squad;
       if (s.facing !== undefined) u.facing = s.facing;

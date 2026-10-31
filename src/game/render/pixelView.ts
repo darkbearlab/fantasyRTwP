@@ -113,7 +113,7 @@ export class PixelView implements UnitVisual {
     const lift = heightPx(u.airZ);
     this.container.setPosition(this.x, this.y);
     this.container.setDepth(u.dead ? DEAD_DEPTH : OBJECT_DEPTH_BASE + depthOf(this.wx, this.wy));
-    if (u.dead && this.deathStart < 0) this.deathStart = simTime;
+    if (u.dead && this.deathStart < 0) this.deathStart = u.corpse ? simTime - 60 : simTime;
     else if (!u.dead) this.deathStart = -1;
 
     // 面向：世界方向投影到畫面後決定側面／正面／背面
