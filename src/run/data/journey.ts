@@ -21,8 +21,9 @@ export const JOURNEY = {
    * 離所有敵人至少 hideFromEnemies 公尺、離出生點的路程在找得到的最遠路程 minTravel 倍以上；
    * pursuers：身邊的追兵人數，依序抽一個（0＝自己躲著）。追兵用這張圖的一般敵人裡 AI 在 pursuerAi 的（不要自爆、投彈、召喚這類），不套數量倍率；
    * 這張圖沒有這類敵人就自己躲著。
+   * corpses：身邊倒著幾具敵人屍體（依序抽一個；被困的英雄打倒的，說明他為什麼還活著），不算擊殺、不給經驗。
    */
-  rescue: { chance: 0.35, minLayer: 1, upgradesPerLevel: 1, spotDistances: [1.5, 2, 2.5, 3, 1], hideFromEnemies: 10, minTravel: 0.4, pursuers: [0, 0, 1, 2], pursuerAi: ['brute', 'skirmisher', 'charger', 'archer'] },
+  rescue: { chance: 0.35, minLayer: 1, upgradesPerLevel: 1, spotDistances: [1.5, 2, 2.5, 3, 1], hideFromEnemies: 10, minTravel: 0.4, pursuers: [0, 0, 1, 2], pursuerAi: ['brute', 'skirmisher', 'charger', 'archer'], corpses: [2, 3, 3, 4] },
   /**
    * 強度曲線（SPEC_SLICE7 §3.3）：敵人照「全程第幾層」成長，不照隊伍等級。
    * 敵人生命與傷害 ×（1 ＋ perDepth ×（全程層數 − 1））× 這一章的 chapterMult；全程層數＝前面各章的層數加總（不打折）＋本章層數。

@@ -90,7 +90,7 @@ export class Hero3DView implements UnitVisual {
     this.container.setPosition(this.x, this.y);
     this.container.setDepth(u.dead ? DEAD_DEPTH : OBJECT_DEPTH_BASE + depthOf(this.wx, this.wy));
     if (u.dead && this.deathStart < 0) {
-      this.deathStart = simTime;
+      this.deathStart = u.corpse ? simTime - 60 : simTime;
       this.deathAnim = this.chooseDeath();
     } else if (!u.dead) this.deathStart = -1;
     if (!u.dead) this.dir = flareDir(displayFacing(u.facing));

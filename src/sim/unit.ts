@@ -248,6 +248,8 @@ export class Unit {
   captiveSquad?: string;
   /** 這名單位是來解救的英雄（找到以後也一直是 true；戰後決定要不要加入） */
   rescue = false;
+  /** 開場就倒在地上的屍體（布景）：不算擊殺 */
+  corpse = false;
   /** 是不是玩家的英雄本人（我方而且不是隨從） */
   get isHero(): boolean {
     return this.team === 'hero' && !this.follower;

@@ -210,11 +210,15 @@ export function hideSpotFor(map: MapDef, from: Vec, enemies: Vec[], seed: number
     const cx = k % g.cols;
     const cy = (k - cx) / g.cols;
     const p = g.cellCenter(cx, cy);
+    // 離地圖邊至少 1.5 m（身邊還要擺得下屍體、追兵）
+    if (p.x < 1.5 || p.y < 1.5 || p.x > map.width - 1.5 || p.y > map.height - 1.5) continue;
     if (enemies.some((e) => Math.hypot(e.x - p.x, e.y - p.y) < R.hideFromEnemies)) continue;
     if (blocked.some((r) => p.x > r.x - 1.5 && p.x < r.x + r.w + 1.5 && p.y > r.y - 1.5 && p.y < r.y + r.h + 1.5)) continue;
     // 牆角：周圍兩格內被擋住的格子越多越像躲起來
     let walls = 0;
     for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (g.isBlockedCell(cx + dx, cy + dy)) walls++;
+    // 太擠（四周幾乎都是牆）就擺不下屍體
+    if (walls > 15) continue;
     const score = walls + rng.next() * 0.5;
     if (score > bestScore) {
       bestScore = score;

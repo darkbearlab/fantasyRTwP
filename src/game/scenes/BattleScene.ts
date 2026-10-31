@@ -234,7 +234,7 @@ export class BattleScene extends Phaser.Scene {
     // 被困的英雄（SPEC_SLICE7 §4）：進地圖時提示
     if (this.session.world.units.some((u) => u.captive)) {
       this.session.addLog(tr("遠處傳來打鬥聲……有人被困住了。"), 'warn');
-      this.session.showToast(tr("遠處傳來打鬥聲……"), this.time.now, 2600);
+      this.session.showCaption(tr("遠處傳來打鬥聲……"), this.time.now, 3000);
     }
     this.registry.set('session', this.session);
     this.views.clear();
@@ -819,7 +819,7 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
           const h = w.units.find((x) => x.team === 'hero' && !x.dead);
           const side = h ? directionWord(h.pos, ev.point) : '';
           const msg = ev.seconds <= 3 ? tr("⚠ 魔王的冠軍追上來了！{0}", { 0: side }) : tr("⚠ 魔王的冠軍逼近中：約 {0} 秒後{1}出現", { 0: Math.round(ev.seconds), 1: side });
-          s.showToast(msg, this.time.now, 3600);
+          s.showCaption(msg, this.time.now, 3600);
           s.addLog(msg, 'warn');
           break;
         }
@@ -913,11 +913,11 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
         case 'exitWaiting':
           // Alan：全員到齊才能離開
           if (ev.locked) {
-            s.showToast(w.map.exitLock === 'boss' ? tr("出口封住了：先打倒頭目") : tr("出口封住了：先打倒精英隊長"), this.time.now, 1800);
+            s.showCaption(w.map.exitLock === 'boss' ? tr("出口封住了：先打倒頭目") : tr("出口封住了：先打倒精英隊長"), this.time.now, 2200);
             // 走到非回程的出口才發現封住：標示出要打倒的敵人
             if (!this.exitInfo.find((x) => x.id === ev.exitId)?.back) this.revealTargets();
           }
-          else s.showToast(tr("You must gather your party before venturing forth.（{0}／{1}）", { 0: ev.inside, 1: ev.total }), this.time.now, 2400);
+          else s.showCaption(tr("You must gather your party before venturing forth.（{0}／{1}）", { 0: ev.inside, 1: ev.total }), this.time.now, 2600);
           break;
         case 'squadSighted':
           if (w.time > 0.5) s.addLog(tr("發現敵人：{0}", { 0: ev.unitIds.map((id) => L(id)).join(tr("、")) }), 'warn');
@@ -930,7 +930,7 @@ ${info.detail}` : info.title, { fontFamily: FONT, fontSize: '14px', color: info.
           if (obj?.def.kind === 'lever') s.addLog(tr("{0} 拉動了{1}", { 0: L(ev.unitId), 1: objectName(obj) }), 'sys');
           // 地圖上的商人（SPEC_SLICE7 §2）：非戰鬥中才打開商店
           if (obj?.def.kind === 'merchant') {
-            if (w.inCombat) s.showToast(tr("戰鬥中，商人躲起來了"), this.time.now);
+            if (w.inCombat) s.showCaption(tr("戰鬥中，商人躲起來了"), this.time.now, 2000);
             else s.merchantOpen = true;
           }
           break;
