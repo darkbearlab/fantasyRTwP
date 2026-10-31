@@ -68,8 +68,9 @@ describe('被困的英雄', () => {
     expect(c).toBeDefined();
     expect(c.captive).toBe(true);
     expect(c.isHero).toBe(false);
+    // 追兵可能是 0～2 名（躲起來的時候身邊沒有敵人）
     const guards = w.units.filter((u) => u.team === 'enemy' && u.squad === c.captiveSquad);
-    expect(guards.length).toBeGreaterThan(0);
+    expect(guards.length).toBeLessThanOrEqual(Math.max(...JOURNEY.rescue.pursuers));
     for (const g of guards) expect(w.canTarget(g, c)).toBe(false);
     const at = { ...c.pos };
     // 還沒被找到前不聽指令
@@ -85,6 +86,32 @@ describe('被困的英雄', () => {
     expect(c.captive).toBe(false);
     expect(c.masterId).toBe(h.id);
     expect(guards.every((g) => g.alerted)).toBe(true);
+  });
+
+  it('躲在離敵人遠的牆角，身邊最多一兩名追兵（Alan 2026-10-31）', () => {
+    let seen = 0;
+    const counts = new Set<number>();
+    for (let s = 1; s < 12; s++) {
+      const r = createRun(s, { style: 'deliberate', party: ['warrior', 'ranger'] });
+      for (const node of r.map.nodes.filter((n) => rescueAt(r, n.id) && r.map.nodes.some((p) => p.next.includes(n.id)))) {
+        const prev = r.map.nodes.find((p) => p.next.includes(node.id))!;
+        const w = createBattleFromRun(enter({ ...r, currentNodeId: prev.id, exitTo: node.id }, node.id));
+        const c = w.units.find((u) => u.rescue)!;
+        const foes = w.units.filter((u) => u.team === 'enemy');
+        const guards = foes.filter((e) => e.squad === c.captiveSquad);
+        counts.add(guards.length);
+        expect(guards.length).toBeLessThanOrEqual(Math.max(...JOURNEY.rescue.pursuers));
+        for (const g of guards) expect(dist(g.pos, c.pos)).toBeLessThan(4);
+        for (const g of guards) expect(JOURNEY.rescue.pursuerAi).toContain(g.def.ai);
+        // 其他敵人都離得遠（多出來的敵人站在原本的旁邊，留一點餘裕）
+        for (const e of foes) if (e.squad !== c.captiveSquad) expect(dist(e.pos, c.pos)).toBeGreaterThan(JOURNEY.rescue.hideFromEnemies - 2.5);
+        // 離出生點有一段路
+        expect(dist(c.pos, w.heroes()[0].pos)).toBeGreaterThan(12);
+        seen++;
+      }
+    }
+    expect(seen).toBeGreaterThan(5);
+    expect(counts.has(0)).toBe(true);
   });
 
   it('被抓的英雄救出來之前沒有視野（Alan 2026-10-30）', () => {
