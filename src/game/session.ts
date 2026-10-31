@@ -59,10 +59,12 @@ export interface ControlPrefs {
   deselectOnPause: boolean;
   /** 顯示戰鬥紀錄（Alan 2026-10-22：畫面夠直覺後就不太看了，可以關掉） */
   showLog: boolean;
+  /** 單次（Alan 2026-10-31）：在地圖上下完一個指令就取消選取，下一個指令要重新點人 */
+  deselectAfterOrder: boolean;
 }
 
 function loadControls(): ControlPrefs {
-  const base: ControlPrefs = { deselectOnPause: false, showLog: true };
+  const base: ControlPrefs = { deselectOnPause: false, showLog: true, deselectAfterOrder: GAME_CONFIG.deselectAfterOrder };
   try {
     const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(CONTROL_KEY) : null;
     if (raw) Object.assign(base, JSON.parse(raw));
