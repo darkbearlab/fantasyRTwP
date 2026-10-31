@@ -286,8 +286,9 @@ export class InputController {
   /**
    * 行動版的點擊（Alan 2026-10-21）：
    * - 點英雄＝只選這名英雄（先全部取消再選；多選用英雄卡）。
-   * - 輕點地面＝純移動（途中不理敵人，到了就地駐守）；輕點敵人＝攻擊移動到那個位置。
-   * - 在原地按住 longPressSec 秒（或滑鼠右鍵）＝攻擊移動（attack＝true）。
+   * - 輕點地面＝純移動（途中不理敵人，到了就地駐守）。
+   * - 點敵人（輕點、長按、右鍵都一樣）＝鎖定那名敵人：追著打，打倒後就地駐守（Alan 2026-10-31，原本是攻擊移動到它當時的位置，敵人一走動就丟掉目標）。
+   * - 在地面原地按住 longPressSec 秒（或滑鼠右鍵）＝攻擊移動（attack＝true）；途中被打會還手。
    */
   private tapOrder(m: Vec, unit: Unit | undefined, attack = false): void {
     const s = this.session;
@@ -303,7 +304,10 @@ export class InputController {
     const ex = (s.world.map.exits ?? []).find((e) => m.x >= e.x && m.x <= e.x + e.w && m.y >= e.y && m.y <= e.y + e.h);
     if (ex) s.exitPing = { id: ex.id, at: this.now() };
     const enemy = unit && !unit.dead && unit.team === 'enemy';
-    if (attack || enemy) this.attackMove(enemy ? { x: unit!.pos.x, y: unit!.pos.y } : m);
+    if (enemy) {
+      this.attackMoveArmed = false;
+      s.enqueue({ type: 'attack', unitIds: s.selectedUnits().map((u) => u.id), targetId: unit!.id });
+    } else if (attack) this.attackMove(m);
     else s.enqueue({ type: 'move', unitIds: s.selectedUnits().map((u) => u.id), point: m });
     // 下完指令是否取消選取（GAME_CONFIG.deselectAfterOrder，目前關閉）
     if (GAME_CONFIG.deselectAfterOrder) s.selection = [];
