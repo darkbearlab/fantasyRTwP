@@ -87,8 +87,8 @@ export const GAME_CONFIG = {
    * 行動版卡片上方的控制鈕（Alan：之後要做成可以調整，先把排列抽出來）：
    * align＝整排靠左／置中／靠右（對齊卡片列）；order＝由左到右的順序。
    */
-  mobileControls: { align: 'left' as 'left' | 'center' | 'right', order: ['pause', 'selectAll', 'oneShot', 'bag'] as ('pause' | 'selectAll' | 'oneShot' | 'bag')[] },
-  /** 行動版：點地圖下完指令後是否自動取消選取的預設值（Alan 2026-10-20：先關掉；2026-10-31 起玩家可以用面板上的「單次」勾勾切換，存在瀏覽器） */
+  mobileControls: { align: 'left' as 'left' | 'center' | 'right', order: ['pause', 'selectAll', 'bag'] as ('pause' | 'selectAll' | 'bag')[] },
+  /** 行動版：點地圖下完指令後是否自動取消選取的預設值（Alan 2026-10-20：先關掉；2026-10-31 起玩家可以在設定的「單次」切換，存在瀏覽器） */
   deselectAfterOrder: false,
   /**
    * 行動版（沉穩節奏）的地圖操作（Alan 2026-10-21）：輕點＝純移動；在原地按住這麼多秒＝攻擊移動。

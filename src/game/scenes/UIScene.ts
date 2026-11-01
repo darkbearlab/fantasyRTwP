@@ -338,6 +338,21 @@ export class UIScene extends Phaser.Scene {
       p.appendChild(row);
     }
     {
+      // 單次（Alan 2026-10-31；11-01 從面板移到設定）：下完一個指令就取消選取
+      const row = el('div', 'settings-row');
+      const lab = el('label', 'settings-check');
+      const cb = el('input');
+      cb.type = 'checkbox';
+      cb.tabIndex = -1;
+      cb.checked = s.controls.deselectAfterOrder;
+      cb.addEventListener('change', () => s.setControls({ deselectAfterOrder: cb.checked }));
+      const text = el('div', 'settings-text');
+      text.append(el('div', '', tr("單次：下完指令就取消選取")), el('div', 'settings-hint', tr("每個指令都要重新點人")));
+      lab.append(cb, text);
+      row.appendChild(lab);
+      p.appendChild(row);
+    }
+    {
       // 戰鬥紀錄（Alan 2026-10-22）：可以整個關掉
       const row = el('div', 'settings-row');
       const lab = el('label', 'settings-check');

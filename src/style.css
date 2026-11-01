@@ -1826,38 +1826,6 @@ body {
   cursor: pointer;
   padding: 0;
 }
-/* 單次勾勾（Alan 2026-10-31）：小方框＋「單次」；勾起來時方框打勾、外框變藍 */
-.m-selall.m-oneshot {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  font-size: 11px;
-}
-.m-check {
-  width: 12px;
-  height: 12px;
-  border: 2px solid currentColor;
-  border-radius: 2px;
-  box-sizing: border-box;
-  position: relative;
-}
-.m-oneshot.on {
-  border-color: #7fd0ff;
-  color: #7fd0ff;
-}
-.m-oneshot.on .m-check::after {
-  content: '';
-  position: absolute;
-  left: 2px;
-  top: -2px;
-  width: 4px;
-  height: 8px;
-  border: solid currentColor;
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
-}
 .m-selall.dim {
   opacity: 0.45;
 }
