@@ -148,7 +148,6 @@ export class MobileHeroBar {
   private pauseBtn: HTMLElement;
   private pauseLabel: HTMLElement;
   private selectAllBtn: HTMLElement;
-  private oneShotBtn: HTMLElement;
 
   constructor(private host: MobileBarHost) {
     this.root = el('div', 'm-bar interactive');
@@ -167,16 +166,6 @@ export class MobileHeroBar {
     this.selectAllBtn.addEventListener('mousedown', (ev) => ev.preventDefault());
     this.selectAllBtn.addEventListener('click', () => this.selectAll());
     this.selectAllBtn.title = tr("選取所有英雄");
-    // 單次（Alan 2026-10-31，取代全不選鈕）：勾起來時，在地圖上下完一個指令就取消選取
-    this.oneShotBtn = el('button', 'm-selall m-oneshot');
-    this.oneShotBtn.append(el('span', 'm-check'), el('span', 'm-oneshot-label', tr("單次")));
-    this.oneShotBtn.tabIndex = -1;
-    this.oneShotBtn.title = tr("勾選：下完一個指令就取消選取，下一個指令要重新點人");
-    this.oneShotBtn.addEventListener('mousedown', (ev) => ev.preventDefault());
-    this.oneShotBtn.addEventListener('click', () => {
-      const s = this.host.session();
-      s.setControls({ deselectAfterOrder: !s.controls.deselectAfterOrder });
-    });
     // 包包（消耗品，Alan 2026-10-21）：打開清單直接用；要選目標的點英雄卡
     this.bagBtn = el('button', 'm-selall m-bagbtn', '🎒');
     this.bagBtn.tabIndex = -1;
@@ -191,7 +180,7 @@ export class MobileHeroBar {
     this.bagPop = el('div', 'm-bag-pop');
     // 控制鈕列：依設定排列，對齊卡片列的左／中／右
     const mc = GAME_CONFIG.mobileControls;
-    const buttons: Record<string, HTMLElement> = { pause: this.pauseBtn, selectAll: this.selectAllBtn, oneShot: this.oneShotBtn, bag: this.bagBtn };
+    const buttons: Record<string, HTMLElement> = { pause: this.pauseBtn, selectAll: this.selectAllBtn, bag: this.bagBtn };
     const pauseRow = el('div', 'm-pause-row');
     for (const k of mc.order) if (buttons[k]) pauseRow.appendChild(buttons[k]);
     const pauseCol = el('div', `m-pause-col align-${mc.align}`);
@@ -398,7 +387,6 @@ export class MobileHeroBar {
     this.renderBag();
     this.pauseBtn.classList.toggle('paused', s.paused);
     this.selectAllBtn.classList.toggle('active', this.allSelected(s));
-    this.oneShotBtn.classList.toggle('on', s.controls.deselectAfterOrder);
     const label = s.paused && !s.world.result ? (s.pauseReason ? tr("暫停：{0}", { 0: s.pauseReason }) : tr("暫停中")) : '';
     if (this.pauseLabel.textContent !== label) this.pauseLabel.textContent = label;
     const sel = new Set(s.selection);
@@ -470,9 +458,7 @@ export function staticHeroBar(cards: StaticHeroCard[], slots: number, portraitUr
   const pause = el('div', 'm-pause');
   pause.innerHTML = HOURGLASS_SVG;
   const selAll = el('div', 'm-selall', tr("全選"));
-  const oneShot = el('div', 'm-selall m-oneshot');
-  oneShot.append(el('span', 'm-check'), el('span', 'm-oneshot-label', tr("單次")));
-  const buttons: Record<string, HTMLElement> = { pause, selectAll: selAll, oneShot };
+  const buttons: Record<string, HTMLElement> = { pause, selectAll: selAll };
   const mc = GAME_CONFIG.mobileControls;
   const pauseRow = el('div', 'm-pause-row');
   for (const k of mc.order) if (buttons[k]) pauseRow.appendChild(buttons[k]);
