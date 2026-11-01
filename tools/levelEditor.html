@@ -104,6 +104,23 @@ table.cov td.n { font-family: var(--font-mono); text-align: right; }
 .sockets { display: grid; grid-template-columns: auto 1fr; gap: 4px 8px; align-items: center; font-size: 12px; }
 .sockets .boxes { display: flex; gap: 4px; flex-wrap: wrap; }
 .sockets button { padding: 1px 8px; font-family: var(--font-mono); font-size: 12px; }
+#tip {
+  position: fixed; z-index: 30; pointer-events: none; max-width: 260px;
+  background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 6px;
+  padding: 6px 8px; font-size: 12px; line-height: 1.5; box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+}
+#tip b { font-weight: 600; }
+#tip .yes { color: var(--accent); }
+#tip .no { color: var(--muted); }
+#tip .fx { color: var(--warn); }
+#tip hr { border: none; border-top: 1px solid var(--line); margin: 4px 0; }
+.card.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.loot { display: flex; flex-direction: column; gap: 4px; }
+.loot .lrow { display: flex; align-items: center; gap: 4px; }
+.loot .lrow select { flex: 1; min-width: 0; }
+.loot .lrow input { width: 3.6em; }
+.loot .pct { font-family: var(--font-mono); font-size: 11px; color: var(--muted); width: 3.2em; text-align: right; }
+textarea { font: inherit; color: inherit; background: var(--paper); border: 1px solid var(--line); border-radius: 5px; padding: 4px 6px; width: 100%; min-height: 3.5em; resize: vertical; box-sizing: border-box; }
 #banner { display: none; padding: 6px 16px; font-size: 12px; background: var(--paper); border-bottom: 1px solid var(--line); color: var(--warn); }
 #banner.show { display: block; }
 .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center; z-index: 20; padding: 16px; }
@@ -139,7 +156,8 @@ table.cov td.n { font-family: var(--font-mono); text-align: right; }
   <nav id="tools" aria-label="工具"></nav>
   <section id="stage">
     <div id="zoom">
-      <button id="zoomOut" aria-label="縮小">−</button><span id="zoomVal">16px</span><button id="zoomIn" aria-label="放大">＋</button>
+      <button id="zoomOut" aria-label="縮小">−</button><span id="zoomVal">100%</span><button id="zoomIn" aria-label="放大">＋</button>
+      <button id="zoomFit" title="整張地圖放進畫面">符合畫面</button>
       <button id="panBtn" title="拖曳畫面（手機上捲動用）">✋ 拖曳</button>
       <span id="hover"></span>
     </div>
@@ -156,6 +174,7 @@ table.cov td.n { font-family: var(--font-mono); text-align: right; }
   </aside>
 </main>
 
+<div id="tip" hidden></div>
 <div class="modal" id="newModal" hidden>
   <form class="box" id="newForm">
     <h2>新增關卡</h2>
@@ -176,22 +195,53 @@ table.cov td.n { font-family: var(--font-mono); text-align: right; }
   const CHUNK = 16;
   const SOCKET_W = 4;
   // 地形（SPEC_LEVELS §1）；color 是方格紙上的顏色，兩種主題共用（地圖內容，不跟介面主題）
+  // sight＝擋視線；fx＝特殊效果（數值照遊戲 src/sim/data/terrain.ts，2026-11-01）
   const TERRAIN = [
     { ch: '.', name: '地面', color: '#d8d2bd', pass: true },
-    { ch: '"', name: '草叢', color: '#6f9a4e', pass: true },
-    { ch: '~', name: '淺水', color: '#8cc1d6', pass: true },
-    { ch: '=', name: '矮籬', color: '#b08c55', pass: true },
-    { ch: '^', name: '高地', color: '#c9a978', pass: true },
-    { ch: ':', name: '裝飾', color: '#bfb59a', pass: true, dots: true },
-    { ch: '#', name: '牆', color: '#4b4842', pass: false },
+    { ch: '"', name: '草叢', color: '#6f9a4e', pass: true, fx: ['站在裡面隱匿：敵人 2 m 內才看得到', '出手後暴露 2 秒', '會被火點燃、延燒到相鄰草叢'] },
+    { ch: '~', name: '淺水', color: '#8cc1d6', pass: true, fx: ['移動速度 ×0.4', '站在水中防禦 −10'] },
+    { ch: '=', name: '矮籬', color: '#b08c55', pass: true, fx: ['跨越時移動速度 ×0.5', '1.5 m 內當掩體：防禦 +15'] },
+    { ch: '^', name: '高地', color: '#c9a978', pass: true, fx: ['站在上面的遠程：射程 +2 m、傷害 ×1.15', '從低處往上射：命中 −10'] },
+    { ch: ':', name: '裝飾', color: '#bfb59a', pass: true, dots: true, fx: ['只影響外觀：套美術時放不擋路的擺設'] },
+    { ch: '#', name: '牆', color: '#4b4842', pass: false, sight: true },
     { ch: 'W', name: '深水／坑', color: '#2e5d86', pass: false },
-    { ch: '%', name: '可破壞', color: '#8a5a3a', pass: false, hatch: true },
-    { ch: ' ', name: '地圖外', color: null, pass: false },
+    { ch: '%', name: '可破壞', color: '#8a5a3a', pass: false, sight: true, breakable: true, hatch: true, fx: ['打壞之後變成地面（遊戲裡還沒做，暫時當牆）'] },
+    { ch: ' ', name: '地圖外', color: null, pass: false, outside: true },
   ];
   const T = Object.fromEntries(TERRAIN.map((t) => [t.ch, t]));
   const POOLS = [['melee', '近戰'], ['ranged', '遠程'], ['ambush', '伏兵'], ['mixed', '混合']];
   const OBJECTS = [['chest', '寶箱', '箱'], ['shrine', '神龕', '神'], ['merchant', '商人', '商'], ['lever', '拉桿', '桿'], ['captive', '被困英雄', '救'], ['random', '隨機', '？']];
   const OBJ = Object.fromEntries(OBJECTS.map(([k, n, g]) => [k, { n, g }]));
+  // 寶箱掉落（遊戲的消耗品與裝備清單，2026-11-01 的快照；遊戲改了要同步）
+  const CONSUMABLE_LIST = [['potion', '治療藥水'], ['elixir', '群體藥劑'], ['phoenix', '鳳凰羽毛'], ['rallyBanner', '號召戰旗'], ['smoke', '煙霧彈']];
+  const ITEM_LIST = [
+    ['ironShield', '鐵盾', 'common'], ['swiftBoots', '疾行靴', 'common'], ['hawkEye', '鷹眼', 'common'], ['frostRing', '寒霜指環', 'common'],
+    ['swampMoss', '沼澤苔', 'common'], ['holySigil', '聖徽', 'common'], ['warHammer', '戰錘', 'common'], ['leatherArmor', '皮甲', 'common'],
+    ['swiftGloves', '迅捷手套', 'common'], ['huntersMark', '獵人印記', 'common'], ['metronome', '節拍器', 'common'], ['warTrophy', '戰利品項鍊', 'common'],
+    ['dancerSash', '舞者腰帶', 'common'], ['backstabber', '背刺匕首', 'common'], ['steelSword', '精鋼長劍', 'common'], ['quickBlade', '迅刃', 'common'],
+    ['flameBlade', '火焰之刃', 'rare'], ['towerShield', '塔盾', 'rare'], ['stormBoots', '風暴之靴', 'rare'], ['glacierHeart', '冰川之心', 'rare'],
+    ['executionerAxe', '處刑者之斧', 'rare'], ['reaperSigil', '收割者徽記', 'rare'], ['fervorCharm', '戰意護符', 'rare'], ['thornMail', '荊棘甲', 'rare'],
+    ['stormRing', '雷鳴指環', 'rare'], ['prayerBeads', '禱念珠', 'rare'], ['lastStand', '背水一戰', 'rare'], ['greatBlade', '巨劍', 'rare'],
+    ['cleaveManual', '橫掃戰典', 'rank'], ['tauntBanner', '挑釁戰旗', 'rank'], ['piercingQuiver', '穿甲箭袋', 'rank'], ['falconFeather', '隼羽', 'rank'],
+    ['emberCore', '餘燼核心', 'rank'], ['frostShard', '霜晶', 'rank'], ['smiteRelic', '聖鎚聖物', 'rank'], ['blessedCenser', '祝福香爐', 'rank'],
+  ];
+  const LOOT_GROUPS = [
+    ['類別（遊戲隨機抽）', [['cat:item-common', '一般裝備（隨機）'], ['cat:item-rare', '稀有裝備（隨機）'], ['cat:consumable', '消耗品（隨機）'], ['cat:heal', '全隊回血 35%'], ['cat:xp', '經驗值'], ['cat:gold', '金幣']]],
+    ['指定消耗品', CONSUMABLE_LIST.map(([k, n]) => ['consumable:' + k, n])],
+    ['指定一般裝備', ITEM_LIST.filter((i) => i[2] === 'common').map(([k, n]) => ['item:' + k, n])],
+    ['指定稀有裝備', ITEM_LIST.filter((i) => i[2] === 'rare').map(([k, n]) => ['item:' + k, n])],
+    ['指定職業強化', ITEM_LIST.filter((i) => i[2] === 'rank').map(([k, n]) => ['item:' + k, n])],
+  ];
+  const LOOT_LABEL = Object.fromEntries(LOOT_GROUPS.flatMap(([, opts]) => opts));
+  // 興趣點的種類（SPEC_LEVELS §1；遊戲在 L2 接上）
+  const POI_KINDS = [
+    { id: 'landmark', name: '地標', glyph: '地', hint: '只標示地點：名稱給小地圖與鏡頭參考', fields: [] },
+    { id: 'caption', name: '旁白', glyph: '旁', hint: '英雄第一次走進範圍時，畫面中央顯示一段文字', fields: ['radius', 'text'] },
+    { id: 'ambush', name: '伏擊觸發', glyph: '伏', hint: '英雄走進範圍時，指定的小隊衝出來', fields: ['radius', 'squad'] },
+    { id: 'guard', name: '守衛點', glyph: '守', hint: '指定的小隊守在這附近，不會追出範圍', fields: ['radius', 'squad'] },
+    { id: 'reinforce', name: '援軍進場點', glyph: '援', hint: '頭目戰吼、增援從這裡出現', fields: [] },
+  ];
+  const POI = Object.fromEntries(POI_KINDS.map((k) => [k.id, k]));
   const EXIT_DIRS = [['next', '往下一層'], ['back', '往回'], ['side', '同層'], ['any', '不指定']];
   const EXIT_RULES = [['reach', '走到出口（全員到齊）'], ['captain', '打倒精英隊長才開出口'], ['boss', '打倒頭目才開出口'], ['bossWin', '打倒頭目即勝利（無出口）']];
   const THEMES = [['field', '野外'], ['town', '城鎮'], ['indoor', '室內']];
@@ -203,6 +253,7 @@ table.cov td.n { font-family: var(--font-mono); text-align: right; }
     { id: 'poi', name: '興趣點', glyph: '◆' },
     { id: 'hero', name: '英雄出生', glyph: '英' },
     { id: 'exit', name: '出口', glyph: '出' },
+    { id: 'select', name: '選取標記', glyph: '☝' },
     { id: 'erase', name: '擦掉標記', glyph: '✕' },
   ];
   const SHAPES = [
@@ -369,7 +420,9 @@ table.cov td.n { font-family: var(--font-mono); text-align: right; }
   let objKind = 'chest';
   let squadSel = 'A';
   let exitDir = 'next';
-  let poiName = '興趣點';
+  let poiName = '';
+  let poiKind = 'landmark';
+  let selMark = -1;
   let pan = false;
 
   function renderTools() {
@@ -413,7 +466,12 @@ table.cov td.n { font-family: var(--font-mono); text-align: right; }
         opt.append(s, el('div', { class: 'hint' }, '拖曳畫範圍'));
       }
       if (tool.id === 'door') opt.append(el('div', { class: 'hint' }, '拖曳畫範圍'));
-      if (tool.id === 'poi') opt.append(el('input', { type: 'text', value: poiName, 'aria-label': '名稱', oninput: (e) => { poiName = e.target.value; } }));
+      if (tool.id === 'poi') {
+        const s = el('select', { 'aria-label': '興趣點種類', onchange: (e) => { poiKind = e.target.value; renderTools(); } });
+        for (const k of POI_KINDS) s.append(el('option', { value: k.id, selected: k.id === poiKind }, k.name));
+        opt.append(s, el('input', { type: 'text', value: poiName, placeholder: '名稱（可空白）', 'aria-label': '名稱', oninput: (e) => { poiName = e.target.value; } }), el('div', { class: 'hint' }, POI[poiKind].hint));
+      }
+      if (tool.id === 'select') opt.append(el('div', { class: 'hint' }, '點方格紙上的標記，在右邊編輯細節'));
       if (opt.childNodes.length > 1) box.append(opt);
     }
   }
@@ -430,7 +488,8 @@ table.cov td.n { font-family: var(--font-mono); text-align: right; }
   }
 
   // ---------- 畫布 ----------
-  const ZOOMS = [6, 8, 10, 12, 16, 20, 24, 32];
+  const ZMIN = 3;
+  const ZMAX = 48;
   let cs = 16;
   const cvs = $('map');
   const ctx = cvs.getContext('2d');
@@ -508,6 +567,12 @@ table.cov td.n { font-family: var(--font-mono); text-align: right; }
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     for (const m of lv.marks) drawMark(m, ox, oy);
+    const sm = lv.marks[selMark];
+    if (sm) {
+      ctx.strokeStyle = cssVar('--accent');
+      ctx.lineWidth = 2;
+      ctx.strokeRect(ox + sm.x * cs - 2, oy + sm.y * cs - 2, (sm.w ?? 1) * cs + 4, (sm.h ?? 1) * cs + 4);
+    }
     // 拖曳中的矩形
     if (drag?.rect) {
       const r = normRect(drag.a, drag.b);
@@ -551,11 +616,22 @@ table.cov td.n { font-family: var(--font-mono); text-align: right; }
       const sq = current.squads[m.squad];
       disc(sq?.boss ? '#5a1d8c' : sq?.captain ? '#8c1d2a' : '#c0392b', m.squad);
     }
-    if (m.t === 'object') disc('#d4a017', OBJ[m.kind]?.g ?? '?', '#2a1f00');
+    if (m.t === 'object') {
+      disc('#d4a017', OBJ[m.kind]?.g ?? '?', '#2a1f00');
+      if (m.kind === 'chest' && m.loot && cs >= 8) { ctx.fillStyle = '#2f6fd0'; ctx.beginPath(); ctx.arc(cx + cs * 0.38, cy - cs * 0.38, cs * 0.16, 0, Math.PI * 2); ctx.fill(); }
+    }
     if (m.t === 'hero') disc('#2f6fd0', '英');
     if (m.t === 'poi') {
+      if (m.radius) {
+        ctx.strokeStyle = 'rgba(125,75,194,0.7)';
+        ctx.setLineDash([5, 4]);
+        ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(cx, cy, m.radius * cs, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+      }
       ctx.fillStyle = '#7d4bc2';
-      ctx.beginPath(); ctx.moveTo(cx, cy - cs * 0.5); ctx.lineTo(cx + cs * 0.5, cy); ctx.lineTo(cx, cy + cs * 0.5); ctx.lineTo(cx - cs * 0.5, cy); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(cx, cy - cs * 0.55); ctx.lineTo(cx + cs * 0.55, cy); ctx.lineTo(cx, cy + cs * 0.55); ctx.lineTo(cx - cs * 0.55, cy); ctx.closePath(); ctx.fill();
+      if (cs >= 10) { ctx.fillStyle = '#fff'; ctx.font = `600 ${Math.max(8, Math.round(cs * 0.5))}px ${cssVar('--font-body')}`; ctx.fillText(POI[m.kind ?? 'landmark'].glyph, cx, cy + 0.5); }
       if (cs >= 10 && m.name) {
         ctx.font = `600 ${Math.max(10, fs)}px ${cssVar('--font-body')}`;
         ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,0.85)';
@@ -615,17 +691,45 @@ table.cov td.n { font-family: var(--font-mono); text-align: right; }
     return -1;
   }
 
+  const capture = (ev) => { try { cvs.setPointerCapture(ev.pointerId); } catch { /* 合成事件、已放開的指標 */ } };
+  const pointers = new Map();
+  let pinch = null;
+  let panDrag = null;
+  let spaceHeld = false;
+  let strokeUndo = null;
+  const pdist = () => { const [a, b] = [...pointers.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
+  const pmid = () => { const [a, b] = [...pointers.values()]; return [(a.x + b.x) / 2, (a.y + b.y) / 2]; };
   cvs.addEventListener('pointerdown', (ev) => {
-    if (pan || !current || ev.button > 0) return;
+    pointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    if (pointers.size === 2) {
+      // 第二根手指：取消正在畫的那一筆，改成捏合縮放
+      if (drag?.paint && strokeUndo) { current = JSON.parse(strokeUndo); undo.pop(); }
+      drag = null;
+      strokeUndo = null;
+      pinch = { d0: pdist(), cs0: cs };
+      hideTip();
+      draw();
+      return;
+    }
+    if (pointers.size > 2 || !current) return;
+    if ((pan || spaceHeld || ev.button === 1) && ev.pointerType === 'mouse') {
+      const st = $('stage');
+      panDrag = { x: ev.clientX, y: ev.clientY, sl: st.scrollLeft, st: st.scrollTop };
+      capture(ev);
+      ev.preventDefault();
+      return;
+    }
+    if (pan || ev.button > 0) return;
     const c = cellAt(ev);
     if (!inside(c)) {
       // 點外圍：切換板塊開口
       if (current.kind === 'tile') toggleSocketAt(c);
       return;
     }
-    cvs.setPointerCapture(ev.pointerId);
+    capture(ev);
     if (tool.kind === 'paint') {
       pushUndo();
+      strokeUndo = undo[undo.length - 1];
       drag = { paint: true };
       if (paintAt(c, tool.ch)) markDirty();
     } else if (tool.kind === 'rect' || (tool.kind === 'mark' && (tool.id === 'door' || tool.id === 'exit'))) {
@@ -640,14 +744,32 @@ table.cov td.n { font-family: var(--font-mono); text-align: right; }
     draw();
   });
   cvs.addEventListener('pointermove', (ev) => {
+    if (pointers.has(ev.pointerId)) pointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    if (pinch && pointers.size === 2) {
+      const [mx, my] = pmid();
+      zoomTo(pinch.cs0 * (pdist() / pinch.d0), mx, my);
+      return;
+    }
+    if (panDrag) {
+      const st = $('stage');
+      st.scrollLeft = panDrag.sl - (ev.clientX - panDrag.x);
+      st.scrollTop = panDrag.st - (ev.clientY - panDrag.y);
+      return;
+    }
     const c = cellAt(ev);
     hoverCell = inside(c) ? c : null;
-    $('hover').textContent = hoverCell ? `x ${c[0]}  y ${c[1]}  ${T[current.grid[c[1]][c[0]]]?.name ?? ''}` : '';
+    $('hover').textContent = hoverCell ? `x ${c[0]}  y ${c[1]}` : '';
+    if (hoverCell && !drag) showTip(ev, c);
+    else hideTip();
     if (drag?.paint && inside(c)) { if (paintAt(c, tool.ch)) markDirty(); }
     if (drag?.rect) drag.b = [Math.max(0, Math.min(current.w - 1, c[0])), Math.max(0, Math.min(current.h - 1, c[1]))];
     draw();
   });
-  const endDrag = () => {
+  const endDrag = (ev) => {
+    pointers.delete(ev.pointerId);
+    if (pinch) { if (pointers.size < 2) pinch = null; return; }
+    if (panDrag) { panDrag = null; return; }
+    strokeUndo = null;
     if (drag?.rect) {
       const r = normRect(drag.a, drag.b);
       pushUndo();
@@ -661,22 +783,101 @@ table.cov td.n { font-family: var(--font-mono); text-align: right; }
     draw();
   };
   cvs.addEventListener('pointerup', endDrag);
-  cvs.addEventListener('pointercancel', () => { drag = null; draw(); });
-  cvs.addEventListener('pointerleave', () => { hoverCell = null; $('hover').textContent = ''; if (!drag) draw(); });
+  cvs.addEventListener('pointercancel', (ev) => { pointers.delete(ev.pointerId); if (pointers.size < 2) pinch = null; panDrag = null; drag = null; draw(); });
+  cvs.addEventListener('pointerleave', () => { hoverCell = null; $('hover').textContent = ''; hideTip(); if (!drag) draw(); });
+
+  // ---------- 懸浮提示（Alan 2026-11-01）：格子的性質、上面的標記 ----------
+  const yn = (v, yes, no) => `<span class="${v ? 'yes' : 'no'}">${v ? '✓ ' + yes : '✗ ' + no}</span>`;
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  function tipHtml(x, y) {
+    const t = T[current.grid[y][x]] ?? T['.'];
+    const lines = [];
+    const doors = current.marks.filter((m) => m.t === 'door' && x >= m.x && y >= m.y && x < m.x + m.w && y < m.y + m.h);
+    lines.push(`<b>${esc(t.name)}</b>　<span class="no">x ${x}, y ${y}</span>`);
+    if (t.outside) lines.push('<span class="no">不屬於地圖</span>');
+    else {
+      lines.push(yn(t.pass, '可通過', '擋路') + '　' + yn(t.sight, '擋視線', '不擋視線') + (t.pass ? '' : '　' + yn(t.breakable, '可破壞', '不可破壞')));
+      for (const f of t.fx ?? []) lines.push(`<span class="fx">● ${esc(f)}</span>`);
+    }
+    for (const d of doors) lines.push('<hr><b>門</b>（' + (d.open ? '開著' : '關著') + '）', '<span class="fx">● 關著時擋路、擋視線；英雄可以開關</span>');
+    for (const m of current.marks) {
+      if (m.t === 'door' || x !== m.x || y !== m.y) continue;
+      lines.push('<hr>' + markHtml(m));
+    }
+    for (const m of current.marks) if (m.t === 'exit' && x >= m.x && y >= m.y && x < m.x + m.w && y < m.y + m.h) lines.push('<hr>' + markHtml(m));
+    return lines.join('<br>');
+  }
+  function markHtml(m) {
+    if (m.t === 'spawn') {
+      const sq = current.squads[m.squad];
+      if (!sq) return `<b>生怪點</b>（小隊 ${esc(m.squad)} 不存在）`;
+      const tags = [sq.ambush && '伏兵', sq.captain && '精英隊長', sq.boss && '頭目'].filter(Boolean).join('、');
+      return `<b>生怪點・小隊 ${esc(m.squad)}</b><br>${POOLS.find((p) => p[0] === sq.pool)?.[1] ?? sq.pool} ${sq.count[0]}～${sq.count[1]} 隻${tags ? '，' + tags : ''}`;
+    }
+    if (m.t === 'object') {
+      let h = `<b>${OBJ[m.kind]?.n ?? m.kind}</b>`;
+      if (m.kind === 'chest') h += '<br>' + (m.loot ? lootSummary(m.loot) : '<span class="no">掉落：照遊戲預設隨機</span>');
+      if (m.kind === 'captive' || m.kind === 'merchant') h += '<br><span class="no">候選位置：這場有這個事件才放</span>';
+      return h;
+    }
+    if (m.t === 'poi') {
+      const k = POI[m.kind ?? 'landmark'];
+      let h = `<b>${esc(m.name || k.name)}</b>（${k.name}）<br><span class="no">${k.hint}</span>`;
+      if (m.radius) h += `<br>範圍 ${m.radius} m`;
+      if (k.fields.includes('squad')) h += `<br>小隊 ${esc(m.squad ?? '—')}`;
+      if (m.text) h += `<br>「${esc(m.text)}」`;
+      return h;
+    }
+    if (m.t === 'hero') return '<b>英雄出生點</b>';
+    if (m.t === 'exit') return `<b>出口</b>（${EXIT_DIRS.find((d) => d[0] === (m.dir ?? 'any'))[1]}）<br><span class="no">全員走進來就離開</span>`;
+    return '';
+  }
+  function lootSummary(loot) {
+    const sum = loot.table.reduce((a, r) => a + (r.w > 0 ? r.w : 0), 0) || 1;
+    const rows = loot.table.filter((r) => r.w > 0).map((r) => `${esc(LOOT_LABEL[r.k] ?? r.k)} ${Math.round((r.w / sum) * 100)}%`);
+    return `掉落 ${loot.rolls} 樣，每樣從：<br>` + (rows.length ? rows.join('<br>') : '<span class="no">（表是空的）</span>');
+  }
+  function showTip(ev, [x, y]) {
+    const tip = $('tip');
+    tip.innerHTML = tipHtml(x, y);
+    tip.hidden = false;
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    let left = ev.clientX + 16, top = ev.clientY + 16;
+    if (left + w > window.innerWidth - 8) left = ev.clientX - w - 12;
+    if (top + h > window.innerHeight - 8) top = ev.clientY - h - 12;
+    tip.style.left = Math.max(8, left) + 'px';
+    tip.style.top = Math.max(8, top) + 'px';
+  }
+  function hideTip() { $('tip').hidden = true; }
 
   function placeMark(c) {
+    if (tool.id === 'select') {
+      selMark = markAt(c);
+      if (selMark >= 0) tab = 'marks';
+      renderPane();
+      draw();
+      return;
+    }
     pushUndo();
     if (tool.id === 'erase') {
       const i = markAt(c);
-      if (i >= 0) current.marks.splice(i, 1);
+      if (i >= 0) { current.marks.splice(i, 1); selMark = -1; }
       else { undo.pop(); return; }
     } else {
       // 同一格已有點狀標記：換掉
       const i = markAt(c);
-      if (i >= 0 && !current.marks[i].w) current.marks.splice(i, 1);
+      if (i >= 0 && !current.marks[i].w) { current.marks.splice(i, 1); selMark = -1; }
       if (tool.id === 'spawn') current.marks.push({ t: 'spawn', x: c[0], y: c[1], squad: squadSel });
       if (tool.id === 'object') current.marks.push({ t: 'object', x: c[0], y: c[1], kind: objKind });
-      if (tool.id === 'poi') current.marks.push({ t: 'poi', x: c[0], y: c[1], name: poiName || '興趣點' });
+      if (tool.id === 'poi') {
+        const m = { t: 'poi', x: c[0], y: c[1], kind: poiKind, name: poiName.trim() || POI[poiKind].name };
+        if (POI[poiKind].fields.includes('radius')) m.radius = 6;
+        if (POI[poiKind].fields.includes('text')) m.text = '';
+        if (POI[poiKind].fields.includes('squad')) m.squad = squadSel;
+        current.marks.push(m);
+        selMark = current.marks.length - 1;
+        tab = 'marks';
+      }
       if (tool.id === 'hero') current.marks.push({ t: 'hero', x: c[0], y: c[1] });
     }
     markDirty();
@@ -706,6 +907,7 @@ table.cov td.n { font-family: var(--font-mono); text-align: right; }
     const s = undo.pop();
     if (!s) return;
     current = JSON.parse(s);
+    if (!current.marks[selMark]) selMark = -1;
     markDirty();
     draw();
     renderPane();
@@ -810,7 +1012,7 @@ table.cov td.n { font-family: var(--font-mono); text-align: right; }
       const ck = (key, label) => el('label', {}, el('input', { type: 'checkbox', checked: !!sq[key], onchange: (e) => edit(() => { sq[key] = e.target.checked; }) }), ' ' + label);
       p.append(el('div', { class: 'card' },
         el('div', { class: 'row' }, el('strong', {}, '小隊 ' + k), el('span', { class: 'hint' }, `${n} 個生怪點`), el('span', { class: 'grow' }),
-          Object.keys(lv.squads).length > 1 ? el('button', { class: 'danger', onclick: () => edit(() => { delete lv.squads[k]; lv.marks = lv.marks.filter((m) => !(m.t === 'spawn' && m.squad === k)); if (squadSel === k) squadSel = Object.keys(lv.squads)[0]; renderPane(); renderTools(); }) }, '刪除') : null),
+          Object.keys(lv.squads).length > 1 ? el('button', { class: 'danger', onclick: () => edit(() => { delete lv.squads[k]; lv.marks = lv.marks.filter((m) => !(m.t === 'spawn' && m.squad === k)); selMark = -1; if (squadSel === k) squadSel = Object.keys(lv.squads)[0]; renderPane(); renderTools(); }) }, '刪除') : null),
         field('敵人池', sel(POOLS, sq.pool, (v) => edit(() => { sq.pool = v; }))),
         el('div', { class: 'row' }, el('label', {}, '隻數'), lo, '～', hi),
         el('div', { class: 'row' }, ck('ambush', '伏兵'), ck('captain', '精英隊長'), ck('boss', '頭目'))));
@@ -818,20 +1020,89 @@ table.cov td.n { font-family: var(--font-mono); text-align: right; }
     p.append(el('button', { onclick: addSquad }, '＋新增小隊'));
   }
 
+  const MARK_NAME = { door: '門', spawn: '生怪點', object: '物件', poi: '興趣點', hero: '英雄出生', exit: '出口' };
   function paneMarks(p) {
     const lv = current;
-    if (!lv.marks.length) { p.append(el('div', { class: 'hint' }, '還沒有標記。用左邊的「標記」工具在方格紙上點或拖曳。')); return; }
-    const name = { door: '門', spawn: '生怪點', object: '物件', poi: '興趣點', hero: '英雄出生', exit: '出口' };
+    if (!lv.marks.length) { p.append(el('div', { class: 'hint' }, '還沒有標記。用左邊的「標記」工具在方格紙上點或拖曳；用「選取標記」點已經放好的標記來編輯。')); return; }
+    const sm = lv.marks[selMark];
+    if (sm) p.append(markEditor(sm, selMark, true));
+    else p.append(el('div', { class: 'hint' }, '用「選取標記」點方格紙上的標記，或按下面的「編輯」，就能設定寶箱掉落、興趣點內容等細節。'));
+    p.append(el('h3', {}, '全部標記'));
     lv.marks.forEach((m, i) => {
-      const row = el('div', { class: 'mrow' }, el('span', { class: 'k' }, `${m.x},${m.y}`), el('strong', {}, name[m.t]));
-      if (m.t === 'door') row.append(el('label', {}, el('input', { type: 'checkbox', checked: !!m.open, onchange: (e) => edit(() => { m.open = e.target.checked; }) }), ' 開著'), el('span', { class: 'hint' }, `${m.w}×${m.h}`));
-      if (m.t === 'exit') row.append(sel(EXIT_DIRS, m.dir ?? 'any', (v) => edit(() => { m.dir = v; })), el('span', { class: 'hint' }, `${m.w}×${m.h}`));
-      if (m.t === 'spawn') row.append(sel(Object.keys(lv.squads).map((k) => [k, '小隊 ' + k]), m.squad, (v) => edit(() => { m.squad = v; })));
-      if (m.t === 'object') row.append(sel(OBJECTS.map(([k, n]) => [k, n]), m.kind, (v) => edit(() => { m.kind = v; })));
-      if (m.t === 'poi') row.append(el('input', { type: 'text', value: m.name, 'aria-label': '名稱', onchange: (e) => edit(() => { m.name = e.target.value; }) }));
-      row.append(el('span', { class: 'grow' }), el('button', { class: 'danger', 'aria-label': '刪除', onclick: () => edit(() => { lv.marks.splice(i, 1); renderPane(); }) }, '✕'));
+      if (i === selMark) return;
+      const row = el('div', { class: 'mrow' }, el('span', { class: 'k' }, `${m.x},${m.y}`), el('strong', {}, markTitle(m)));
+      row.append(el('span', { class: 'grow' }), el('button', { onclick: () => { selMark = i; renderPane(); draw(); } }, '編輯'), el('button', { class: 'danger', 'aria-label': '刪除', onclick: () => edit(() => { lv.marks.splice(i, 1); if (selMark > i) selMark--; renderPane(); }) }, '✕'));
       p.append(row);
     });
+  }
+  function markTitle(m) {
+    if (m.t === 'object') return OBJ[m.kind]?.n ?? m.kind;
+    if (m.t === 'poi') return (m.name || POI[m.kind ?? 'landmark'].name) + '（' + POI[m.kind ?? 'landmark'].name + '）';
+    if (m.t === 'spawn') return '生怪點・小隊 ' + m.squad;
+    return MARK_NAME[m.t];
+  }
+  function markEditor(m, i) {
+    const lv = current;
+    const card = el('div', { class: 'card sel' });
+    card.append(el('div', { class: 'row' }, el('strong', {}, markTitle(m)), el('span', { class: 'hint' }, `x ${m.x}, y ${m.y}` + (m.w ? `　${m.w}×${m.h}` : '')), el('span', { class: 'grow' }),
+      el('button', { onclick: () => { selMark = -1; renderPane(); draw(); } }, '收起'),
+      el('button', { class: 'danger', onclick: () => edit(() => { lv.marks.splice(i, 1); selMark = -1; renderPane(); }) }, '刪除')));
+    if (m.t === 'door') card.append(el('label', {}, el('input', { type: 'checkbox', checked: !!m.open, onchange: (e) => edit(() => { m.open = e.target.checked; }) }), ' 一開始是開著的'));
+    if (m.t === 'exit') card.append(field('方向', sel(EXIT_DIRS, m.dir ?? 'any', (v) => edit(() => { m.dir = v; }))));
+    if (m.t === 'spawn') card.append(field('小隊', sel(Object.keys(lv.squads).map((k) => [k, '小隊 ' + k]), m.squad, (v) => edit(() => { m.squad = v; renderPane(); }))));
+    if (m.t === 'object') {
+      card.append(field('種類', sel(OBJECTS.map(([k, n]) => [k, n]), m.kind, (v) => edit(() => { m.kind = v; if (v !== 'chest') delete m.loot; renderPane(); }))));
+      if (m.kind === 'chest') card.append(lootEditor(m));
+    }
+    if (m.t === 'poi') {
+      const k = POI[m.kind ?? 'landmark'];
+      card.append(field('種類', sel(POI_KINDS.map((x) => [x.id, x.name]), k.id, (v) => edit(() => {
+        const nk = POI[v];
+        if (!m.name || m.name === k.name) m.name = nk.name;
+        m.kind = v;
+        if (nk.fields.includes('radius')) m.radius = m.radius ?? 6; else delete m.radius;
+        if (nk.fields.includes('text')) m.text = m.text ?? ''; else delete m.text;
+        if (nk.fields.includes('squad')) m.squad = m.squad ?? Object.keys(lv.squads)[0]; else delete m.squad;
+        renderPane();
+      }))));
+      card.append(el('div', { class: 'hint' }, k.hint));
+      card.append(field('名稱', el('input', { type: 'text', value: m.name ?? '', onchange: (e) => edit(() => { m.name = e.target.value; }) })));
+      if (k.fields.includes('radius')) card.append(el('div', { class: 'row' }, el('label', {}, '範圍'), el('input', { type: 'number', min: 1, max: 40, value: m.radius, onchange: (e) => edit(() => { m.radius = Math.max(1, Math.min(40, +e.target.value || 6)); }) }), el('span', { class: 'hint' }, 'm（方格紙上的虛線圈）')));
+      if (k.fields.includes('squad')) card.append(field('小隊', sel(Object.keys(lv.squads).map((q) => [q, '小隊 ' + q]), m.squad, (v) => edit(() => { m.squad = v; }))));
+      if (k.fields.includes('text')) card.append(el('div', { class: 'row' }, el('label', {}, '文字')), el('textarea', { 'aria-label': '旁白文字', onchange: (e) => edit(() => { m.text = e.target.value; }) }, m.text ?? ''));
+    }
+    return card;
+  }
+  /** 寶箱掉落表（Alan 2026-11-01）：不設定＝照遊戲預設；自訂＝開出 rolls 樣，每樣照權重抽一列 */
+  function lootEditor(m) {
+    const box = el('div', { class: 'loot' });
+    const custom = !!m.loot;
+    box.append(field('掉落', sel([['default', '照遊戲預設隨機'], ['custom', '自訂掉落表']], custom ? 'custom' : 'default', (v) => edit(() => {
+      if (v === 'custom') m.loot = { rolls: 1, table: [{ k: 'cat:item-common', w: 3 }, { k: 'cat:consumable', w: 3 }, { k: 'cat:gold', w: 2 }] };
+      else delete m.loot;
+      renderPane();
+    }))));
+    if (!custom) {
+      box.append(el('div', { class: 'hint' }, '預設：裝備、回血、消耗品、經驗值擇一（稀有裝備 30%）。'));
+      return box;
+    }
+    const L = m.loot;
+    box.append(el('div', { class: 'row' }, el('label', {}, '開出'), el('input', { type: 'number', min: 1, max: 5, value: L.rolls, onchange: (e) => edit(() => { L.rolls = Math.max(1, Math.min(5, +e.target.value || 1)); renderPane(); }) }), el('span', { class: 'hint' }, '樣，每樣從下表照權重抽')));
+    const sum = L.table.reduce((a, r) => a + (r.w > 0 ? r.w : 0), 0) || 1;
+    L.table.forEach((r, j) => {
+      const s = el('select', { 'aria-label': '掉落內容', onchange: (e) => edit(() => { r.k = e.target.value; }) });
+      for (const [g, opts] of LOOT_GROUPS) {
+        const og = el('optgroup', { label: g });
+        for (const [k, n] of opts) og.append(el('option', { value: k, selected: k === r.k }, n));
+        s.append(og);
+      }
+      box.append(el('div', { class: 'lrow' }, s,
+        el('input', { type: 'number', min: 0, max: 99, value: r.w, 'aria-label': '權重', title: '權重', onchange: (e) => edit(() => { r.w = Math.max(0, Math.min(99, +e.target.value || 0)); renderPane(); }) }),
+        el('span', { class: 'pct' }, Math.round(((r.w > 0 ? r.w : 0) / sum) * 100) + '%'),
+        el('button', { class: 'danger', 'aria-label': '刪除這一列', onclick: () => edit(() => { L.table.splice(j, 1); renderPane(); }) }, '✕')));
+    });
+    box.append(el('div', { class: 'row' }, el('button', { onclick: () => edit(() => { L.table.push({ k: 'cat:gold', w: 1 }); renderPane(); }) }, '＋加一列'), el('span', { class: 'hint' }, '數字是權重，右邊是機率')));
+    return box;
   }
 
   // ---------- 檢查 ----------
@@ -859,6 +1130,9 @@ table.cov td.n { font-family: var(--font-mono); text-align: right; }
     const warn = (t) => out.push({ lvl: 'warn', t });
     for (const m of lv.marks) {
       if (m.t === 'spawn' && !lv.squads[m.squad]) bad(`生怪點 ${m.x},${m.y} 的小隊 ${m.squad} 不存在`);
+      if (m.t === 'poi' && POI[m.kind ?? 'landmark'].fields.includes('squad') && !lv.squads[m.squad]) bad(`興趣點「${m.name}」指定的小隊 ${m.squad} 不存在`);
+      if (m.t === 'poi' && m.kind === 'caption' && !m.text?.trim()) warn(`旁白「${m.name}」還沒有文字`);
+      if (m.t === 'object' && m.loot && !m.loot.table.some((r) => r.w > 0)) bad(`寶箱 ${m.x},${m.y} 的掉落表是空的`);
       if ((m.t === 'spawn' || m.t === 'object' || m.t === 'hero') && !passable(lv, m.x, m.y)) warn(`${m.x},${m.y} 的標記放在擋路的格子上`);
     }
     for (const [k, sq] of Object.entries(lv.squads)) {
@@ -961,6 +1235,7 @@ table.cov td.n { font-family: var(--font-mono); text-align: right; }
     dirty = !!lv.example;
     undo.length = 0;
     confirmDelete = false;
+    selMark = -1;
     if (lv.kind === 'tile' && tool.kind === 'mark' && (tool.id === 'hero' || tool.id === 'exit')) tool = { kind: 'paint', ch: '#' };
     if (!lv.squads[squadSel]) squadSel = Object.keys(lv.squads)[0];
     setStatus(lv.example ? '範例（還沒儲存）' : '已開啟', lv.example ? 'dirty' : '');
@@ -968,6 +1243,7 @@ table.cov td.n { font-family: var(--font-mono); text-align: right; }
     renderSelect();
     renderPane();
     draw();
+    setTimeout(zoomFit, 0);
   }
   function renderSelect() {
     const s = $('levelSelect');
@@ -1020,21 +1296,48 @@ table.cov td.n { font-family: var(--font-mono); text-align: right; }
     markDirty();
   });
 
-  // 縮放、拖曳
-  const setZoom = (d) => {
-    const i = Math.max(0, Math.min(ZOOMS.length - 1, ZOOMS.indexOf(cs) + d));
-    cs = ZOOMS[i];
-    $('zoomVal').textContent = cs + 'px';
+  // 縮放（Alan 2026-11-01）：＋－鈕、滾輪、雙指捏合、符合畫面；以游標或手指中點為中心
+  function zoomTo(ncs, ax, ay) {
+    ncs = Math.max(ZMIN, Math.min(ZMAX, Math.round(ncs * 10) / 10));
+    if (ncs === cs) return;
+    const st = $('stage');
+    const sr = st.getBoundingClientRect();
+    if (ax == null) { ax = sr.left + st.clientWidth / 2; ay = sr.top + st.clientHeight / 2; }
+    const r = cvs.getBoundingClientRect();
+    const wx = (ax - r.left) / cs, wy = (ay - r.top) / cs;
+    cs = ncs;
     draw();
-  };
-  $('zoomIn').addEventListener('click', () => setZoom(1));
-  $('zoomOut').addEventListener('click', () => setZoom(-1));
+    const r2 = cvs.getBoundingClientRect();
+    st.scrollLeft += r2.left + wx * cs - ax;
+    st.scrollTop += r2.top + wy * cs - ay;
+    $('zoomVal').textContent = Math.round((cs / 16) * 100) + '%';
+  }
+  function zoomFit() {
+    if (!current) return;
+    const st = $('stage');
+    if (st.clientWidth < 120 || st.clientHeight < 120) return; // 畫面還沒排好（例如分頁在背景）
+    const zh = $('zoom').offsetHeight + 24;
+    const k = Math.min((st.clientWidth - 40) / (current.w + 2 * MARGIN), (st.clientHeight - zh - 32) / (current.h + 2 * MARGIN));
+    cs = Math.max(ZMIN, Math.min(24, Math.floor(k * 10) / 10));
+    $('zoomVal').textContent = Math.round((cs / 16) * 100) + '%';
+    draw();
+    st.scrollLeft = 0;
+    st.scrollTop = 0;
+  }
+  $('zoomIn').addEventListener('click', () => zoomTo(cs * 1.25));
+  $('zoomOut').addEventListener('click', () => zoomTo(cs / 1.25));
+  $('zoomFit').addEventListener('click', zoomFit);
+  $('stage').addEventListener('wheel', (e) => {
+    e.preventDefault();
+    zoomTo(cs * Math.pow(1.0018, -e.deltaY), e.clientX, e.clientY);
+  }, { passive: false });
   $('panBtn').addEventListener('click', () => {
     pan = !pan;
     $('panBtn').classList.toggle('on', pan);
     $('stage').classList.toggle('pan', pan);
   });
-  if (window.matchMedia('(max-width: 820px)').matches) { cs = 10; $('zoomVal').textContent = cs + 'px'; }
+  window.addEventListener('keydown', (e) => { if (e.code === 'Space' && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) { spaceHeld = true; e.preventDefault(); } });
+  window.addEventListener('keyup', (e) => { if (e.code === 'Space') spaceHeld = false; });
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', draw);
 
   // ---------- 啟動 ----------
