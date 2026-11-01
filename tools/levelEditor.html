@@ -1,0 +1,1089 @@
+<title>fantasyRTwP 關卡設計器</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* 版面：上方工具列、左側筆刷、中間方格紙、右側屬性；手機時筆刷橫排、屬性移到下方 */
+:root {
+  --bg: #eef0ec;
+  --panel: #f8f9f6;
+  --line: #c9cdc4;
+  --fg: #23271f;
+  --muted: #646b5d;
+  --accent: #3f6f4a;
+  --accent-fg: #ffffff;
+  --warn: #a8661a;
+  --bad: #b23a2e;
+  --paper: #fbfbf7;
+  --grid: rgba(35, 39, 31, 0.10);
+  --grid-chunk: rgba(35, 39, 31, 0.38);
+  --font-body: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1b1e19; --panel: #232720; --line: #3a4036; --fg: #e4e8de; --muted: #9aa290;
+    --accent: #7fb88a; --accent-fg: #10140f; --warn: #e0a24f; --bad: #ef7a6c;
+    --paper: #2a2e27; --grid: rgba(228, 232, 222, 0.08); --grid-chunk: rgba(228, 232, 222, 0.34);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1b1e19; --panel: #232720; --line: #3a4036; --fg: #e4e8de; --muted: #9aa290;
+  --accent: #7fb88a; --accent-fg: #10140f; --warn: #e0a24f; --bad: #ef7a6c;
+  --paper: #2a2e27; --grid: rgba(228, 232, 222, 0.08); --grid-chunk: rgba(228, 232, 222, 0.34);
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 14px;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+button, input, select { font: inherit; color: inherit; }
+button {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer;
+}
+button:hover { border-color: var(--muted); }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+button.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
+button.danger { color: var(--bad); }
+button.on { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+input[type=text], input[type=number], select {
+  background: var(--paper); border: 1px solid var(--line); border-radius: 5px; padding: 4px 6px; min-width: 0;
+}
+input[type=number] { width: 4.5em; font-family: var(--font-mono); }
+header {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  border-bottom: 1px solid var(--line); background: var(--panel);
+}
+header h1 { font-size: 15px; margin: 0 8px 0 0; letter-spacing: 0.5px; white-space: nowrap; }
+header .grow { flex: 1; }
+#levelSelect { max-width: 260px; }
+#status { color: var(--muted); font-size: 12px; white-space: nowrap; }
+#status.dirty { color: var(--warn); }
+#status.err { color: var(--bad); }
+main { flex: 1; display: grid; grid-template-columns: 132px minmax(0, 1fr) 300px; min-height: 0; }
+#tools {
+  border-right: 1px solid var(--line); background: var(--panel); overflow-y: auto;
+  padding: 10px 8px; display: flex; flex-direction: column; gap: 10px;
+}
+.tgroup { display: flex; flex-direction: column; gap: 4px; }
+.tlabel { font-size: 11px; color: var(--muted); letter-spacing: 1px; }
+.tool { display: flex; align-items: center; gap: 6px; text-align: left; padding: 4px 6px; font-size: 13px; }
+.swatch { width: 14px; height: 14px; border-radius: 3px; border: 1px solid rgba(0,0,0,0.35); flex: none; }
+.glyph { width: 14px; text-align: center; font-family: var(--font-mono); font-weight: 600; flex: none; }
+#stage { position: relative; overflow: auto; background: var(--bg); min-width: 0; }
+#stage.pan canvas { cursor: grab; }
+canvas#map { display: block; margin: 16px; touch-action: none; cursor: crosshair; }
+#stage.pan canvas#map { touch-action: auto; }
+#zoom { position: sticky; left: 8px; top: 8px; z-index: 2; display: inline-flex; gap: 4px; padding: 4px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; margin: 8px 0 0 8px; }
+#zoom span { font-family: var(--font-mono); font-size: 12px; align-self: center; min-width: 3.5em; text-align: center; }
+#hover { font-family: var(--font-mono); font-size: 12px; color: var(--muted); align-self: center; padding: 0 6px; }
+#side { border-left: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; min-height: 0; }
+#tabs { display: flex; border-bottom: 1px solid var(--line); }
+#tabs button { flex: 1; border: none; border-radius: 0; background: transparent; padding: 8px 4px; border-bottom: 2px solid transparent; }
+#tabs button.on { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+.pane { overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; min-height: 0; flex: 1; }
+.row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.row > label:first-child { width: 4.8em; color: var(--muted); font-size: 12px; flex: none; }
+.row input[type=text], .row select { flex: 1; }
+.hint { font-size: 12px; color: var(--muted); line-height: 1.5; }
+h3 { font-size: 12px; margin: 6px 0 0; color: var(--muted); letter-spacing: 1px; font-weight: 600; }
+.card { border: 1px solid var(--line); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 6px; background: var(--paper); }
+.mrow { display: flex; align-items: center; gap: 6px; font-size: 12px; flex-wrap: wrap; }
+.mrow .k { font-family: var(--font-mono); color: var(--muted); min-width: 4.6em; }
+.mrow button { padding: 1px 7px; font-size: 12px; }
+.issue { font-size: 12px; padding: 4px 8px; border-radius: 4px; border-left: 3px solid var(--bad); background: var(--paper); }
+.issue.warn { border-left-color: var(--warn); }
+.issue.ok { border-left-color: var(--accent); }
+table.cov { border-collapse: collapse; font-size: 12px; width: 100%; }
+table.cov td, table.cov th { border-bottom: 1px solid var(--line); padding: 4px; text-align: left; }
+table.cov td.n { font-family: var(--font-mono); text-align: right; }
+.miss { color: var(--bad); }
+.sockets { display: grid; grid-template-columns: auto 1fr; gap: 4px 8px; align-items: center; font-size: 12px; }
+.sockets .boxes { display: flex; gap: 4px; flex-wrap: wrap; }
+.sockets button { padding: 1px 8px; font-family: var(--font-mono); font-size: 12px; }
+#banner { display: none; padding: 6px 16px; font-size: 12px; background: var(--paper); border-bottom: 1px solid var(--line); color: var(--warn); }
+#banner.show { display: block; }
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center; z-index: 20; padding: 16px; }
+.modal[hidden] { display: none !important; }
+.modal .box { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; width: min(380px, 100%); display: flex; flex-direction: column; gap: 10px; }
+.modal h2 { font-size: 15px; margin: 0; }
+@media (max-width: 820px) {
+  body { overflow: auto; }
+  main { display: flex; flex-direction: column; }
+  #tools { flex-direction: row; overflow-x: auto; overflow-y: hidden; border-right: none; border-bottom: 1px solid var(--line); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .tgroup { flex-direction: row; align-items: center; }
+  .tlabel { writing-mode: vertical-rl; }
+  .tool { white-space: nowrap; }
+  #stage { height: 60vh; flex: none; }
+  #side { border-left: none; border-top: 1px solid var(--line); }
+  .pane { overflow: visible; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<header>
+  <h1>關卡設計器</h1>
+  <select id="levelSelect" aria-label="開啟關卡"></select>
+  <button id="btnNew">新增</button>
+  <button id="btnDup">複製</button>
+  <button id="btnUndo" title="復原（Ctrl+Z）">復原</button>
+  <span class="grow"></span>
+  <span id="status">尚未儲存</span>
+  <button id="btnSave" class="primary">儲存</button>
+</header>
+<div id="banner"></div>
+<main>
+  <nav id="tools" aria-label="工具"></nav>
+  <section id="stage">
+    <div id="zoom">
+      <button id="zoomOut" aria-label="縮小">−</button><span id="zoomVal">16px</span><button id="zoomIn" aria-label="放大">＋</button>
+      <button id="panBtn" title="拖曳畫面（手機上捲動用）">✋ 拖曳</button>
+      <span id="hover"></span>
+    </div>
+    <canvas id="map"></canvas>
+  </section>
+  <aside id="side">
+    <div id="tabs">
+      <button data-tab="props" class="on">設定</button>
+      <button data-tab="squads">小隊</button>
+      <button data-tab="marks">標記</button>
+      <button data-tab="check">檢查</button>
+    </div>
+    <div class="pane" id="pane"></div>
+  </aside>
+</main>
+
+<div class="modal" id="newModal" hidden>
+  <form class="box" id="newForm">
+    <h2>新增關卡</h2>
+    <div class="row"><label for="nName">名稱</label><input type="text" id="nName" value="新的關卡" required></div>
+    <div class="row"><label for="nKind">種類</label>
+      <select id="nKind"><option value="tile">拼圖板塊</option><option value="map">整張地圖</option></select></div>
+    <div class="row" id="nTileSize"><label>板塊格數</label>
+      <input type="number" id="nCw" min="1" max="3" value="1"> × <input type="number" id="nCh" min="1" max="3" value="1"><span class="hint">（1 格＝16 m）</span></div>
+    <div class="row" id="nMapSize" hidden><label>大小（m）</label>
+      <input type="number" id="nW" min="8" max="160" value="48"> × <input type="number" id="nH" min="8" max="160" value="48"></div>
+    <div class="row"><span class="grow"></span><button type="button" id="nCancel">取消</button><button type="submit" class="primary">建立</button></div>
+  </form>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const CHUNK = 16;
+  const SOCKET_W = 4;
+  // 地形（SPEC_LEVELS §1）；color 是方格紙上的顏色，兩種主題共用（地圖內容，不跟介面主題）
+  const TERRAIN = [
+    { ch: '.', name: '地面', color: '#d8d2bd', pass: true },
+    { ch: '"', name: '草叢', color: '#6f9a4e', pass: true },
+    { ch: '~', name: '淺水', color: '#8cc1d6', pass: true },
+    { ch: '=', name: '矮籬', color: '#b08c55', pass: true },
+    { ch: '^', name: '高地', color: '#c9a978', pass: true },
+    { ch: ':', name: '裝飾', color: '#bfb59a', pass: true, dots: true },
+    { ch: '#', name: '牆', color: '#4b4842', pass: false },
+    { ch: 'W', name: '深水／坑', color: '#2e5d86', pass: false },
+    { ch: '%', name: '可破壞', color: '#8a5a3a', pass: false, hatch: true },
+    { ch: ' ', name: '地圖外', color: null, pass: false },
+  ];
+  const T = Object.fromEntries(TERRAIN.map((t) => [t.ch, t]));
+  const POOLS = [['melee', '近戰'], ['ranged', '遠程'], ['ambush', '伏兵'], ['mixed', '混合']];
+  const OBJECTS = [['chest', '寶箱', '箱'], ['shrine', '神龕', '神'], ['merchant', '商人', '商'], ['lever', '拉桿', '桿'], ['captive', '被困英雄', '救'], ['random', '隨機', '？']];
+  const OBJ = Object.fromEntries(OBJECTS.map(([k, n, g]) => [k, { n, g }]));
+  const EXIT_DIRS = [['next', '往下一層'], ['back', '往回'], ['side', '同層'], ['any', '不指定']];
+  const EXIT_RULES = [['reach', '走到出口（全員到齊）'], ['captain', '打倒精英隊長才開出口'], ['boss', '打倒頭目才開出口'], ['bossWin', '打倒頭目即勝利（無出口）']];
+  const THEMES = [['field', '野外'], ['town', '城鎮'], ['indoor', '室內']];
+  const ROLES = [['filler', '一般'], ['start', '起點'], ['feature', '大景點'], ['elite', '精英房'], ['boss', '頭目房'], ['edge', '邊緣'], ['entry', '入口'], ['exit', '出口']];
+  const MARK_TOOLS = [
+    { id: 'door', name: '門', glyph: '門' },
+    { id: 'spawn', name: '生怪點', glyph: '怪' },
+    { id: 'object', name: '物件', glyph: '物' },
+    { id: 'poi', name: '興趣點', glyph: '◆' },
+    { id: 'hero', name: '英雄出生', glyph: '英' },
+    { id: 'exit', name: '出口', glyph: '出' },
+    { id: 'erase', name: '擦掉標記', glyph: '✕' },
+  ];
+  const SHAPES = [
+    { id: 'dead', name: '死巷', dirs: 4 },
+    { id: 'straight', name: '直道', dirs: 2 },
+    { id: 'corner', name: '轉角', dirs: 4 },
+    { id: 'tee', name: 'T 字', dirs: 4 },
+    { id: 'cross', name: '十字', dirs: 1 },
+  ];
+
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, attrs = {}, ...kids) => {
+    const e = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (k === 'class') e.className = v;
+      else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+      else if (v === true) e.setAttribute(k, '');
+      else if (v !== false && v != null) e.setAttribute(k, v);
+    }
+    for (const c of kids.flat()) if (c != null) e.append(c.nodeType ? c : document.createTextNode(String(c)));
+    return e;
+  };
+
+  // ---------- 關卡資料 ----------
+  const newId = () => 'lv-' + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36);
+  function blankLevel(kind, w, h, name) {
+    const grid = [];
+    for (let y = 0; y < h; y++) {
+      let row = '';
+      for (let x = 0; x < w; x++) row += kind === 'tile' && (x === 0 || y === 0 || x === w - 1 || y === h - 1) ? '#' : '.';
+      grid.push(row);
+    }
+    const lv = { id: newId(), name, kind, w, h, grid, marks: [], squads: { A: { pool: 'melee', count: [2, 4], ambush: false, captain: false, boss: false } } };
+    if (kind === 'map') Object.assign(lv, { theme: 'field', exitRule: 'reach' });
+    else Object.assign(lv, { sockets: emptySockets(w, h), tags: { theme: 'field', role: 'filler', pool: 'field-main' }, rotate: true, mirror: true });
+    return lv;
+  }
+  function emptySockets(w, h) {
+    const cw = Math.max(1, Math.round(w / CHUNK));
+    const chh = Math.max(1, Math.round(h / CHUNK));
+    return { N: Array(cw).fill(false), S: Array(cw).fill(false), E: Array(chh).fill(false), W: Array(chh).fill(false) };
+  }
+  // 範例（資料庫還沒有任何關卡時開這個，沒按儲存前不會寫進去）
+  function exampleLevel() {
+    const lv = blankLevel('tile', 16, 16, '範例：林間岔路');
+    const g = lv.grid.map((r) => r.split(''));
+    for (let y = 1; y < 15; y++) for (let x = 1; x < 15; x++) if ((x < 4 || x > 11) && (y < 4 || y > 11)) g[y][x] = '"';
+    for (let y = 2; y < 5; y++) for (let x = 10; x < 13; x++) g[y][x] = '#';
+    for (let x = 3; x < 7; x++) g[11][x] = '=';
+    lv.grid = g.map((r) => r.join(''));
+    lv.example = true;
+    setSocket(lv, 'S', 0, true);
+    setSocket(lv, 'N', 0, true);
+    setSocket(lv, 'E', 0, true);
+    lv.marks.push({ t: 'spawn', x: 12, y: 8, squad: 'A' }, { t: 'spawn', x: 13, y: 9, squad: 'A' }, { t: 'object', x: 2, y: 2, kind: 'chest' }, { t: 'poi', x: 8, y: 8, name: '岔路口' });
+    return lv;
+  }
+
+  /** 開口：那個邊格中央寬 4 m 的格子 */
+  function socketCells(lv, side, i) {
+    const off = i * CHUNK + (CHUNK - SOCKET_W) / 2;
+    const cells = [];
+    for (let k = 0; k < SOCKET_W; k++) {
+      const a = off + k;
+      if (side === 'N') cells.push([a, 0]);
+      if (side === 'S') cells.push([a, lv.h - 1]);
+      if (side === 'W') cells.push([0, a]);
+      if (side === 'E') cells.push([lv.w - 1, a]);
+    }
+    return cells.filter(([x, y]) => x >= 0 && y >= 0 && x < lv.w && y < lv.h);
+  }
+  function setSocket(lv, side, i, on) {
+    lv.sockets[side][i] = on;
+    if (!on) return;
+    // 打開開口時把那 4 格挖成地面（原本是牆或地圖外的話）
+    const g = lv.grid.map((r) => r.split(''));
+    for (const [x, y] of socketCells(lv, side, i)) if (!T[g[y][x]].pass) g[y][x] = '.';
+    lv.grid = g.map((r) => r.join(''));
+  }
+
+  const passable = (lv, x, y) => {
+    if (x < 0 || y < 0 || x >= lv.w || y >= lv.h) return false;
+    return T[lv.grid[y][x]]?.pass ?? false;
+  };
+
+  // ---------- 儲存（claude.ai 資料庫；連不上時退回這個瀏覽器的暫存） ----------
+  const LOCAL_KEY = 'rtwpLevelEditor.levels';
+  let db = null;
+  const levels = new Map(); // id → 已儲存的版本
+  let current = null;
+  let dirty = false;
+  const undo = [];
+
+  function localAll() {
+    try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || '{}'); } catch { return {}; }
+  }
+  function localPut(lv) {
+    try { const all = localAll(); all[lv.id] = lv; localStorage.setItem(LOCAL_KEY, JSON.stringify(all)); } catch { /* 存不了就算了 */ }
+  }
+  function localDel(id) {
+    try { const all = localAll(); delete all[id]; localStorage.setItem(LOCAL_KEY, JSON.stringify(all)); } catch { /* ignore */ }
+  }
+
+  function setStatus(text, cls = '') {
+    const s = $('status');
+    s.textContent = text;
+    s.className = cls;
+  }
+  function markDirty() {
+    dirty = true;
+    setStatus(current?.example ? '範例（還沒儲存）' : '有未儲存的修改', 'dirty');
+  }
+
+  async function save() {
+    if (!current) return;
+    const lv = clean(current);
+    delete lv.example;
+    lv.updatedAt = Date.now();
+    lv.changed = true;
+    lv.schema = 1;
+    setStatus('儲存中…');
+    try {
+      if (db) await db.doc('levels/' + lv.id).set(lv);
+      else localPut(lv);
+      delete current.example;
+      levels.set(lv.id, lv);
+      dirty = false;
+      setStatus(db ? '已儲存' : '已存在這個瀏覽器', db ? '' : 'dirty');
+      renderSelect();
+    } catch (e) {
+      setStatus('儲存失敗：' + (e?.message || e?.code || '未知錯誤'), 'err');
+    }
+  }
+  async function removeCurrent() {
+    if (!current) return;
+    const id = current.id;
+    try {
+      if (levels.has(id)) {
+        if (db) await db.doc('levels/' + id).delete();
+        else localDel(id);
+      }
+      levels.delete(id);
+      const next = [...levels.values()].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0];
+      open(next ? structuredClone(next) : exampleLevel());
+      renderSelect();
+      setStatus('已刪除');
+    } catch (e) {
+      setStatus('刪除失敗：' + (e?.message || e?.code || '未知錯誤'), 'err');
+    }
+  }
+  /** 存檔用的乾淨副本：只留規格裡的欄位 */
+  function clean(lv) {
+    const o = structuredClone(lv);
+    if (o.kind === 'map') { delete o.sockets; delete o.tags; delete o.rotate; delete o.mirror; }
+    else { delete o.theme; delete o.exitRule; o.marks = o.marks.filter((m) => m.t !== 'hero' && m.t !== 'exit'); }
+    const used = new Set(o.marks.filter((m) => m.t === 'spawn').map((m) => m.squad));
+    for (const k of Object.keys(o.squads)) if (!used.has(k) && k !== 'A') delete o.squads[k];
+    return o;
+  }
+
+  // ---------- 工具列 ----------
+  let tool = { kind: 'paint', ch: '#' };
+  let brush = 1;
+  let objKind = 'chest';
+  let squadSel = 'A';
+  let exitDir = 'next';
+  let poiName = '興趣點';
+  let pan = false;
+
+  function renderTools() {
+    const box = $('tools');
+    box.textContent = '';
+    const g1 = el('div', { class: 'tgroup' }, el('div', { class: 'tlabel' }, '地形'));
+    for (const t of TERRAIN) {
+      const sw = el('span', { class: 'swatch' });
+      sw.style.background = t.color ?? 'transparent';
+      if (!t.color) sw.style.borderStyle = 'dashed';
+      g1.append(el('button', { class: 'tool' + (tool.kind !== 'mark' && tool.ch === t.ch ? ' on' : ''), title: t.pass ? '可通過' : '擋路', onclick: () => { tool = { kind: tool.kind === 'mark' ? 'paint' : tool.kind, ch: t.ch }; renderTools(); } }, sw, t.name));
+    }
+    const g2 = el('div', { class: 'tgroup' }, el('div', { class: 'tlabel' }, '畫法'));
+    for (const [k, n] of [['paint', '筆刷'], ['rect', '矩形'], ['fill', '油漆桶']]) {
+      g2.append(el('button', { class: 'tool' + (tool.kind === k ? ' on' : ''), onclick: () => { tool = { kind: k, ch: tool.ch ?? '#' }; renderTools(); } }, n));
+    }
+    const bs = el('div', { class: 'row' }, '粗細');
+    for (const n of [1, 2, 3]) bs.append(el('button', { class: brush === n ? 'on' : '', onclick: () => { brush = n; renderTools(); } }, String(n)));
+    g2.append(bs);
+    const g3 = el('div', { class: 'tgroup' }, el('div', { class: 'tlabel' }, '標記'));
+    for (const m of MARK_TOOLS) {
+      if (current?.kind === 'tile' && (m.id === 'hero' || m.id === 'exit')) continue;
+      g3.append(el('button', { class: 'tool' + (tool.kind === 'mark' && tool.id === m.id ? ' on' : ''), onclick: () => { tool = { kind: 'mark', id: m.id, ch: tool.ch }; renderTools(); renderPane(); } }, el('span', { class: 'glyph' }, m.glyph), m.name));
+    }
+    box.append(g1, g2, g3);
+    if (tool.kind === 'mark') {
+      const opt = el('div', { class: 'tgroup' }, el('div', { class: 'tlabel' }, '這個標記'));
+      if (tool.id === 'spawn') {
+        const s = el('select', { 'aria-label': '小隊', onchange: (e) => { squadSel = e.target.value; } });
+        for (const k of Object.keys(current.squads)) s.append(el('option', { value: k, selected: k === squadSel }, '小隊 ' + k));
+        opt.append(s, el('button', { onclick: addSquad }, '＋新小隊'));
+      }
+      if (tool.id === 'object') {
+        const s = el('select', { 'aria-label': '物件種類', onchange: (e) => { objKind = e.target.value; } });
+        for (const [k, n] of OBJECTS) s.append(el('option', { value: k, selected: k === objKind }, n));
+        opt.append(s);
+      }
+      if (tool.id === 'exit') {
+        const s = el('select', { 'aria-label': '出口方向', onchange: (e) => { exitDir = e.target.value; } });
+        for (const [k, n] of EXIT_DIRS) s.append(el('option', { value: k, selected: k === exitDir }, n));
+        opt.append(s, el('div', { class: 'hint' }, '拖曳畫範圍'));
+      }
+      if (tool.id === 'door') opt.append(el('div', { class: 'hint' }, '拖曳畫範圍'));
+      if (tool.id === 'poi') opt.append(el('input', { type: 'text', value: poiName, 'aria-label': '名稱', oninput: (e) => { poiName = e.target.value; } }));
+      if (opt.childNodes.length > 1) box.append(opt);
+    }
+  }
+  function addSquad() {
+    const used = Object.keys(current.squads);
+    const k = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').find((c) => !used.includes(c));
+    if (!k) return;
+    pushUndo();
+    current.squads[k] = { pool: 'melee', count: [2, 4], ambush: false, captain: false, boss: false };
+    squadSel = k;
+    markDirty();
+    renderTools();
+    renderPane();
+  }
+
+  // ---------- 畫布 ----------
+  const ZOOMS = [6, 8, 10, 12, 16, 20, 24, 32];
+  let cs = 16;
+  const cvs = $('map');
+  const ctx = cvs.getContext('2d');
+  const MARGIN = 1; // 外圍留一格畫開口
+  let drag = null;
+  let hoverCell = null;
+
+  function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+
+  function draw() {
+    if (!current) return;
+    const lv = current;
+    const W = (lv.w + MARGIN * 2) * cs;
+    const H = (lv.h + MARGIN * 2) * cs;
+    const dpr = window.devicePixelRatio || 1;
+    if (cvs.width !== W * dpr || cvs.height !== H * dpr) {
+      cvs.width = W * dpr; cvs.height = H * dpr;
+      cvs.style.width = W + 'px'; cvs.style.height = H + 'px';
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    const ox = MARGIN * cs, oy = MARGIN * cs;
+    // 格子
+    for (let y = 0; y < lv.h; y++) {
+      const row = lv.grid[y];
+      for (let x = 0; x < lv.w; x++) {
+        const t = T[row[x]] ?? T['.'];
+        const px = ox + x * cs, py = oy + y * cs;
+        if (!t.color) {
+          ctx.fillStyle = cssVar('--bg');
+          ctx.fillRect(px, py, cs, cs);
+          continue;
+        }
+        ctx.fillStyle = t.color;
+        ctx.fillRect(px, py, cs, cs);
+        if (t.hatch) {
+          ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+          ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(px, py + cs); ctx.lineTo(px + cs, py); ctx.stroke();
+        }
+        if (t.dots && cs >= 8) {
+          ctx.fillStyle = 'rgba(80,60,30,0.55)';
+          ctx.fillRect(px + cs * 0.3, py + cs * 0.3, Math.max(1, cs * 0.14), Math.max(1, cs * 0.14));
+          ctx.fillRect(px + cs * 0.62, py + cs * 0.6, Math.max(1, cs * 0.14), Math.max(1, cs * 0.14));
+        }
+      }
+    }
+    // 格線（1 m 淡、16 m 深）
+    ctx.lineWidth = 1;
+    for (let x = 0; x <= lv.w; x++) {
+      ctx.strokeStyle = x % CHUNK === 0 ? cssVar('--grid-chunk') : cssVar('--grid');
+      if (cs < 8 && x % CHUNK !== 0) continue;
+      ctx.beginPath(); ctx.moveTo(ox + x * cs + 0.5, oy); ctx.lineTo(ox + x * cs + 0.5, oy + lv.h * cs); ctx.stroke();
+    }
+    for (let y = 0; y <= lv.h; y++) {
+      ctx.strokeStyle = y % CHUNK === 0 ? cssVar('--grid-chunk') : cssVar('--grid');
+      if (cs < 8 && y % CHUNK !== 0) continue;
+      ctx.beginPath(); ctx.moveTo(ox, oy + y * cs + 0.5); ctx.lineTo(ox + lv.w * cs, oy + y * cs + 0.5); ctx.stroke();
+    }
+    // 開口
+    if (lv.kind === 'tile') {
+      for (const side of ['N', 'S', 'E', 'W']) {
+        lv.sockets[side].forEach((on, i) => {
+          const cells = socketCells(lv, side, i);
+          ctx.fillStyle = on ? cssVar('--accent') : 'rgba(128,128,128,0.25)';
+          for (const [x, y] of cells) {
+            const px = ox + (side === 'W' ? -1 : side === 'E' ? lv.w : x) * cs;
+            const py = oy + (side === 'N' ? -1 : side === 'S' ? lv.h : y) * cs;
+            ctx.fillRect(px + 1, py + 1, cs - 2, cs - 2);
+          }
+        });
+      }
+    }
+    // 標記
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (const m of lv.marks) drawMark(m, ox, oy);
+    // 拖曳中的矩形
+    if (drag?.rect) {
+      const r = normRect(drag.a, drag.b);
+      ctx.strokeStyle = cssVar('--fg');
+      ctx.setLineDash([4, 3]);
+      ctx.strokeRect(ox + r.x * cs + 0.5, oy + r.y * cs + 0.5, r.w * cs, r.h * cs);
+      ctx.setLineDash([]);
+    }
+    if (hoverCell && !drag) {
+      ctx.strokeStyle = cssVar('--fg');
+      const n = tool.kind === 'paint' ? brush : 1;
+      const s = Math.floor((n - 1) / 2);
+      ctx.strokeRect(ox + (hoverCell[0] - s) * cs + 0.5, oy + (hoverCell[1] - s) * cs + 0.5, n * cs - 1, n * cs - 1);
+    }
+  }
+  function drawMark(m, ox, oy) {
+    const fs = Math.max(8, Math.round(cs * 0.62));
+    ctx.font = `600 ${fs}px ${cssVar('--font-body')}`;
+    const cx = ox + (m.x + 0.5) * cs, cy = oy + (m.y + 0.5) * cs;
+    const disc = (fill, text, fg = '#fff') => {
+      ctx.fillStyle = fill;
+      ctx.beginPath(); ctx.arc(cx, cy, cs * 0.46, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 1; ctx.stroke();
+      if (cs >= 8) { ctx.fillStyle = fg; ctx.fillText(text, cx, cy + 0.5); }
+    };
+    if (m.t === 'door' || m.t === 'exit') {
+      const px = ox + m.x * cs, py = oy + m.y * cs;
+      ctx.fillStyle = m.t === 'door' ? (m.open ? 'rgba(150,100,40,0.35)' : 'rgba(150,100,40,0.8)') : 'rgba(40,160,90,0.45)';
+      ctx.fillRect(px, py, m.w * cs, m.h * cs);
+      ctx.strokeStyle = m.t === 'door' ? '#6b4318' : '#1d7a45';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(px + 1, py + 1, m.w * cs - 2, m.h * cs - 2);
+      if (cs >= 8) {
+        ctx.fillStyle = '#fff';
+        const label = m.t === 'door' ? (m.open ? '門開' : '門') : '出口' + (m.dir && m.dir !== 'any' ? '·' + EXIT_DIRS.find((d) => d[0] === m.dir)[1] : '');
+        ctx.fillText(label, px + (m.w * cs) / 2, py + (m.h * cs) / 2 + 0.5);
+      }
+      return;
+    }
+    if (m.t === 'spawn') {
+      const sq = current.squads[m.squad];
+      disc(sq?.boss ? '#5a1d8c' : sq?.captain ? '#8c1d2a' : '#c0392b', m.squad);
+    }
+    if (m.t === 'object') disc('#d4a017', OBJ[m.kind]?.g ?? '?', '#2a1f00');
+    if (m.t === 'hero') disc('#2f6fd0', '英');
+    if (m.t === 'poi') {
+      ctx.fillStyle = '#7d4bc2';
+      ctx.beginPath(); ctx.moveTo(cx, cy - cs * 0.5); ctx.lineTo(cx + cs * 0.5, cy); ctx.lineTo(cx, cy + cs * 0.5); ctx.lineTo(cx - cs * 0.5, cy); ctx.closePath(); ctx.fill();
+      if (cs >= 10 && m.name) {
+        ctx.font = `600 ${Math.max(10, fs)}px ${cssVar('--font-body')}`;
+        ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+        ctx.strokeText(m.name, cx, cy - cs * 0.95);
+        ctx.fillStyle = '#4a2283'; ctx.fillText(m.name, cx, cy - cs * 0.95);
+      }
+    }
+  }
+  const normRect = (a, b) => ({ x: Math.min(a[0], b[0]), y: Math.min(a[1], b[1]), w: Math.abs(a[0] - b[0]) + 1, h: Math.abs(a[1] - b[1]) + 1 });
+
+  function cellAt(ev) {
+    const r = cvs.getBoundingClientRect();
+    const x = Math.floor((ev.clientX - r.left) / cs) - MARGIN;
+    const y = Math.floor((ev.clientY - r.top) / cs) - MARGIN;
+    return [x, y];
+  }
+  const inside = ([x, y]) => current && x >= 0 && y >= 0 && x < current.w && y < current.h;
+
+  function paintAt([x, y], ch) {
+    const lv = current;
+    const s = Math.floor((brush - 1) / 2);
+    let changed = false;
+    const g = lv.grid.map((r) => r.split(''));
+    for (let dy = 0; dy < brush; dy++) for (let dx = 0; dx < brush; dx++) {
+      const px = x - s + dx, py = y - s + dy;
+      if (px < 0 || py < 0 || px >= lv.w || py >= lv.h || g[py][px] === ch) continue;
+      g[py][px] = ch;
+      changed = true;
+    }
+    if (changed) lv.grid = g.map((r) => r.join(''));
+    return changed;
+  }
+  function fillRect(r, ch) {
+    const g = current.grid.map((row) => row.split(''));
+    for (let y = r.y; y < r.y + r.h; y++) for (let x = r.x; x < r.x + r.w; x++) if (y >= 0 && x >= 0 && y < current.h && x < current.w) g[y][x] = ch;
+    current.grid = g.map((row) => row.join(''));
+  }
+  function bucket([x, y], ch) {
+    const g = current.grid.map((row) => row.split(''));
+    const from = g[y][x];
+    if (from === ch) return;
+    const st = [[x, y]];
+    while (st.length) {
+      const [cx, cy] = st.pop();
+      if (cx < 0 || cy < 0 || cx >= current.w || cy >= current.h || g[cy][cx] !== from) continue;
+      g[cy][cx] = ch;
+      st.push([cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]);
+    }
+    current.grid = g.map((row) => row.join(''));
+  }
+  function markAt([x, y]) {
+    for (let i = current.marks.length - 1; i >= 0; i--) {
+      const m = current.marks[i];
+      const w = m.w ?? 1, h = m.h ?? 1;
+      if (x >= m.x && y >= m.y && x < m.x + w && y < m.y + h) return i;
+    }
+    return -1;
+  }
+
+  cvs.addEventListener('pointerdown', (ev) => {
+    if (pan || !current || ev.button > 0) return;
+    const c = cellAt(ev);
+    if (!inside(c)) {
+      // 點外圍：切換板塊開口
+      if (current.kind === 'tile') toggleSocketAt(c);
+      return;
+    }
+    cvs.setPointerCapture(ev.pointerId);
+    if (tool.kind === 'paint') {
+      pushUndo();
+      drag = { paint: true };
+      if (paintAt(c, tool.ch)) markDirty();
+    } else if (tool.kind === 'rect' || (tool.kind === 'mark' && (tool.id === 'door' || tool.id === 'exit'))) {
+      drag = { rect: true, a: c, b: c };
+    } else if (tool.kind === 'fill') {
+      pushUndo();
+      bucket(c, tool.ch);
+      markDirty();
+    } else if (tool.kind === 'mark') {
+      placeMark(c);
+    }
+    draw();
+  });
+  cvs.addEventListener('pointermove', (ev) => {
+    const c = cellAt(ev);
+    hoverCell = inside(c) ? c : null;
+    $('hover').textContent = hoverCell ? `x ${c[0]}  y ${c[1]}  ${T[current.grid[c[1]][c[0]]]?.name ?? ''}` : '';
+    if (drag?.paint && inside(c)) { if (paintAt(c, tool.ch)) markDirty(); }
+    if (drag?.rect) drag.b = [Math.max(0, Math.min(current.w - 1, c[0])), Math.max(0, Math.min(current.h - 1, c[1]))];
+    draw();
+  });
+  const endDrag = () => {
+    if (drag?.rect) {
+      const r = normRect(drag.a, drag.b);
+      pushUndo();
+      if (tool.kind === 'rect') fillRect(r, tool.ch);
+      else if (tool.id === 'door') current.marks.push({ t: 'door', ...r, open: false });
+      else if (tool.id === 'exit') current.marks.push({ t: 'exit', ...r, dir: exitDir });
+      markDirty();
+      renderPane();
+    } else if (drag?.paint) renderPane();
+    drag = null;
+    draw();
+  };
+  cvs.addEventListener('pointerup', endDrag);
+  cvs.addEventListener('pointercancel', () => { drag = null; draw(); });
+  cvs.addEventListener('pointerleave', () => { hoverCell = null; $('hover').textContent = ''; if (!drag) draw(); });
+
+  function placeMark(c) {
+    pushUndo();
+    if (tool.id === 'erase') {
+      const i = markAt(c);
+      if (i >= 0) current.marks.splice(i, 1);
+      else { undo.pop(); return; }
+    } else {
+      // 同一格已有點狀標記：換掉
+      const i = markAt(c);
+      if (i >= 0 && !current.marks[i].w) current.marks.splice(i, 1);
+      if (tool.id === 'spawn') current.marks.push({ t: 'spawn', x: c[0], y: c[1], squad: squadSel });
+      if (tool.id === 'object') current.marks.push({ t: 'object', x: c[0], y: c[1], kind: objKind });
+      if (tool.id === 'poi') current.marks.push({ t: 'poi', x: c[0], y: c[1], name: poiName || '興趣點' });
+      if (tool.id === 'hero') current.marks.push({ t: 'hero', x: c[0], y: c[1] });
+    }
+    markDirty();
+    renderPane();
+  }
+  function toggleSocketAt([x, y]) {
+    const lv = current;
+    let side = null, i = -1;
+    if (y === -1 && x >= 0 && x < lv.w) { side = 'N'; i = Math.floor(x / CHUNK); }
+    if (y === lv.h && x >= 0 && x < lv.w) { side = 'S'; i = Math.floor(x / CHUNK); }
+    if (x === -1 && y >= 0 && y < lv.h) { side = 'W'; i = Math.floor(y / CHUNK); }
+    if (x === lv.w && y >= 0 && y < lv.h) { side = 'E'; i = Math.floor(y / CHUNK); }
+    if (!side || i < 0 || i >= lv.sockets[side].length) return;
+    pushUndo();
+    setSocket(lv, side, i, !lv.sockets[side][i]);
+    markDirty();
+    draw();
+    renderPane();
+  }
+
+  // ---------- 復原 ----------
+  function pushUndo() {
+    undo.push(JSON.stringify(current));
+    if (undo.length > 60) undo.shift();
+  }
+  function doUndo() {
+    const s = undo.pop();
+    if (!s) return;
+    current = JSON.parse(s);
+    markDirty();
+    draw();
+    renderPane();
+  }
+
+  // ---------- 右側面板 ----------
+  let tab = 'props';
+  let confirmDelete = false;
+  function renderPane() {
+    const p = $('pane');
+    p.textContent = '';
+    if (!current) return;
+    for (const b of $('tabs').children) b.classList.toggle('on', b.dataset.tab === tab);
+    if (tab === 'props') paneProps(p);
+    if (tab === 'squads') paneSquads(p);
+    if (tab === 'marks') paneMarks(p);
+    if (tab === 'check') paneCheck(p);
+  }
+  const field = (label, input) => el('div', { class: 'row' }, el('label', {}, label), input);
+  const sel = (opts, val, on) => {
+    const s = el('select', { onchange: (e) => on(e.target.value) });
+    for (const [k, n] of opts) s.append(el('option', { value: k, selected: k === val }, n));
+    return s;
+  };
+  const edit = (fn) => { pushUndo(); fn(); markDirty(); draw(); renderSelect(); };
+
+  function paneProps(p) {
+    const lv = current;
+    if (lv.example) p.append(el('div', { class: 'issue warn' }, '這是範例板塊，示範開口、草叢、生怪點的畫法。按「儲存」才會存起來；也可以直接按「新增」開始畫自己的。'));
+    p.append(field('名稱', el('input', { type: 'text', id: 'pName', value: lv.name, onchange: (e) => edit(() => { lv.name = e.target.value || '未命名'; }) })));
+    p.append(el('div', { class: 'row' }, el('label', {}, '種類'), el('span', {}, lv.kind === 'map' ? '整張地圖' : '拼圖板塊'), el('span', { class: 'hint' }, `${lv.w} × ${lv.h} m`)));
+    if (lv.kind === 'map') {
+      const w = el('input', { type: 'number', id: 'pW', min: 8, max: 160, value: lv.w });
+      const h = el('input', { type: 'number', id: 'pH', min: 8, max: 160, value: lv.h });
+      p.append(el('div', { class: 'row' }, el('label', {}, '大小（m）'), w, '×', h, el('button', { onclick: () => resize(+w.value, +h.value) }, '套用')));
+      p.append(field('主題', sel(THEMES, lv.theme, (v) => edit(() => { lv.theme = v; }))));
+      p.append(field('離開條件', sel(EXIT_RULES, lv.exitRule, (v) => edit(() => { lv.exitRule = v; renderPane(); }))));
+      p.append(el('div', { class: 'hint' }, '美術會依主題自動套上；這裡只決定格子是什麼。'));
+    } else {
+      const cw = el('input', { type: 'number', id: 'pCw', min: 1, max: 3, value: lv.w / CHUNK });
+      const chh = el('input', { type: 'number', id: 'pCh', min: 1, max: 3, value: lv.h / CHUNK });
+      p.append(el('div', { class: 'row' }, el('label', {}, '格數'), cw, '×', chh, el('button', { onclick: () => resize(+cw.value * CHUNK, +chh.value * CHUNK) }, '套用')));
+      p.append(field('主題', el('input', { type: 'text', id: 'pTheme', value: lv.tags.theme, list: 'themeList', onchange: (e) => edit(() => { lv.tags.theme = e.target.value.trim(); }) })));
+      p.append(field('用途', sel(ROLES, lv.tags.role, (v) => edit(() => { lv.tags.role = v; }))));
+      p.append(field('池子', el('input', { type: 'text', id: 'pPool', value: lv.tags.pool, list: 'poolList', onchange: (e) => edit(() => { lv.tags.pool = e.target.value.trim(); }) })));
+      const pools = [...new Set([...levels.values()].filter((l) => l.kind === 'tile').map((l) => l.tags?.pool).filter(Boolean))];
+      p.append(el('datalist', { id: 'poolList' }, pools.map((x) => el('option', { value: x }))));
+      p.append(el('datalist', { id: 'themeList' }, ['field', 'town', 'indoor', 'castle'].map((x) => el('option', { value: x }))));
+      p.append(el('div', { class: 'row' },
+        el('label', {}, '轉向'),
+        el('label', {}, el('input', { type: 'checkbox', id: 'pRot', checked: lv.rotate, onchange: (e) => edit(() => { lv.rotate = e.target.checked; }) }), ' 可旋轉'),
+        el('label', {}, el('input', { type: 'checkbox', id: 'pMir', checked: lv.mirror, onchange: (e) => edit(() => { lv.mirror = e.target.checked; }) }), ' 可翻面')));
+      p.append(el('h3', {}, '開口'));
+      p.append(el('div', { class: 'hint' }, '每個邊格中央寬 4 m。點方格紙外圍的灰色格子也能切換；打開時那 4 格會自動挖成地面。'));
+      const box = el('div', { class: 'sockets' });
+      for (const [side, name] of [['N', '上'], ['S', '下'], ['W', '左'], ['E', '右']]) {
+        const b = el('div', { class: 'boxes' });
+        lv.sockets[side].forEach((on, i) => b.append(el('button', { class: on ? 'on' : '', onclick: () => { pushUndo(); setSocket(lv, side, i, !on); markDirty(); draw(); renderPane(); } }, String(i + 1))));
+        box.append(el('span', {}, name), b);
+      }
+      p.append(box);
+      const sh = shapeOf(lv);
+      if (sh) p.append(el('div', { class: 'hint' }, '形狀：' + sh.name));
+    }
+    p.append(el('h3', {}, '管理'));
+    p.append(el('div', { class: 'row' },
+      confirmDelete
+        ? [el('button', { class: 'danger', onclick: () => { confirmDelete = false; removeCurrent(); } }, '確定刪除'), el('button', { onclick: () => { confirmDelete = false; renderPane(); } }, '取消')]
+        : el('button', { class: 'danger', onclick: () => { confirmDelete = true; renderPane(); } }, '刪除這個關卡')));
+    p.append(el('div', { class: 'hint' }, `編號 ${lv.id}`));
+  }
+  function resize(w, h) {
+    const lv = current;
+    if (!(w >= 8 && h >= 8 && w <= 160 && h <= 160)) return;
+    pushUndo();
+    const g = [];
+    for (let y = 0; y < h; y++) {
+      let row = '';
+      for (let x = 0; x < w; x++) row += y < lv.h && x < lv.w ? lv.grid[y][x] : lv.kind === 'tile' ? '#' : '.';
+      g.push(row);
+    }
+    lv.grid = g;
+    lv.w = w; lv.h = h;
+    lv.marks = lv.marks.filter((m) => m.x < w && m.y < h);
+    if (lv.kind === 'tile') {
+      const old = lv.sockets;
+      lv.sockets = emptySockets(w, h);
+      for (const s of ['N', 'S', 'E', 'W']) lv.sockets[s] = lv.sockets[s].map((_, i) => !!old[s][i]);
+    }
+    markDirty();
+    draw();
+    renderPane();
+  }
+
+  function paneSquads(p) {
+    const lv = current;
+    p.append(el('div', { class: 'hint' }, '同一個字母的生怪點是同一群敵人。敵人從池子抽，強度跟著遠征的層數走。'));
+    for (const [k, sq] of Object.entries(lv.squads)) {
+      const n = lv.marks.filter((m) => m.t === 'spawn' && m.squad === k).length;
+      const lo = el('input', { type: 'number', min: 1, max: 12, value: sq.count[0], onchange: (e) => edit(() => { sq.count[0] = Math.max(1, +e.target.value || 1); }) });
+      const hi = el('input', { type: 'number', min: 1, max: 12, value: sq.count[1], onchange: (e) => edit(() => { sq.count[1] = Math.max(sq.count[0], +e.target.value || 1); }) });
+      const ck = (key, label) => el('label', {}, el('input', { type: 'checkbox', checked: !!sq[key], onchange: (e) => edit(() => { sq[key] = e.target.checked; }) }), ' ' + label);
+      p.append(el('div', { class: 'card' },
+        el('div', { class: 'row' }, el('strong', {}, '小隊 ' + k), el('span', { class: 'hint' }, `${n} 個生怪點`), el('span', { class: 'grow' }),
+          Object.keys(lv.squads).length > 1 ? el('button', { class: 'danger', onclick: () => edit(() => { delete lv.squads[k]; lv.marks = lv.marks.filter((m) => !(m.t === 'spawn' && m.squad === k)); if (squadSel === k) squadSel = Object.keys(lv.squads)[0]; renderPane(); renderTools(); }) }, '刪除') : null),
+        field('敵人池', sel(POOLS, sq.pool, (v) => edit(() => { sq.pool = v; }))),
+        el('div', { class: 'row' }, el('label', {}, '隻數'), lo, '～', hi),
+        el('div', { class: 'row' }, ck('ambush', '伏兵'), ck('captain', '精英隊長'), ck('boss', '頭目'))));
+    }
+    p.append(el('button', { onclick: addSquad }, '＋新增小隊'));
+  }
+
+  function paneMarks(p) {
+    const lv = current;
+    if (!lv.marks.length) { p.append(el('div', { class: 'hint' }, '還沒有標記。用左邊的「標記」工具在方格紙上點或拖曳。')); return; }
+    const name = { door: '門', spawn: '生怪點', object: '物件', poi: '興趣點', hero: '英雄出生', exit: '出口' };
+    lv.marks.forEach((m, i) => {
+      const row = el('div', { class: 'mrow' }, el('span', { class: 'k' }, `${m.x},${m.y}`), el('strong', {}, name[m.t]));
+      if (m.t === 'door') row.append(el('label', {}, el('input', { type: 'checkbox', checked: !!m.open, onchange: (e) => edit(() => { m.open = e.target.checked; }) }), ' 開著'), el('span', { class: 'hint' }, `${m.w}×${m.h}`));
+      if (m.t === 'exit') row.append(sel(EXIT_DIRS, m.dir ?? 'any', (v) => edit(() => { m.dir = v; })), el('span', { class: 'hint' }, `${m.w}×${m.h}`));
+      if (m.t === 'spawn') row.append(sel(Object.keys(lv.squads).map((k) => [k, '小隊 ' + k]), m.squad, (v) => edit(() => { m.squad = v; })));
+      if (m.t === 'object') row.append(sel(OBJECTS.map(([k, n]) => [k, n]), m.kind, (v) => edit(() => { m.kind = v; })));
+      if (m.t === 'poi') row.append(el('input', { type: 'text', value: m.name, 'aria-label': '名稱', onchange: (e) => edit(() => { m.name = e.target.value; }) }));
+      row.append(el('span', { class: 'grow' }), el('button', { class: 'danger', 'aria-label': '刪除', onclick: () => edit(() => { lv.marks.splice(i, 1); renderPane(); }) }, '✕'));
+      p.append(row);
+    });
+  }
+
+  // ---------- 檢查 ----------
+  function reachable(lv, from) {
+    const seen = new Uint8Array(lv.w * lv.h);
+    const doors = lv.marks.filter((m) => m.t === 'door');
+    const isDoor = (x, y) => doors.some((d) => x >= d.x && y >= d.y && x < d.x + d.w && y < d.y + d.h);
+    const ok = (x, y) => x >= 0 && y >= 0 && x < lv.w && y < lv.h && (passable(lv, x, y) || isDoor(x, y));
+    const st = from.filter(([x, y]) => ok(x, y));
+    for (const [x, y] of st) seen[y * lv.w + x] = 1;
+    while (st.length) {
+      const [x, y] = st.pop();
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = x + dx, ny = y + dy;
+        if (!ok(nx, ny) || seen[ny * lv.w + nx]) continue;
+        seen[ny * lv.w + nx] = 1;
+        st.push([nx, ny]);
+      }
+    }
+    return (x, y) => seen[y * lv.w + x] === 1;
+  }
+  function issues(lv) {
+    const out = [];
+    const bad = (t) => out.push({ lvl: 'bad', t });
+    const warn = (t) => out.push({ lvl: 'warn', t });
+    for (const m of lv.marks) {
+      if (m.t === 'spawn' && !lv.squads[m.squad]) bad(`生怪點 ${m.x},${m.y} 的小隊 ${m.squad} 不存在`);
+      if ((m.t === 'spawn' || m.t === 'object' || m.t === 'hero') && !passable(lv, m.x, m.y)) warn(`${m.x},${m.y} 的標記放在擋路的格子上`);
+    }
+    for (const [k, sq] of Object.entries(lv.squads)) {
+      const n = lv.marks.filter((m) => m.t === 'spawn' && m.squad === k).length;
+      if (n === 0 && Object.keys(lv.squads).length > 1) warn(`小隊 ${k} 沒有任何生怪點`);
+      if (sq.count[1] < sq.count[0]) bad(`小隊 ${k} 的隻數上限小於下限`);
+    }
+    if (lv.kind === 'map') {
+      const heroes = lv.marks.filter((m) => m.t === 'hero');
+      const exits = lv.marks.filter((m) => m.t === 'exit');
+      if (!heroes.length) bad('沒有英雄出生點');
+      if (lv.exitRule !== 'bossWin' && !exits.length) bad('離開條件需要出口，但地圖上沒有出口');
+      if (lv.exitRule === 'bossWin' && exits.length) warn('「打倒頭目即勝利」不需要出口，畫了的出口不會用到');
+      if (lv.exitRule === 'captain' && !Object.values(lv.squads).some((s) => s.captain)) bad('離開條件要打倒精英隊長，但沒有小隊勾「精英隊長」');
+      if ((lv.exitRule === 'boss' || lv.exitRule === 'bossWin') && !Object.values(lv.squads).some((s) => s.boss)) bad('離開條件要打倒頭目，但沒有小隊勾「頭目」');
+      if (heroes.length) {
+        const can = reachable(lv, heroes.map((m) => [m.x, m.y]));
+        for (const e of exits) {
+          let ok = false;
+          for (let y = e.y; y < e.y + e.h && !ok; y++) for (let x = e.x; x < e.x + e.w && !ok; x++) if (can(x, y)) ok = true;
+          if (!ok) bad(`從英雄出生點走不到出口 ${e.x},${e.y}`);
+        }
+      }
+    } else {
+      const open = [];
+      for (const s of ['N', 'S', 'E', 'W']) lv.sockets[s].forEach((on, i) => { if (on) open.push([s, i]); });
+      if (!open.length) bad('板塊沒有任何開口，拼不上去');
+      for (const [s, i] of open) {
+        const cells = socketCells(lv, s, i);
+        if (cells.some(([x, y]) => !passable(lv, x, y))) bad(`開口 ${{ N: '上', S: '下', E: '右', W: '左' }[s]}${i + 1} 有擋路的格子`);
+      }
+      if (open.length > 1) {
+        const [s0, i0] = open[0];
+        const can = reachable(lv, socketCells(lv, s0, i0));
+        for (const [s, i] of open.slice(1)) if (!socketCells(lv, s, i).some(([x, y]) => can(x, y))) bad(`開口之間走不通（${{ N: '上', S: '下', E: '右', W: '左' }[s]}${i + 1}）`);
+      }
+      if (!lv.tags.pool) warn('沒有填池子名稱');
+    }
+    return out;
+  }
+
+  /** 1 × 1 板塊的開口形狀（bit：上 1、右 2、下 4、左 8） */
+  function maskOf(lv) {
+    if (lv.kind !== 'tile' || lv.w !== CHUNK || lv.h !== CHUNK) return null;
+    return (lv.sockets.N[0] ? 1 : 0) | (lv.sockets.E[0] ? 2 : 0) | (lv.sockets.S[0] ? 4 : 0) | (lv.sockets.W[0] ? 8 : 0);
+  }
+  function shapeOfMask(m) {
+    const n = [1, 2, 4, 8].filter((b) => m & b).length;
+    if (n === 1) return SHAPES[0];
+    if (n === 2) return m === 5 || m === 10 ? SHAPES[1] : SHAPES[2];
+    if (n === 3) return SHAPES[3];
+    if (n === 4) return SHAPES[4];
+    return null;
+  }
+  const shapeOf = (lv) => { const m = maskOf(lv); return m == null ? null : shapeOfMask(m); };
+  const rot = (m) => ((m << 1) | (m >> 3)) & 15;
+  const mir = (m) => (m & 5) | ((m & 2) << 2) | ((m & 8) >> 2);
+  function orientations(lv) {
+    const m = maskOf(lv);
+    const set = new Set([m]);
+    if (lv.rotate) { let r = m; for (let k = 0; k < 3; k++) { r = rot(r); set.add(r); } }
+    if (lv.mirror) for (const x of [...set]) set.add(mir(x));
+    return set;
+  }
+
+  function paneCheck(p) {
+    const lv = current;
+    p.append(el('h3', {}, '這個關卡'));
+    const list = issues(lv);
+    if (!list.length) p.append(el('div', { class: 'issue ok' }, '沒有問題'));
+    for (const it of list) p.append(el('div', { class: 'issue' + (it.lvl === 'warn' ? ' warn' : '') }, it.t));
+    // 池子覆蓋表：已儲存的 1×1 板塊 ＋ 正在編輯的這塊
+    p.append(el('h3', {}, '池子覆蓋表（1 × 1 板塊）'));
+    const all = new Map([...levels].map(([k, v]) => [k, v]));
+    if (lv.kind === 'tile') all.set(lv.id, lv);
+    const byPool = new Map();
+    for (const t of all.values()) {
+      if (maskOf(t) == null) continue;
+      const k = t.tags?.pool || '（沒填池子）';
+      if (!byPool.has(k)) byPool.set(k, []);
+      byPool.get(k).push(t);
+    }
+    if (!byPool.size) { p.append(el('div', { class: 'hint' }, '還沒有 1 × 1 的板塊。')); return; }
+    for (const [pool, tiles] of byPool) {
+      const tbl = el('table', { class: 'cov' }, el('tr', {}, el('th', {}, pool), el('th', {}, '塊數'), el('th', {}, '方向')));
+      for (const sh of SHAPES) {
+        const mine = tiles.filter((t) => shapeOf(t) === sh);
+        const dirs = new Set();
+        for (const t of mine) for (const o of orientations(t)) if (shapeOfMask(o) === sh) dirs.add(o);
+        tbl.append(el('tr', {}, el('td', { class: mine.length ? '' : 'miss' }, sh.name), el('td', { class: 'n' }, String(mine.length)), el('td', { class: 'n' + (dirs.size < sh.dirs ? ' miss' : '') }, `${dirs.size}/${sh.dirs}`)));
+      }
+      p.append(tbl);
+    }
+    p.append(el('div', { class: 'hint' }, '紅字＝缺這種形狀或方向。缺的形狀拼接時會避開，或由程式補一塊空地板塊。'));
+  }
+
+  // ---------- 開啟、選單 ----------
+  function open(lv) {
+    current = lv;
+    dirty = !!lv.example;
+    undo.length = 0;
+    confirmDelete = false;
+    if (lv.kind === 'tile' && tool.kind === 'mark' && (tool.id === 'hero' || tool.id === 'exit')) tool = { kind: 'paint', ch: '#' };
+    if (!lv.squads[squadSel]) squadSel = Object.keys(lv.squads)[0];
+    setStatus(lv.example ? '範例（還沒儲存）' : '已開啟', lv.example ? 'dirty' : '');
+    renderTools();
+    renderSelect();
+    renderPane();
+    draw();
+  }
+  function renderSelect() {
+    const s = $('levelSelect');
+    s.textContent = '';
+    const list = [...levels.values()].sort((a, b) => (a.kind + a.name).localeCompare(b.kind + b.name, 'zh-Hant'));
+    if (current && !levels.has(current.id)) s.append(el('option', { value: current.id, selected: true }, `${current.name}（未儲存）`));
+    const groups = [['map', '整張地圖'], ['tile', '拼圖板塊']];
+    for (const [k, n] of groups) {
+      const items = list.filter((l) => l.kind === k);
+      if (!items.length) continue;
+      const og = el('optgroup', { label: n });
+      for (const l of items) og.append(el('option', { value: l.id, selected: current?.id === l.id }, l.id === current?.id ? current.name : l.name));
+      s.append(og);
+    }
+  }
+  $('levelSelect').addEventListener('change', (e) => {
+    const lv = levels.get(e.target.value);
+    if (lv) open(structuredClone(lv));
+  });
+  $('btnSave').addEventListener('click', save);
+  $('btnUndo').addEventListener('click', doUndo);
+  $('btnDup').addEventListener('click', () => {
+    if (!current) return;
+    const c = structuredClone(current);
+    c.id = newId();
+    c.name = current.name + '（複本）';
+    delete c.example;
+    open(c);
+    markDirty();
+  });
+  for (const b of $('tabs').children) b.addEventListener('click', () => { tab = b.dataset.tab; renderPane(); });
+  window.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !(e.target instanceof HTMLInputElement)) { e.preventDefault(); doUndo(); }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); save(); }
+  });
+  window.addEventListener('beforeunload', (e) => { if (dirty && !current?.example) { e.preventDefault(); e.returnValue = ''; } });
+
+  // 新增
+  const syncNew = () => { const t = $('nKind').value === 'tile'; $('nTileSize').hidden = !t; $('nMapSize').hidden = t; };
+  $('nKind').addEventListener('change', syncNew);
+  $('btnNew').addEventListener('click', () => { $('newModal').hidden = false; $('nName').focus(); });
+  $('nCancel').addEventListener('click', () => { $('newModal').hidden = true; });
+  $('newForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const kind = $('nKind').value;
+    const w = kind === 'tile' ? Math.min(3, Math.max(1, +$('nCw').value || 1)) * CHUNK : Math.min(160, Math.max(8, +$('nW').value || 48));
+    const h = kind === 'tile' ? Math.min(3, Math.max(1, +$('nCh').value || 1)) * CHUNK : Math.min(160, Math.max(8, +$('nH').value || 48));
+    $('newModal').hidden = true;
+    open(blankLevel(kind, w, h, $('nName').value.trim() || '新的關卡'));
+    markDirty();
+  });
+
+  // 縮放、拖曳
+  const setZoom = (d) => {
+    const i = Math.max(0, Math.min(ZOOMS.length - 1, ZOOMS.indexOf(cs) + d));
+    cs = ZOOMS[i];
+    $('zoomVal').textContent = cs + 'px';
+    draw();
+  };
+  $('zoomIn').addEventListener('click', () => setZoom(1));
+  $('zoomOut').addEventListener('click', () => setZoom(-1));
+  $('panBtn').addEventListener('click', () => {
+    pan = !pan;
+    $('panBtn').classList.toggle('on', pan);
+    $('stage').classList.toggle('pan', pan);
+  });
+  if (window.matchMedia('(max-width: 820px)').matches) { cs = 10; $('zoomVal').textContent = cs + 'px'; }
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', draw);
+
+  // ---------- 啟動 ----------
+  open(exampleLevel());
+  (async () => {
+    const banner = $('banner');
+    let timer = setTimeout(() => {
+      banner.textContent = '連不上關卡資料庫：修改只會存在這個瀏覽器，Claude 讀不到。';
+      banner.classList.add('show');
+      useLocal();
+    }, 10000);
+    const useLocal = () => {
+      for (const lv of Object.values(localAll())) levels.set(lv.id, lv);
+      if (levels.size && current?.example) open(structuredClone([...levels.values()][0]));
+      renderSelect();
+    };
+    try {
+      db = await window.claude?.use?.('db');
+    } catch { db = null; }
+    if (!db) {
+      clearTimeout(timer);
+      banner.textContent = '這個檢視沒有關卡資料庫：修改只會存在這個瀏覽器，Claude 讀不到。';
+      banner.classList.add('show');
+      useLocal();
+      return;
+    }
+    let first = true;
+    db.collection('levels').onSnapshot((snap) => {
+      clearTimeout(timer);
+      banner.classList.remove('show');
+      levels.clear();
+      for (const d of snap.docs) { const v = d.data(); if (v && v.grid) levels.set(d.id, v); }
+      if (first) {
+        first = false;
+        if (levels.size && current?.example) {
+          const recent = [...levels.values()].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0];
+          open(structuredClone(recent));
+          return;
+        }
+      }
+      renderSelect();
+      if (tab === 'check' || tab === 'props') renderPane();
+    }, (err) => {
+      clearTimeout(timer);
+      banner.textContent = '讀取關卡資料庫失敗（' + (err?.code || '未知') + '）：修改只會存在這個瀏覽器。';
+      banner.classList.add('show');
+      db = null;
+      useLocal();
+    });
+  })();
+})();
+</script>

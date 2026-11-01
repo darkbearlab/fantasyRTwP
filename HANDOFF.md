@@ -365,6 +365,7 @@ npm run autorun -- --runs 20                      # 封存的戰術模式（CI �
 
 ## 7. 建議的下一步（等 Alan 決定，不要自行開工）
 
+- **關卡設計器（進行中，Alan 2026-11-01）**：規格在 `SPEC_LEVELS.md`（L1 設計器 → L2 讀整張地圖 → L3 版型與拼接 → L4 可破壞障礙、新離開條件）。L1 設計器已做：原始碼 `tools/levelEditor.html`，發布在 https://claude.ai/artifact/VriMJiE9Jxzs7CbAmmPsjd （只有 Alan 看得到）；存檔在那個頁面的資料庫 `levels` 集合，每份是一個關卡（格式見 SPEC_LEVELS §5），`changed: true` 代表 Alan 改過、還沒讀進 repo。改編輯器時改 repo 的檔案、再發布到同一個網址。
 - 其他職業的技能循環（SPEC_SLICE5 §16 提案：戰士、狂戰士、遊俠、盜賊、牧師、煉金術士）。
 - 舊強化（`UPGRADES`）逐步改寫成道具（SPEC_SLICE5 §17）。
 - 新敵人的專屬外觀。
