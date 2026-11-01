@@ -210,6 +210,9 @@ textarea { font: inherit; color: inherit; background: var(--paper); border: 1px 
   ];
   const T = Object.fromEntries(TERRAIN.map((t) => [t.ch, t]));
   const POOLS = [['melee', '近戰'], ['ranged', '遠程'], ['ambush', '伏兵'], ['mixed', '混合']];
+  // 池子裡有哪些敵人（遊戲 src/run/data/levelPools.ts，2026-11-01；越後面的層出現越多種）
+  const POOL_HINT = { melee: '盾兵、自爆屍、衝鋒兵、鉤手', ranged: '弓手、投彈手、祭司、召喚師', ambush: '刺客、潛行者', mixed: '以上全部混在一起' };
+  const squadLabel = (k) => { const sq = current?.squads[k]; return sq?.name ? `${k}・${sq.name}` : '小隊 ' + k; };
   const OBJECTS = [['chest', '寶箱', '箱'], ['shrine', '神龕', '神'], ['merchant', '商人', '商'], ['lever', '拉桿', '桿'], ['captive', '被困英雄', '救'], ['random', '隨機', '？']];
   const OBJ = Object.fromEntries(OBJECTS.map(([k, n, g]) => [k, { n, g }]));
   // 寶箱掉落（遊戲的消耗品與裝備清單，2026-11-01 的快照；遊戲改了要同步）
@@ -235,7 +238,7 @@ textarea { font: inherit; color: inherit; background: var(--paper); border: 1px 
   const LOOT_LABEL = Object.fromEntries(LOOT_GROUPS.flatMap(([, opts]) => opts));
   // 興趣點的種類（SPEC_LEVELS §1；遊戲在 L2 接上）
   const POI_KINDS = [
-    { id: 'landmark', name: '地標', glyph: '地', hint: '只標示地點：名稱給小地圖與鏡頭參考', fields: [] },
+    { id: 'landmark', name: '地標', glyph: '地', hint: '只標示地點和名稱，目前沒有遊戲效果（之後可以接：走近時顯示地名、小地圖標示）', fields: [] },
     { id: 'caption', name: '旁白', glyph: '旁', hint: '英雄第一次走進範圍時，畫面中央顯示一段文字', fields: ['radius', 'text'] },
     { id: 'ambush', name: '伏擊觸發', glyph: '伏', hint: '英雄走進範圍時，指定的小隊衝出來', fields: ['radius', 'squad'] },
     { id: 'guard', name: '守衛點', glyph: '守', hint: '指定的小隊守在這附近，不會追出範圍', fields: ['radius', 'squad'] },
@@ -247,14 +250,14 @@ textarea { font: inherit; color: inherit; background: var(--paper); border: 1px 
   const THEMES = [['field', '野外'], ['town', '城鎮'], ['indoor', '室內']];
   const ROLES = [['filler', '一般'], ['start', '起點'], ['feature', '大景點'], ['elite', '精英房'], ['boss', '頭目房'], ['edge', '邊緣'], ['entry', '入口'], ['exit', '出口']];
   const MARK_TOOLS = [
-    { id: 'door', name: '門', glyph: '門' },
-    { id: 'spawn', name: '生怪點', glyph: '怪' },
-    { id: 'object', name: '物件', glyph: '物' },
-    { id: 'poi', name: '興趣點', glyph: '◆' },
-    { id: 'hero', name: '英雄出生', glyph: '英' },
-    { id: 'exit', name: '出口', glyph: '出' },
-    { id: 'select', name: '選取標記', glyph: '☝' },
-    { id: 'erase', name: '擦掉標記', glyph: '✕' },
+    { id: 'door', name: '門', glyph: '門', tip: '拖曳畫範圍。<br><span class="fx">● 關著時擋路、擋視線；英雄可以開關</span>' },
+    { id: 'spawn', name: '生怪點', glyph: '怪', tip: '點一下放一個。同一個小隊的生怪點是同一群敵人；小隊的敵人種類、隻數在右邊「小隊」分頁調整' },
+    { id: 'object', name: '物件', glyph: '物', tip: '寶箱、神龕、商人、拉桿、被困英雄。寶箱可以設定掉落' },
+    { id: 'poi', name: '興趣點', glyph: '◆', tip: '地標、旁白、伏擊觸發、守衛點、援軍進場點' },
+    { id: 'hero', name: '英雄出生', glyph: '英', tip: '整張地圖用：英雄從這裡開始（放 1～4 個）' },
+    { id: 'exit', name: '出口', glyph: '出', tip: '整張地圖用：拖曳畫範圍；全員走進來就離開' },
+    { id: 'select', name: '選取標記', glyph: '☝', tip: '點已經放好的標記，在右邊編輯細節' },
+    { id: 'erase', name: '擦掉標記', glyph: '✕', tip: '點標記把它刪掉（地形不受影響）' },
   ];
   const SHAPES = [
     { id: 'dead', name: '死巷', dirs: 4 },
@@ -433,7 +436,9 @@ textarea { font: inherit; color: inherit; background: var(--paper); border: 1px 
       const sw = el('span', { class: 'swatch' });
       sw.style.background = t.color ?? 'transparent';
       if (!t.color) sw.style.borderStyle = 'dashed';
-      g1.append(el('button', { class: 'tool' + (tool.kind !== 'mark' && tool.ch === t.ch ? ' on' : ''), title: t.pass ? '可通過' : '擋路', onclick: () => { tool = { kind: tool.kind === 'mark' ? 'paint' : tool.kind, ch: t.ch }; renderTools(); } }, sw, t.name));
+      const b = el('button', { class: 'tool' + (tool.kind !== 'mark' && tool.ch === t.ch ? ' on' : ''), onclick: () => { tool = { kind: tool.kind === 'mark' ? 'paint' : tool.kind, ch: t.ch }; renderTools(); } }, sw, t.name);
+      tipOn(b, () => terrainHtml(t));
+      g1.append(b);
     }
     const g2 = el('div', { class: 'tgroup' }, el('div', { class: 'tlabel' }, '畫法'));
     for (const [k, n] of [['paint', '筆刷'], ['rect', '矩形'], ['fill', '油漆桶']]) {
@@ -445,15 +450,21 @@ textarea { font: inherit; color: inherit; background: var(--paper); border: 1px 
     const g3 = el('div', { class: 'tgroup' }, el('div', { class: 'tlabel' }, '標記'));
     for (const m of MARK_TOOLS) {
       if (current?.kind === 'tile' && (m.id === 'hero' || m.id === 'exit')) continue;
-      g3.append(el('button', { class: 'tool' + (tool.kind === 'mark' && tool.id === m.id ? ' on' : ''), onclick: () => { tool = { kind: 'mark', id: m.id, ch: tool.ch }; renderTools(); renderPane(); } }, el('span', { class: 'glyph' }, m.glyph), m.name));
+      const b = el('button', { class: 'tool' + (tool.kind === 'mark' && tool.id === m.id ? ' on' : ''), onclick: () => { tool = { kind: 'mark', id: m.id, ch: tool.ch }; renderTools(); renderPane(); } }, el('span', { class: 'glyph' }, m.glyph), m.name);
+      tipOn(b, () => `<b>${m.name}</b><br>${m.tip}`);
+      g3.append(b);
     }
     box.append(g1, g2, g3);
     if (tool.kind === 'mark') {
       const opt = el('div', { class: 'tgroup' }, el('div', { class: 'tlabel' }, '這個標記'));
       if (tool.id === 'spawn') {
-        const s = el('select', { 'aria-label': '小隊', onchange: (e) => { squadSel = e.target.value; } });
-        for (const k of Object.keys(current.squads)) s.append(el('option', { value: k, selected: k === squadSel }, '小隊 ' + k));
-        opt.append(s, el('button', { onclick: addSquad }, '＋新小隊'));
+        const s = el('select', { 'aria-label': '小隊', onchange: (e) => { squadSel = e.target.value; renderTools(); } });
+        for (const k of Object.keys(current.squads)) s.append(el('option', { value: k, selected: k === squadSel }, squadLabel(k)));
+        const sq = current.squads[squadSel];
+        opt.append(s,
+          el('div', { class: 'hint' }, sq ? `${POOLS.find((p) => p[0] === sq.pool)?.[1]} ${sq.count[0]}～${sq.count[1]} 隻` : ''),
+          el('button', { onclick: () => { tab = 'squads'; renderPane(); } }, '調整這個小隊'),
+          el('button', { onclick: addSquad }, '＋新小隊'));
       }
       if (tool.id === 'object') {
         const s = el('select', { 'aria-label': '物件種類', onchange: (e) => { objKind = e.target.value; } });
@@ -793,12 +804,7 @@ textarea { font: inherit; color: inherit; background: var(--paper); border: 1px 
     const t = T[current.grid[y][x]] ?? T['.'];
     const lines = [];
     const doors = current.marks.filter((m) => m.t === 'door' && x >= m.x && y >= m.y && x < m.x + m.w && y < m.y + m.h);
-    lines.push(`<b>${esc(t.name)}</b>　<span class="no">x ${x}, y ${y}</span>`);
-    if (t.outside) lines.push('<span class="no">不屬於地圖</span>');
-    else {
-      lines.push(yn(t.pass, '可通過', '擋路') + '　' + yn(t.sight, '擋視線', '不擋視線') + (t.pass ? '' : '　' + yn(t.breakable, '可破壞', '不可破壞')));
-      for (const f of t.fx ?? []) lines.push(`<span class="fx">● ${esc(f)}</span>`);
-    }
+    lines.push(terrainHtml(t, `x ${x}, y ${y}`));
     for (const d of doors) lines.push('<hr><b>門</b>（' + (d.open ? '開著' : '關著') + '）', '<span class="fx">● 關著時擋路、擋視線；英雄可以開關</span>');
     for (const m of current.marks) {
       if (m.t === 'door' || x !== m.x || y !== m.y) continue;
@@ -807,12 +813,28 @@ textarea { font: inherit; color: inherit; background: var(--paper); border: 1px 
     for (const m of current.marks) if (m.t === 'exit' && x >= m.x && y >= m.y && x < m.x + m.w && y < m.y + m.h) lines.push('<hr>' + markHtml(m));
     return lines.join('<br>');
   }
+  function terrainHtml(t, where) {
+    const lines = [`<b>${esc(t.name)}</b>` + (where ? `　<span class="no">${where}</span>` : '')];
+    if (t.outside) lines.push('<span class="no">不屬於地圖</span>');
+    else {
+      lines.push(yn(t.pass, '可通過', '擋路') + '　' + yn(t.sight, '擋視線', '不擋視線') + (t.pass ? '' : '　' + yn(t.breakable, '可破壞', '不可破壞')));
+      for (const f of t.fx ?? []) lines.push(`<span class="fx">● ${esc(f)}</span>`);
+    }
+    return lines.join('<br>');
+  }
+  /** 工具列按鈕：懸浮時顯示提示（和方格紙上的同一個提示框） */
+  function tipOn(b, html) {
+    b.addEventListener('pointerenter', (ev) => { if (ev.pointerType === 'mouse') placeTip(ev, html()); });
+    b.addEventListener('pointermove', (ev) => { if (ev.pointerType === 'mouse') placeTip(ev, html()); });
+    b.addEventListener('pointerleave', hideTip);
+    b.addEventListener('click', hideTip);
+  }
   function markHtml(m) {
     if (m.t === 'spawn') {
       const sq = current.squads[m.squad];
       if (!sq) return `<b>生怪點</b>（小隊 ${esc(m.squad)} 不存在）`;
       const tags = [sq.ambush && '伏兵', sq.captain && '精英隊長', sq.boss && '頭目'].filter(Boolean).join('、');
-      return `<b>生怪點・小隊 ${esc(m.squad)}</b><br>${POOLS.find((p) => p[0] === sq.pool)?.[1] ?? sq.pool} ${sq.count[0]}～${sq.count[1]} 隻${tags ? '，' + tags : ''}`;
+      return `<b>生怪點・${esc(squadLabel(m.squad))}</b><br>${POOLS.find((p) => p[0] === sq.pool)?.[1] ?? sq.pool}（${POOL_HINT[sq.pool] ?? ''}）${sq.count[0]}～${sq.count[1]} 隻${tags ? '，' + tags : ''}`;
     }
     if (m.t === 'object') {
       let h = `<b>${OBJ[m.kind]?.n ?? m.kind}</b>`;
@@ -824,7 +846,7 @@ textarea { font: inherit; color: inherit; background: var(--paper); border: 1px 
       const k = POI[m.kind ?? 'landmark'];
       let h = `<b>${esc(m.name || k.name)}</b>（${k.name}）<br><span class="no">${k.hint}</span>`;
       if (m.radius) h += `<br>範圍 ${m.radius} m`;
-      if (k.fields.includes('squad')) h += `<br>小隊 ${esc(m.squad ?? '—')}`;
+      if (k.fields.includes('squad')) h += `<br>${esc(squadLabel(m.squad ?? '—'))}`;
       if (m.text) h += `<br>「${esc(m.text)}」`;
       return h;
     }
@@ -837,9 +859,10 @@ textarea { font: inherit; color: inherit; background: var(--paper); border: 1px 
     const rows = loot.table.filter((r) => r.w > 0).map((r) => `${esc(LOOT_LABEL[r.k] ?? r.k)} ${Math.round((r.w / sum) * 100)}%`);
     return `掉落 ${loot.rolls} 樣，每樣從：<br>` + (rows.length ? rows.join('<br>') : '<span class="no">（表是空的）</span>');
   }
-  function showTip(ev, [x, y]) {
+  function showTip(ev, [x, y]) { placeTip(ev, tipHtml(x, y)); }
+  function placeTip(ev, html) {
     const tip = $('tip');
-    tip.innerHTML = tipHtml(x, y);
+    tip.innerHTML = html;
     tip.hidden = false;
     const w = tip.offsetWidth, h = tip.offsetHeight;
     let left = ev.clientX + 16, top = ev.clientY + 16;
@@ -1004,7 +1027,7 @@ textarea { font: inherit; color: inherit; background: var(--paper); border: 1px 
 
   function paneSquads(p) {
     const lv = current;
-    p.append(el('div', { class: 'hint' }, '同一個字母的生怪點是同一群敵人。敵人從池子抽，強度跟著遠征的層數走。'));
+    p.append(el('div', { class: 'hint' }, '小隊＝一群一起行動的敵人：同一個字母的生怪點是同一群，一個被驚動整群都會醒。敵人種類從「敵人池」抽，實際隻數在範圍內隨機，強度跟著遠征的層數走。'));
     for (const [k, sq] of Object.entries(lv.squads)) {
       const n = lv.marks.filter((m) => m.t === 'spawn' && m.squad === k).length;
       const lo = el('input', { type: 'number', min: 1, max: 12, value: sq.count[0], onchange: (e) => edit(() => { sq.count[0] = Math.max(1, +e.target.value || 1); }) });
@@ -1013,8 +1036,10 @@ textarea { font: inherit; color: inherit; background: var(--paper); border: 1px 
       p.append(el('div', { class: 'card' },
         el('div', { class: 'row' }, el('strong', {}, '小隊 ' + k), el('span', { class: 'hint' }, `${n} 個生怪點`), el('span', { class: 'grow' }),
           Object.keys(lv.squads).length > 1 ? el('button', { class: 'danger', onclick: () => edit(() => { delete lv.squads[k]; lv.marks = lv.marks.filter((m) => !(m.t === 'spawn' && m.squad === k)); selMark = -1; if (squadSel === k) squadSel = Object.keys(lv.squads)[0]; renderPane(); renderTools(); }) }, '刪除') : null),
-        field('敵人池', sel(POOLS, sq.pool, (v) => edit(() => { sq.pool = v; }))),
-        el('div', { class: 'row' }, el('label', {}, '隻數'), lo, '～', hi),
+        field('名稱', el('input', { type: 'text', value: sq.name ?? '', placeholder: '可空白，例：門口守衛', onchange: (e) => edit(() => { const v = e.target.value.trim(); if (v) sq.name = v; else delete sq.name; renderTools(); }) })),
+        field('敵人池', sel(POOLS, sq.pool, (v) => edit(() => { sq.pool = v; renderPane(); renderTools(); }))),
+        el('div', { class: 'hint' }, POOL_HINT[sq.pool] ?? ''),
+        el('div', { class: 'row' }, el('label', {}, '隻數'), lo, '～', hi, el('span', { class: 'hint' }, '生怪點不夠時，多的站在附近')),
         el('div', { class: 'row' }, ck('ambush', '伏兵'), ck('captain', '精英隊長'), ck('boss', '頭目'))));
     }
     p.append(el('button', { onclick: addSquad }, '＋新增小隊'));
@@ -1038,7 +1063,7 @@ textarea { font: inherit; color: inherit; background: var(--paper); border: 1px 
   function markTitle(m) {
     if (m.t === 'object') return OBJ[m.kind]?.n ?? m.kind;
     if (m.t === 'poi') return (m.name || POI[m.kind ?? 'landmark'].name) + '（' + POI[m.kind ?? 'landmark'].name + '）';
-    if (m.t === 'spawn') return '生怪點・小隊 ' + m.squad;
+    if (m.t === 'spawn') return '生怪點・' + squadLabel(m.squad);
     return MARK_NAME[m.t];
   }
   function markEditor(m, i) {
@@ -1049,7 +1074,7 @@ textarea { font: inherit; color: inherit; background: var(--paper); border: 1px 
       el('button', { class: 'danger', onclick: () => edit(() => { lv.marks.splice(i, 1); selMark = -1; renderPane(); }) }, '刪除')));
     if (m.t === 'door') card.append(el('label', {}, el('input', { type: 'checkbox', checked: !!m.open, onchange: (e) => edit(() => { m.open = e.target.checked; }) }), ' 一開始是開著的'));
     if (m.t === 'exit') card.append(field('方向', sel(EXIT_DIRS, m.dir ?? 'any', (v) => edit(() => { m.dir = v; }))));
-    if (m.t === 'spawn') card.append(field('小隊', sel(Object.keys(lv.squads).map((k) => [k, '小隊 ' + k]), m.squad, (v) => edit(() => { m.squad = v; renderPane(); }))));
+    if (m.t === 'spawn') card.append(field('小隊', sel(Object.keys(lv.squads).map((k) => [k, squadLabel(k)]), m.squad, (v) => edit(() => { m.squad = v; renderPane(); }))));
     if (m.t === 'object') {
       card.append(field('種類', sel(OBJECTS.map(([k, n]) => [k, n]), m.kind, (v) => edit(() => { m.kind = v; if (v !== 'chest') delete m.loot; renderPane(); }))));
       if (m.kind === 'chest') card.append(lootEditor(m));
@@ -1068,7 +1093,7 @@ textarea { font: inherit; color: inherit; background: var(--paper); border: 1px 
       card.append(el('div', { class: 'hint' }, k.hint));
       card.append(field('名稱', el('input', { type: 'text', value: m.name ?? '', onchange: (e) => edit(() => { m.name = e.target.value; }) })));
       if (k.fields.includes('radius')) card.append(el('div', { class: 'row' }, el('label', {}, '範圍'), el('input', { type: 'number', min: 1, max: 40, value: m.radius, onchange: (e) => edit(() => { m.radius = Math.max(1, Math.min(40, +e.target.value || 6)); }) }), el('span', { class: 'hint' }, 'm（方格紙上的虛線圈）')));
-      if (k.fields.includes('squad')) card.append(field('小隊', sel(Object.keys(lv.squads).map((q) => [q, '小隊 ' + q]), m.squad, (v) => edit(() => { m.squad = v; }))));
+      if (k.fields.includes('squad')) card.append(field('小隊', sel(Object.keys(lv.squads).map((q) => [q, squadLabel(q)]), m.squad, (v) => edit(() => { m.squad = v; }))));
       if (k.fields.includes('text')) card.append(el('div', { class: 'row' }, el('label', {}, '文字')), el('textarea', { 'aria-label': '旁白文字', onchange: (e) => edit(() => { m.text = e.target.value; }) }, m.text ?? ''));
     }
     return card;
